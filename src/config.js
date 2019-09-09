@@ -8,7 +8,7 @@ const utils = require('./utils');
  * @typedef {Object} Id5Config
  * @property {boolean|false} debug - enable verbose debug mode (defaulting to id5_debug query string param if present, or false)
  * @property {boolean|false} allowID5WithoutConsentApi - Allow ID5 to fetch user id even if no consent API
- * @property {(string|undefined)} cookieName - ID5 1st party cookie name (defaulting to ID5First)
+ * @property {(string|undefined)} cookieName - ID5 1st party cookie name (defaulting to id5.1st)
  * @property {(number|undefined)} refreshInSeconds - Refresh period of first-party cookie (defaulting to 7200s)
  * @property {(number|undefined)} cookieExpirationInSeconds - Expiration of 1st party cookie (defaulting to 90 days)
  * @property {(number)} partnerId - ID5 Publisher ID, mandatory
