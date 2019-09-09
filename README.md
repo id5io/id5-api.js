@@ -6,7 +6,20 @@ The ID5 Universal ID is a shared, neutral identifier that publishers and ad tech
 
 > NOTE: The API is currently in BETA and may have frequent updates while we make improvements prior to releasing `v1.0`
 
-The ID5 API is designed to make accessing the ID5 Universal ID simple for publishers and their ad tech vendors. The lightweight source code handles users’ consent preferences, retrieving, caching, and storing the ID locally, and making it available to other code on the page, including Prebid.js.
+The ID5 API is designed to make accessing the ID5 Universal ID simple for publishers and their ad tech vendors. The lightweight source code handles users’ consent preferences, retrieving, caching, and storing the ID locally, and making it available to other code on the page, including Prebid.js. A flow diagram of how the ID5 API interacts with your CMP and other vendor tags can be [found below](#api-process-flow).
+
+# Table of Contents
+
+* [ID5 Universal ID](#id5-universal-id)
+* [ID5 API Overview](#id5-api-overview)
+* [Setup and Installation](#setup-and-installation)
+  * [ID5 Partner Creation](#id5-partner-creation)
+  * [Quick Start](#quick-start)
+  * [API Source Code](#api-source-code)
+  * [Usage](#usage)
+* [API Process Flow](#api-process-flow)
+* [Benefits of Using the ID5 API](#benefits-of-using-the-id5-api)
+* [The GDPR and Privacy](#the-gdpr-and-privacy)
 
 # Setup and Installation
 
@@ -18,7 +31,8 @@ The first step to work with the ID5 API and Universal ID is to apply for an ID5 
 
 Download the latest pre-built, minified version from Github
 
-#*UPDATE THIS URL*
+# *UPDATE THIS URL*
+
 * [https://raw.githubusercontent.com/id5io/id5-api.js/master/build/dist/id5-api.js](https://raw.githubusercontent.com/id5io/id5-api.js/master/build/dist/id5-api.js)
 
 Install the ID5 API after your CMP (if applicable), but as high in the `HEAD` as possible
@@ -46,7 +60,8 @@ Retrieve the ID5 ID anywhere on your page
 
 During our BETA period, the API should be installed by sourcing the file from our domain:
 
-#*UPDATE THIS URL*
+# *UPDATE THIS URL*
+
 ```html
 <script src=”https://id5-sync.com/id5-api.js”></script>
 ```
@@ -58,7 +73,7 @@ This will enable us to make more frequent changes and bug fixes without the need
 
 You can download the latest release (and host on your own CDN) in a pre-built, minified version from:
 
-#*UPDATE THIS URL*
+# *UPDATE THIS URL*
 
 * [https://raw.githubusercontent.com/id5io/id5-api.js/master/build/dist/id5-api.js](https://raw.githubusercontent.com/id5io/id5-api.js/master/build/dist/id5-api.js)
 
@@ -142,7 +157,7 @@ There are a few cases in which the ID5.userId may not be ready or have a value:
 | partnerId | Required | integer | | ID5 Partner ID, received after registration with ID5 |
 | partnerUserId | Optional | string | | User ID for the publisher, to be stored by ID5 for further matching if provided |
 | cmpApi | Optional | string | `iab` | API to use CMP. As of today, either 'iab' or 'static' |
-| consentData | Optional, Required if `cmpApi` is `'static'` | object | | Consent data if `cmpApi` is `'static'`. Object should contain the following:`{ getConsentData: { consentData: <consent_data>, gdprApplies: <true|false> }}`
+| consentData | Optional, Required if `cmpApi` is `'static'` | object | | Consent data if `cmpApi` is `'static'`. Object should contain the following:`{ getConsentData: { consentData: <consent_data>, gdprApplies: <true\|false> }}`
 
 ### Available Methods and Variables
 
@@ -210,7 +225,8 @@ $ gulp serve
 
 This runs `lint` and `test`, then starts a web server at `http://localhost:9999` serving from the project root. Navigate to your example implementation to test, and if your `prebid.js` file is sourced from the `./build/dev` directory you will have sourcemaps available in your browser's developer tools.
 
-#*UPDATE THIS URL*
+# *UPDATE THIS URL*
+
 To run the example file, go to:
 
 * `http://localhost:9999/XXXXXX`
@@ -219,7 +235,7 @@ As you make code changes, the bundles will be rebuilt and the page reloaded auto
 
 
 # API Process Flow
-Below is an example flow diagram of how the API interacts with the CMP and other vendor tags.
+Below is an example flow diagram of how the ID5 API interacts with your CMP and other vendor tags.
 
 ![Universal ID Diagram](universal-id-flow.png)
 
