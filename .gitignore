@@ -1,0 +1,11 @@
+# Built Files
+node_modules/
+build
+
+*.iml
+.idea/
+/out/
+.idea_modules/
+
+.DS_Store
+/package-lock.json
