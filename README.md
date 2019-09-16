@@ -17,7 +17,7 @@ The ID5 API is designed to make accessing the ID5 Universal ID simple for publis
   * [Quick Start](#quick-start)
   * [API Source Code](#api-source-code)
   * [Usage](#usage)
-  * [Prebid.js](#prebid.js)
+  * [Prebid.js](#prebidjs)
 * [API Process Flow](#api-process-flow)
 * [Benefits of Using the ID5 API](#benefits-of-using-the-id5-api)
 * [The GDPR and Privacy](#the-gdpr-and-privacy)
