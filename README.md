@@ -17,6 +17,7 @@ The ID5 API is designed to make accessing the ID5 Universal ID simple for publis
   * [Quick Start](#quick-start)
   * [API Source Code](#api-source-code)
   * [Usage](#usage)
+  * [Prebid.js](#prebidjs)
 * [API Process Flow](#api-process-flow)
 * [Benefits of Using the ID5 API](#benefits-of-using-the-id5-api)
 * [The GDPR and Privacy](#the-gdpr-and-privacy)
@@ -25,7 +26,7 @@ The ID5 API is designed to make accessing the ID5 Universal ID simple for publis
 
 ## ID5 Partner Creation
 
-The first step to work with the ID5 API and Universal ID is to apply for an ID5 Partner account. If you are not already integrated with ID5, simply go to [id5.io/prebid](https://id5.io/prebid) and register for an account.
+The first step to work with the ID5 API and Universal ID is to apply for an ID5 Partner account. If you are not already integrated with ID5, simply go to [id5.io/universal-id](https://id5.io/universal-id) and register for an account.
 
 ## Quick Start
 
@@ -45,6 +46,8 @@ Install the ID5 API after your CMP (if applicable), but as high in the `HEAD` as
 Install the ID5 API after your CMP (if applicable), but as high in the `HEAD` as possible
 
 ```html
+<!-- CMP code goes here -->
+
 <script src="https://cdn.id5-sync.com/api/0.8/id5-api.js"></script>
 <script>
   ID5.init({partnerId: 173}); // modify with your own partnerId
@@ -234,6 +237,30 @@ This runs `lint` and `test`, then starts a web server at `http://localhost:9999`
 
 As you make code changes, the bundles will be rebuilt and the page reloaded automatically.
 
+## Prebid.js
+
+The ID5 API can be used alongside the [User ID module in Prebid.js](http://prebid.org/dev-docs/modules/userId.html#id5-id), allowing publishers to centrally manage the Universal ID while still leveraging Prebid to push the Universal ID to its demand partners.
+
+When deploying the ID5 API alongside Prebid on a webpage, ensure that the following order is maintained when including the code:
+
+1. CMP
+1. ID5 API
+1. Prebid.js
+
+Within the [Prebid.js configuration for the ID5 ID](http://prebid.org/dev-docs/modules/userId.html#id5-id-configuration), rather than providing the `params` object, set the `value` object with the ID5 ID:
+
+```javascript
+pbjs.setConfig({
+    usersync: {
+        userIds: [{
+            name: "id5Id",
+            value: { "id5id": ID5.userId }
+        }]
+    }
+});
+```
+
+Note that both the User ID module and ID5 submodule must be included in the Prebid build, even when using the ID5 API to manage the ID5 Universal ID. For more detailed instructions on how to use the ID5 Universal ID in Prebid, refer to [our documentation](https://console.id5.io/docs/public/prebid).
 
 # API Process Flow
 Below is an example flow diagram of how the ID5 API interacts with your CMP and other vendor tags.
