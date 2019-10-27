@@ -37,11 +37,11 @@ describe('Publisher API', function () {
       ID5.userId = undefined;
     });
 
-    it('Use non-expired cookie if available', function () {
+    it('Use non-expired cookie if available, even without consent', function () {
       const expStr = (new Date(Date.now() + 5000).toUTCString())
       utils.setCookie('id5.1st', JSON.stringify({'ID5ID': 'testid5id'}), expStr);
       utils.setCookie('id5.1st_last', Date.now(), expStr);
-      ID5.init({ partnerId: 99, cmpApi: 'iab', allowID5WithoutConsentApi: true });
+      ID5.init({ partnerId: 99, cmpApi: 'iab', allowID5WithoutConsentApi: false });
 
       sinon.assert.notCalled(ajaxStub);
       expect(ID5.userId).to.be.equal('testid5id');

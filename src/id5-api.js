@@ -16,35 +16,41 @@ ID5.loaded = true;
  * @alias module:ID5.init
  */
 
+// TODO: Use Async init by pushing setting in a queue
 ID5.init = function (options) {
   try {
     utils.logInfo('Invoking ID5.init', arguments);
     const cfg = config.setConfig(options);
-    if (cfg.debug) {
-      utils.logInfo('ID5 is operating in debug mode');
-    }
     const referer = getRefererInfo();
-    if (cfg.debug) {
-      utils.logInfo(`ID5 detected referer is ${referer.referer}`);
+    utils.logInfo(`ID5 detected referer is ${referer.referer}`);
+
+    const storedId = JSON.parse(utils.getCookie(cfg.cookieName));
+    const storedDate = new Date(+utils.getCookie(`${cfg.cookieName}_last`));
+    const refreshNeeded = storedDate.getTime() > 0 && (Date.now() - storedDate.getTime() > cfg.refreshInSeconds * 1000);
+    if (storedId) {
+      ID5.userId = storedId.ID5ID;
+      utils.logInfo('ID5 User ID already available:', storedId, storedDate, refreshNeeded);
+    } else {
+      utils.logInfo('No ID5 User ID available');
     }
 
     consent.requestConsent((consentData) => {
       if (consent.isLocalStorageAllowed()) {
         utils.logInfo('Consent to access local storage and cookies is given');
 
-        const storedId = JSON.parse(utils.getCookie(cfg.cookieName));
-        const storedDate = new Date(+utils.getCookie(`${cfg.cookieName}_last`));
-        const refreshNeeded = storedDate.getTime() > 0 && (Date.now() - storedDate.getTime() > cfg.refreshInSeconds * 1000);
-        utils.logInfo('ready', storedId, storedDate, refreshNeeded);
-
-        if (storedId) {
-          ID5.userId = storedId.ID5ID;
-        }
         if (!storedId || refreshNeeded) {
           const gdprApplies = (consentData && consentData.gdprApplies) ? 1 : 0;
           const gdprConsentString = (consentData && consentData.gdprApplies) ? consentData.consentString : '';
           const url = `https://id5-sync.com/g/v1/${cfg.partnerId}.json`;
-
+          const data = { '1puid': ID5.userId || '',
+            'gdpr': gdprApplies,
+            'gdpr_consent': gdprConsentString,
+            'rf': referer.referer,
+            'top': referer.reachedTop ? 1 : 0,
+            'v': ID5.version || '' };
+          if (cfg.debug) {
+            utils.logInfo('Fetching ID5 user ID from:', url, data);
+          }
           utils.ajax(url, response => {
             let responseObj;
             if (response) {
@@ -56,7 +62,9 @@ ID5.init = function (options) {
                   utils.setCookie(cfg.cookieName, response, expiresStr);
                   utils.setCookie(`${cfg.cookieName}_last`, Date.now(), expiresStr);
                   if (responseObj.CASCADE_NEEDED) {
-                    let syncUrl = `https://id5-sync.com/${cfg.partnerUserId ? 's' : 'i'}/${cfg.partnerId}/8.gif`;
+                    // TODO: Should not use AJAX Call for cascades as some partners may not have CORS Headers
+                    const syncUrl = `https://id5-sync.com/${cfg.partnerUserId ? 's' : 'i'}/${cfg.partnerId}/8.gif`;
+                    utils.logInfo('Opportunities of cascades available:', syncUrl, data);
                     utils.ajax(syncUrl, () => {}, {
                       puid: cfg.partnerUserId
                     }, {
@@ -72,24 +80,14 @@ ID5.init = function (options) {
                 utils.logError(error);
               }
             }
-          }, {
-            '1puid': ID5.userId || '',
-            'gdpr': gdprApplies,
-            'gdpr_consent': gdprConsentString,
-            'rf': referer.referer,
-            'top': referer.reachedTop ? 1 : 0,
-            'v': ID5.version || ''
-          }, {
-            method: 'GET',
-            withCredentials: true
-          });
+          }, data, { method: 'GET', withCredentials: true });
         }
       } else {
         utils.logInfo('No legitimate consent to use ID5', consentData);
       }
     });
   } catch (e) {
-    utils.logError(e);
+    utils.logError('Exception catch', e);
   }
 };
 

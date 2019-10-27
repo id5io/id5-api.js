@@ -46,10 +46,12 @@ function lookupIabConsent(cmpSuccess, finalCallback) {
 
     return {
       consentDataCallback: function (consentResponse) {
+        utils.logInfo(`cmpApi: consentDataCallback`);
         cmpResponse.getConsentData = consentResponse;
         afterEach();
       },
       vendorConsentsCallback: function (consentResponse) {
+        utils.logInfo(`cmpApi: vendorConsentsCallback`);
         cmpResponse.getVendorConsents = consentResponse;
         afterEach();
       }
@@ -64,6 +66,7 @@ function lookupIabConsent(cmpSuccess, finalCallback) {
   } catch (e) { }
 
   if (utils.isFn(cmpFunction)) {
+    utils.logInfo(`cmpApi: calling getConsentData & getVendorConsents`);
     cmpFunction('getConsentData', null, callbackHandler.consentDataCallback);
     cmpFunction('getVendorConsents', null, callbackHandler.vendorConsentsCallback);
   } else {
@@ -79,9 +82,9 @@ function lookupIabConsent(cmpSuccess, finalCallback) {
 export function requestConsent(finalCallback) {
   const cfg = config.getConfig();
   if (cfg.allowID5WithoutConsentApi) {
-    utils.logWarn('ID5 is operating in forced consent mode');
-  }
-  if (!cmpCallMap[cfg.cmpApi]) {
+    utils.logError('ID5 is operating in forced consent mode');
+    finalCallback(consentData);
+  } else if (!cmpCallMap[cfg.cmpApi]) {
     utils.logError(`Unknown consent API: ${cfg.cmpApi}`);
     resetConsentData();
     finalCallback(consentData);
