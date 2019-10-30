@@ -1,6 +1,5 @@
 # Built Files
 node_modules/
-build
 
 *.iml
 .idea/
