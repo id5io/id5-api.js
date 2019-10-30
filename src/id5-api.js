@@ -51,6 +51,7 @@ ID5.init = function (options) {
             'gdpr_consent': gdprConsentString,
             'rf': referer.referer,
             'top': referer.reachedTop ? 1 : 0,
+            'o': 'api',
             'v': ID5.version || '' };
           if (cfg.debug) {
             utils.logInfo('Fetching ID5 user ID from:', url, data);
