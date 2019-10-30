@@ -9,6 +9,7 @@ import { getRefererInfo } from './refererDetection';
 export const ID5 = getGlobal();
 
 ID5.loaded = true;
+ID5.initialized = false;
 
 /**
  * This function will initialize ID5, wait for consent then try to fetch or refresh ID5 user id if required
@@ -21,6 +22,9 @@ ID5.init = function (options) {
   try {
     utils.logInfo('Invoking ID5.init', arguments);
     const cfg = config.setConfig(options);
+    ID5.userConfig = options;
+    ID5.config = cfg;
+    ID5.initialized = true;
     const referer = getRefererInfo();
     utils.logInfo(`ID5 detected referer is ${referer.referer}`);
 

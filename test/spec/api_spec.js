@@ -17,6 +17,18 @@ describe('Publisher API', function () {
     it('should be loaded', function () {
       expect(ID5.loaded).to.be.a('boolean');
       expect(ID5.loaded).to.be.true;
+      expect(ID5.initialized).to.be.a('boolean');
+      expect(ID5.initialized).to.be.false;
+    });
+
+    it('Should have user-defined config and final config available', function () {
+      ID5.init({ partnerId: 99, cmpApi: 'iab', allowID5WithoutConsentApi: false });
+      expect(ID5.userConfig.partnerId).to.be.equal(99);
+      expect(ID5.userConfig.cookieName).to.be.undefined;
+      expect(ID5.config.partnerId).to.be.equal(99);
+      expect(ID5.config.cookieName).to.be.equal('id5.1st');
+      expect(ID5.initialized).to.be.true;
+      config.resetConfig();
     });
   });
 
