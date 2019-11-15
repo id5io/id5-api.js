@@ -118,7 +118,6 @@ describe('consentManagement', function () {
         requestConsent(function (consentData) { callbackCalled = true; });
 
         sinon.assert.calledOnce(utils.logError);
-        sinon.assert.calledOnce(utils.logWarn);
         expect(callbackCalled).to.be.true;
         expect(consentData).to.be.undefined;
         expect(isLocalStorageAllowed()).to.be.true;
@@ -186,7 +185,6 @@ describe('consentManagement', function () {
         cmpStub = sinon.stub(window, '__cmp').callsFake((...args) => { args[2]({}); });
         requestConsent(function (consentData) { callbackCalled = true; });
 
-        sinon.assert.calledOnce(utils.logWarn);
         sinon.assert.calledOnce(utils.logError);
         expect(callbackCalled).to.be.true;
         expect(consentData).to.be.undefined;

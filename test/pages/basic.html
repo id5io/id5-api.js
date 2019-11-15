@@ -7,9 +7,15 @@
     <!-- Quantcast Choice. Consent Manager Tag -->
     <script type="text/javascript" src="quantcast-cmp.js" async="true"></script>
 
+    <!-- id5-api.js -->
+    <script type="text/javascript" src="/build/dev/id5-api.js"></script>
+    <script>
+      ID5.init({ partnerId: 99, cmpApi: 'iab'});
+    </script>
+
     <!-- prebid.js -->
     <script async src="//www.googletagservices.com/tag/js/gpt.js"></script>
-    <script async src="prebid2.31.0.js"></script>
+    <script async src="prebid2.32.0.js"></script>
     <script>
         var div_1_sizes = [
             [300, 250],
@@ -68,15 +74,16 @@
             pbjs.setConfig({
                 usersync: {
                     userIds: [{
-                        name: "id5Id",
-                        params: {
-                            partner: 153
-                        },
-                        storage: {
-                            type: "cookie",
-                            name: "pbjs-id5id",
-                            expires: 5
-                        }
+                      name: "id5Id",
+                      params: {
+                        partner: 153
+                      },
+                      storage: {
+                        type: "cookie",
+                        name: "pbjs-id5id",
+                        expires: 5
+                      }
+//                      value: { "id5id": ID5.userId }
                     }],
                     syncDelay: 1000
                 },
@@ -134,7 +141,6 @@
               googletag.cmd.push(function() {
                   googletag.display('div-1');
               });
-
           </script>
       </div>
 
@@ -146,7 +152,6 @@
               googletag.cmd.push(function() {
                   googletag.display('div-2');
               });
-
           </script>
       </div>
 
