@@ -8,6 +8,8 @@ The ID5 Universal ID is a shared, neutral identifier that publishers and ad tech
 
 The ID5 API is designed to make accessing the ID5 Universal ID simple for publishers and their ad tech vendors. The lightweight source code handles users’ consent preferences, retrieving, caching, and storing the ID locally, and making it available to other code on the page, including Prebid.js. A flow diagram of how the ID5 API interacts with your CMP and other vendor tags can be [found below](#api-process-flow).
 
+Stay up-to-date with all of our API releases by subscribing to our [release notes](https://id5.io/universal-id/release-notes).
+
 # Table of Contents
 
 * [ID5 Universal ID](#id5-universal-id)

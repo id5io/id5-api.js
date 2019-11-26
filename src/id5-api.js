@@ -49,7 +49,7 @@ ID5.init = function (options) {
           const data = { '1puid': ID5.userId || '',
             'gdpr': gdprApplies,
             'gdpr_consent': gdprConsentString,
-            'rf': referer.referer,
+            'rf': encodeURIComponent(referer.referer),
             'top': referer.reachedTop ? 1 : 0,
             'o': 'api',
             'v': ID5.version || '' };
