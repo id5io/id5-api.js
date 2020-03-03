@@ -81,7 +81,7 @@ function decorateLog(args, prefix) {
 }
 
 export function debugTurnedOn() {
-  return !!config.getConfig('debug');
+  return config.getConfig().debug;
 }
 
 /*
