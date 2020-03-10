@@ -68,10 +68,13 @@ ID5.init = function (options) {
                   utils.setCookie(`${cfg.cookieName}_last`, Date.now(), expiresStr);
                   if (responseObj.CASCADE_NEEDED) {
                     // TODO: Should not use AJAX Call for cascades as some partners may not have CORS Headers
-                    const syncUrl = `https://id5-sync.com/${cfg.partnerUserId ? 's' : 'i'}/${cfg.partnerId}/8.gif`;
+                    const isSync = cfg.partnerUserId && cfg.partnerUserId.length > 0;
+                    const syncUrl = `https://id5-sync.com/${isSync ? 's' : 'i'}/${cfg.partnerId}/8.gif`;
                     utils.logInfo('Opportunities of cascades available:', syncUrl, data);
                     utils.ajax(syncUrl, () => {}, {
-                      puid: cfg.partnerUserId
+                      puid: isSync ? cfg.partnerUserId : null,
+                      gdpr: gdprApplies,
+                      gdpr_consent: gdprConsentString
                     }, {
                       method: 'GET',
                       withCredentials: true
