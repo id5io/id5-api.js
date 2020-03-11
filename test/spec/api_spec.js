@@ -33,7 +33,12 @@ describe('Publisher API', function () {
   });
 
   describe('ID5.init:', function () {
-    const jsonResponse = JSON.stringify({'ID5ID': 'testid5id', 'CASCADE_NEEDED': true});
+    const jsonResponse = JSON.stringify({
+      'universal_uid': 'testid5id',
+      'cascade_needed': true,
+      'signature': 'abcdef',
+      'link_type': 0
+    });
     let ajaxStub;
     beforeEach(function () {
       ajaxStub = sinon.stub(utils, 'ajax').callsFake(function(url, callback, data, options) {
@@ -51,7 +56,7 @@ describe('Publisher API', function () {
 
     it('Use non-expired cookie if available, even without consent', function () {
       const expStr = (new Date(Date.now() + 5000).toUTCString())
-      utils.setCookie('id5.1st', JSON.stringify({'ID5ID': 'testid5id'}), expStr);
+      utils.setCookie('id5.1st', JSON.stringify({'universal_uid': 'testid5id'}), expStr);
       utils.setCookie('id5.1st_last', Date.now(), expStr);
       ID5.init({ partnerId: 99, cmpApi: 'iab', allowID5WithoutConsentApi: false });
 
@@ -63,24 +68,24 @@ describe('Publisher API', function () {
       ID5.init({ partnerId: 99, cmpApi: 'iab', allowID5WithoutConsentApi: true });
 
       sinon.assert.calledTwice(ajaxStub);
-      expect(ajaxStub.firstCall.args[0]).to.be.equal('https://id5-sync.com/g/v1/99.json');
+      expect(ajaxStub.firstCall.args[0]).to.be.equal('https://id5-sync.com/g/v2/99.json?gdpr_consent=&gdpr=0');
       expect(ajaxStub.firstCall.args[3].withCredentials).to.be.true;
       const dataPrebid = ajaxStub.firstCall.args[2];
-      expect(dataPrebid['1puid']).to.be.equal('');
+      expect(dataPrebid['signature']).to.be.equal('');
       expect(ID5.userId).to.be.equal('testid5id');
     });
 
     it('Call id5 servers with existing value via Ajax if expired cookie', function () {
       const expStr = (new Date(Date.now() + 5000).toUTCString());
-      utils.setCookie('id5.1st', JSON.stringify({'ID5ID': 'testid5id'}), expStr);
+      utils.setCookie('id5.1st', JSON.stringify({'universal_uid': 'testid5id'}), expStr);
       utils.setCookie('id5.1st_last', Date.now() - 8000 * 1000, expStr);
       ID5.init({ partnerId: 99, cmpApi: 'iab', allowID5WithoutConsentApi: true });
 
       sinon.assert.calledTwice(ajaxStub);
-      expect(ajaxStub.firstCall.args[0]).to.be.equal('https://id5-sync.com/g/v1/99.json');
+      expect(ajaxStub.firstCall.args[0]).to.be.equal('https://id5-sync.com/g/v1/99.json?gdpr_consent=&gdpr=0');
       expect(ajaxStub.firstCall.args[3].withCredentials).to.be.true;
       const dataPrebid = ajaxStub.firstCall.args[2];
-      expect(dataPrebid['1puid']).to.be.equal('testid5id');
+      expect(dataPrebid['universal_uid']).to.be.equal('testid5id');
       expect(dataPrebid['rf']).to.include('http://localhost:9876/');
       expect(dataPrebid['top']).to.be.equal(1);
       expect(ajaxStub.secondCall.args[0]).to.be.equal('https://id5-sync.com/i/99/8.gif');
@@ -92,7 +97,12 @@ describe('Publisher API', function () {
     });
   });
   describe('ID5.init without cascade:', function () {
-    const jsonResponse = JSON.stringify({'ID5ID': 'testid5id', 'CASCADE_NEEDED': false});
+    const jsonResponse = JSON.stringify({
+      'universal_uid': 'testid5id',
+      'cascade_needed': false,
+      'signature': 'abcdef',
+      'link_type': 0
+    });
     let ajaxStub;
     beforeEach(function () {
       ajaxStub = sinon.stub(utils, 'ajax').callsFake(function(url, callback, data, options) {
@@ -112,15 +122,20 @@ describe('Publisher API', function () {
       ID5.init({ partnerId: 99, cmpApi: 'iab', allowID5WithoutConsentApi: true });
 
       sinon.assert.calledOnce(ajaxStub);
-      expect(ajaxStub.firstCall.args[0]).to.be.equal('https://id5-sync.com/g/v1/99.json');
+      expect(ajaxStub.firstCall.args[0]).to.be.equal('https://id5-sync.com/g/v2/99.json?gdpr_consent=&gdpr=0');
       expect(ajaxStub.firstCall.args[3].withCredentials).to.be.true;
       const dataPrebid = ajaxStub.firstCall.args[2];
-      expect(dataPrebid['1puid']).to.be.equal('');
+      expect(dataPrebid['signature']).to.be.equal('');
       expect(ID5.userId).to.be.equal('testid5id');
     });
   });
   describe('ID5.init async with cascade:', function () {
-    const jsonResponse = JSON.stringify({'ID5ID': 'testid5id', 'CASCADE_NEEDED': true});
+    const jsonResponse = JSON.stringify({
+      'universal_uid': 'testid5id',
+      'cascade_needed': true,
+      'signature': 'abcdef',
+      'link_type': 0
+    });
     let ajaxStub;
     beforeEach(function () {
       ajaxStub = sinon.stub(utils, 'ajax').callsFake(function(url, callback, data, options) {
@@ -140,10 +155,10 @@ describe('Publisher API', function () {
       ID5.init({ partnerId: 99, partnerUserId: 'partnerUid', cmpApi: 'iab', allowID5WithoutConsentApi: true });
 
       sinon.assert.calledOnce(ajaxStub);
-      expect(ajaxStub.firstCall.args[0]).to.be.equal('https://id5-sync.com/g/v1/99.json');
+      expect(ajaxStub.firstCall.args[0]).to.be.equal('https://id5-sync.com/g/v2/99.json?gdpr_consent=&gdpr=0');
       expect(ajaxStub.firstCall.args[3].withCredentials).to.be.true;
       const dataPrebid = ajaxStub.firstCall.args[2];
-      expect(dataPrebid['1puid']).to.be.equal('');
+      expect(dataPrebid['signature']).to.be.equal('');
 
       expect(ID5.userId).to.be.undefined;
       setTimeout(() => {
@@ -158,15 +173,15 @@ describe('Publisher API', function () {
     });
     it('Call id5 servers with existing value via Ajax if expired cookie and return another value', function () {
       const expStr = (new Date(Date.now() + 5000).toUTCString());
-      utils.setCookie('id5.1st', JSON.stringify({'ID5ID': 'dummy'}), expStr);
+      utils.setCookie('id5.1st', JSON.stringify({'universal_id': 'dummy'}), expStr);
       utils.setCookie('id5.1st_last', Date.now() - 8000 * 1000, expStr);
       ID5.init({ partnerId: 99, cmpApi: 'iab', allowID5WithoutConsentApi: true });
 
       sinon.assert.calledOnce(ajaxStub);
       const dataPrebid = ajaxStub.firstCall.args[2];
-      expect(ajaxStub.firstCall.args[0]).to.be.equal('https://id5-sync.com/g/v1/99.json');
+      expect(ajaxStub.firstCall.args[0]).to.be.equal('https://id5-sync.com/g/v2/99.json?gdpr_consent=&gdpr=0');
       expect(ajaxStub.firstCall.args[3].withCredentials).to.be.true;
-      expect(dataPrebid['1puid']).to.be.equal('dummy');
+      expect(dataPrebid['universal_id']).to.be.equal('dummy');
       expect(ID5.userId).to.be.equal('dummy');
       setTimeout(() => {
         expect(ID5.userId).to.be.equal('testid5id');

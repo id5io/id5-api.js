@@ -28,12 +28,13 @@ ID5.init = function (options) {
     const referer = getRefererInfo();
     utils.logInfo(`ID5 detected referer is ${referer.referer}`);
 
-    const storedId = JSON.parse(utils.getCookie(cfg.cookieName));
+    const storedResponse = JSON.parse(utils.getCookie(cfg.cookieName));
     const storedDate = new Date(+utils.getCookie(`${cfg.cookieName}_last`));
     const refreshNeeded = storedDate.getTime() > 0 && (Date.now() - storedDate.getTime() > cfg.refreshInSeconds * 1000);
-    if (storedId) {
-      ID5.userId = storedId.ID5ID;
-      utils.logInfo('ID5 User ID already available:', storedId, storedDate, refreshNeeded);
+    if (storedResponse.universal_uid) {
+      ID5.userId = storedResponse.universal_uid;
+      ID5.linkType = storedResponse.link_type || 0;
+      utils.logInfo('ID5 User ID already available:', storedResponse, storedDate, refreshNeeded);
     } else {
       utils.logInfo('No ID5 User ID available');
     }
@@ -42,17 +43,18 @@ ID5.init = function (options) {
       if (consent.isLocalStorageAllowed()) {
         utils.logInfo('Consent to access local storage and cookies is given');
 
-        if (!storedId || refreshNeeded) {
+        if (!storedResponse || !storedResponse.universal_uid || !storedResponse.signature || refreshNeeded) {
           const gdprApplies = (consentData && consentData.gdprApplies) ? 1 : 0;
           const gdprConsentString = (consentData && consentData.gdprApplies) ? consentData.consentString : '';
-          const url = `https://id5-sync.com/g/v1/${cfg.partnerId}.json`;
-          const data = { '1puid': ID5.userId || '',
-            'gdpr': gdprApplies,
-            'gdpr_consent': gdprConsentString,
+          const url = `https://id5-sync.com/g/v2/${cfg.partnerId}.json?gdpr_consent=${gdprConsentString}&gdpr=${gdprApplies}`;
+          const data = {
+            'v': ID5.version || '',
+            'o': 'api',
             'rf': encodeURIComponent(referer.referer),
             'top': referer.reachedTop ? 1 : 0,
-            'o': 'api',
-            'v': ID5.version || '' };
+            's': storedResponse.signature,
+            'pd': cfg.pd || {}
+          };
           if (cfg.debug) {
             utils.logInfo('Fetching ID5 user ID from:', url, data);
           }
@@ -61,16 +63,16 @@ ID5.init = function (options) {
             if (response) {
               try {
                 responseObj = JSON.parse(response);
-                if (responseObj.ID5ID) {
-                  ID5.userId = responseObj.ID5ID;
+                if (responseObj.universal_uid) {
+                  ID5.userId = responseObj.universal_uid;
                   const expiresStr = (new Date(Date.now() + (cfg.cookieExpirationInSeconds * 1000))).toUTCString();
                   utils.setCookie(cfg.cookieName, response, expiresStr);
                   utils.setCookie(`${cfg.cookieName}_last`, Date.now(), expiresStr);
-                  if (responseObj.CASCADE_NEEDED) {
+                  if (responseObj.cascade_needed) {
                     // TODO: Should not use AJAX Call for cascades as some partners may not have CORS Headers
                     const isSync = cfg.partnerUserId && cfg.partnerUserId.length > 0;
                     const syncUrl = `https://id5-sync.com/${isSync ? 's' : 'i'}/${cfg.partnerId}/8.gif`;
-                    utils.logInfo('Opportunities of cascades available:', syncUrl, data);
+                    utils.logInfo('Opportunities to cascades available:', syncUrl, data);
                     utils.ajax(syncUrl, () => {}, {
                       puid: isSync ? cfg.partnerUserId : null,
                       gdpr: gdprApplies,
@@ -88,10 +90,10 @@ ID5.init = function (options) {
                 utils.logError(error);
               }
             }
-          }, data, { method: 'GET', withCredentials: true });
+          }, data, { method: 'POST', withCredentials: true });
         }
       } else {
-        utils.logInfo('No legitimate consent to use ID5', consentData);
+        utils.logInfo('No legal basis to use ID5', consentData);
       }
     });
   } catch (e) {
