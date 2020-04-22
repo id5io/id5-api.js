@@ -9,7 +9,7 @@ const EXPIRED_COOKIE_DATE = 'Thu, 01 Jan 1970 00:00:01 GMT';
 describe('Publisher API', function () {
   describe('Core API availability', function () {
     it('should have a global variable ID5', function () {
-      expect(ID5).to.be.an('object');
+      expect(ID5).to.be.a('object');
     });
     it('should have function ID5.init', function () {
       expect(ID5.init).to.be.a('function');
@@ -64,38 +64,40 @@ describe('Publisher API', function () {
       expect(ID5.userId).to.be.equal('testid5id');
     });
 
-    it('Call id5 servers via Ajax if no cookie and consent', function () {
+    it('Call id5 servers via Ajax if consent but no cookie', function () {
       ID5.init({ partnerId: 99, cmpApi: 'iab', allowID5WithoutConsentApi: true });
 
-      sinon.assert.calledTwice(ajaxStub);
+      sinon.assert.calledTwice(ajaxStub); // 2nd call is the usersync pixel
       expect(ajaxStub.firstCall.args[0]).to.be.equal('https://id5-sync.com/g/v2/99.json?gdpr_consent=&gdpr=0');
       expect(ajaxStub.firstCall.args[3].withCredentials).to.be.true;
-      const dataPrebid = ajaxStub.firstCall.args[2];
-      expect(dataPrebid['signature']).to.be.equal('');
+      const dataPrebid = JSON.parse(ajaxStub.firstCall.args[2]);
+      expect(dataPrebid.s).to.be.equal('');
       expect(ID5.userId).to.be.equal('testid5id');
     });
 
     it('Call id5 servers with existing value via Ajax if expired cookie', function () {
       const expStr = (new Date(Date.now() + 5000).toUTCString());
-      utils.setCookie('id5.1st', JSON.stringify({'universal_uid': 'testid5id'}), expStr);
+      utils.setCookie('id5.1st', JSON.stringify({'signature': 'abcdef'}), expStr);
       utils.setCookie('id5.1st_last', Date.now() - 8000 * 1000, expStr);
       ID5.init({ partnerId: 99, cmpApi: 'iab', allowID5WithoutConsentApi: true });
 
-      sinon.assert.calledTwice(ajaxStub);
-      expect(ajaxStub.firstCall.args[0]).to.be.equal('https://id5-sync.com/g/v1/99.json?gdpr_consent=&gdpr=0');
+      sinon.assert.calledTwice(ajaxStub); // 2nd call is usersync pixel
+      expect(ajaxStub.firstCall.args[0]).to.be.equal('https://id5-sync.com/g/v2/99.json?gdpr_consent=&gdpr=0');
       expect(ajaxStub.firstCall.args[3].withCredentials).to.be.true;
-      const dataPrebid = ajaxStub.firstCall.args[2];
-      expect(dataPrebid['universal_uid']).to.be.equal('testid5id');
-      expect(dataPrebid['rf']).to.include('http://localhost:9876/');
-      expect(dataPrebid['top']).to.be.equal(1);
+      const dataPrebid = JSON.parse(ajaxStub.firstCall.args[2]);
+      expect(dataPrebid.s).to.be.equal('abcdef');
+      expect(dataPrebid.rf).to.include('http://localhost:9876/');
+      expect(dataPrebid.top).to.be.equal(1);
+
       expect(ajaxStub.secondCall.args[0]).to.be.equal('https://id5-sync.com/i/99/8.gif');
       expect(ajaxStub.secondCall.args[3].withCredentials).to.be.true;
       const dataSync = ajaxStub.secondCall.args[2];
-      expect(dataSync['puid']).to.be.undefined;
+      expect(dataSync.puid).to.be.null;
 
       expect(ID5.userId).to.be.equal('testid5id');
     });
   });
+
   describe('ID5.init without cascade:', function () {
     const jsonResponse = JSON.stringify({
       'universal_uid': 'testid5id',
@@ -118,17 +120,18 @@ describe('Publisher API', function () {
       ID5.userId = undefined;
     });
 
-    it('Call id5 servers via Ajax if no cookie and consent', function () {
+    it('Call id5 servers via Ajax if consent but no cookie', function () {
       ID5.init({ partnerId: 99, cmpApi: 'iab', allowID5WithoutConsentApi: true });
 
-      sinon.assert.calledOnce(ajaxStub);
+      sinon.assert.calledOnce(ajaxStub); // no 2nd call for usersync
       expect(ajaxStub.firstCall.args[0]).to.be.equal('https://id5-sync.com/g/v2/99.json?gdpr_consent=&gdpr=0');
       expect(ajaxStub.firstCall.args[3].withCredentials).to.be.true;
-      const dataPrebid = ajaxStub.firstCall.args[2];
-      expect(dataPrebid['signature']).to.be.equal('');
+      const dataPrebid = JSON.parse(ajaxStub.firstCall.args[2]);
+      expect(dataPrebid.s).to.be.equal('');
       expect(ID5.userId).to.be.equal('testid5id');
     });
   });
+
   describe('ID5.init async with cascade:', function () {
     const jsonResponse = JSON.stringify({
       'universal_uid': 'testid5id',
@@ -151,14 +154,14 @@ describe('Publisher API', function () {
       ID5.userId = undefined;
     });
 
-    it('Call id5 servers via Ajax if no cookie and consent', function (done) {
+    it('Call id5 servers via Ajax if consent but no cookie', function (done) {
       ID5.init({ partnerId: 99, partnerUserId: 'partnerUid', cmpApi: 'iab', allowID5WithoutConsentApi: true });
 
       sinon.assert.calledOnce(ajaxStub);
       expect(ajaxStub.firstCall.args[0]).to.be.equal('https://id5-sync.com/g/v2/99.json?gdpr_consent=&gdpr=0');
       expect(ajaxStub.firstCall.args[3].withCredentials).to.be.true;
-      const dataPrebid = ajaxStub.firstCall.args[2];
-      expect(dataPrebid['signature']).to.be.equal('');
+      const dataPrebid = JSON.parse(ajaxStub.firstCall.args[2]);
+      expect(dataPrebid.s).to.be.equal('');
 
       expect(ID5.userId).to.be.undefined;
       setTimeout(() => {
@@ -173,16 +176,17 @@ describe('Publisher API', function () {
     });
     it('Call id5 servers with existing value via Ajax if expired cookie and return another value', function () {
       const expStr = (new Date(Date.now() + 5000).toUTCString());
-      utils.setCookie('id5.1st', JSON.stringify({'universal_id': 'dummy'}), expStr);
+      utils.setCookie('id5.1st', JSON.stringify({'universal_uid': 'uidFromCookie', 'signature': 'dummy'}), expStr);
       utils.setCookie('id5.1st_last', Date.now() - 8000 * 1000, expStr);
       ID5.init({ partnerId: 99, cmpApi: 'iab', allowID5WithoutConsentApi: true });
 
       sinon.assert.calledOnce(ajaxStub);
-      const dataPrebid = ajaxStub.firstCall.args[2];
+      const dataPrebid = JSON.parse(ajaxStub.firstCall.args[2]);
       expect(ajaxStub.firstCall.args[0]).to.be.equal('https://id5-sync.com/g/v2/99.json?gdpr_consent=&gdpr=0');
       expect(ajaxStub.firstCall.args[3].withCredentials).to.be.true;
-      expect(dataPrebid['universal_id']).to.be.equal('dummy');
-      expect(ID5.userId).to.be.equal('dummy');
+      expect(dataPrebid.s).to.be.equal('dummy');
+      console.log(ID5.userId);
+      expect(ID5.userId).to.be.equal('uidFromCookie');
       setTimeout(() => {
         expect(ID5.userId).to.be.equal('testid5id');
         done();

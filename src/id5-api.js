@@ -54,9 +54,9 @@ ID5.init = function (options) {
           const gdprApplies = (consentData && consentData.gdprApplies) ? 1 : 0;
           const gdprConsentString = (consentData && consentData.gdprApplies) ? consentData.consentString : '';
           const url = `https://id5-sync.com/g/v2/${cfg.partnerId}.json?gdpr_consent=${gdprConsentString}&gdpr=${gdprApplies}`;
-          const signature = (storedResponse && storedResponse.signature) ? storedResponse.signature : null;
+          const signature = (storedResponse && storedResponse.signature) ? storedResponse.signature : '';
           // TODO: remove when 1puid isn't needed
-          const pubId = (storedResponse && storedResponse.ID5ID) ? storedResponse.ID5ID : null;
+          const pubId = (storedResponse && storedResponse.ID5ID) ? storedResponse.ID5ID : '';
 
           const data = {
             '1puid': pubId, // TODO: remove when 1puid isn't needed
