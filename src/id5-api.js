@@ -31,7 +31,7 @@ ID5.init = function (options) {
     const storedResponse = JSON.parse(utils.getCookie(cfg.cookieName));
     const storedDate = new Date(+utils.getCookie(`${cfg.cookieName}_last`));
     const refreshNeeded = storedDate.getTime() > 0 && (Date.now() - storedDate.getTime() > cfg.refreshInSeconds * 1000);
-    if (storedResponse.universal_uid) {
+    if (storedResponse && storedResponse.universal_uid) {
       ID5.userId = storedResponse.universal_uid;
       ID5.linkType = storedResponse.link_type || 0;
       utils.logInfo('ID5 User ID already available:', storedResponse, storedDate, refreshNeeded);
@@ -52,12 +52,11 @@ ID5.init = function (options) {
             'o': 'api',
             'rf': encodeURIComponent(referer.referer),
             'top': referer.reachedTop ? 1 : 0,
-            's': storedResponse.signature,
+            's': (storedResponse && storedResponse.signature) ? storedResponse.signature : null,
             'pd': cfg.pd || {}
           };
-          if (cfg.debug) {
+
             utils.logInfo('Fetching ID5 user ID from:', url, data);
-          }
           utils.ajax(url, response => {
             let responseObj;
             if (response) {
@@ -72,7 +71,7 @@ ID5.init = function (options) {
                     // TODO: Should not use AJAX Call for cascades as some partners may not have CORS Headers
                     const isSync = cfg.partnerUserId && cfg.partnerUserId.length > 0;
                     const syncUrl = `https://id5-sync.com/${isSync ? 's' : 'i'}/${cfg.partnerId}/8.gif`;
-                    utils.logInfo('Opportunities to cascades available:', syncUrl, data);
+                    utils.logInfo('Opportunities to cascade available:', syncUrl, data);
                     utils.ajax(syncUrl, () => {}, {
                       puid: isSync ? cfg.partnerUserId : null,
                       gdpr: gdprApplies,
@@ -90,7 +89,7 @@ ID5.init = function (options) {
                 utils.logError(error);
               }
             }
-          }, data, { method: 'POST', withCredentials: true });
+          }, JSON.stringify(data), { method: 'POST', withCredentials: true });
         }
       } else {
         utils.logInfo('No legal basis to use ID5', consentData);
