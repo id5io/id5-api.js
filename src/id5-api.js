@@ -31,9 +31,16 @@ ID5.init = function (options) {
     const storedResponse = JSON.parse(utils.getCookie(cfg.cookieName));
     const storedDate = new Date(+utils.getCookie(`${cfg.cookieName}_last`));
     const refreshNeeded = storedDate.getTime() > 0 && (Date.now() - storedDate.getTime() > cfg.refreshInSeconds * 1000);
-    if (storedResponse && storedResponse.universal_uid) {
+    if (storedResponse) {
+      // this is needed to avoid losing the ID5ID from publishers that was
+      // previously stored. Eventually we can remove this, once pubs have all
+      // upgraded to this version of code
+      if (storedResponse.ID5ID) { // TODO: remove when 1puid isn't needed
+        ID5.userId = storedResponse.ID5ID;
+      } else if (storedResponse.universal_uid) {
       ID5.userId = storedResponse.universal_uid;
       ID5.linkType = storedResponse.link_type || 0;
+      }
       utils.logInfo('ID5 User ID already available:', storedResponse, storedDate, refreshNeeded);
     } else {
       utils.logInfo('No ID5 User ID available');
@@ -47,12 +54,17 @@ ID5.init = function (options) {
           const gdprApplies = (consentData && consentData.gdprApplies) ? 1 : 0;
           const gdprConsentString = (consentData && consentData.gdprApplies) ? consentData.consentString : '';
           const url = `https://id5-sync.com/g/v2/${cfg.partnerId}.json?gdpr_consent=${gdprConsentString}&gdpr=${gdprApplies}`;
+          const signature = (storedResponse && storedResponse.signature) ? storedResponse.signature : null;
+          // TODO: remove when 1puid isn't needed
+          const pubId = (storedResponse && storedResponse.ID5ID) ? storedResponse.ID5ID : null;
+
           const data = {
+            '1puid': pubId, // TODO: remove when 1puid isn't needed
             'v': ID5.version || '',
             'o': 'api',
             'rf': encodeURIComponent(referer.referer),
             'top': referer.reachedTop ? 1 : 0,
-            's': (storedResponse && storedResponse.signature) ? storedResponse.signature : null,
+            's': signature,
             'pd': cfg.pd || {}
           };
 
