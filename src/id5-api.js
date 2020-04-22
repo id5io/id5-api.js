@@ -38,8 +38,8 @@ ID5.init = function (options) {
       if (storedResponse.ID5ID) { // TODO: remove when 1puid isn't needed
         ID5.userId = storedResponse.ID5ID;
       } else if (storedResponse.universal_uid) {
-      ID5.userId = storedResponse.universal_uid;
-      ID5.linkType = storedResponse.link_type || 0;
+        ID5.userId = storedResponse.universal_uid;
+        ID5.linkType = storedResponse.link_type || 0;
       }
       utils.logInfo('ID5 User ID already available:', storedResponse, storedDate, refreshNeeded);
     } else {
@@ -62,13 +62,14 @@ ID5.init = function (options) {
             '1puid': pubId, // TODO: remove when 1puid isn't needed
             'v': ID5.version || '',
             'o': 'api',
-            'rf': encodeURIComponent(referer.referer),
+            'rf': referer.referer,
+            'u': window.location.href,
             'top': referer.reachedTop ? 1 : 0,
             's': signature,
             'pd': cfg.pd || {}
           };
 
-            utils.logInfo('Fetching ID5 user ID from:', url, data);
+          utils.logInfo('Fetching ID5 user ID from:', url, data);
           utils.ajax(url, response => {
             let responseObj;
             if (response) {
