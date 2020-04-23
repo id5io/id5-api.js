@@ -63,7 +63,7 @@ ID5.init = function (options) {
             'v': ID5.version || '',
             'o': 'api',
             'rf': referer.referer,
-            'u': window.location.href,
+            'u': referer.stack[0] || window.location.href,
             'top': referer.reachedTop ? 1 : 0,
             's': signature,
             'pd': cfg.pd || {}
