@@ -603,13 +603,17 @@ ID5.init = function (options) {
     var storedResponse = JSON.parse(__WEBPACK_IMPORTED_MODULE_2__utils__["getCookie"](cfg.cookieName));
     var storedDate = new Date(+__WEBPACK_IMPORTED_MODULE_2__utils__["getCookie"]("".concat(cfg.cookieName, "_last")));
     var refreshNeeded = storedDate.getTime() > 0 && Date.now() - storedDate.getTime() > cfg.refreshInSeconds * 1000;
+    var expiresStr = new Date(Date.now() + cfg.cookieExpirationInSeconds * 1000).toUTCString();
+    var storedNb = __WEBPACK_IMPORTED_MODULE_2__utils__["getCookie"]("".concat(cfg.cookieName, "_nb"));
+    var nb = storedNb ? parseInt(storedNb) + 1 : 1;
+    __WEBPACK_IMPORTED_MODULE_2__utils__["setCookie"]("".concat(cfg.cookieName, "_nb"), nb, expiresStr);
 
     if (storedResponse) {
       // this is needed to avoid losing the ID5ID from publishers that was
       // previously stored. Eventually we can remove this, once pubs have all
       // upgraded to this version of code
       if (storedResponse.ID5ID) {
-        // TODO: remove when 1puid isn't needed
+        // TODO: remove this block when 1puid isn't needed
         ID5.userId = storedResponse.ID5ID;
       } else if (storedResponse.universal_uid) {
         ID5.userId = storedResponse.universal_uid;
@@ -629,19 +633,20 @@ ID5.init = function (options) {
           var gdprApplies = consentData && consentData.gdprApplies ? 1 : 0;
           var gdprConsentString = consentData && consentData.gdprApplies ? consentData.consentString : '';
           var url = "https://id5-sync.com/g/v2/".concat(cfg.partnerId, ".json?gdpr_consent=").concat(gdprConsentString, "&gdpr=").concat(gdprApplies);
-          var signature = storedResponse && storedResponse.signature ? storedResponse.signature : ''; // TODO: remove when 1puid isn't needed
+          var signature = storedResponse && storedResponse.signature ? storedResponse.signature : '';
+          var pubId = storedResponse && storedResponse.ID5ID ? storedResponse.ID5ID : ''; // TODO: remove when 1puid isn't needed
 
-          var pubId = storedResponse && storedResponse.ID5ID ? storedResponse.ID5ID : '';
           var data = {
             '1puid': pubId,
             // TODO: remove when 1puid isn't needed
             'v': ID5.version || '',
             'o': 'api',
             'rf': referer.referer,
-            'u': window.location.href,
+            'u': referer.stack[0] || window.location.href,
             'top': referer.reachedTop ? 1 : 0,
             's': signature,
-            'pd': cfg.pd || {}
+            'pd': cfg.pd || {},
+            'nb': nb || 1
           };
           __WEBPACK_IMPORTED_MODULE_2__utils__["logInfo"]('Fetching ID5 user ID from:', url, data);
           __WEBPACK_IMPORTED_MODULE_2__utils__["ajax"](url, function (response) {
@@ -653,9 +658,9 @@ ID5.init = function (options) {
 
                 if (responseObj.universal_uid) {
                   ID5.userId = responseObj.universal_uid;
-                  var expiresStr = new Date(Date.now() + cfg.cookieExpirationInSeconds * 1000).toUTCString();
                   __WEBPACK_IMPORTED_MODULE_2__utils__["setCookie"](cfg.cookieName, response, expiresStr);
                   __WEBPACK_IMPORTED_MODULE_2__utils__["setCookie"]("".concat(cfg.cookieName, "_last"), Date.now(), expiresStr);
+                  __WEBPACK_IMPORTED_MODULE_2__utils__["setCookie"]("".concat(cfg.cookieName, "_nb"), 0, expiresStr);
 
                   if (responseObj.cascade_needed) {
                     // TODO: Should not use AJAX Call for cascades as some partners may not have CORS Headers

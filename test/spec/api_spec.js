@@ -51,6 +51,7 @@ describe('Publisher API', function () {
       ajaxStub.restore();
       utils.setCookie('id5.1st', '', EXPIRED_COOKIE_DATE);
       utils.setCookie('id5.1st_last', '', EXPIRED_COOKIE_DATE);
+      utils.setCookie('id5.1st_nb', '', EXPIRED_COOKIE_DATE);
       ID5.userId = undefined;
     });
 
@@ -64,6 +65,27 @@ describe('Publisher API', function () {
       expect(ID5.userId).to.be.equal('testid5id');
     });
 
+    it('Counter should be set to 1 if no existing counter cookie and not calling ID5 servers', function () {
+      const expStr = (new Date(Date.now() + 5000).toUTCString())
+      utils.setCookie('id5.1st', JSON.stringify({'universal_uid': 'testid5id'}), expStr);
+      utils.setCookie('id5.1st_last', Date.now(), expStr);
+      ID5.init({ partnerId: 99, cmpApi: 'iab', allowID5WithoutConsentApi: false });
+
+      const nb = parseInt(utils.getCookie('id5.1st_nb'));
+      expect(nb).to.be.equal(1);
+    });
+
+    it('Increment counter when not calling ID5 servers', function () {
+      const expStr = (new Date(Date.now() + 5000).toUTCString())
+      utils.setCookie('id5.1st', JSON.stringify({'universal_uid': 'testid5id'}), expStr);
+      utils.setCookie('id5.1st_last', Date.now(), expStr);
+      utils.setCookie('id5.1st_nb', 5, expStr);
+      ID5.init({ partnerId: 99, cmpApi: 'iab', allowID5WithoutConsentApi: false });
+
+      const nb = parseInt(utils.getCookie('id5.1st_nb'));
+      expect(nb).to.be.equal(6);
+    });
+
     it('Call id5 servers via Ajax if consent but no cookie', function () {
       ID5.init({ partnerId: 99, cmpApi: 'iab', allowID5WithoutConsentApi: true });
 
@@ -73,6 +95,15 @@ describe('Publisher API', function () {
       const dataPrebid = JSON.parse(ajaxStub.firstCall.args[2]);
       expect(dataPrebid.s).to.be.equal('');
       expect(ID5.userId).to.be.equal('testid5id');
+    });
+
+    it('Reset counter after calling ID5 servers', function () {
+      const expStr = (new Date(Date.now() + 5000).toUTCString())
+      utils.setCookie('id5.1st_nb', 5, expStr);
+      ID5.init({ partnerId: 99, cmpApi: 'iab', allowID5WithoutConsentApi: true });
+
+      const nb = parseInt(utils.getCookie('id5.1st_nb'));
+      expect(nb).to.be.equal(0);
     });
 
     it('Call id5 servers with existing value via Ajax if expired cookie', function () {
@@ -185,7 +216,6 @@ describe('Publisher API', function () {
       expect(ajaxStub.firstCall.args[0]).to.be.equal('https://id5-sync.com/g/v2/99.json?gdpr_consent=&gdpr=0');
       expect(ajaxStub.firstCall.args[3].withCredentials).to.be.true;
       expect(dataPrebid.s).to.be.equal('dummy');
-      console.log(ID5.userId);
       expect(ID5.userId).to.be.equal('uidFromCookie');
       setTimeout(() => {
         expect(ID5.userId).to.be.equal('testid5id');

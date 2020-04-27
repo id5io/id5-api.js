@@ -31,11 +31,16 @@ ID5.init = function (options) {
     const storedResponse = JSON.parse(utils.getCookie(cfg.cookieName));
     const storedDate = new Date(+utils.getCookie(`${cfg.cookieName}_last`));
     const refreshNeeded = storedDate.getTime() > 0 && (Date.now() - storedDate.getTime() > cfg.refreshInSeconds * 1000);
+    const expiresStr = (new Date(Date.now() + (cfg.cookieExpirationInSeconds * 1000))).toUTCString();
+    const storedNb = utils.getCookie(`${cfg.cookieName}_nb`);
+    const nb = (storedNb) ? parseInt(storedNb) + 1 : 1;
+    utils.setCookie(`${cfg.cookieName}_nb`, nb, expiresStr);
+
     if (storedResponse) {
       // this is needed to avoid losing the ID5ID from publishers that was
       // previously stored. Eventually we can remove this, once pubs have all
       // upgraded to this version of code
-      if (storedResponse.ID5ID) { // TODO: remove when 1puid isn't needed
+      if (storedResponse.ID5ID) { // TODO: remove this block when 1puid isn't needed
         ID5.userId = storedResponse.ID5ID;
       } else if (storedResponse.universal_uid) {
         ID5.userId = storedResponse.universal_uid;
@@ -55,8 +60,7 @@ ID5.init = function (options) {
           const gdprConsentString = (consentData && consentData.gdprApplies) ? consentData.consentString : '';
           const url = `https://id5-sync.com/g/v2/${cfg.partnerId}.json?gdpr_consent=${gdprConsentString}&gdpr=${gdprApplies}`;
           const signature = (storedResponse && storedResponse.signature) ? storedResponse.signature : '';
-          // TODO: remove when 1puid isn't needed
-          const pubId = (storedResponse && storedResponse.ID5ID) ? storedResponse.ID5ID : '';
+          const pubId = (storedResponse && storedResponse.ID5ID) ? storedResponse.ID5ID : ''; // TODO: remove when 1puid isn't needed
 
           const data = {
             '1puid': pubId, // TODO: remove when 1puid isn't needed
@@ -66,7 +70,8 @@ ID5.init = function (options) {
             'u': referer.stack[0] || window.location.href,
             'top': referer.reachedTop ? 1 : 0,
             's': signature,
-            'pd': cfg.pd || {}
+            'pd': cfg.pd || {},
+            'nb': nb || 1
           };
 
           utils.logInfo('Fetching ID5 user ID from:', url, data);
@@ -77,9 +82,9 @@ ID5.init = function (options) {
                 responseObj = JSON.parse(response);
                 if (responseObj.universal_uid) {
                   ID5.userId = responseObj.universal_uid;
-                  const expiresStr = (new Date(Date.now() + (cfg.cookieExpirationInSeconds * 1000))).toUTCString();
                   utils.setCookie(cfg.cookieName, response, expiresStr);
                   utils.setCookie(`${cfg.cookieName}_last`, Date.now(), expiresStr);
+                  utils.setCookie(`${cfg.cookieName}_nb`, 0, expiresStr);
                   if (responseObj.cascade_needed) {
                     // TODO: Should not use AJAX Call for cascades as some partners may not have CORS Headers
                     const isSync = cfg.partnerUserId && cfg.partnerUserId.length > 0;
