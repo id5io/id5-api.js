@@ -16,7 +16,6 @@ ID5.initialized = false;
  * @param {Id5Config} options
  * @alias module:ID5.init
  */
-
 // TODO: Use Async init by pushing setting in a queue
 ID5.init = function (options) {
   try {
@@ -29,12 +28,10 @@ ID5.init = function (options) {
     utils.logInfo(`ID5 detected referer is ${referer.referer}`);
 
     const storedResponse = JSON.parse(utils.getCookie(cfg.cookieName));
-    const storedDate = new Date(+utils.getCookie(`${cfg.cookieName}_last`));
+    const storedDate = new Date(+utils.getCookie(lastCookieName(cfg)));
     const refreshNeeded = storedDate.getTime() > 0 && (Date.now() - storedDate.getTime() > cfg.refreshInSeconds * 1000);
     const expiresStr = (new Date(Date.now() + (cfg.cookieExpirationInSeconds * 1000))).toUTCString();
-    const storedNb = utils.getCookie(`${cfg.cookieName}_nb`);
-    const nb = (storedNb) ? parseInt(storedNb) + 1 : 1;
-    utils.setCookie(`${cfg.cookieName}_nb`, nb, expiresStr);
+    const nb = incrementAndGetNb(cfg, expiresStr);
 
     if (storedResponse) {
       // this is needed to avoid losing the ID5ID from publishers that was
@@ -71,7 +68,7 @@ ID5.init = function (options) {
             'top': referer.reachedTop ? 1 : 0,
             's': signature,
             'pd': cfg.pd || {},
-            'nb': nb || 1
+            'nb': nb
           };
 
           utils.logInfo('Fetching ID5 user ID from:', url, data);
@@ -83,8 +80,8 @@ ID5.init = function (options) {
                 if (responseObj.universal_uid) {
                   ID5.userId = responseObj.universal_uid;
                   utils.setCookie(cfg.cookieName, response, expiresStr);
-                  utils.setCookie(`${cfg.cookieName}_last`, Date.now(), expiresStr);
-                  utils.setCookie(`${cfg.cookieName}_nb`, 0, expiresStr);
+                  utils.setCookie(lastCookieName(cfg), Date.now(), expiresStr);
+                  utils.setCookie(nbCookieName(cfg), 0, expiresStr);
                   if (responseObj.cascade_needed) {
                     // TODO: Should not use AJAX Call for cascades as some partners may not have CORS Headers
                     const isSync = cfg.partnerUserId && cfg.partnerUserId.length > 0;
@@ -117,5 +114,21 @@ ID5.init = function (options) {
     utils.logError('Exception catch', e);
   }
 };
+
+function lastCookieName(cfg) {
+  return `${cfg.cookieName}_last`;
+}
+function nbCookieName(cfg) {
+  return `${cfg.cookieName}_nb`;
+}
+function getNbFromCookie(cfg) {
+  const cachedNb = utils.getCookie(nbCookieName(cfg));
+  return (cachedNb) ? parseInt(cachedNb) : 0;
+}
+function incrementAndGetNb(cfg, expiresStr) {
+  const nb = (getNbFromCookie(cfg) + 1);
+  utils.setCookie(nbCookieName(cfg), nb, expiresStr);
+  return nb;
+}
 
 export default ID5;

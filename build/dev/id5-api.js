@@ -601,12 +601,10 @@ ID5.init = function (options) {
     var referer = Object(__WEBPACK_IMPORTED_MODULE_4__refererDetection__["a" /* getRefererInfo */])();
     __WEBPACK_IMPORTED_MODULE_2__utils__["logInfo"]("ID5 detected referer is ".concat(referer.referer));
     var storedResponse = JSON.parse(__WEBPACK_IMPORTED_MODULE_2__utils__["getCookie"](cfg.cookieName));
-    var storedDate = new Date(+__WEBPACK_IMPORTED_MODULE_2__utils__["getCookie"]("".concat(cfg.cookieName, "_last")));
+    var storedDate = new Date(+__WEBPACK_IMPORTED_MODULE_2__utils__["getCookie"](lastCookieName(cfg)));
     var refreshNeeded = storedDate.getTime() > 0 && Date.now() - storedDate.getTime() > cfg.refreshInSeconds * 1000;
     var expiresStr = new Date(Date.now() + cfg.cookieExpirationInSeconds * 1000).toUTCString();
-    var storedNb = __WEBPACK_IMPORTED_MODULE_2__utils__["getCookie"]("".concat(cfg.cookieName, "_nb"));
-    var nb = storedNb ? parseInt(storedNb) + 1 : 1;
-    __WEBPACK_IMPORTED_MODULE_2__utils__["setCookie"]("".concat(cfg.cookieName, "_nb"), nb, expiresStr);
+    var nb = incrementAndGetNb(cfg, expiresStr);
 
     if (storedResponse) {
       // this is needed to avoid losing the ID5ID from publishers that was
@@ -646,7 +644,7 @@ ID5.init = function (options) {
             'top': referer.reachedTop ? 1 : 0,
             's': signature,
             'pd': cfg.pd || {},
-            'nb': nb || 1
+            'nb': nb
           };
           __WEBPACK_IMPORTED_MODULE_2__utils__["logInfo"]('Fetching ID5 user ID from:', url, data);
           __WEBPACK_IMPORTED_MODULE_2__utils__["ajax"](url, function (response) {
@@ -659,8 +657,8 @@ ID5.init = function (options) {
                 if (responseObj.universal_uid) {
                   ID5.userId = responseObj.universal_uid;
                   __WEBPACK_IMPORTED_MODULE_2__utils__["setCookie"](cfg.cookieName, response, expiresStr);
-                  __WEBPACK_IMPORTED_MODULE_2__utils__["setCookie"]("".concat(cfg.cookieName, "_last"), Date.now(), expiresStr);
-                  __WEBPACK_IMPORTED_MODULE_2__utils__["setCookie"]("".concat(cfg.cookieName, "_nb"), 0, expiresStr);
+                  __WEBPACK_IMPORTED_MODULE_2__utils__["setCookie"](lastCookieName(cfg), Date.now(), expiresStr);
+                  __WEBPACK_IMPORTED_MODULE_2__utils__["setCookie"](nbCookieName(cfg), 0, expiresStr);
 
                   if (responseObj.cascade_needed) {
                     // TODO: Should not use AJAX Call for cascades as some partners may not have CORS Headers
@@ -697,6 +695,25 @@ ID5.init = function (options) {
     __WEBPACK_IMPORTED_MODULE_2__utils__["logError"]('Exception catch', e);
   }
 };
+
+function lastCookieName(cfg) {
+  return "".concat(cfg.cookieName, "_last");
+}
+
+function nbCookieName(cfg) {
+  return "".concat(cfg.cookieName, "_nb");
+}
+
+function getNbFromCookie(cfg) {
+  var cachedNb = __WEBPACK_IMPORTED_MODULE_2__utils__["getCookie"](nbCookieName(cfg));
+  return cachedNb ? parseInt(cachedNb) : 0;
+}
+
+function incrementAndGetNb(cfg, expiresStr) {
+  var nb = getNbFromCookie(cfg) + 1;
+  __WEBPACK_IMPORTED_MODULE_2__utils__["setCookie"](nbCookieName(cfg), nb, expiresStr);
+  return nb;
+}
 
 /* harmony default export */ __webpack_exports__["default"] = (ID5);
 
