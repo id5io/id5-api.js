@@ -4,9 +4,10 @@ import * as utils from 'src/utils';
 require('src/id5-api');
 
 let expect = require('chai').expect;
-const EXPIRED_COOKIE_DATE = 'Thu, 01 Jan 1970 00:00:01 GMT';
 
-describe('Publisher API', function () {
+describe('ID5 Publisher API', function () {
+  const EXPIRED_COOKIE_DATE = 'Thu, 01 Jan 1970 00:00:01 GMT';
+
   describe('Core API availability', function () {
     it('should have a global variable ID5', function () {
       expect(ID5).to.be.a('object');
@@ -58,6 +59,16 @@ describe('Publisher API', function () {
     it('Use non-expired cookie if available, even without consent', function () {
       const expStr = (new Date(Date.now() + 5000).toUTCString())
       utils.setCookie('id5.1st', JSON.stringify({'universal_uid': 'testid5id'}), expStr);
+      utils.setCookie('id5.1st_last', Date.now(), expStr);
+      ID5.init({ partnerId: 99, cmpApi: 'iab', allowID5WithoutConsentApi: false });
+
+      sinon.assert.notCalled(ajaxStub);
+      expect(ID5.userId).to.be.equal('testid5id');
+    });
+
+    it('Use non-expired legacy cookie if available, even without consent', function () {
+      const expStr = (new Date(Date.now() + 5000).toUTCString())
+      utils.setCookie('id5.1st', JSON.stringify({'ID5ID': 'testid5id'}), expStr);
       utils.setCookie('id5.1st_last', Date.now(), expStr);
       ID5.init({ partnerId: 99, cmpApi: 'iab', allowID5WithoutConsentApi: false });
 
@@ -117,7 +128,7 @@ describe('Publisher API', function () {
       expect(ajaxStub.firstCall.args[3].withCredentials).to.be.true;
       const dataPrebid = JSON.parse(ajaxStub.firstCall.args[2]);
       expect(dataPrebid.s).to.be.equal('abcdef');
-      expect(dataPrebid.rf).to.include('http://localhost:9876/');
+      expect(dataPrebid.rf).to.include('http://localhost');
       expect(dataPrebid.top).to.be.equal(1);
 
       expect(ajaxStub.secondCall.args[0]).to.be.equal('https://id5-sync.com/i/99/8.gif');
@@ -126,6 +137,31 @@ describe('Publisher API', function () {
       expect(dataSync.puid).to.be.null;
 
       expect(ID5.userId).to.be.equal('testid5id');
+    });
+
+    it('Call id5 servers with existing legacy value via Ajax if expired cookie', function () {
+      const expStr = (new Date(Date.now() + 5000).toUTCString());
+      utils.setCookie('id5.1st', JSON.stringify({'ID5ID': 'testid5id'}), expStr);
+      utils.setCookie('id5.1st_last', Date.now() - 8000 * 1000, expStr);
+      ID5.init({ partnerId: 99, cmpApi: 'iab', allowID5WithoutConsentApi: true });
+
+      sinon.assert.calledTwice(ajaxStub); // 2nd call is usersync pixel
+      expect(ajaxStub.firstCall.args[0]).to.be.equal('https://id5-sync.com/g/v2/99.json?gdpr_consent=&gdpr=0');
+      expect(ajaxStub.firstCall.args[3].withCredentials).to.be.true;
+
+      const dataPrebid = JSON.parse(ajaxStub.firstCall.args[2]);
+      expect(dataPrebid.s).to.be.equal('');
+      expect(dataPrebid['1puid']).to.be.equal('testid5id');
+      expect(dataPrebid.rf).to.include('http://localhost');
+      expect(dataPrebid.top).to.be.equal(1);
+
+      expect(ajaxStub.secondCall.args[0]).to.be.equal('https://id5-sync.com/i/99/8.gif');
+      expect(ajaxStub.secondCall.args[3].withCredentials).to.be.true;
+      const dataSync = ajaxStub.secondCall.args[2];
+      expect(dataSync.puid).to.be.null;
+
+      expect(ID5.userId).to.be.equal('testid5id');
+      expect(utils.getCookie('id5.1st')).to.be.eq(jsonResponse);
     });
   });
 
@@ -205,6 +241,7 @@ describe('Publisher API', function () {
         done();
       }, 200);
     });
+
     it('Call id5 servers with existing value via Ajax if expired cookie and return another value', function () {
       const expStr = (new Date(Date.now() + 5000).toUTCString());
       utils.setCookie('id5.1st', JSON.stringify({'universal_uid': 'uidFromCookie', 'signature': 'dummy'}), expStr);
