@@ -31,7 +31,8 @@ ID5.init = function (options) {
     const storedDate = new Date(+utils.getCookie(lastCookieName(cfg)));
     const refreshNeeded = storedDate.getTime() > 0 && (Date.now() - storedDate.getTime() > cfg.refreshInSeconds * 1000);
     const expiresStr = (new Date(Date.now() + (cfg.cookieExpirationInSeconds * 1000))).toUTCString();
-    const nb = incrementAndGetNb(cfg, expiresStr);
+    let nb = getNbFromCookie(cfg);
+    let idSetFromStoredResponse = false;
 
     if (storedResponse) {
       // this is needed to avoid losing the ID5ID from publishers that was
@@ -43,7 +44,9 @@ ID5.init = function (options) {
         ID5.userId = storedResponse.universal_uid;
         ID5.linkType = storedResponse.link_type || 0;
       }
-      utils.logInfo('ID5 User ID already available:', storedResponse, storedDate, refreshNeeded);
+      nb = incrementNb(cfg, expiresStr, nb);
+      idSetFromStoredResponse = true;
+      utils.logInfo('ID5 User ID available from cache:', storedResponse, storedDate, refreshNeeded);
     } else {
       utils.logInfo('No ID5 User ID available');
     }
@@ -58,7 +61,6 @@ ID5.init = function (options) {
           const url = `https://id5-sync.com/g/v2/${cfg.partnerId}.json?gdpr_consent=${gdprConsentString}&gdpr=${gdprApplies}`;
           const signature = (storedResponse && storedResponse.signature) ? storedResponse.signature : '';
           const pubId = (storedResponse && storedResponse.ID5ID) ? storedResponse.ID5ID : ''; // TODO: remove when 1puid isn't needed
-
           const data = {
             '1puid': pubId, // TODO: remove when 1puid isn't needed
             'v': ID5.version || '',
@@ -81,7 +83,7 @@ ID5.init = function (options) {
                   ID5.userId = responseObj.universal_uid;
                   utils.setCookie(cfg.cookieName, response, expiresStr);
                   utils.setCookie(lastCookieName(cfg), Date.now(), expiresStr);
-                  utils.setCookie(nbCookieName(cfg), 0, expiresStr);
+                  utils.setCookie(nbCookieName(cfg), (idSetFromStoredResponse ? 0 : 1), expiresStr);
                   if (responseObj.cascade_needed) {
                     // TODO: Should not use AJAX Call for cascades as some partners may not have CORS Headers
                     const isSync = cfg.partnerUserId && cfg.partnerUserId.length > 0;
@@ -125,8 +127,8 @@ function getNbFromCookie(cfg) {
   const cachedNb = utils.getCookie(nbCookieName(cfg));
   return (cachedNb) ? parseInt(cachedNb) : 0;
 }
-function incrementAndGetNb(cfg, expiresStr) {
-  const nb = (getNbFromCookie(cfg) + 1);
+function incrementNb(cfg, expiresStr, nb) {
+  nb++;
   utils.setCookie(nbCookieName(cfg), nb, expiresStr);
   return nb;
 }
