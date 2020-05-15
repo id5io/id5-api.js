@@ -31,7 +31,16 @@ describe('ID5 Publisher API', function () {
       expect(ID5.userConfig.cookieName).to.be.undefined;
       expect(ID5.config.partnerId).to.be.equal(99);
       expect(ID5.config.cookieName).to.be.equal('id5.1st');
+      expect(ID5.getConfig().cookieName).to.be.equal('id5.1st');
       expect(ID5.initialized).to.be.true;
+    });
+    it('should set new config value with setConfig() and retrieve with getConfig()', function() {
+      ID5.init({ partnerId: 99, cmpApi: 'iab', allowID5WithoutConsentApi: false });
+      expect(ID5.setConfig).to.be.a('function');
+      expect(ID5.getConfig).to.be.a('function');
+      expect(ID5.getConfig().cookieName).to.be.equal('id5.1st');
+      ID5.setConfig({cookieName: 'testcookie'});
+      expect(ID5.getConfig().cookieName).to.be.equal('testcookie');
     });
   });
 

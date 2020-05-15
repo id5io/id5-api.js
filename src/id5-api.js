@@ -24,6 +24,8 @@ ID5.init = function (options) {
     ID5.userConfig = options;
     ID5.config = cfg;
     ID5.initialized = true;
+    ID5.getConfig = config.getConfig;
+    ID5.setConfig = config.setConfig;
     const referer = getRefererInfo();
     utils.logInfo(`ID5 detected referer is ${referer.referer}`);
 
