@@ -71,7 +71,7 @@ ID5.init = function (options) {
             'top': referer.reachedTop ? 1 : 0,
             's': signature,
             'pd': cfg.pd || '',
-            'nb': nb
+            'nbPage': nb
           };
 
           utils.logInfo('Fetching ID5 user ID from:', url, data);

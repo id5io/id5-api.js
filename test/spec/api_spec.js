@@ -346,7 +346,7 @@ describe('ID5 Publisher API', function () {
 
       sinon.assert.calledOnce(ajaxStub);
       const requestPayload = JSON.parse(ajaxStub.firstCall.args[2]);
-      expect(requestPayload.nb).to.be.equal(6);
+      expect(requestPayload.nbPage).to.be.equal(6);
 
       const nb = parseInt(utils.getCookie('id5.1st_nb'));
       expect(nb).to.be.equal(0);
@@ -359,7 +359,7 @@ describe('ID5 Publisher API', function () {
 
       sinon.assert.calledOnce(ajaxStub);
       const requestPayload = JSON.parse(ajaxStub.firstCall.args[2]);
-      expect(requestPayload.nb).to.be.equal(5);
+      expect(requestPayload.nbPage).to.be.equal(5);
 
       const nb = parseInt(utils.getCookie('id5.1st_nb'));
       expect(nb).to.be.equal(1);
@@ -370,7 +370,7 @@ describe('ID5 Publisher API', function () {
 
       sinon.assert.calledOnce(ajaxStub);
       const requestPayload = JSON.parse(ajaxStub.firstCall.args[2]);
-      expect(requestPayload.nb).to.be.equal(0);
+      expect(requestPayload.nbPage).to.be.equal(0);
 
       const nb = parseInt(utils.getCookie('id5.1st_nb'));
       expect(nb).to.be.equal(1);
