@@ -34,12 +34,11 @@ describe('ID5 Publisher API', function () {
       expect(ID5.getConfig().cookieName).to.be.equal('id5.1st');
       expect(ID5.initialized).to.be.true;
     });
-    it('should set new config value with setConfig() and retrieve with getConfig()', function() {
+    it('should retrieve config with getConfig()', function() {
       ID5.init({ partnerId: 99, cmpApi: 'iab', allowID5WithoutConsentApi: false });
-      expect(ID5.setConfig).to.be.a('function');
       expect(ID5.getConfig).to.be.a('function');
       expect(ID5.getConfig().cookieName).to.be.equal('id5.1st');
-      ID5.setConfig({cookieName: 'testcookie'});
+      config.setConfig({cookieName: 'testcookie'});
       expect(ID5.getConfig().cookieName).to.be.equal('testcookie');
     });
   });
@@ -274,6 +273,7 @@ describe('ID5 Publisher API', function () {
       });
     });
   });
+
   describe('Counters', function() {
     const jsonResponse = JSON.stringify({
       'universal_uid': 'testid5id',
