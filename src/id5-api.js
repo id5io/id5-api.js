@@ -71,7 +71,7 @@ ID5.init = function (options) {
             'u': referer.stack[0] || window.location.href,
             'top': referer.reachedTop ? 1 : 0,
             's': signature,
-            'pd': cfg.pd || {},
+            'pd': cfg.pd || '',
             'nb': nb
           };
 

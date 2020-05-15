@@ -45,7 +45,6 @@ describe('ID5 Publisher API', function () {
   });
 
   describe('ID5.init', function () {
-
     describe('With Cascade:', function () {
       const jsonResponse = JSON.stringify({
         'universal_uid': 'testid5id',
@@ -186,6 +185,30 @@ describe('ID5 Publisher API', function () {
         expect(dataPrebid.s).to.be.equal('');
         expect(ID5.userId).to.be.equal('testid5id');
       });
+
+      it('Call id5 servers via Ajax with pd if pd config is set and if consent but no cookie', function () {
+        ID5.init({ partnerId: 99, cmpApi: 'iab', allowID5WithoutConsentApi: true, pd: 'testpubdata' });
+
+        sinon.assert.calledOnce(ajaxStub);
+        expect(ajaxStub.firstCall.args[0]).to.be.equal('https://id5-sync.com/g/v2/99.json?gdpr_consent=&gdpr=0');
+        expect(ajaxStub.firstCall.args[3].withCredentials).to.be.true;
+        const dataPrebid = JSON.parse(ajaxStub.firstCall.args[2]);
+        expect(dataPrebid.s).to.be.equal('');
+        expect(dataPrebid.pd).to.be.equal('testpubdata');
+        expect(ID5.userId).to.be.equal('testid5id');
+      });
+
+      it('Call id5 servers via Ajax with empty pd if pd config not set and if consent but no cookie', function () {
+        ID5.init({ partnerId: 99, cmpApi: 'iab', allowID5WithoutConsentApi: true, pd: undefined });
+
+        sinon.assert.calledOnce(ajaxStub);
+        expect(ajaxStub.firstCall.args[0]).to.be.equal('https://id5-sync.com/g/v2/99.json?gdpr_consent=&gdpr=0');
+        expect(ajaxStub.firstCall.args[3].withCredentials).to.be.true;
+        const dataPrebid = JSON.parse(ajaxStub.firstCall.args[2]);
+        expect(dataPrebid.s).to.be.equal('');
+        expect(dataPrebid.pd).to.be.equal('');
+        expect(ID5.userId).to.be.equal('testid5id');
+      });
     });
 
     describe('Async With Cascade:', function () {
@@ -232,7 +255,7 @@ describe('ID5 Publisher API', function () {
         }, 200);
       });
 
-      it('Call id5 servers with existing value via Ajax if expired cookie and return another value', function () {
+      it('Call id5 servers with existing value via Ajax if expired cookie and return another value', function (done) {
         const expStr = (new Date(Date.now() + 5000).toUTCString());
         utils.setCookie('id5.1st', JSON.stringify({'universal_uid': 'uidFromCookie', 'signature': 'dummy'}), expStr);
         utils.setCookie('id5.1st_last', Date.now() - 8000 * 1000, expStr);
@@ -250,9 +273,7 @@ describe('ID5 Publisher API', function () {
         }, 200);
       });
     });
-
   });
-
   describe('Counters', function() {
     const jsonResponse = JSON.stringify({
       'universal_uid': 'testid5id',
@@ -345,7 +366,6 @@ describe('ID5 Publisher API', function () {
     });
 
     it('should reset counter to 1 after calling ID5 servers if no ID in cookie', function () {
-      const expStr = (new Date(Date.now() + 5000).toUTCString())
       ID5.init({ partnerId: 99, cmpApi: 'iab', allowID5WithoutConsentApi: true });
 
       sinon.assert.calledOnce(ajaxStub);
@@ -355,6 +375,5 @@ describe('ID5 Publisher API', function () {
       const nb = parseInt(utils.getCookie('id5.1st_nb'));
       expect(nb).to.be.equal(1);
     });
-
   });
 });
