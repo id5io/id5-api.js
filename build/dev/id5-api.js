@@ -111,7 +111,7 @@ function newConfig() {
     cookieExpirationInSeconds: 'Number',
     partnerId: 'Number',
     partnerUserId: 'String',
-    pd: 'Object'
+    pd: 'String'
   };
 
   function resetConfig() {
@@ -131,7 +131,7 @@ function newConfig() {
       cookieExpirationInSeconds: 90 * 24 * 60 * 60,
       partnerId: undefined,
       partnerUserId: undefined,
-      pd: {}
+      pd: ''
     };
   }
   /**
@@ -598,13 +598,15 @@ ID5.init = function (options) {
     ID5.userConfig = options;
     ID5.config = cfg;
     ID5.initialized = true;
+    ID5.getConfig = __WEBPACK_IMPORTED_MODULE_1__config__["a" /* config */].getConfig;
     var referer = Object(__WEBPACK_IMPORTED_MODULE_4__refererDetection__["a" /* getRefererInfo */])();
     __WEBPACK_IMPORTED_MODULE_2__utils__["logInfo"]("ID5 detected referer is ".concat(referer.referer));
     var storedResponse = JSON.parse(__WEBPACK_IMPORTED_MODULE_2__utils__["getCookie"](cfg.cookieName));
     var storedDate = new Date(+__WEBPACK_IMPORTED_MODULE_2__utils__["getCookie"](lastCookieName(cfg)));
     var refreshNeeded = storedDate.getTime() > 0 && Date.now() - storedDate.getTime() > cfg.refreshInSeconds * 1000;
     var expiresStr = new Date(Date.now() + cfg.cookieExpirationInSeconds * 1000).toUTCString();
-    var nb = incrementAndGetNb(cfg, expiresStr);
+    var nb = getNbFromCookie(cfg);
+    var idSetFromStoredResponse = false;
 
     if (storedResponse) {
       // this is needed to avoid losing the ID5ID from publishers that was
@@ -618,7 +620,9 @@ ID5.init = function (options) {
         ID5.linkType = storedResponse.link_type || 0;
       }
 
-      __WEBPACK_IMPORTED_MODULE_2__utils__["logInfo"]('ID5 User ID already available:', storedResponse, storedDate, refreshNeeded);
+      nb = incrementNb(cfg, expiresStr, nb);
+      idSetFromStoredResponse = true;
+      __WEBPACK_IMPORTED_MODULE_2__utils__["logInfo"]('ID5 User ID available from cache:', storedResponse, storedDate, refreshNeeded);
     } else {
       __WEBPACK_IMPORTED_MODULE_2__utils__["logInfo"]('No ID5 User ID available');
     }
@@ -643,7 +647,7 @@ ID5.init = function (options) {
             'u': referer.stack[0] || window.location.href,
             'top': referer.reachedTop ? 1 : 0,
             's': signature,
-            'pd': cfg.pd || {},
+            'pd': cfg.pd || '',
             'nb': nb
           };
           __WEBPACK_IMPORTED_MODULE_2__utils__["logInfo"]('Fetching ID5 user ID from:', url, data);
@@ -658,7 +662,7 @@ ID5.init = function (options) {
                   ID5.userId = responseObj.universal_uid;
                   __WEBPACK_IMPORTED_MODULE_2__utils__["setCookie"](cfg.cookieName, response, expiresStr);
                   __WEBPACK_IMPORTED_MODULE_2__utils__["setCookie"](lastCookieName(cfg), Date.now(), expiresStr);
-                  __WEBPACK_IMPORTED_MODULE_2__utils__["setCookie"](nbCookieName(cfg), 0, expiresStr);
+                  __WEBPACK_IMPORTED_MODULE_2__utils__["setCookie"](nbCookieName(cfg), idSetFromStoredResponse ? 0 : 1, expiresStr);
 
                   if (responseObj.cascade_needed) {
                     // TODO: Should not use AJAX Call for cascades as some partners may not have CORS Headers
@@ -684,7 +688,8 @@ ID5.init = function (options) {
             }
           }, JSON.stringify(data), {
             method: 'POST',
-            withCredentials: true
+            withCredentials: true,
+            contentType: 'application/json; charset=utf-8'
           });
         }
       } else {
@@ -709,8 +714,8 @@ function getNbFromCookie(cfg) {
   return cachedNb ? parseInt(cachedNb) : 0;
 }
 
-function incrementAndGetNb(cfg, expiresStr) {
-  var nb = getNbFromCookie(cfg) + 1;
+function incrementNb(cfg, expiresStr, nb) {
+  nb++;
   __WEBPACK_IMPORTED_MODULE_2__utils__["setCookie"](nbCookieName(cfg), nb, expiresStr);
   return nb;
 }
