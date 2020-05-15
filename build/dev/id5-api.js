@@ -648,7 +648,7 @@ ID5.init = function (options) {
             'top': referer.reachedTop ? 1 : 0,
             's': signature,
             'pd': cfg.pd || '',
-            'nb': nb
+            'nbPage': nb
           };
           __WEBPACK_IMPORTED_MODULE_2__utils__["logInfo"]('Fetching ID5 user ID from:', url, data);
           __WEBPACK_IMPORTED_MODULE_2__utils__["ajax"](url, function (response) {
