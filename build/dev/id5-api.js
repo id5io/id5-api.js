@@ -688,8 +688,7 @@ ID5.init = function (options) {
             }
           }, JSON.stringify(data), {
             method: 'POST',
-            withCredentials: true,
-            contentType: 'application/json; charset=utf-8'
+            withCredentials: true
           });
         }
       } else {

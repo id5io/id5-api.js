@@ -107,7 +107,7 @@ ID5.init = function (options) {
                 utils.logError(error);
               }
             }
-          }, JSON.stringify(data), { method: 'POST', withCredentials: true, contentType: 'application/json; charset=utf-8' });
+          }, JSON.stringify(data), { method: 'POST', withCredentials: true });
         }
       } else {
         utils.logInfo('No legal basis to use ID5', consentData);

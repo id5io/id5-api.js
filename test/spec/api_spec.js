@@ -133,7 +133,6 @@ describe('ID5 Publisher API', function () {
         sinon.assert.calledTwice(ajaxStub); // 2nd call is usersync pixel
         expect(ajaxStub.firstCall.args[0]).to.be.equal('https://id5-sync.com/g/v2/99.json?gdpr_consent=&gdpr=0');
         expect(ajaxStub.firstCall.args[3].withCredentials).to.be.true;
-        expect(ajaxStub.firstCall.args[3].contentType).to.be.eq('application/json; charset=utf-8');
 
         const dataPrebid = JSON.parse(ajaxStub.firstCall.args[2]);
         expect(dataPrebid.s).to.be.equal('');
