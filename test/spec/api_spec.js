@@ -99,6 +99,7 @@ describe('ID5 Publisher API', function () {
         expect(ajaxStub.firstCall.args[3].withCredentials).to.be.true;
         const dataPrebid = JSON.parse(ajaxStub.firstCall.args[2]);
         expect(dataPrebid.s).to.be.equal('');
+        expect(dataPrebid.partner).to.be.equal(99);
         expect(ID5.userId).to.be.equal('testid5id');
       });
 

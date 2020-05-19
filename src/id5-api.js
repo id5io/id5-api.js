@@ -63,6 +63,7 @@ ID5.init = function (options) {
           const signature = (storedResponse && storedResponse.signature) ? storedResponse.signature : '';
           const pubId = (storedResponse && storedResponse.ID5ID) ? storedResponse.ID5ID : ''; // TODO: remove when 1puid isn't needed
           const data = {
+            'partner': cfg.partnerId,
             '1puid': pubId, // TODO: remove when 1puid isn't needed
             'v': ID5.version || '',
             'o': 'api',

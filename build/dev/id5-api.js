@@ -639,6 +639,7 @@ ID5.init = function (options) {
           var pubId = storedResponse && storedResponse.ID5ID ? storedResponse.ID5ID : ''; // TODO: remove when 1puid isn't needed
 
           var data = {
+            'partner': cfg.partnerId,
             '1puid': pubId,
             // TODO: remove when 1puid isn't needed
             'v': ID5.version || '',
