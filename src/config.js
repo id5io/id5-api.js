@@ -32,7 +32,8 @@ export function newConfig() {
     refreshInSeconds: 'Number',
     cookieExpirationInSeconds: 'Number',
     partnerId: 'Number',
-    partnerUserId: 'String'
+    partnerUserId: 'String',
+    pd: 'String'
   };
 
   function resetConfig() {
@@ -51,7 +52,8 @@ export function newConfig() {
       refreshInSeconds: 7200,
       cookieExpirationInSeconds: 90 * 24 * 60 * 60,
       partnerId: undefined,
-      partnerUserId: undefined
+      partnerUserId: undefined,
+      pd: ''
     };
   }
 

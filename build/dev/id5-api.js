@@ -1,6 +1,6 @@
 /**
  * id5-api.js - The ID5 API is designed to make accessing the ID5 Universal ID simple for publishers and their ad tech vendors. The ID5 Universal ID is a shared, neutral identifier that publishers and ad tech platforms can use to recognise users even in environments where 3rd party cookies are not available. For more information, visit https://id5.io/universal-id.
- * @version v0.8.2
+ * @version v0.9.0-pre
  * @link https://id5.io/
  * @license Apache-2.0
  */
@@ -76,7 +76,7 @@
 "use strict";
 /* unused harmony export newConfig */
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return config; });
-function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
+function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
 
 /*
  * Module for getting and setting ID5 API configuration.
@@ -110,7 +110,8 @@ function newConfig() {
     refreshInSeconds: 'Number',
     cookieExpirationInSeconds: 'Number',
     partnerId: 'Number',
-    partnerUserId: 'String'
+    partnerUserId: 'String',
+    pd: 'String'
   };
 
   function resetConfig() {
@@ -129,7 +130,8 @@ function newConfig() {
       refreshInSeconds: 7200,
       cookieExpirationInSeconds: 90 * 24 * 60 * 60,
       partnerId: undefined,
-      partnerUserId: undefined
+      partnerUserId: undefined,
+      pd: ''
     };
   }
   /**
@@ -210,13 +212,17 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__config__ = __webpack_require__(0);
 function _extends() { _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends.apply(this, arguments); }
 
-function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
+function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
 
-function _slicedToArray(arr, i) { return _arrayWithHoles(arr) || _iterableToArrayLimit(arr, i) || _nonIterableRest(); }
+function _slicedToArray(arr, i) { return _arrayWithHoles(arr) || _iterableToArrayLimit(arr, i) || _unsupportedIterableToArray(arr, i) || _nonIterableRest(); }
 
-function _nonIterableRest() { throw new TypeError("Invalid attempt to destructure non-iterable instance"); }
+function _nonIterableRest() { throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); }
 
-function _iterableToArrayLimit(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"] != null) _i["return"](); } finally { if (_d) throw _e; } } return _arr; }
+function _unsupportedIterableToArray(o, minLen) { if (!o) return; if (typeof o === "string") return _arrayLikeToArray(o, minLen); var n = Object.prototype.toString.call(o).slice(8, -1); if (n === "Object" && o.constructor) n = o.constructor.name; if (n === "Map" || n === "Set") return Array.from(n); if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray(o, minLen); }
+
+function _arrayLikeToArray(arr, len) { if (len == null || len > arr.length) len = arr.length; for (var i = 0, arr2 = new Array(len); i < len; i++) { arr2[i] = arr[i]; } return arr2; }
+
+function _iterableToArrayLimit(arr, i) { if (typeof Symbol === "undefined" || !(Symbol.iterator in Object(arr))) return; var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"] != null) _i["return"](); } finally { if (_d) throw _e; } } return _arr; }
 
 function _arrayWithHoles(arr) { if (Array.isArray(arr)) return arr; }
 
@@ -295,7 +301,7 @@ function decorateLog(args, prefix) {
 }
 
 function debugTurnedOn() {
-  return !!__WEBPACK_IMPORTED_MODULE_0__config__["a" /* config */].getConfig('debug');
+  return __WEBPACK_IMPORTED_MODULE_0__config__["a" /* config */].getConfig().debug;
 }
 /*
  *   Check if a given parameter name exists in query string
@@ -592,15 +598,31 @@ ID5.init = function (options) {
     ID5.userConfig = options;
     ID5.config = cfg;
     ID5.initialized = true;
+    ID5.getConfig = __WEBPACK_IMPORTED_MODULE_1__config__["a" /* config */].getConfig;
     var referer = Object(__WEBPACK_IMPORTED_MODULE_4__refererDetection__["a" /* getRefererInfo */])();
     __WEBPACK_IMPORTED_MODULE_2__utils__["logInfo"]("ID5 detected referer is ".concat(referer.referer));
-    var storedId = JSON.parse(__WEBPACK_IMPORTED_MODULE_2__utils__["getCookie"](cfg.cookieName));
-    var storedDate = new Date(+__WEBPACK_IMPORTED_MODULE_2__utils__["getCookie"]("".concat(cfg.cookieName, "_last")));
+    var storedResponse = JSON.parse(__WEBPACK_IMPORTED_MODULE_2__utils__["getCookie"](cfg.cookieName));
+    var storedDate = new Date(+__WEBPACK_IMPORTED_MODULE_2__utils__["getCookie"](lastCookieName(cfg)));
     var refreshNeeded = storedDate.getTime() > 0 && Date.now() - storedDate.getTime() > cfg.refreshInSeconds * 1000;
+    var expiresStr = new Date(Date.now() + cfg.cookieExpirationInSeconds * 1000).toUTCString();
+    var nb = getNbFromCookie(cfg);
+    var idSetFromStoredResponse = false;
 
-    if (storedId) {
-      ID5.userId = storedId.ID5ID;
-      __WEBPACK_IMPORTED_MODULE_2__utils__["logInfo"]('ID5 User ID already available:', storedId, storedDate, refreshNeeded);
+    if (storedResponse) {
+      // this is needed to avoid losing the ID5ID from publishers that was
+      // previously stored. Eventually we can remove this, once pubs have all
+      // upgraded to this version of code
+      if (storedResponse.ID5ID) {
+        // TODO: remove this block when 1puid isn't needed
+        ID5.userId = storedResponse.ID5ID;
+      } else if (storedResponse.universal_uid) {
+        ID5.userId = storedResponse.universal_uid;
+        ID5.linkType = storedResponse.link_type || 0;
+      }
+
+      nb = incrementNb(cfg, expiresStr, nb);
+      idSetFromStoredResponse = true;
+      __WEBPACK_IMPORTED_MODULE_2__utils__["logInfo"]('ID5 User ID available from cache:', storedResponse, storedDate, refreshNeeded);
     } else {
       __WEBPACK_IMPORTED_MODULE_2__utils__["logInfo"]('No ID5 User ID available');
     }
@@ -609,24 +631,27 @@ ID5.init = function (options) {
       if (__WEBPACK_IMPORTED_MODULE_3__consentManagement__["a" /* isLocalStorageAllowed */]()) {
         __WEBPACK_IMPORTED_MODULE_2__utils__["logInfo"]('Consent to access local storage and cookies is given');
 
-        if (!storedId || refreshNeeded) {
+        if (!storedResponse || !storedResponse.universal_uid || !storedResponse.signature || refreshNeeded) {
           var gdprApplies = consentData && consentData.gdprApplies ? 1 : 0;
           var gdprConsentString = consentData && consentData.gdprApplies ? consentData.consentString : '';
-          var url = "https://id5-sync.com/g/v1/".concat(cfg.partnerId, ".json");
+          var url = "https://id5-sync.com/g/v2/".concat(cfg.partnerId, ".json?gdpr_consent=").concat(gdprConsentString, "&gdpr=").concat(gdprApplies);
+          var signature = storedResponse && storedResponse.signature ? storedResponse.signature : '';
+          var pubId = storedResponse && storedResponse.ID5ID ? storedResponse.ID5ID : ''; // TODO: remove when 1puid isn't needed
+
           var data = {
-            '1puid': ID5.userId || '',
-            'gdpr': gdprApplies,
-            'gdpr_consent': gdprConsentString,
-            'rf': referer.referer,
-            'top': referer.reachedTop ? 1 : 0,
+            'partner': cfg.partnerId,
+            '1puid': pubId,
+            // TODO: remove when 1puid isn't needed
+            'v': ID5.version || '',
             'o': 'api',
-            'v': ID5.version || ''
+            'rf': referer.referer,
+            'u': referer.stack[0] || window.location.href,
+            'top': referer.reachedTop ? 1 : 0,
+            's': signature,
+            'pd': cfg.pd || '',
+            'nbPage': nb
           };
-
-          if (cfg.debug) {
-            __WEBPACK_IMPORTED_MODULE_2__utils__["logInfo"]('Fetching ID5 user ID from:', url, data);
-          }
-
+          __WEBPACK_IMPORTED_MODULE_2__utils__["logInfo"]('Fetching ID5 user ID from:', url, data);
           __WEBPACK_IMPORTED_MODULE_2__utils__["ajax"](url, function (response) {
             var responseObj;
 
@@ -634,18 +659,21 @@ ID5.init = function (options) {
               try {
                 responseObj = JSON.parse(response);
 
-                if (responseObj.ID5ID) {
-                  ID5.userId = responseObj.ID5ID;
-                  var expiresStr = new Date(Date.now() + cfg.cookieExpirationInSeconds * 1000).toUTCString();
+                if (responseObj.universal_uid) {
+                  ID5.userId = responseObj.universal_uid;
                   __WEBPACK_IMPORTED_MODULE_2__utils__["setCookie"](cfg.cookieName, response, expiresStr);
-                  __WEBPACK_IMPORTED_MODULE_2__utils__["setCookie"]("".concat(cfg.cookieName, "_last"), Date.now(), expiresStr);
+                  __WEBPACK_IMPORTED_MODULE_2__utils__["setCookie"](lastCookieName(cfg), Date.now(), expiresStr);
+                  __WEBPACK_IMPORTED_MODULE_2__utils__["setCookie"](nbCookieName(cfg), idSetFromStoredResponse ? 0 : 1, expiresStr);
 
-                  if (responseObj.CASCADE_NEEDED) {
+                  if (responseObj.cascade_needed) {
                     // TODO: Should not use AJAX Call for cascades as some partners may not have CORS Headers
-                    var syncUrl = "https://id5-sync.com/".concat(cfg.partnerUserId ? 's' : 'i', "/").concat(cfg.partnerId, "/8.gif");
-                    __WEBPACK_IMPORTED_MODULE_2__utils__["logInfo"]('Opportunities of cascades available:', syncUrl, data);
+                    var isSync = cfg.partnerUserId && cfg.partnerUserId.length > 0;
+                    var syncUrl = "https://id5-sync.com/".concat(isSync ? 's' : 'i', "/").concat(cfg.partnerId, "/8.gif");
+                    __WEBPACK_IMPORTED_MODULE_2__utils__["logInfo"]('Opportunities to cascade available:', syncUrl, data);
                     __WEBPACK_IMPORTED_MODULE_2__utils__["ajax"](syncUrl, function () {}, {
-                      puid: cfg.partnerUserId
+                      puid: isSync ? cfg.partnerUserId : null,
+                      gdpr: gdprApplies,
+                      gdpr_consent: gdprConsentString
                     }, {
                       method: 'GET',
                       withCredentials: true
@@ -659,19 +687,38 @@ ID5.init = function (options) {
                 __WEBPACK_IMPORTED_MODULE_2__utils__["logError"](error);
               }
             }
-          }, data, {
-            method: 'GET',
+          }, JSON.stringify(data), {
+            method: 'POST',
             withCredentials: true
           });
         }
       } else {
-        __WEBPACK_IMPORTED_MODULE_2__utils__["logInfo"]('No legitimate consent to use ID5', consentData);
+        __WEBPACK_IMPORTED_MODULE_2__utils__["logInfo"]('No legal basis to use ID5', consentData);
       }
     });
   } catch (e) {
     __WEBPACK_IMPORTED_MODULE_2__utils__["logError"]('Exception catch', e);
   }
 };
+
+function lastCookieName(cfg) {
+  return "".concat(cfg.cookieName, "_last");
+}
+
+function nbCookieName(cfg) {
+  return "".concat(cfg.cookieName, "_nb");
+}
+
+function getNbFromCookie(cfg) {
+  var cachedNb = __WEBPACK_IMPORTED_MODULE_2__utils__["getCookie"](nbCookieName(cfg));
+  return cachedNb ? parseInt(cachedNb) : 0;
+}
+
+function incrementNb(cfg, expiresStr, nb) {
+  nb++;
+  __WEBPACK_IMPORTED_MODULE_2__utils__["setCookie"](nbCookieName(cfg), nb, expiresStr);
+  return nb;
+}
 
 /* harmony default export */ __webpack_exports__["default"] = (ID5);
 
@@ -1081,4 +1128,4 @@ var getRefererInfo = detectReferer(window);
 /***/ })
 /******/ ]);
 //# sourceMappingURL=id5-api.js.map
-ID5.version = '0.8.2';
+ID5.version = '0.9.0-pre';
