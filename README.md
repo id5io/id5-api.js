@@ -50,7 +50,7 @@ Install the ID5 API after your CMP (if applicable), but as high in the `HEAD` as
 ```html
 <!-- CMP code goes here -->
 
-<script src="https://cdn.id5-sync.com/api/0.8/id5-api.js"></script>
+<script src="https://cdn.id5-sync.com/api/0.9/id5-api.js"></script>
 <script>
   ID5.init({partnerId: 173}); // modify with your own partnerId
 </script>
