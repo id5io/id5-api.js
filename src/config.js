@@ -1,5 +1,5 @@
 /*
- * Module for getting and setting ID5 API configuration. 
+ * Module for getting and setting ID5 API configuration.
  */
 
 const utils = require('./utils');

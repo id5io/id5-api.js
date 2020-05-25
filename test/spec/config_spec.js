@@ -24,6 +24,10 @@ describe('config API', function () {
     expect(setConfig).to.be.a('function');
   });
 
+  it('getConfig is a function', function () {
+    expect(getConfig).to.be.a('function');
+  });
+
   it('getConfig returns an object', function () {
     expect(getConfig()).to.be.a('object');
   });

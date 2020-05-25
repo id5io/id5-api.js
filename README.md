@@ -172,8 +172,9 @@ There are a few cases in which the ID5.userId may not be ready or have a value:
 | Name | Type | Return Type | Description |
 | --- | --- | --- | --- |
 | ID5.userId | variable | string | The ID5 Universal ID value. If not set yet, returns `undefined` |
-| ID5.loaded | variable | boolean | Set to `true` once the API is loaded and ready for use |
+| ID5.loaded | variable | boolean | This variable will be set to `true` once the API is loaded and ready for use |
 | ID5.init({}) | method | n/a | Takes a config object as the only parameter and initializes the API with these configuration options |
+| ID5.getConfig() | method | object | Returns the current configuration object |
 
 ### Examples
 
