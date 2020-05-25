@@ -34,12 +34,12 @@ The first step to work with the ID5 API and Universal ID is to apply for an ID5 
 
 <!--Download the latest pre-built, minified version from Github
 
-* [https://github.com/id5io/id5-api.js/releases/download/v0.9/id5-api.js](https://github.com/id5io/id5-api.js/releases/download/v0.8/id5-api.js)
+* [https://github.com/id5io/id5-api.js/releases/download/v0.9/id5-api.js](https://github.com/id5io/id5-api.js/releases/download/v0.9/id5-api.js)
 
 Install the ID5 API after your CMP (if applicable), but as high in the `HEAD` as possible
 
 ```html
-<script src=”/path/to/js/id5-api.js”></script>
+<script src="/path/to/js/id5-api.js"></script>
 <script>
   ID5.init({partnerId: 173}); // modify with your own partnerId
 </script>
@@ -83,7 +83,7 @@ This will enable us to make more frequent changes and bug fixes without the need
 
 You can download the latest release (and host on your own CDN) in a pre-built, minified version from:
 
-* [https://github.com/id5io/id5-api.js/releases/download/v0.9/id5-api.js](https://github.com/id5io/id5-api.js/releases/download/v0.8/id5-api.js)
+* [https://github.com/id5io/id5-api.js/releases/download/v0.9/id5-api.js](https://github.com/id5io/id5-api.js/releases/download/v0.9/id5-api.js)
 
 ### Build from Source (more advanced)
 
@@ -120,7 +120,7 @@ There are three main parts to using the ID5 API:
 The ID5 API script should be placed as high in the page as possible, but should be after your CMP is loaded & configured (if applicable). By placing this script early in the page, all subsequent scripts on page (including Prebid.js, ad tags, attribution or segment pixels, etc.) can leverage the ID5 Universal ID. You should load the script *synchronously* to ensure that the API is loaded before attempting to call it.
 
 ```html
-<script src=”/path/to/js/id5-api.js”></script>
+<script src="/path/to/js/id5-api.js"></script>
 ```
 
 ### Initialize the API
@@ -157,30 +157,68 @@ There are a few cases in which the ID5.userId may not be ready or have a value:
 
 | Option Name | Scope | Type | Default Value | Description |
 | --- | --- | --- | --- | --- |
-| debug | Optional | boolean | `false` | Enable verbose debug mode (defaulting to `id5_debug` query string param if present, or `false`) |
-| allowID5WithoutConsentApi | Optional | boolean | `false` | Allow ID5 to fetch user id even if no consent API |
-| cookieName | Optional | string | `id5.1st` | ID5 1st party cookie name |
-| refreshInSeconds | Optional | integer | `7200`<br>(2 hours) | Refresh period of first-party cookie |
-| cookieExpirationInSeconds | Optional | integer | `7776000`<br>(90 days) | Expiration of 1st party cookie |
 | partnerId | Required | integer | | ID5 Partner ID, received after registration with ID5 |
-| partnerUserId | Optional | string | | User ID for the publisher, to be stored by ID5 for further matching if provided |
+| allowID5WithoutConsentApi | Optional | boolean | `false` | Allow ID5 to fetch user id even if no consent API |
 | cmpApi | Optional | string | `iab` | API to use CMP. As of today, either 'iab' or 'static' |
 | consentData | Optional, Required if `cmpApi` is `'static'` | object | | Consent data if `cmpApi` is `'static'`. Object should contain the following:`{ getConsentData: { consentData: <consent_data>, gdprApplies: <true\|false> }}`
+| cookieExpirationInSeconds | Optional | integer | `7776000`<br>(90 days) | Expiration of 1st party cookie |
+| cookieName | Optional | string | `id5.1st` | ID5 1st party cookie name |
+| debug | Optional | boolean | `false` | Enable verbose debug mode (defaulting to `id5_debug` query string param if present, or `false`) |
+| partnerUserId | Optional | string | | User ID for the publisher, to be stored by ID5 for further matching if provided |
+| pd | Optional | string | | Publisher-supplied data used for linking ID5 IDs across domains. See [Generating Publisher Data String](#generating-publisher-data-string) below for details on generating the string |
+| refreshInSeconds | Optional | integer | `7200`<br>(2 hours) | Refresh period of first-party cookie |
+
+#### Generating Publisher Data String
+The `pd` field (short for Publisher Data) is a base64 encoded string that contains any deterministic user data the publisher has access to. The data will be used strictly to provide better linking of ID5 IDs across domains for improved user identification. If the user has not provided ID5 with a legal basis to process data, the information sent to ID5 will be ignored and neither used nor saved for future requests. 
+
+The possible keys in the string are:
+* 0 = other
+* 1 = sha256 hashed email
+* 2 = sha256 hashed phone number
+* 3 = cross-domain publisher user id value
+* 4 = cross-domain publisher user id source (value provided by ID5)
+* 5 = publisher user id value
+
+To illustrate how to generate the `pd` string, let's use an example. Suppose you have an email address for the user, in this example it is `myuser@domain.com`, and want to share it with ID5 to strengthen the value of the UID we respond with. You also have your own user id for this user that you can share: `ABC123`.
+
+First, perform a sha256 hash of the email, resulting in a string `b50ca08271795a8e7e4012813f23d505193d75c0f2e2bb99baa63aa822f66ed3`
+
+Next, create the raw `pd` string containing the keys `1` (for the hashed email) and `5` (for the publisher user id), separated by `&`’s (the order doesn't matter):
+
+```
+1=b50ca08271795a8e7e4012813f23d505193d75c0f2e2bb99baa63aa822f66ed3&5=ABC123
+```
+
+Finally, base64 the entire raw pd string, resulting in the final `pd` value:
+
+```
+MT1iNTBjYTA4MjcxNzk1YThlN2U0MDEyODEzZjIzZDUwNTE5M2Q3NWMwZjJlMmJiOTliYWE2M2FhODIyZjY2ZWQzJjU9QUJDMTIz
+```
+
+This is the value you will add to the config when you initialize the API:
+
+```javascript
+ID5.init({
+  partnerId: 173, // modify with your own partnerId
+  pd: "MT1iNTBjYTA4MjcxNzk1YThlN2U0MDEyODEzZjIzZDUwNTE5M2Q3NWMwZjJlMmJiOTliYWE2M2FhODIyZjY2ZWQzJjU9QUJDMTIz"
+});
+```
 
 ### Available Methods and Variables
 
 | Name | Type | Return Type | Description |
 | --- | --- | --- | --- |
 | ID5.userId | variable | string | The ID5 Universal ID value. If not set yet, returns `undefined` |
-| ID5.loaded | variable | boolean | Set to `true` once the API is loaded and ready for use |
+| ID5.loaded | variable | boolean | This variable will be set to `true` once the API is loaded and ready for use |
 | ID5.init({}) | method | n/a | Takes a config object as the only parameter and initializes the API with these configuration options |
+| ID5.getConfig() | method | object | Returns the current configuration object |
 
 ### Examples
 
 Default configuration options
 
 ```html
-<script src=”/path/to/js/id5-api.js”>
+<script src="/path/to/js/id5-api.js">
 <script>
   ID5.init({partnerId: 173}); // modify with your own partnerId
 
@@ -191,11 +229,11 @@ Default configuration options
 Setting some configuration options at initialization
 
 ```html
-<script src=”/path/to/js/id5-api.js”>
+<script src="/path/to/js/id5-api.js">
 <script>
   ID5.init({
     partnerId: 173, // modify with your own partnerId
-    cookieName: “id5api-pub”,
+    cookieName: "id5api-pub",
     refreshInSeconds: 3600,
     partnerUserId: myUserId()
   });
