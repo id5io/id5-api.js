@@ -34,7 +34,7 @@ The first step to work with the ID5 API and Universal ID is to apply for an ID5 
 
 <!--Download the latest pre-built, minified version from Github
 
-* [https://github.com/id5io/id5-api.js/releases/download/v0.9/id5-api.js](https://github.com/id5io/id5-api.js/releases/download/v0.8/id5-api.js)
+* [https://github.com/id5io/id5-api.js/releases/download/v0.9/id5-api.js](https://github.com/id5io/id5-api.js/releases/download/v0.9/id5-api.js)
 
 Install the ID5 API after your CMP (if applicable), but as high in the `HEAD` as possible
 
@@ -83,7 +83,7 @@ This will enable us to make more frequent changes and bug fixes without the need
 
 You can download the latest release (and host on your own CDN) in a pre-built, minified version from:
 
-* [https://github.com/id5io/id5-api.js/releases/download/v0.9/id5-api.js](https://github.com/id5io/id5-api.js/releases/download/v0.8/id5-api.js)
+* [https://github.com/id5io/id5-api.js/releases/download/v0.9/id5-api.js](https://github.com/id5io/id5-api.js/releases/download/v0.9/id5-api.js)
 
 ### Build from Source (more advanced)
 
@@ -165,7 +165,44 @@ There are a few cases in which the ID5.userId may not be ready or have a value:
 | cookieName | Optional | string | `id5.1st` | ID5 1st party cookie name |
 | debug | Optional | boolean | `false` | Enable verbose debug mode (defaulting to `id5_debug` query string param if present, or `false`) |
 | partnerUserId | Optional | string | | User ID for the publisher, to be stored by ID5 for further matching if provided |
+| pd | Optional | string | | Publisher-supplied data used for linking ID5 IDs across domains. See [Generating Publisher Data String](#generating-publisher-data-string) below for details on generating the string |
 | refreshInSeconds | Optional | integer | `7200`<br>(2 hours) | Refresh period of first-party cookie |
+
+#### Generating Publisher Data String
+The `pd` field (short for Publisher Data) is a base64 encoded string that contains any deterministic user data the publisher has access to. The data will be used strictly to provide better linking of ID5 IDs across domains for improved user identification. If the user has not provided ID5 with a legal basis to process data, the information sent to ID5 will be ignored and neither used nor saved for future requests. 
+
+The possible keys in the string are:
+* 0 = other
+* 1 = sha256 hashed email
+* 2 = sha256 hashed phone number
+* 3 = cross-domain publisher user id value
+* 4 = cross-domain publisher user id source (value provided by ID5)
+* 5 = publisher user id value
+
+To illustrate how to generate the `pd` string, let's use an example. Suppose you have an email address for the user, in this example it is `myuser@domain.com`, and want to share it with ID5 to strengthen the value of the UID we respond with. You also have your own user id for this user that you can share: `ABC123`.
+
+First, perform a sha256 hash of the email, resulting in a string `b50ca08271795a8e7e4012813f23d505193d75c0f2e2bb99baa63aa822f66ed3`
+
+Next, create the raw `pd` string containing the keys `1` (for the hashed email) and `5` (for the publisher user id), separated by `&`’s (the order doesn't matter):
+
+```
+1=b50ca08271795a8e7e4012813f23d505193d75c0f2e2bb99baa63aa822f66ed3&5=ABC123
+```
+
+Finally, base64 the entire raw pd string, resulting in the final `pd` value:
+
+```
+MT1iNTBjYTA4MjcxNzk1YThlN2U0MDEyODEzZjIzZDUwNTE5M2Q3NWMwZjJlMmJiOTliYWE2M2FhODIyZjY2ZWQzJjU9QUJDMTIz
+```
+
+This is the value you will add to the config when you initialize the API:
+
+```javascript
+ID5.init({
+  partnerId: 173, // modify with your own partnerId
+  pd: "MT1iNTBjYTA4MjcxNzk1YThlN2U0MDEyODEzZjIzZDUwNTE5M2Q3NWMwZjJlMmJiOTliYWE2M2FhODIyZjY2ZWQzJjU9QUJDMTIz"
+});
+```
 
 ### Available Methods and Variables
 
