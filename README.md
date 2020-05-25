@@ -157,15 +157,15 @@ There are a few cases in which the ID5.userId may not be ready or have a value:
 
 | Option Name | Scope | Type | Default Value | Description |
 | --- | --- | --- | --- | --- |
-| debug | Optional | boolean | `false` | Enable verbose debug mode (defaulting to `id5_debug` query string param if present, or `false`) |
-| allowID5WithoutConsentApi | Optional | boolean | `false` | Allow ID5 to fetch user id even if no consent API |
-| cookieName | Optional | string | `id5.1st` | ID5 1st party cookie name |
-| refreshInSeconds | Optional | integer | `7200`<br>(2 hours) | Refresh period of first-party cookie |
-| cookieExpirationInSeconds | Optional | integer | `7776000`<br>(90 days) | Expiration of 1st party cookie |
 | partnerId | Required | integer | | ID5 Partner ID, received after registration with ID5 |
-| partnerUserId | Optional | string | | User ID for the publisher, to be stored by ID5 for further matching if provided |
+| allowID5WithoutConsentApi | Optional | boolean | `false` | Allow ID5 to fetch user id even if no consent API |
 | cmpApi | Optional | string | `iab` | API to use CMP. As of today, either 'iab' or 'static' |
 | consentData | Optional, Required if `cmpApi` is `'static'` | object | | Consent data if `cmpApi` is `'static'`. Object should contain the following:`{ getConsentData: { consentData: <consent_data>, gdprApplies: <true\|false> }}`
+| cookieExpirationInSeconds | Optional | integer | `7776000`<br>(90 days) | Expiration of 1st party cookie |
+| cookieName | Optional | string | `id5.1st` | ID5 1st party cookie name |
+| debug | Optional | boolean | `false` | Enable verbose debug mode (defaulting to `id5_debug` query string param if present, or `false`) |
+| partnerUserId | Optional | string | | User ID for the publisher, to be stored by ID5 for further matching if provided |
+| refreshInSeconds | Optional | integer | `7200`<br>(2 hours) | Refresh period of first-party cookie |
 
 ### Available Methods and Variables
 
