@@ -39,7 +39,7 @@ The first step to work with the ID5 API and Universal ID is to apply for an ID5 
 Install the ID5 API after your CMP (if applicable), but as high in the `HEAD` as possible
 
 ```html
-<script src=”/path/to/js/id5-api.js”></script>
+<script src="/path/to/js/id5-api.js"></script>
 <script>
   ID5.init({partnerId: 173}); // modify with your own partnerId
 </script>
@@ -120,7 +120,7 @@ There are three main parts to using the ID5 API:
 The ID5 API script should be placed as high in the page as possible, but should be after your CMP is loaded & configured (if applicable). By placing this script early in the page, all subsequent scripts on page (including Prebid.js, ad tags, attribution or segment pixels, etc.) can leverage the ID5 Universal ID. You should load the script *synchronously* to ensure that the API is loaded before attempting to call it.
 
 ```html
-<script src=”/path/to/js/id5-api.js”></script>
+<script src="/path/to/js/id5-api.js"></script>
 ```
 
 ### Initialize the API
@@ -180,7 +180,7 @@ There are a few cases in which the ID5.userId may not be ready or have a value:
 Default configuration options
 
 ```html
-<script src=”/path/to/js/id5-api.js”>
+<script src="/path/to/js/id5-api.js">
 <script>
   ID5.init({partnerId: 173}); // modify with your own partnerId
 
@@ -191,11 +191,11 @@ Default configuration options
 Setting some configuration options at initialization
 
 ```html
-<script src=”/path/to/js/id5-api.js”>
+<script src="/path/to/js/id5-api.js">
 <script>
   ID5.init({
     partnerId: 173, // modify with your own partnerId
-    cookieName: “id5api-pub”,
+    cookieName: "id5api-pub",
     refreshInSeconds: 3600,
     partnerUserId: myUserId()
   });
