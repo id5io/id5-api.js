@@ -29,8 +29,8 @@ ID5.init = function (options) {
     utils.logInfo(`ID5 detected referer is ${referer.referer}`);
 
     const storedResponse = JSON.parse(utils.getCookie(cfg.cookieName));
-    const storedDate = new Date(+utils.getCookie(lastCookieName(cfg)));
-    const refreshNeeded = storedDate.getTime() > 0 && (Date.now() - storedDate.getTime() > cfg.refreshInSeconds * 1000);
+    const storedDateTime = (new Date(+utils.getCookie(lastCookieName(cfg)))).getTime();
+    const refreshNeeded = storedDateTime <= 0 || ((Date.now() - storedDateTime) > (cfg.refreshInSeconds * 1000));
     const expiresStr = (new Date(Date.now() + (cfg.cookieExpirationInSeconds * 1000))).toUTCString();
     let nb = getNbFromCookie(cfg);
     let idSetFromStoredResponse = false;
@@ -47,7 +47,7 @@ ID5.init = function (options) {
       }
       nb = incrementNb(cfg, expiresStr, nb);
       idSetFromStoredResponse = true;
-      utils.logInfo('ID5 User ID available from cache:', storedResponse, storedDate, refreshNeeded);
+      utils.logInfo('ID5 User ID available from cache:', storedResponse, storedDateTime, refreshNeeded);
     } else {
       utils.logInfo('No ID5 User ID available');
     }
