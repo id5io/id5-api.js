@@ -18,6 +18,10 @@ ID5.initialized = false;
  */
 // TODO: Use Async init by pushing setting in a queue
 ID5.init = function (options) {
+  if (typeof ID5.version === 'undefined') {
+    throw new Error('ID5.version variable is missing! Make sure you build from source with "gulp build" from this project. Contact support@id5.io for help.');
+  }
+
   try {
     utils.logInfo('Invoking ID5.init', arguments);
     const cfg = config.setConfig(options);
@@ -27,6 +31,10 @@ ID5.init = function (options) {
     ID5.getConfig = config.getConfig;
     const referer = getRefererInfo();
     utils.logInfo(`ID5 detected referer is ${referer.referer}`);
+
+    if (typeof cfg.partnerId !== 'number') {
+      throw new Error('partnerId is required and must be a number');
+    }
 
     const storedResponse = JSON.parse(utils.getCookie(cfg.cookieName));
     const storedDateTime = (new Date(+utils.getCookie(lastCookieName(cfg)))).getTime();
@@ -65,7 +73,7 @@ ID5.init = function (options) {
           const data = {
             'partner': cfg.partnerId,
             '1puid': pubId, // TODO: remove when 1puid isn't needed
-            'v': ID5.version || '',
+            'v': ID5.version,
             'o': 'api',
             'rf': referer.referer,
             'u': referer.stack[0] || window.location.href,
