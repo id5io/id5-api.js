@@ -3,6 +3,9 @@ import * as utils from 'src/utils';
 
 require('src/id5-api.js');
 
+// need to manually set version since the test process doesn't set it like gulp build does
+ID5.version = 'TESTING';
+
 let expect = require('chai').expect;
 
 describe('ID5 Publisher API', function () {
@@ -34,12 +37,50 @@ describe('ID5 Publisher API', function () {
       expect(ID5.getConfig().cookieName).to.be.equal('id5.1st');
       expect(ID5.initialized).to.be.true;
     });
-    it('should retrieve config with getConfig()', function() {
+    it('should retrieve config with getConfig()', function () {
       ID5.init({ partnerId: 99, cmpApi: 'iab', allowID5WithoutConsentApi: false });
       expect(ID5.getConfig).to.be.a('function');
       expect(ID5.getConfig().cookieName).to.be.equal('id5.1st');
-      config.setConfig({cookieName: 'testcookie'});
+      config.setConfig({ cookieName: 'testcookie' });
       expect(ID5.getConfig().cookieName).to.be.equal('testcookie');
+    });
+  });
+
+  describe('Required parameters', function () {
+    let ajaxStub;
+
+    beforeEach(function () {
+      ID5.userId = undefined;
+      ajaxStub = sinon.stub(utils, 'ajax').callsFake(function(url, callback, data, options) {
+        callback(jsonResponse);
+      });
+    });
+
+    afterEach(function () {
+      config.resetConfig();
+      ajaxStub.restore();
+    });
+
+    it('should fail if partnerId not set in config', function() {
+      try {
+        ID5.init({ cmpApi: 'iab', allowID5WithoutConsentApi: true });
+      } catch (e) { }
+
+      sinon.assert.notCalled(ajaxStub);
+      expect(ID5.userId).to.be.equal(undefined);
+    });
+    it('should fail if ID5.version is not set', function () {
+      let version;
+      try {
+        version = ID5.version;
+        ID5.version = undefined;
+
+        ID5.init({ partnerId: 99, cmpApi: 'iab', allowID5WithoutConsentApi: true });
+      } catch (e) { }
+
+      sinon.assert.notCalled(ajaxStub);
+      expect(ID5.userId).to.be.equal(undefined);
+      ID5.version = version;
     });
   });
 
