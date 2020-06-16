@@ -1,6 +1,6 @@
 /**
  * id5-api.js - The ID5 API is designed to make accessing the ID5 Universal ID simple for publishers and their ad tech vendors. The ID5 Universal ID is a shared, neutral identifier that publishers and ad tech platforms can use to recognise users even in environments where 3rd party cookies are not available. For more information, visit https://id5.io/universal-id.
- * @version v0.9.1
+ * @version v0.9.2
  * @link https://id5.io/
  * @license Apache-2.0
  */
@@ -592,6 +592,10 @@ ID5.initialized = false;
 // TODO: Use Async init by pushing setting in a queue
 
 ID5.init = function (options) {
+  if (typeof ID5.version === 'undefined') {
+    throw new Error('ID5.version variable is missing! Make sure you build from source with "gulp build" from this project. Contact support@id5.io for help.');
+  }
+
   try {
     __WEBPACK_IMPORTED_MODULE_2__utils__["logInfo"]('Invoking ID5.init', arguments);
     var cfg = __WEBPACK_IMPORTED_MODULE_1__config__["a" /* config */].setConfig(options);
@@ -601,6 +605,11 @@ ID5.init = function (options) {
     ID5.getConfig = __WEBPACK_IMPORTED_MODULE_1__config__["a" /* config */].getConfig;
     var referer = Object(__WEBPACK_IMPORTED_MODULE_4__refererDetection__["a" /* getRefererInfo */])();
     __WEBPACK_IMPORTED_MODULE_2__utils__["logInfo"]("ID5 detected referer is ".concat(referer.referer));
+
+    if (typeof cfg.partnerId !== 'number') {
+      throw new Error('partnerId is required and must be a number');
+    }
+
     var storedResponse = JSON.parse(__WEBPACK_IMPORTED_MODULE_2__utils__["getCookie"](cfg.cookieName));
     var storedDateTime = new Date(+__WEBPACK_IMPORTED_MODULE_2__utils__["getCookie"](lastCookieName(cfg))).getTime();
     var refreshNeeded = storedDateTime <= 0 || Date.now() - storedDateTime > cfg.refreshInSeconds * 1000;
@@ -642,7 +651,7 @@ ID5.init = function (options) {
             'partner': cfg.partnerId,
             '1puid': pubId,
             // TODO: remove when 1puid isn't needed
-            'v': ID5.version || '',
+            'v': ID5.version,
             'o': 'api',
             'rf': referer.referer,
             'u': referer.stack[0] || window.location.href,
@@ -1128,4 +1137,4 @@ var getRefererInfo = detectReferer(window);
 /***/ })
 /******/ ]);
 //# sourceMappingURL=id5-api.js.map
-ID5.version = '0.9.1';
+ID5.version = '0.9.2';
