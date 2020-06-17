@@ -173,13 +173,18 @@ There are a few cases in which the ID5.userId may not be ready or have a value:
 #### Generating Publisher Data String
 The `pd` field (short for Publisher Data) is a base64 encoded string that contains any deterministic user data the publisher has access to. The data will be used strictly to provide better linking of ID5 IDs across domains for improved user identification. If the user has not provided ID5 with a legal basis to process data, the information sent to ID5 will be ignored and neither used nor saved for future requests. 
 
+If the publisher does not have any Publisher Data to pass to ID5, the `pd` parameter can be omitted or left with an empty string value (`pd: ""`).
+
 The possible keys in the string are:
-* 0 = other
-* 1 = sha256 hashed email
-* 2 = sha256 hashed phone number
-* 3 = cross-domain publisher user id value
-* 4 = cross-domain publisher user id source (value provided by ID5)
-* 5 = publisher user id value
+
+| Key | Value | 
+| --- | --- |
+| 0 | other |
+| 1 | sha256 hashed email |
+| 2 | sha256 hashed phone number |
+| 3 | cross-domain publisher user_id value |
+| 4 | cross-domain publisher user_id source (value provided by ID5) |
+| 5 | publisher user_id value |
 
 To illustrate how to generate the `pd` string, let's use an example. Suppose you have an email address for the user, in this example it is `myuser@domain.com`, and want to share it with ID5 to strengthen the value of the UID we respond with. You also have your own user id for this user that you can share: `ABC123`.
 
