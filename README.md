@@ -166,7 +166,7 @@ There are a few cases in which the ID5.userId may not be ready or have a value:
 | cookieExpirationInSeconds | Optional | integer | `7776000`<br>(90 days) | Expiration of 1st party cookie |
 | cookieName | Optional | string | `id5.1st` | ID5 1st party cookie name |
 | debug | Optional | boolean | `false` | Enable verbose debug mode (defaulting to `id5_debug` query string param if present, or `false`) |
-| partnerUserId | Optional | string | | User ID for the publisher, to be stored by ID5 for further matching if provided |
+| partnerUserId | Optional | string | | User ID of the platform if they are deploying this API on behalf of a publisher, to be used for cookie syncing with ID5 |
 | pd | Optional | string | | Publisher-supplied data used for linking ID5 IDs across domains. See [Generating Publisher Data String](#generating-publisher-data-string) below for details on generating the string |
 | refreshInSeconds | Optional | integer | `7200`<br>(2 hours) | Refresh period of first-party cookie |
 
