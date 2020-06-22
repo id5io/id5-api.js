@@ -94,19 +94,17 @@ ID5.init = function (options) {
                   utils.setCookie(cfg.cookieName, response, expiresStr);
                   utils.setCookie(lastCookieName(cfg), Date.now(), expiresStr);
                   utils.setCookie(nbCookieName(cfg), (idSetFromStoredResponse ? 0 : 1), expiresStr);
-                  if (responseObj.cascade_needed) {
-                    // TODO: Should not use AJAX Call for cascades as some partners may not have CORS Headers
+                  if (responseObj.cascade_needed === true) {
                     const isSync = cfg.partnerUserId && cfg.partnerUserId.length > 0;
-                    const syncUrl = `https://id5-sync.com/${isSync ? 's' : 'i'}/${cfg.partnerId}/8.gif`;
+                    const syncUrl = `https://id5-sync.com/${isSync ? 's' : 'i'}/${cfg.partnerId}/8.gif?${isSync ? 'puid=' + cfg.partnerUserId + '&' : ''}gdpr_consent=${gdprConsentString}&gdpr=${gdprApplies}`;
                     utils.logInfo('Opportunities to cascade available:', syncUrl, data);
-                    utils.ajax(syncUrl, () => {}, {
-                      puid: isSync ? cfg.partnerUserId : null,
-                      gdpr: gdprApplies,
-                      gdpr_consent: gdprConsentString
-                    }, {
-                      method: 'GET',
-                      withCredentials: true
-                    });
+                    if (document.readyState !== 'loading') {
+                      ID5.fireId5SyncPixel(syncUrl);
+                    } else {
+                      document.addEventListener('DOMContentLoaded', function () {
+                        ID5.fireId5SyncPixel(syncUrl);
+                      });
+                    }
                   }
                   // TODO: Server should use 1puid to override uid if not in 3rd party cookie
                 } else {
@@ -125,6 +123,10 @@ ID5.init = function (options) {
   } catch (e) {
     utils.logError('Exception catch', e);
   }
+};
+
+ID5.fireId5SyncPixel = function (syncUrl) {
+  (new Image()).src = syncUrl;
 };
 
 function lastCookieName(cfg) {
