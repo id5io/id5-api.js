@@ -131,7 +131,7 @@ function lastCookieName(cfg) {
   return `${cfg.cookieName}_last`;
 }
 function nbCookieName(cfg) {
-  return `${cfg.cookieName}_nb`;
+  return `${cfg.cookieName}_${cfg.partnerId}_nb`;
 }
 function getNbFromCookie(cfg) {
   const cachedNb = utils.getCookie(nbCookieName(cfg));

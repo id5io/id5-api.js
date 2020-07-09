@@ -33,14 +33,14 @@ describe('ID5 Publisher API', function () {
       expect(ID5.userConfig.partnerId).to.be.equal(99);
       expect(ID5.userConfig.cookieName).to.be.undefined;
       expect(ID5.config.partnerId).to.be.equal(99);
-      expect(ID5.config.cookieName).to.be.equal('id5.1st');
-      expect(ID5.getConfig().cookieName).to.be.equal('id5.1st');
+      expect(ID5.config.cookieName).to.be.equal('id5id.1st');
+      expect(ID5.getConfig().cookieName).to.be.equal('id5id.1st');
       expect(ID5.initialized).to.be.true;
     });
     it('should retrieve config with getConfig()', function () {
       ID5.init({ partnerId: 99, cmpApi: 'iab', allowID5WithoutConsentApi: false });
       expect(ID5.getConfig).to.be.a('function');
-      expect(ID5.getConfig().cookieName).to.be.equal('id5.1st');
+      expect(ID5.getConfig().cookieName).to.be.equal('id5id.1st');
       config.setConfig({ cookieName: 'testcookie' });
       expect(ID5.getConfig().cookieName).to.be.equal('testcookie');
     });
@@ -98,24 +98,24 @@ describe('ID5 Publisher API', function () {
         ajaxStub = sinon.stub(utils, 'ajax').callsFake(function(url, callback, data, options) {
           callback(jsonResponse);
         });
-        utils.setCookie('id5.1st', '', EXPIRED_COOKIE_DATE);
-        utils.setCookie('id5.1st_last', '', EXPIRED_COOKIE_DATE);
-        utils.setCookie('id5.1st_nb', '', EXPIRED_COOKIE_DATE);
+        utils.setCookie('id5id.1st', '', EXPIRED_COOKIE_DATE);
+        utils.setCookie('id5id.1st_last', '', EXPIRED_COOKIE_DATE);
+        utils.setCookie('id5id.1st_99_nb', '', EXPIRED_COOKIE_DATE);
       });
 
       afterEach(function () {
         config.resetConfig();
         ajaxStub.restore();
-        utils.setCookie('id5.1st', '', EXPIRED_COOKIE_DATE);
-        utils.setCookie('id5.1st_last', '', EXPIRED_COOKIE_DATE);
-        utils.setCookie('id5.1st_nb', '', EXPIRED_COOKIE_DATE);
+        utils.setCookie('id5id.1st', '', EXPIRED_COOKIE_DATE);
+        utils.setCookie('id5id.1st_last', '', EXPIRED_COOKIE_DATE);
+        utils.setCookie('id5id.1st_99_nb', '', EXPIRED_COOKIE_DATE);
         ID5.userId = undefined;
       });
 
       it('Use non-expired cookie if available', function () {
         const expStr = (new Date(Date.now() + 5000).toUTCString())
-        utils.setCookie('id5.1st', JSON.stringify({'universal_uid': 'testid5id', 'signature': 'abc123'}), expStr);
-        utils.setCookie('id5.1st_last', Date.now(), expStr);
+        utils.setCookie('id5id.1st', JSON.stringify({'universal_uid': 'testid5id', 'signature': 'abc123'}), expStr);
+        utils.setCookie('id5id.1st_last', Date.now(), expStr);
         ID5.init({ partnerId: 99, cmpApi: 'iab', allowID5WithoutConsentApi: true });
 
         sinon.assert.notCalled(ajaxStub);
@@ -124,8 +124,8 @@ describe('ID5 Publisher API', function () {
 
       it('Use non-expired cookie if available, without consent', function () {
         const expStr = (new Date(Date.now() + 5000).toUTCString())
-        utils.setCookie('id5.1st', JSON.stringify({'universal_uid': 'testid5id', 'signature': 'abc123'}), expStr);
-        utils.setCookie('id5.1st_last', Date.now(), expStr);
+        utils.setCookie('id5id.1st', JSON.stringify({'universal_uid': 'testid5id', 'signature': 'abc123'}), expStr);
+        utils.setCookie('id5id.1st_last', Date.now(), expStr);
         ID5.init({ partnerId: 99, cmpApi: 'iab', allowID5WithoutConsentApi: false });
 
         sinon.assert.notCalled(ajaxStub);
@@ -134,8 +134,8 @@ describe('ID5 Publisher API', function () {
 
       it('Use non-expired legacy cookie if available, without consent', function () {
         const expStr = (new Date(Date.now() + 5000).toUTCString())
-        utils.setCookie('id5.1st', JSON.stringify({'ID5ID': 'testid5id'}), expStr);
-        utils.setCookie('id5.1st_last', Date.now(), expStr);
+        utils.setCookie('id5id.1st', JSON.stringify({'ID5ID': 'testid5id'}), expStr);
+        utils.setCookie('id5id.1st_last', Date.now(), expStr);
         ID5.init({ partnerId: 99, cmpApi: 'iab', allowID5WithoutConsentApi: false });
 
         sinon.assert.notCalled(ajaxStub);
@@ -156,8 +156,8 @@ describe('ID5 Publisher API', function () {
 
       it('Call id5 servers with existing value via Ajax if refresh needed', function () {
         const expStr = (new Date(Date.now() + 5000).toUTCString());
-        utils.setCookie('id5.1st', JSON.stringify({'universal_uid': 'testid5id', 'signature': 'abc123'}), expStr);
-        utils.setCookie('id5.1st_last', Date.now() - (8000 * 1000), expStr);
+        utils.setCookie('id5id.1st', JSON.stringify({'universal_uid': 'testid5id', 'signature': 'abc123'}), expStr);
+        utils.setCookie('id5id.1st_last', Date.now() - (8000 * 1000), expStr);
         ID5.init({ partnerId: 99, cmpApi: 'iab', allowID5WithoutConsentApi: true });
 
         sinon.assert.calledTwice(ajaxStub); // 2nd call is usersync pixel
@@ -178,8 +178,8 @@ describe('ID5 Publisher API', function () {
 
       it('Call id5 servers with existing value via Ajax if expired/missing "last" cookie', function () {
         const expStr = (new Date(Date.now() + 5000).toUTCString());
-        utils.setCookie('id5.1st', JSON.stringify({'universal_uid': 'testid5id', 'signature': 'abc123'}), expStr);
-        utils.setCookie('id5.1st_last', '', EXPIRED_COOKIE_DATE);
+        utils.setCookie('id5id.1st', JSON.stringify({'universal_uid': 'testid5id', 'signature': 'abc123'}), expStr);
+        utils.setCookie('id5id.1st_last', '', EXPIRED_COOKIE_DATE);
         ID5.init({ partnerId: 99, cmpApi: 'iab', allowID5WithoutConsentApi: true });
 
         sinon.assert.calledTwice(ajaxStub); // 2nd call is usersync pixel
@@ -200,8 +200,8 @@ describe('ID5 Publisher API', function () {
 
       it('Call id5 servers with existing legacy value via Ajax', function () {
         const expStr = (new Date(Date.now() + 5000).toUTCString());
-        utils.setCookie('id5.1st', JSON.stringify({'ID5ID': 'testid5id'}), expStr);
-        utils.setCookie('id5.1st_last', Date.now(), expStr);
+        utils.setCookie('id5id.1st', JSON.stringify({'ID5ID': 'testid5id'}), expStr);
+        utils.setCookie('id5id.1st_last', Date.now(), expStr);
         ID5.init({ partnerId: 99, cmpApi: 'iab', allowID5WithoutConsentApi: true });
 
         sinon.assert.calledTwice(ajaxStub); // 2nd call is usersync pixel
@@ -220,13 +220,13 @@ describe('ID5 Publisher API', function () {
         expect(dataSync.puid).to.be.null;
 
         expect(ID5.userId).to.be.equal('testid5id');
-        expect(utils.getCookie('id5.1st')).to.be.eq(jsonResponse);
+        expect(utils.getCookie('id5id.1st')).to.be.eq(jsonResponse);
       });
 
       it('Call id5 servers with existing legacy value via Ajax if expired cookie', function () {
         const expStr = (new Date(Date.now() + 5000).toUTCString());
-        utils.setCookie('id5.1st', JSON.stringify({'ID5ID': 'testid5id'}), expStr);
-        utils.setCookie('id5.1st_last', Date.now() - 8000 * 1000, expStr);
+        utils.setCookie('id5id.1st', JSON.stringify({'ID5ID': 'testid5id'}), expStr);
+        utils.setCookie('id5id.1st_last', Date.now() - 8000 * 1000, expStr);
         ID5.init({ partnerId: 99, cmpApi: 'iab', allowID5WithoutConsentApi: true });
 
         sinon.assert.calledTwice(ajaxStub); // 2nd call is usersync pixel
@@ -245,7 +245,7 @@ describe('ID5 Publisher API', function () {
         expect(dataSync.puid).to.be.null;
 
         expect(ID5.userId).to.be.equal('testid5id');
-        expect(utils.getCookie('id5.1st')).to.be.eq(jsonResponse);
+        expect(utils.getCookie('id5id.1st')).to.be.eq(jsonResponse);
       });
     });
 
@@ -267,8 +267,8 @@ describe('ID5 Publisher API', function () {
       afterEach(function () {
         config.resetConfig();
         ajaxStub.restore();
-        utils.setCookie('id5.1st', '', EXPIRED_COOKIE_DATE);
-        utils.setCookie('id5.1st_last', '', EXPIRED_COOKIE_DATE);
+        utils.setCookie('id5id.1st', '', EXPIRED_COOKIE_DATE);
+        utils.setCookie('id5id.1st_last', '', EXPIRED_COOKIE_DATE);
         ID5.userId = undefined;
       });
 
@@ -326,8 +326,8 @@ describe('ID5 Publisher API', function () {
       afterEach(function () {
         config.resetConfig();
         ajaxStub.restore();
-        utils.setCookie('id5.1st', '', EXPIRED_COOKIE_DATE);
-        utils.setCookie('id5.1st_last', '', EXPIRED_COOKIE_DATE);
+        utils.setCookie('id5id.1st', '', EXPIRED_COOKIE_DATE);
+        utils.setCookie('id5id.1st_last', '', EXPIRED_COOKIE_DATE);
         ID5.userId = undefined;
       });
 
@@ -354,8 +354,8 @@ describe('ID5 Publisher API', function () {
 
       it('Call id5 servers with existing value via Ajax if expired cookie and return another value', function (done) {
         const expStr = (new Date(Date.now() + 5000).toUTCString());
-        utils.setCookie('id5.1st', JSON.stringify({'universal_uid': 'uidFromCookie', 'signature': 'dummy'}), expStr);
-        utils.setCookie('id5.1st_last', Date.now() - 8000 * 1000, expStr);
+        utils.setCookie('id5id.1st', JSON.stringify({'universal_uid': 'uidFromCookie', 'signature': 'dummy'}), expStr);
+        utils.setCookie('id5id.1st_last', Date.now() - 8000 * 1000, expStr);
         ID5.init({ partnerId: 99, cmpApi: 'iab', allowID5WithoutConsentApi: true });
 
         sinon.assert.calledOnce(ajaxStub);
@@ -385,81 +385,81 @@ describe('ID5 Publisher API', function () {
       ajaxStub = sinon.stub(utils, 'ajax').callsFake(function(url, callback, data, options) {
         callback(jsonResponse);
       });
-      utils.setCookie('id5.1st', '', EXPIRED_COOKIE_DATE);
-      utils.setCookie('id5.1st_last', '', EXPIRED_COOKIE_DATE);
-      utils.setCookie('id5.1st_nb', '', EXPIRED_COOKIE_DATE);
+      utils.setCookie('id5id.1st', '', EXPIRED_COOKIE_DATE);
+      utils.setCookie('id5id.1st_last', '', EXPIRED_COOKIE_DATE);
+      utils.setCookie('id5id.1st_99_nb', '', EXPIRED_COOKIE_DATE);
     });
 
     afterEach(function () {
       config.resetConfig();
       ajaxStub.restore();
-      utils.setCookie('id5.1st', '', EXPIRED_COOKIE_DATE);
-      utils.setCookie('id5.1st_last', '', EXPIRED_COOKIE_DATE);
-      utils.setCookie('id5.1st_nb', '', EXPIRED_COOKIE_DATE);
+      utils.setCookie('id5id.1st', '', EXPIRED_COOKIE_DATE);
+      utils.setCookie('id5id.1st_last', '', EXPIRED_COOKIE_DATE);
+      utils.setCookie('id5id.1st_99_nb', '', EXPIRED_COOKIE_DATE);
       ID5.userId = undefined;
     });
 
     it('should set counter to 1 if no existing counter cookie and not calling ID5 servers', function () {
       const expStr = (new Date(Date.now() + 5000).toUTCString())
-      utils.setCookie('id5.1st', JSON.stringify({'universal_uid': 'testid5id'}), expStr);
-      utils.setCookie('id5.1st_last', Date.now(), expStr);
+      utils.setCookie('id5id.1st', JSON.stringify({'universal_uid': 'testid5id'}), expStr);
+      utils.setCookie('id5id.1st_last', Date.now(), expStr);
       ID5.init({ partnerId: 99, cmpApi: 'iab', allowID5WithoutConsentApi: false });
 
       sinon.assert.notCalled(ajaxStub);
 
-      const nb = parseInt(utils.getCookie('id5.1st_nb'));
+      const nb = parseInt(utils.getCookie('id5id.1st_99_nb'));
       expect(nb).to.be.equal(1);
     });
 
     it('should increment counter when not calling ID5 servers if existing ID in cookie', function () {
       const expStr = (new Date(Date.now() + 5000).toUTCString())
-      utils.setCookie('id5.1st', JSON.stringify({'universal_uid': 'testid5id'}), expStr);
-      utils.setCookie('id5.1st_last', Date.now(), expStr);
-      utils.setCookie('id5.1st_nb', 5, expStr);
+      utils.setCookie('id5id.1st', JSON.stringify({'universal_uid': 'testid5id'}), expStr);
+      utils.setCookie('id5id.1st_last', Date.now(), expStr);
+      utils.setCookie('id5id.1st_99_nb', 5, expStr);
       ID5.init({ partnerId: 99, cmpApi: 'iab', allowID5WithoutConsentApi: false });
 
       sinon.assert.notCalled(ajaxStub);
 
-      const nb = parseInt(utils.getCookie('id5.1st_nb'));
+      const nb = parseInt(utils.getCookie('id5id.1st_99_nb'));
       expect(nb).to.be.equal(6);
     });
 
     it('should not increment counter when not calling ID5 servers if no existing ID in cookie', function () {
       const expStr = (new Date(Date.now() + 5000).toUTCString())
-      utils.setCookie('id5.1st', '', EXPIRED_COOKIE_DATE);
-      utils.setCookie('id5.1st_nb', 5, expStr);
+      utils.setCookie('id5id.1st', '', EXPIRED_COOKIE_DATE);
+      utils.setCookie('id5id.1st_99_nb', 5, expStr);
       ID5.init({ partnerId: 99, cmpApi: 'iab', allowID5WithoutConsentApi: false });
 
       sinon.assert.notCalled(ajaxStub);
 
-      const nb = parseInt(utils.getCookie('id5.1st_nb'));
+      const nb = parseInt(utils.getCookie('id5id.1st_99_nb'));
       expect(nb).to.be.equal(5);
     });
 
     it('should reset counter to 0 after calling ID5 servers if ID in cookie', function () {
       const expStr = (new Date(Date.now() + 5000).toUTCString())
-      utils.setCookie('id5.1st', JSON.stringify({'universal_uid': 'testid5id'}), expStr);
-      utils.setCookie('id5.1st_nb', 5, expStr);
+      utils.setCookie('id5id.1st', JSON.stringify({'universal_uid': 'testid5id'}), expStr);
+      utils.setCookie('id5id.1st_99_nb', 5, expStr);
       ID5.init({ partnerId: 99, cmpApi: 'iab', allowID5WithoutConsentApi: true });
 
       sinon.assert.calledOnce(ajaxStub);
       const requestPayload = JSON.parse(ajaxStub.firstCall.args[2]);
       expect(requestPayload.nbPage).to.be.equal(6);
 
-      const nb = parseInt(utils.getCookie('id5.1st_nb'));
+      const nb = parseInt(utils.getCookie('id5id.1st_99_nb'));
       expect(nb).to.be.equal(0);
     });
 
     it('should reset counter to 1 after calling ID5 servers if no ID in cookie', function () {
       const expStr = (new Date(Date.now() + 5000).toUTCString())
-      utils.setCookie('id5.1st_nb', 5, expStr);
+      utils.setCookie('id5id.1st_99_nb', 5, expStr);
       ID5.init({ partnerId: 99, cmpApi: 'iab', allowID5WithoutConsentApi: true });
 
       sinon.assert.calledOnce(ajaxStub);
       const requestPayload = JSON.parse(ajaxStub.firstCall.args[2]);
       expect(requestPayload.nbPage).to.be.equal(5);
 
-      const nb = parseInt(utils.getCookie('id5.1st_nb'));
+      const nb = parseInt(utils.getCookie('id5id.1st_99_nb'));
       expect(nb).to.be.equal(1);
     });
 
@@ -470,7 +470,7 @@ describe('ID5 Publisher API', function () {
       const requestPayload = JSON.parse(ajaxStub.firstCall.args[2]);
       expect(requestPayload.nbPage).to.be.equal(0);
 
-      const nb = parseInt(utils.getCookie('id5.1st_nb'));
+      const nb = parseInt(utils.getCookie('id5id.1st_99_nb'));
       expect(nb).to.be.equal(1);
     });
   });
