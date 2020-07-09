@@ -55,7 +55,7 @@ ID5.init = function (options) {
       }
       nb = incrementNb(cfg, expiresStr, nb);
       idSetFromStoredResponse = true;
-      utils.logInfo('ID5 User ID available from cache:', storedResponse, storedDateTime, refreshNeeded);
+      utils.logInfo('ID5 User ID available from cache:', { storedResponse, storedDateTime, refreshNeeded });
     } else {
       utils.logInfo('No ID5 User ID available');
     }
