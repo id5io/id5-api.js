@@ -153,7 +153,10 @@ describe('consentManagementV1', function () {
         expect(callbackCalled).to.be.true;
         expect(consentData.consentString).to.equal(testConsentData.getConsentData.consentData);
         expect(consentData.gdprApplies).to.be.true;
-        sinon.assert.calledTwice(cmpStub); // TODO why is this called twice?
+
+        // we expect the cmp stub to be called TWICE because in v1, we call the cmp function
+        // once for consent data and once for vendor data, so twice total.
+        sinon.assert.calledTwice(cmpStub);
 
         cmpStub.restore();
         cmpStub = sinon.stub(window, '__cmp').callsFake((...args) => {});
@@ -380,6 +383,9 @@ describe('consentManagementV2', function () {
         expect(consentData.consentString).to.equal(testConsentData.getTCData.tcString);
         expect(consentData.gdprApplies).to.be.true;
         expect(consentData.apiVersion).to.equal(2);
+
+        // we expect the cmp stub to be called ONCE because in v2, we set an event listener
+        // that gets called once when consent data is available
         sinon.assert.calledOnce(cmpStub);
 
         cmpStub.restore();
