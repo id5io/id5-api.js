@@ -1,6 +1,6 @@
 /**
  * id5-api.js - The ID5 API is designed to make accessing the ID5 Universal ID simple for publishers and their ad tech vendors. The ID5 Universal ID is a shared, neutral identifier that publishers and ad tech platforms can use to recognise users even in environments where 3rd party cookies are not available. For more information, visit https://id5.io/universal-id.
- * @version v0.9.2
+ * @version v0.9.3
  * @link https://id5.io/
  * @license Apache-2.0
  */
@@ -126,7 +126,7 @@ function newConfig() {
         },
         getVendorConsents: {}
       },
-      cookieName: 'id5.1st',
+      cookieName: 'id5id.1st',
       refreshInSeconds: 7200,
       cookieExpirationInSeconds: 90 * 24 * 60 * 60,
       partnerId: undefined,
@@ -209,6 +209,8 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 /* harmony export (immutable) */ __webpack_exports__["parse"] = parse;
 /* harmony export (immutable) */ __webpack_exports__["format"] = format;
 /* harmony export (immutable) */ __webpack_exports__["ajax"] = ajax;
+/* harmony export (immutable) */ __webpack_exports__["fireAsyncPixel"] = fireAsyncPixel;
+/* harmony export (immutable) */ __webpack_exports__["deferPixelFire"] = deferPixelFire;
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__config__ = __webpack_require__(0);
 function _extends() { _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends.apply(this, arguments); }
 
@@ -297,6 +299,8 @@ function logError() {
 function decorateLog(args, prefix) {
   args = [].slice.call(args);
   prefix && args.unshift(prefix);
+  args.unshift('display: inline-block; color: #fff; background: #1c307e; padding: 1px 4px; border-radius: 3px;');
+  args.unshift('%cID5');
   return args;
 }
 
@@ -562,6 +566,31 @@ function ajax(url, callback, data) {
     logError('xhr construction', error);
   }
 }
+/**
+ * add an Image pixel to the DOM for the given sync Url
+ *
+ * @param syncUrl
+ */
+
+function fireAsyncPixel(syncUrl) {
+  new Image().src = syncUrl;
+}
+;
+/**
+ * wait until the page finishes loading and then fire a pixel
+ *
+ * @param syncUrl
+ */
+
+function deferPixelFire(syncUrl) {
+  if (document.readyState !== 'loading') {
+    fireAsyncPixel(syncUrl);
+  } else {
+    document.addEventListener('DOMContentLoaded', function () {
+      fireAsyncPixel(syncUrl);
+    });
+  }
+}
 
 /***/ }),
 /* 2 */
@@ -631,7 +660,11 @@ ID5.init = function (options) {
 
       nb = incrementNb(cfg, expiresStr, nb);
       idSetFromStoredResponse = true;
-      __WEBPACK_IMPORTED_MODULE_2__utils__["logInfo"]('ID5 User ID available from cache:', storedResponse, storedDateTime, refreshNeeded);
+      __WEBPACK_IMPORTED_MODULE_2__utils__["logInfo"]('ID5 User ID available from cache:', {
+        storedResponse: storedResponse,
+        storedDateTime: storedDateTime,
+        refreshNeeded: refreshNeeded
+      });
     } else {
       __WEBPACK_IMPORTED_MODULE_2__utils__["logInfo"]('No ID5 User ID available');
     }
@@ -667,6 +700,7 @@ ID5.init = function (options) {
             if (response) {
               try {
                 responseObj = JSON.parse(response);
+                __WEBPACK_IMPORTED_MODULE_2__utils__["logInfo"]('Response from ID5 received:', responseObj);
 
                 if (responseObj.universal_uid) {
                   ID5.userId = responseObj.universal_uid;
@@ -674,19 +708,11 @@ ID5.init = function (options) {
                   __WEBPACK_IMPORTED_MODULE_2__utils__["setCookie"](lastCookieName(cfg), Date.now(), expiresStr);
                   __WEBPACK_IMPORTED_MODULE_2__utils__["setCookie"](nbCookieName(cfg), idSetFromStoredResponse ? 0 : 1, expiresStr);
 
-                  if (responseObj.cascade_needed) {
-                    // TODO: Should not use AJAX Call for cascades as some partners may not have CORS Headers
+                  if (responseObj.cascade_needed === true) {
                     var isSync = cfg.partnerUserId && cfg.partnerUserId.length > 0;
-                    var syncUrl = "https://id5-sync.com/".concat(isSync ? 's' : 'i', "/").concat(cfg.partnerId, "/8.gif");
-                    __WEBPACK_IMPORTED_MODULE_2__utils__["logInfo"]('Opportunities to cascade available:', syncUrl, data);
-                    __WEBPACK_IMPORTED_MODULE_2__utils__["ajax"](syncUrl, function () {}, {
-                      puid: isSync ? cfg.partnerUserId : null,
-                      gdpr: gdprApplies,
-                      gdpr_consent: gdprConsentString
-                    }, {
-                      method: 'GET',
-                      withCredentials: true
-                    });
+                    var syncUrl = "https://id5-sync.com/".concat(isSync ? 's' : 'i', "/").concat(cfg.partnerId, "/8.gif?").concat(isSync ? 'puid=' + cfg.partnerUserId + '&' : '', "gdpr_consent=").concat(gdprConsentString, "&gdpr=").concat(gdprApplies);
+                    __WEBPACK_IMPORTED_MODULE_2__utils__["logInfo"]('Opportunities to cascade available:', syncUrl);
+                    __WEBPACK_IMPORTED_MODULE_2__utils__["deferPixelFire"](syncUrl);
                   } // TODO: Server should use 1puid to override uid if not in 3rd party cookie
 
                 } else {
@@ -715,7 +741,7 @@ function lastCookieName(cfg) {
 }
 
 function nbCookieName(cfg) {
-  return "".concat(cfg.cookieName, "_nb");
+  return "".concat(cfg.cookieName, "_").concat(cfg.partnerId, "_nb");
 }
 
 function getNbFromCookie(cfg) {
@@ -756,19 +782,9 @@ function getGlobal() {
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__config__ = __webpack_require__(0);
 
 
-/**
- * @typedef {Object} ConsentData
- * @property {String|undefined} consentString -
- * @property {Object|undefined} vendorData -
- * @property {(boolean|undefined)} gdprApplies - does GDPR apply for this user ?
- */
-
-/**
- * @property {ConsentData}
- */
-
 var consentData;
 var staticConsentData;
+var cmpVersion = 0;
 var cmpCallMap = {
   'iab': lookupIabConsent,
   'static': lookupStaticConsentData
@@ -790,7 +806,74 @@ function lookupStaticConsentData(cmpSuccess, finalCallback) {
 
 
 function lookupIabConsent(cmpSuccess, finalCallback) {
-  function handleCmpResponseCallbacks() {
+  function findCMP() {
+    var f = window;
+    var cmpFrame;
+    var cmpFunction;
+
+    while (!cmpFrame) {
+      try {
+        if (typeof f.__tcfapi === 'function' || typeof f.__cmp === 'function') {
+          if (typeof f.__tcfapi === 'function') {
+            cmpVersion = 2;
+            cmpFunction = f.__tcfapi;
+          } else {
+            cmpVersion = 1;
+            cmpFunction = f.__cmp;
+          }
+
+          cmpFrame = f;
+          break;
+        }
+      } catch (e) {} // need separate try/catch blocks due to the exception errors thrown when trying to check for a frame that doesn't exist in 3rd party env
+
+
+      try {
+        if (f.frames['__tcfapiLocator']) {
+          cmpVersion = 2;
+          cmpFrame = f;
+          break;
+        }
+      } catch (e) {}
+
+      try {
+        if (f.frames['__cmpLocator']) {
+          cmpVersion = 1;
+          cmpFrame = f;
+          break;
+        }
+      } catch (e) {}
+
+      if (f === window.top) break;
+      f = f.parent;
+    }
+
+    return {
+      cmpFrame: cmpFrame,
+      cmpFunction: cmpFunction
+    };
+  }
+
+  function v2CmpResponseCallback(tcfData, success) {
+    __WEBPACK_IMPORTED_MODULE_0__utils__["logInfo"]('Received a response from CMP', tcfData);
+
+    if (success) {
+      if (tcfData.eventStatus === 'tcloaded' || tcfData.eventStatus === 'useractioncomplete') {
+        cmpSuccess(tcfData, finalCallback);
+      } else if (tcfData.eventStatus === 'cmpuishown' && tcfData.tcString && tcfData.purposeOneTreatment === true) {
+        cmpSuccess(tcfData, finalCallback);
+      } else {
+        // TODO cmperror?
+        __WEBPACK_IMPORTED_MODULE_0__utils__["logError"]("CMP returned success but without a valid eventStatus");
+        cmpSuccess(undefined, finalCallback);
+      }
+    } else {
+      __WEBPACK_IMPORTED_MODULE_0__utils__["logError"]("CMP unable to register callback function.  Please check CMP setup.");
+      cmpSuccess(undefined, finalCallback); // TODO cmpError('CMP unable to register callback function.  Please check CMP setup.', hookConfig);
+    }
+  }
+
+  function handleV1CmpResponseCallbacks() {
     var cmpResponse = {};
 
     function afterEach() {
@@ -813,18 +896,30 @@ function lookupIabConsent(cmpSuccess, finalCallback) {
     };
   }
 
-  var callbackHandler = handleCmpResponseCallbacks();
-  var cmpFunction;
+  var v1CallbackHandler = handleV1CmpResponseCallbacks();
 
-  try {
-    cmpFunction = window.__cmp || window.top.__cmp;
-  } catch (e) {}
+  var _findCMP = findCMP(),
+      cmpFrame = _findCMP.cmpFrame,
+      cmpFunction = _findCMP.cmpFunction;
+
+  if (!cmpFrame) {
+    // TODO implement cmpError
+    // return cmpError('CMP not found.', hookConfig);
+    __WEBPACK_IMPORTED_MODULE_0__utils__["logError"]("CMP not found");
+    return cmpSuccess(undefined, finalCallback);
+  }
 
   if (__WEBPACK_IMPORTED_MODULE_0__utils__["isFn"](cmpFunction)) {
     __WEBPACK_IMPORTED_MODULE_0__utils__["logInfo"]("cmpApi: calling getConsentData & getVendorConsents");
-    cmpFunction('getConsentData', null, callbackHandler.consentDataCallback);
-    cmpFunction('getVendorConsents', null, callbackHandler.vendorConsentsCallback);
+
+    if (cmpVersion === 1) {
+      cmpFunction('getConsentData', null, v1CallbackHandler.consentDataCallback);
+      cmpFunction('getVendorConsents', null, v1CallbackHandler.vendorConsentsCallback);
+    } else if (cmpVersion === 2) {
+      cmpFunction('addEventListener', cmpVersion, v2CmpResponseCallback);
+    }
   } else {
+    // TODO might need to check if we're in an iframe...
     cmpSuccess(undefined, finalCallback);
   }
 }
@@ -866,17 +961,39 @@ function requestConsent(finalCallback) {
  */
 
 function cmpSuccess(consentObject, finalCallback) {
-  var gdprApplies = consentObject && consentObject.getConsentData && consentObject.getConsentData.gdprApplies;
+  var cfg = __WEBPACK_IMPORTED_MODULE_1__config__["a" /* config */].getConfig();
 
-  if (typeof gdprApplies !== 'boolean' || gdprApplies === true && !(__WEBPACK_IMPORTED_MODULE_0__utils__["isStr"](consentObject.getConsentData.consentData) && __WEBPACK_IMPORTED_MODULE_0__utils__["isPlainObject"](consentObject.getVendorConsents) && Object.keys(consentObject.getVendorConsents).length > 1)) {
-    resetConsentData();
-    __WEBPACK_IMPORTED_MODULE_0__utils__["logError"]("CMP returned unexpected value during lookup process.", consentObject);
-  } else {
-    consentData = {
-      consentString: consentObject ? consentObject.getConsentData.consentData : undefined,
-      vendorData: consentObject ? consentObject.getVendorConsents : undefined,
-      gdprApplies: consentObject ? consentObject.getConsentData.gdprApplies : undefined
-    };
+  function checkV1Data(consentObject) {
+    var gdprApplies = consentObject && consentObject.getConsentData && consentObject.getConsentData.gdprApplies;
+    return !!(typeof gdprApplies !== 'boolean' || gdprApplies === true && !(__WEBPACK_IMPORTED_MODULE_0__utils__["isStr"](consentObject.getConsentData.consentData) && __WEBPACK_IMPORTED_MODULE_0__utils__["isPlainObject"](consentObject.getVendorConsents) && Object.keys(consentObject.getVendorConsents).length > 1));
+  }
+
+  function checkV2Data() {
+    var gdprApplies = consentObject && typeof consentObject.gdprApplies === 'boolean' ? consentObject.gdprApplies : undefined;
+    var tcString = consentObject && consentObject.tcString;
+    return !!(typeof gdprApplies !== 'boolean' || gdprApplies === true && !__WEBPACK_IMPORTED_MODULE_0__utils__["isStr"](tcString));
+  } // do extra things for static config
+
+
+  if (cfg.cmpApi === 'static') {
+    cmpVersion = consentObject.getConsentData ? 1 : consentObject.getTCData ? 2 : 0; // remove extra layer in static v2 data object so it matches normal v2 CMP object for processing step
+
+    if (cmpVersion === 2) {
+      consentObject = consentObject.getTCData;
+    }
+  } // determine which set of checks to run based on cmpVersion
+
+
+  var checkFn = cmpVersion === 1 ? checkV1Data : cmpVersion === 2 ? checkV2Data : null;
+  __WEBPACK_IMPORTED_MODULE_0__utils__["logInfo"](cmpVersion, checkFn);
+
+  if (__WEBPACK_IMPORTED_MODULE_0__utils__["isFn"](checkFn)) {
+    if (checkFn(consentObject)) {
+      resetConsentData();
+      __WEBPACK_IMPORTED_MODULE_0__utils__["logError"]("CMP returned unexpected value during lookup process.", consentObject);
+    } else {
+      storeConsentData(consentObject);
+    }
   }
 
   finalCallback(consentData);
@@ -888,11 +1005,35 @@ function cmpSuccess(consentObject, finalCallback) {
 
 function resetConsentData() {
   consentData = undefined;
+  cmpVersion = 0;
+}
+/**
+ * Stores CMP data locally in module and then invokes gdprDataHandler.setConsentData() to make information available in adaptermanger.js for later in the auction
+ * @param {object} cmpConsentObject required; an object representing user's consent choices (can be undefined in certain use-cases for this function only)
+ */
+
+function storeConsentData(cmpConsentObject) {
+  if (cmpVersion === 1) {
+    consentData = {
+      consentString: cmpConsentObject ? cmpConsentObject.getConsentData.consentData : undefined,
+      vendorData: cmpConsentObject ? cmpConsentObject.getVendorConsents : undefined,
+      gdprApplies: cmpConsentObject ? cmpConsentObject.getConsentData.gdprApplies : undefined
+    };
+  } else {
+    consentData = {
+      consentString: cmpConsentObject ? cmpConsentObject.tcString : undefined,
+      vendorData: cmpConsentObject || undefined,
+      gdprApplies: cmpConsentObject && typeof cmpConsentObject.gdprApplies === 'boolean' ? cmpConsentObject.gdprApplies : undefined
+    };
+  }
+
+  consentData.apiVersion = cmpVersion;
 }
 /**
  * test if consent module is present, applies, and is valid for local storage or cookies (purpose 1)
  * @returns {boolean}
  */
+
 
 function isLocalStorageAllowed() {
   if (__WEBPACK_IMPORTED_MODULE_1__config__["a" /* config */].getConfig().allowID5WithoutConsentApi) {
@@ -900,9 +1041,11 @@ function isLocalStorageAllowed() {
   } else if (!consentData) {
     return false;
   } else if (typeof consentData.gdprApplies === 'boolean' && consentData.gdprApplies) {
-    if (!consentData.consentString) {
+    if (!consentData.consentString || consentData.apiVersion === 0) {
       return false;
-    } else if (consentData.vendorData && consentData.vendorData.purposeConsents && consentData.vendorData.purposeConsents['1'] === false) {
+    } else if (consentData.apiVersion === 1 && consentData.vendorData && consentData.vendorData.purposeConsents && consentData.vendorData.purposeConsents['1'] === false) {
+      return false;
+    } else if (consentData.apiVersion === 2 && consentData.vendorData && consentData.vendorData.purpose && consentData.vendorData.purpose.consents && consentData.vendorData.purpose.consents['1'] === false) {
       return false;
     } else {
       return true;
@@ -1137,4 +1280,4 @@ var getRefererInfo = detectReferer(window);
 /***/ })
 /******/ ]);
 //# sourceMappingURL=id5-api.js.map
-ID5.version = '0.9.2';
+ID5.version = '0.9.3';
