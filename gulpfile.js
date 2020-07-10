@@ -24,7 +24,7 @@ var sourcemaps = require('gulp-sourcemaps');
 var jsEscape = require('gulp-js-escape');
 
 var id5Api = require('./package.json');
-var port = 9999;
+var port = 9998;
 
 function clean() {
   return gulp.src(['build'], {

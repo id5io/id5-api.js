@@ -55,7 +55,7 @@ ID5.init = function (options) {
       }
       nb = incrementNb(cfg, expiresStr, nb);
       idSetFromStoredResponse = true;
-      utils.logInfo('ID5 User ID available from cache:', storedResponse, storedDateTime, refreshNeeded);
+      utils.logInfo('ID5 User ID available from cache:', { storedResponse, storedDateTime, refreshNeeded });
     } else {
       utils.logInfo('No ID5 User ID available');
     }
@@ -89,24 +89,17 @@ ID5.init = function (options) {
             if (response) {
               try {
                 responseObj = JSON.parse(response);
+                utils.logInfo('Response from ID5 received:', responseObj);
                 if (responseObj.universal_uid) {
                   ID5.userId = responseObj.universal_uid;
                   utils.setCookie(cfg.cookieName, response, expiresStr);
                   utils.setCookie(lastCookieName(cfg), Date.now(), expiresStr);
                   utils.setCookie(nbCookieName(cfg), (idSetFromStoredResponse ? 0 : 1), expiresStr);
-                  if (responseObj.cascade_needed) {
-                    // TODO: Should not use AJAX Call for cascades as some partners may not have CORS Headers
+                  if (responseObj.cascade_needed === true) {
                     const isSync = cfg.partnerUserId && cfg.partnerUserId.length > 0;
-                    const syncUrl = `https://id5-sync.com/${isSync ? 's' : 'i'}/${cfg.partnerId}/8.gif`;
-                    utils.logInfo('Opportunities to cascade available:', syncUrl, data);
-                    utils.ajax(syncUrl, () => {}, {
-                      puid: isSync ? cfg.partnerUserId : null,
-                      gdpr: gdprApplies,
-                      gdpr_consent: gdprConsentString
-                    }, {
-                      method: 'GET',
-                      withCredentials: true
-                    });
+                    const syncUrl = `https://id5-sync.com/${isSync ? 's' : 'i'}/${cfg.partnerId}/8.gif?${isSync ? 'puid=' + cfg.partnerUserId + '&' : ''}gdpr_consent=${gdprConsentString}&gdpr=${gdprApplies}`;
+                    utils.logInfo('Opportunities to cascade available:', syncUrl);
+                    utils.deferPixelFire(syncUrl);
                   }
                   // TODO: Server should use 1puid to override uid if not in 3rd party cookie
                 } else {

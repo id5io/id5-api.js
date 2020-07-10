@@ -77,6 +77,8 @@ export function logError() {
 function decorateLog(args, prefix) {
   args = [].slice.call(args);
   prefix && args.unshift(prefix);
+  args.unshift('display: inline-block; color: #fff; background: #1c307e; padding: 1px 4px; border-radius: 3px;');
+  args.unshift('%cID5');
   return args;
 }
 
@@ -347,5 +349,29 @@ export function ajax(url, callback, data, options = {}) {
     }
   } catch (error) {
     logError('xhr construction', error);
+  }
+}
+
+/**
+ * add an Image pixel to the DOM for the given sync Url
+ *
+ * @param syncUrl
+ */
+export function fireAsyncPixel(syncUrl) {
+  (new Image()).src = syncUrl;
+};
+
+/**
+ * wait until the page finishes loading and then fire a pixel
+ *
+ * @param syncUrl
+ */
+export function deferPixelFire(syncUrl) {
+  if (document.readyState !== 'loading') {
+    fireAsyncPixel(syncUrl);
+  } else {
+    document.addEventListener('DOMContentLoaded', function () {
+      fireAsyncPixel(syncUrl);
+    });
   }
 }
