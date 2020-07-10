@@ -48,7 +48,7 @@ export function newConfig() {
         },
         getVendorConsents: {}
       },
-      cookieName: 'id5.1st',
+      cookieName: 'id5id.1st',
       refreshInSeconds: 7200,
       cookieExpirationInSeconds: 90 * 24 * 60 * 60,
       partnerId: undefined,
