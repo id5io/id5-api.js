@@ -1,19 +1,10 @@
 import * as utils from './utils';
 import {config} from './config';
 
-/**
- * @typedef {Object} ConsentData
- * @property {String|undefined} consentString -
- * @property {Object|undefined} vendorData -
- * @property {(boolean|undefined)} gdprApplies - does GDPR apply for this user ?
- */
-
-/**
- * @property {ConsentData}
- */
 export let consentData;
-
 export let staticConsentData;
+
+let cmpVersion = 0;
 
 const cmpCallMap = {
   'iab': lookupIabConsent,
@@ -35,7 +26,71 @@ function lookupStaticConsentData(cmpSuccess, finalCallback) {
  * @param {function(object)} finalCallback required;
  */
 function lookupIabConsent(cmpSuccess, finalCallback) {
-  function handleCmpResponseCallbacks() {
+  function findCMP() {
+    let f = window;
+    let cmpFrame;
+    let cmpFunction;
+    while (!cmpFrame) {
+      try {
+        if (typeof f.__tcfapi === 'function' || typeof f.__cmp === 'function') {
+          if (typeof f.__tcfapi === 'function') {
+            cmpVersion = 2;
+            cmpFunction = f.__tcfapi;
+          } else {
+            cmpVersion = 1;
+            cmpFunction = f.__cmp;
+          }
+          cmpFrame = f;
+          break;
+        }
+      } catch (e) { }
+
+      // need separate try/catch blocks due to the exception errors thrown when trying to check for a frame that doesn't exist in 3rd party env
+      try {
+        if (f.frames['__tcfapiLocator']) {
+          cmpVersion = 2;
+          cmpFrame = f;
+          break;
+        }
+      } catch (e) { }
+
+      try {
+        if (f.frames['__cmpLocator']) {
+          cmpVersion = 1;
+          cmpFrame = f;
+          break;
+        }
+      } catch (e) { }
+
+      if (f === window.top) break;
+      f = f.parent;
+    }
+    return {
+      cmpFrame,
+      cmpFunction
+    };
+  }
+
+  function v2CmpResponseCallback(tcfData, success) {
+    utils.logInfo('Received a response from CMP', tcfData);
+    if (success) {
+      if (tcfData.eventStatus === 'tcloaded' || tcfData.eventStatus === 'useractioncomplete') {
+        cmpSuccess(tcfData, finalCallback);
+      } else if (tcfData.eventStatus === 'cmpuishown' && tcfData.tcString && tcfData.purposeOneTreatment === true) {
+        cmpSuccess(tcfData, finalCallback);
+      } else {
+        // TODO cmperror?
+        utils.logError(`CMP returned success but without a valid eventStatus`);
+        cmpSuccess(undefined, finalCallback);
+      }
+    } else {
+      utils.logError(`CMP unable to register callback function.  Please check CMP setup.`);
+      cmpSuccess(undefined, finalCallback);
+      // TODO cmpError('CMP unable to register callback function.  Please check CMP setup.', hookConfig);
+    }
+  }
+
+  function handleV1CmpResponseCallbacks() {
     const cmpResponse = {};
 
     function afterEach() {
@@ -58,18 +113,27 @@ function lookupIabConsent(cmpSuccess, finalCallback) {
     }
   }
 
-  let callbackHandler = handleCmpResponseCallbacks();
-  let cmpFunction;
+  let v1CallbackHandler = handleV1CmpResponseCallbacks();
+  let { cmpFrame, cmpFunction } = findCMP();
 
-  try {
-    cmpFunction = window.__cmp || window.top.__cmp;
-  } catch (e) { }
+  if (!cmpFrame) {
+    // TODO implement cmpError
+    // return cmpError('CMP not found.', hookConfig);
+    utils.logError(`CMP not found`);
+    return cmpSuccess(undefined, finalCallback);
+  }
 
   if (utils.isFn(cmpFunction)) {
     utils.logInfo(`cmpApi: calling getConsentData & getVendorConsents`);
-    cmpFunction('getConsentData', null, callbackHandler.consentDataCallback);
-    cmpFunction('getVendorConsents', null, callbackHandler.vendorConsentsCallback);
+    if (cmpVersion === 1) {
+      cmpFunction('getConsentData', null, v1CallbackHandler.consentDataCallback);
+      cmpFunction('getVendorConsents', null, v1CallbackHandler.vendorConsentsCallback);
+    } else if (cmpVersion === 2) {
+      cmpFunction('addEventListener', cmpVersion, v2CmpResponseCallback);
+    }
   } else {
+    // TODO might need to check if we're in an iframe...
+
     cmpSuccess(undefined, finalCallback);
   }
 }
@@ -108,25 +172,51 @@ export function requestConsent(finalCallback) {
  * @param {function(ConsentData)} finalCallback required; final callback receiving the consent
  */
 function cmpSuccess(consentObject, finalCallback) {
-  let gdprApplies = consentObject && consentObject.getConsentData && consentObject.getConsentData.gdprApplies;
-  if (
-    (typeof gdprApplies !== 'boolean') ||
-    (gdprApplies === true &&
-      !(utils.isStr(consentObject.getConsentData.consentData) &&
-        utils.isPlainObject(consentObject.getVendorConsents) &&
-        Object.keys(consentObject.getVendorConsents).length > 1
+  const cfg = config.getConfig();
+
+  function checkV1Data(consentObject) {
+    let gdprApplies = consentObject && consentObject.getConsentData && consentObject.getConsentData.gdprApplies;
+    return !!(
+      (typeof gdprApplies !== 'boolean') ||
+      (gdprApplies === true &&
+        !(utils.isStr(consentObject.getConsentData.consentData) &&
+          utils.isPlainObject(consentObject.getVendorConsents) &&
+          Object.keys(consentObject.getVendorConsents).length > 1
+        )
       )
-    )
-  ) {
-    resetConsentData();
-    utils.logError(`CMP returned unexpected value during lookup process.`, consentObject);
-  } else {
-    consentData = {
-      consentString: (consentObject) ? consentObject.getConsentData.consentData : undefined,
-      vendorData: (consentObject) ? consentObject.getVendorConsents : undefined,
-      gdprApplies: (consentObject) ? consentObject.getConsentData.gdprApplies : undefined
-    };
+    );
   }
+
+  function checkV2Data() {
+    let gdprApplies = consentObject && typeof consentObject.gdprApplies === 'boolean' ? consentObject.gdprApplies : undefined;
+    let tcString = consentObject && consentObject.tcString;
+    return !!(
+      (typeof gdprApplies !== 'boolean') ||
+      (gdprApplies === true && !utils.isStr(tcString))
+    );
+  }
+
+  // do extra things for static config
+  if (cfg.cmpApi === 'static') {
+    cmpVersion = (consentObject.getConsentData) ? 1 : (consentObject.getTCData) ? 2 : 0;
+    // remove extra layer in static v2 data object so it matches normal v2 CMP object for processing step
+    if (cmpVersion === 2) {
+      consentObject = consentObject.getTCData;
+    }
+  }
+
+  // determine which set of checks to run based on cmpVersion
+  let checkFn = (cmpVersion === 1) ? checkV1Data : (cmpVersion === 2) ? checkV2Data : null;
+  utils.logInfo(cmpVersion, checkFn);
+  if (utils.isFn(checkFn)) {
+    if (checkFn(consentObject)) {
+      resetConsentData();
+      utils.logError(`CMP returned unexpected value during lookup process.`, consentObject);
+    } else {
+      storeConsentData(consentObject);
+    }
+  }
+
   finalCallback(consentData);
 }
 
@@ -135,6 +225,28 @@ function cmpSuccess(consentObject, finalCallback) {
  */
 export function resetConsentData() {
   consentData = undefined;
+  cmpVersion = 0;
+}
+
+/**
+ * Stores CMP data locally in module and then invokes gdprDataHandler.setConsentData() to make information available in adaptermanger.js for later in the auction
+ * @param {object} cmpConsentObject required; an object representing user's consent choices (can be undefined in certain use-cases for this function only)
+ */
+function storeConsentData(cmpConsentObject) {
+  if (cmpVersion === 1) {
+    consentData = {
+      consentString: (cmpConsentObject) ? cmpConsentObject.getConsentData.consentData : undefined,
+      vendorData: (cmpConsentObject) ? cmpConsentObject.getVendorConsents : undefined,
+      gdprApplies: (cmpConsentObject) ? cmpConsentObject.getConsentData.gdprApplies : undefined
+    };
+  } else {
+    consentData = {
+      consentString: (cmpConsentObject) ? cmpConsentObject.tcString : undefined,
+      vendorData: (cmpConsentObject) || undefined,
+      gdprApplies: cmpConsentObject && typeof cmpConsentObject.gdprApplies === 'boolean' ? cmpConsentObject.gdprApplies : undefined
+    };
+  }
+  consentData.apiVersion = cmpVersion;
 }
 
 /**
@@ -147,9 +259,11 @@ export function isLocalStorageAllowed() {
   } else if (!consentData) {
     return false;
   } else if (typeof consentData.gdprApplies === 'boolean' && consentData.gdprApplies) {
-    if (!consentData.consentString) {
+    if (!consentData.consentString || consentData.apiVersion === 0) {
       return false;
-    } else if (consentData.vendorData && consentData.vendorData.purposeConsents && consentData.vendorData.purposeConsents['1'] === false) {
+    } else if (consentData.apiVersion === 1 && consentData.vendorData && consentData.vendorData.purposeConsents && consentData.vendorData.purposeConsents['1'] === false) {
+      return false;
+    } else if (consentData.apiVersion === 2 && consentData.vendorData && consentData.vendorData.purpose && consentData.vendorData.purpose.consents && consentData.vendorData.purpose.consents['1'] === false) {
       return false;
     } else {
       return true;
