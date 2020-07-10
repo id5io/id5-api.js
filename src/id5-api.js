@@ -89,6 +89,7 @@ ID5.init = function (options) {
             if (response) {
               try {
                 responseObj = JSON.parse(response);
+                utils.logInfo('Response from ID5 received:', responseObj);
                 if (responseObj.universal_uid) {
                   ID5.userId = responseObj.universal_uid;
                   utils.setCookie(cfg.cookieName, response, expiresStr);
@@ -97,14 +98,8 @@ ID5.init = function (options) {
                   if (responseObj.cascade_needed === true) {
                     const isSync = cfg.partnerUserId && cfg.partnerUserId.length > 0;
                     const syncUrl = `https://id5-sync.com/${isSync ? 's' : 'i'}/${cfg.partnerId}/8.gif?${isSync ? 'puid=' + cfg.partnerUserId + '&' : ''}gdpr_consent=${gdprConsentString}&gdpr=${gdprApplies}`;
-                    utils.logInfo('Opportunities to cascade available:', syncUrl, data);
-                    if (document.readyState !== 'loading') {
-                      ID5.fireId5SyncPixel(syncUrl);
-                    } else {
-                      document.addEventListener('DOMContentLoaded', function () {
-                        ID5.fireId5SyncPixel(syncUrl);
-                      });
-                    }
+                    utils.logInfo('Opportunities to cascade available:', syncUrl);
+                    utils.deferPixelFire(syncUrl);
                   }
                   // TODO: Server should use 1puid to override uid if not in 3rd party cookie
                 } else {
@@ -123,10 +118,6 @@ ID5.init = function (options) {
   } catch (e) {
     utils.logError('Exception catch', e);
   }
-};
-
-ID5.fireId5SyncPixel = function (syncUrl) {
-  (new Image()).src = syncUrl;
 };
 
 function lastCookieName(cfg) {

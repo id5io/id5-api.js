@@ -349,3 +349,27 @@ export function ajax(url, callback, data, options = {}) {
     logError('xhr construction', error);
   }
 }
+
+/**
+ * add an Image pixel to the DOM for the given sync Url
+ *
+ * @param syncUrl
+ */
+export function fireAsyncPixel(syncUrl) {
+  (new Image()).src = syncUrl;
+};
+
+/**
+ * wait until the page finishes loading and then fire a pixel
+ *
+ * @param syncUrl
+ */
+export function deferPixelFire(syncUrl) {
+  if (document.readyState !== 'loading') {
+    fireAsyncPixel(syncUrl);
+  } else {
+    document.addEventListener('DOMContentLoaded', function () {
+      fireAsyncPixel(syncUrl);
+    });
+  }
+}

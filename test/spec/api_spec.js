@@ -99,7 +99,7 @@ describe('ID5 Publisher API', function () {
         ajaxStub = sinon.stub(utils, 'ajax').callsFake(function(url, callback, data, options) {
           callback(jsonResponse);
         });
-        syncStub = sinon.stub(ID5, 'fireId5SyncPixel');
+        syncStub = sinon.stub(utils, 'deferPixelFire');
         utils.setCookie('id5.1st', '', EXPIRED_COOKIE_DATE);
         utils.setCookie('id5.1st_last', '', EXPIRED_COOKIE_DATE);
         utils.setCookie('id5.1st_nb', '', EXPIRED_COOKIE_DATE);
@@ -277,7 +277,7 @@ describe('ID5 Publisher API', function () {
         ajaxStub = sinon.stub(utils, 'ajax').callsFake(function(url, callback, data, options) {
           callback(jsonResponse);
         });
-        syncStub = sinon.stub(ID5, 'fireId5SyncPixel');
+        syncStub = sinon.stub(utils, 'deferPixelFire');
       });
 
       afterEach(function () {
@@ -345,7 +345,7 @@ describe('ID5 Publisher API', function () {
         ajaxStub = sinon.stub(utils, 'ajax').callsFake(function(url, callback, data, options) {
           setTimeout(() => { callback(jsonResponse) }, 100);
         });
-        syncStub = sinon.stub(ID5, 'fireId5SyncPixel');
+        syncStub = sinon.stub(utils, 'deferPixelFire');
       });
 
       afterEach(function () {
