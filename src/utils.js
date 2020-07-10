@@ -77,6 +77,8 @@ export function logError() {
 function decorateLog(args, prefix) {
   args = [].slice.call(args);
   prefix && args.unshift(prefix);
+  args.unshift('display: inline-block; color: #fff; background: #1c307e; padding: 1px 4px; border-radius: 3px;');
+  args.unshift('%cID5');
   return args;
 }
 
