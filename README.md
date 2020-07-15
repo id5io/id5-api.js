@@ -164,7 +164,7 @@ There are a few cases in which the ID5.userId may not be ready or have a value:
 | cmpApi | Optional | string | `iab` | API to use CMP. As of today, either 'iab' or 'static' |
 | consentData | Optional, Required if `cmpApi` is `'static'` | object | | Consent data if `cmpApi` is `'static'`. Object should contain the following:`{ getConsentData: { consentData: <consent_data>, gdprApplies: <true\|false> }}`
 | cookieExpirationInSeconds | Optional | integer | `7776000`<br>(90 days) | Expiration of 1st party cookie |
-| cookieName | Optional | string | `id5.1st` | ID5 1st party cookie name |
+| cookieName | Optional | string | `id5id.1st` | ID5 1st party cookie name |
 | debug | Optional | boolean | `false` | Enable verbose debug mode (defaulting to `id5_debug` query string param if present, or `false`) |
 | partnerUserId | Optional | string | | User ID of the platform if they are deploying this API on behalf of a publisher, to be used for cookie syncing with ID5 |
 | pd | Optional | string | | Publisher-supplied data used for linking ID5 IDs across domains. See [Generating Publisher Data String](#generating-publisher-data-string) below for details on generating the string |
@@ -240,7 +240,6 @@ Setting some configuration options at initialization
 <script>
   ID5.init({
     partnerId: 173, // modify with your own partnerId
-    cookieName: "id5api-pub",
     refreshInSeconds: 3600,
     partnerUserId: myUserId()
   });
@@ -276,7 +275,7 @@ Build and run the project locally with
 $ gulp serve
 ```
 
-This runs `lint` and `test`, then starts a web server at `http://localhost:9999` serving from the project root. Navigate to your example implementation to test, and if your `prebid.js` file is sourced from the `./build/dev` directory you will have sourcemaps available in your browser's developer tools.
+This runs `lint` and `test`, then starts a web server at `http://localhost:9999` serving from the project root. Navigate to your example implementation to test, and if your `id5-api.js` file is sourced from the `./build/dev` directory you will have sourcemaps available in your browser's developer tools.
 
 <!--To run the example file, go to:
 
@@ -294,20 +293,28 @@ When deploying the ID5 API alongside Prebid on a webpage, ensure that the follow
 1. ID5 API
 1. Prebid.js
 
-Within the [Prebid.js configuration for the ID5 ID](http://prebid.org/dev-docs/modules/userId.html#id5-id-configuration), rather than providing the `params` object, set the `value` object with the ID5 ID:
+Within the [Prebid.js configuration for the ID5 ID](http://prebid.org/dev-docs/modules/userId.html#id5-id-configuration), by ensuring the Prebid cookie name (set in `storage.name`) is the same as what is used by the API (optionally set in `cookieName`), the two codebases will work together seamlessly. The default API cookie name is `id5id.1st`, so unless you change that in the configuration of the API, make sure you use the same name when configuring Prebid:
 
 ```javascript
 pbjs.setConfig({
     usersync: {
         userIds: [{
             name: "id5Id",
-            value: { "id5id": ID5.userId }
+            params: {
+                partner: 173            // same value as in the API config
+            },
+            storage: {
+                type: "cookie",
+                name: "id5id.1st",      // make sure to use the same cookie name as the API, by default it's "id5id.1st"
+                expires: 90, 
+                refreshInSeconds: 2*3600
+            }
         }]
     }
 });
 ```
 
-Note that both the User ID module and ID5 submodule must be included in the Prebid build, even when using the ID5 API to manage the ID5 Universal ID. For more detailed instructions on how to use the ID5 Universal ID in Prebid, refer to [our documentation](https://console.id5.io/docs/public/prebid).
+Note that both the User ID module and ID5 submodule must still be included in the Prebid build, even when using the ID5 API to manage the ID5 Universal ID. For more detailed instructions on how to use the ID5 Universal ID in Prebid, refer to [our documentation](https://console.id5.io/docs/public/prebid).
 
 # API Process Flow
 Below is an example flow diagram of how the ID5 API interacts with your CMP and other vendor tags.
@@ -336,7 +343,7 @@ There are a number of reasons for publishers to use the ID5 API.
 
 ID5 has built a privacy-by-design and GDPR-compliant shared ID service for publishers and ad tech vendors. The service leverages the IAB’s Transparency and Consent Framework (TCF) to capture user consent signals.
 
-As a shared ID provider, ID5 acts as a controller of the Universal ID, and thus, we must receive consent to process requests. When we receive a request for the ID5 ID, we check that we have consent to store our user ID in a cookie before proceeding; if we don’t have consent we inform the calling page (through our API) that consent was not received and we do not write a cookie as part of the HTTP response.
+As a shared ID provider, ID5 acts as a controller of the Universal ID, and thus, we must receive consent to process requests. When we receive a request for the ID5 ID, we check that we have consent to store our user ID in a cookie before proceeding; if we don’t have consent we inform the calling page (through our API) that consent was not received and we do not write a 3rd party cookie as part of the HTTP response.
 
 ## Privacy Policy
 
