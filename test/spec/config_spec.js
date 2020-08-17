@@ -55,7 +55,7 @@ describe('config API', function () {
   it('sets multiple config properties', function () {
     setConfig({ partnerId: 999 });
     setConfig({ refreshInSeconds: -1 });
-    var config = getConfig();
+    let config = getConfig();
     expect(config.partnerId).to.equal(999);
     expect(config.refreshInSeconds).to.equal(-1);
   });
@@ -63,7 +63,10 @@ describe('config API', function () {
   it('sets and gets a valid configuration property with invalid type', function () {
     setConfig({ refreshInSeconds: -1 });
     setConfig({ refreshInSeconds: true });
+    setConfig({ callback: function() {} });
+    setConfig({ callback: -1 });
     expect(getConfig().refreshInSeconds).to.equal(-1);
+    expect(getConfig().callback).to.be.a('function');
   });
 
   it('overwrites existing config properties', function () {
