@@ -3,7 +3,6 @@
 var _ = require('lodash');
 var argv = require('yargs').argv;
 var gulp = require('gulp');
-var gutil = require('gulp-util');
 var connect = require('gulp-connect');
 var webpack = require('webpack');
 var webpackStream = require('webpack-stream');
@@ -13,14 +12,11 @@ var KarmaServer = require('karma').Server;
 var karmaConfMaker = require('./karma.conf.maker');
 var opens = require('opn');
 var webpackConfig = require('./webpack.conf');
-var concat = require('gulp-concat');
 var footer = require('gulp-footer');
 var header = require('gulp-header');
-var replace = require('gulp-replace');
 var shell = require('gulp-shell');
 var eslint = require('gulp-eslint');
 var gulpif = require('gulp-if');
-var sourcemaps = require('gulp-sourcemaps');
 var jsEscape = require('gulp-js-escape');
 
 var id5Api = require('./package.json');
@@ -94,17 +90,20 @@ var banner = ['/**',
   ' */',
   ''].join('\n');
 
+var setId5VersionJs = '\n<%= id5Api.globalVarName %>.version = \'<%= id5Api.version %>\';\n';
+
 function makeDevpackPkg() {
   var cloned = _.cloneDeep(webpackConfig);
   cloned.devtool = 'source-map';
 
+  const isNotMapFile = function(file) {
+    return file.extname != '.map';
+  };
+
   return gulp.src(['src/id5-api.js'])
     .pipe(webpackStream(cloned, webpack))
-    .pipe(footer('\n<%= global %>.version = \'<%= version %>\';\n', {
-      global: id5Api.globalVarName,
-      version: id5Api.version
-    }))
-    .pipe(header(banner, { id5Api : id5Api } ))
+    .pipe(gulpif(isNotMapFile, footer(setId5VersionJs, { id5Api : id5Api })))
+    .pipe(gulpif(isNotMapFile, header(banner, { id5Api : id5Api } )))
     .pipe(gulp.dest('build/dev'))
     .pipe(connect.reload());
 }
@@ -115,10 +114,7 @@ function makeWebpackPkg() {
 
   return gulp.src(['src/id5-api.js'])
     .pipe(webpackStream(cloned, webpack))
-    .pipe(footer('\n<%= global %>.version = \'<%= version %>\';\n', {
-      global: id5Api.globalVarName,
-      version: id5Api.version
-    }))
+    .pipe(footer(setId5VersionJs, { id5Api : id5Api }))
     .pipe(uglify())
     .pipe(header(banner, { id5Api : id5Api } ))
     .pipe(gulp.dest('build/dist'));
