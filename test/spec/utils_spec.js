@@ -265,4 +265,31 @@ describe('Utils', function () {
       assert.deepEqual(output, [input, input]);
     });
   });
+
+  describe('deferPixelFire', function () {
+    let fn;
+    beforeEach(function () {
+      fn = sinon.spy();
+    });
+    it('should be called immediatly if dom is already ready', function () {
+      utils.deferPixelFire('https://id5-sync.com/status', fn);
+      sinon.assert.calledOnce(fn);
+    });
+    it('should not be called synchrously, and called on DOMContentLoaded', function () {
+      // Fake document.readyState
+      Object.defineProperty(document, 'readyState', {
+        get() { return 'loading'; }
+      });
+      utils.deferPixelFire('https://id5-sync.com/status', fn);
+
+      sinon.assert.notCalled(fn);
+
+      // Fake DOMContentLoaded
+      var event = document.createEvent('Event');
+      event.initEvent('DOMContentLoaded', true, true);
+      document.dispatchEvent(event);
+
+      sinon.assert.calledOnce(fn);
+    });
+  });
 });
