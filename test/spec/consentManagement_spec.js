@@ -277,8 +277,8 @@ describe('consentManagementV2', function () {
 
     describe('error checks:', function () {
       beforeEach(function () {
-        sinon.stub(utils, 'logWarn');
-        sinon.stub(utils, 'logError');
+        sinon.spy(utils, 'logWarn');
+        sinon.spy(utils, 'logError');
       });
 
       afterEach(function () {
