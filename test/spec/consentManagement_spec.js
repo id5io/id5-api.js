@@ -50,8 +50,8 @@ describe('consentManagementV1', function () {
 
     describe('error checks:', function () {
       beforeEach(function () {
-        sinon.stub(utils, 'logWarn');
-        sinon.stub(utils, 'logError');
+        sinon.spy(utils, 'logWarn');
+        sinon.spy(utils, 'logError');
       });
 
       afterEach(function () {
@@ -82,8 +82,8 @@ describe('consentManagementV1', function () {
     describe('Static Consent flow:', function () {
       beforeEach(function () {
         callbackCalled = false;
-        sinon.stub(utils, 'logError');
-        sinon.stub(utils, 'logWarn');
+        sinon.spy(utils, 'logError');
+        sinon.spy(utils, 'logWarn');
       });
 
       afterEach(function () {
@@ -129,8 +129,8 @@ describe('consentManagementV1', function () {
 
       beforeEach(function () {
         callbackCalled = false;
-        sinon.stub(utils, 'logError');
-        sinon.stub(utils, 'logWarn');
+        sinon.spy(utils, 'logError');
+        sinon.spy(utils, 'logWarn');
         window.__cmp = function() {};
       });
 
@@ -277,8 +277,8 @@ describe('consentManagementV2', function () {
 
     describe('error checks:', function () {
       beforeEach(function () {
-        sinon.stub(utils, 'logWarn');
-        sinon.stub(utils, 'logError');
+        sinon.spy(utils, 'logWarn');
+        sinon.spy(utils, 'logError');
       });
 
       afterEach(function () {
@@ -309,8 +309,8 @@ describe('consentManagementV2', function () {
     describe('Static Consent flow:', function () {
       beforeEach(function () {
         callbackCalled = false;
-        sinon.stub(utils, 'logError');
-        sinon.stub(utils, 'logWarn');
+        sinon.spy(utils, 'logError');
+        sinon.spy(utils, 'logWarn');
       });
 
       afterEach(function () {
@@ -358,8 +358,8 @@ describe('consentManagementV2', function () {
 
       beforeEach(function () {
         callbackCalled = false;
-        sinon.stub(utils, 'logError');
-        sinon.stub(utils, 'logWarn');
+        sinon.spy(utils, 'logError');
+        sinon.spy(utils, 'logWarn');
         window.__tcfapi = function() {};
       });
 
