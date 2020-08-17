@@ -357,8 +357,11 @@ export function ajax(url, callback, data, options = {}) {
  *
  * @param syncUrl
  */
-export function fireAsyncPixel(syncUrl) {
+export function fireAsyncPixel(syncUrl, callback) {
   (new Image()).src = syncUrl;
+  if (isFn(callback)) {
+    callback();
+  }
 };
 
 /**
@@ -366,12 +369,12 @@ export function fireAsyncPixel(syncUrl) {
  *
  * @param syncUrl
  */
-export function deferPixelFire(syncUrl) {
+export function deferPixelFire(syncUrl, callback) {
   if (document.readyState !== 'loading') {
-    fireAsyncPixel(syncUrl);
+    fireAsyncPixel(syncUrl, callback);
   } else {
     document.addEventListener('DOMContentLoaded', function () {
-      fireAsyncPixel(syncUrl);
+      fireAsyncPixel(syncUrl, callback);
     });
   }
 }
