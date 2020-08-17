@@ -851,6 +851,7 @@ function lookupStaticConsentData(cmpSuccess, finalCallback) {
 
 function lookupIabConsent(cmpSuccess, finalCallback) {
   function findCMP() {
+    cmpVersion = 0;
     var f = window;
     var cmpFrame;
     var cmpFunction;
@@ -1029,7 +1030,7 @@ function cmpSuccess(consentObject, finalCallback) {
 
 
   var checkFn = cmpVersion === 1 ? checkV1Data : cmpVersion === 2 ? checkV2Data : null;
-  __WEBPACK_IMPORTED_MODULE_0__utils__["logInfo"](cmpVersion, checkFn);
+  __WEBPACK_IMPORTED_MODULE_0__utils__["logInfo"]('CMP Success callback for version', cmpVersion, checkFn);
 
   if (__WEBPACK_IMPORTED_MODULE_0__utils__["isFn"](checkFn)) {
     if (checkFn(consentObject)) {
@@ -1049,10 +1050,9 @@ function cmpSuccess(consentObject, finalCallback) {
 
 function resetConsentData() {
   consentData = undefined;
-  cmpVersion = 0;
 }
 /**
- * Stores CMP data locally in module and then invokes gdprDataHandler.setConsentData() to make information available in adaptermanger.js for later in the auction
+ * Stores CMP data locally in module
  * @param {object} cmpConsentObject required; an object representing user's consent choices (can be undefined in certain use-cases for this function only)
  */
 
@@ -1061,17 +1061,21 @@ function storeConsentData(cmpConsentObject) {
     consentData = {
       consentString: cmpConsentObject ? cmpConsentObject.getConsentData.consentData : undefined,
       vendorData: cmpConsentObject ? cmpConsentObject.getVendorConsents : undefined,
-      gdprApplies: cmpConsentObject ? cmpConsentObject.getConsentData.gdprApplies : undefined
+      gdprApplies: cmpConsentObject ? cmpConsentObject.getConsentData.gdprApplies : undefined,
+      apiVersion: 1
     };
-  } else {
+  } else if (cmpVersion === 2) {
     consentData = {
       consentString: cmpConsentObject ? cmpConsentObject.tcString : undefined,
       vendorData: cmpConsentObject || undefined,
-      gdprApplies: cmpConsentObject && typeof cmpConsentObject.gdprApplies === 'boolean' ? cmpConsentObject.gdprApplies : undefined
+      gdprApplies: cmpConsentObject && typeof cmpConsentObject.gdprApplies === 'boolean' ? cmpConsentObject.gdprApplies : undefined,
+      apiVersion: 2
+    };
+  } else {
+    consentData = {
+      apiVersion: 0
     };
   }
-
-  consentData.apiVersion = cmpVersion;
 }
 /**
  * test if consent module is present, applies, and is valid for local storage or cookies (purpose 1)

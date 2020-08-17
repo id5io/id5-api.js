@@ -27,6 +27,7 @@ function lookupStaticConsentData(cmpSuccess, finalCallback) {
  */
 function lookupIabConsent(cmpSuccess, finalCallback) {
   function findCMP() {
+    cmpVersion = 0;
     let f = window;
     let cmpFrame;
     let cmpFunction;
@@ -207,7 +208,7 @@ function cmpSuccess(consentObject, finalCallback) {
 
   // determine which set of checks to run based on cmpVersion
   let checkFn = (cmpVersion === 1) ? checkV1Data : (cmpVersion === 2) ? checkV2Data : null;
-  utils.logInfo(cmpVersion, checkFn);
+  utils.logInfo('CMP Success callback for version', cmpVersion, checkFn);
   if (utils.isFn(checkFn)) {
     if (checkFn(consentObject)) {
       resetConsentData();
@@ -225,11 +226,10 @@ function cmpSuccess(consentObject, finalCallback) {
  */
 export function resetConsentData() {
   consentData = undefined;
-  cmpVersion = 0;
 }
 
 /**
- * Stores CMP data locally in module and then invokes gdprDataHandler.setConsentData() to make information available in adaptermanger.js for later in the auction
+ * Stores CMP data locally in module
  * @param {object} cmpConsentObject required; an object representing user's consent choices (can be undefined in certain use-cases for this function only)
  */
 function storeConsentData(cmpConsentObject) {
@@ -237,16 +237,21 @@ function storeConsentData(cmpConsentObject) {
     consentData = {
       consentString: (cmpConsentObject) ? cmpConsentObject.getConsentData.consentData : undefined,
       vendorData: (cmpConsentObject) ? cmpConsentObject.getVendorConsents : undefined,
-      gdprApplies: (cmpConsentObject) ? cmpConsentObject.getConsentData.gdprApplies : undefined
+      gdprApplies: (cmpConsentObject) ? cmpConsentObject.getConsentData.gdprApplies : undefined,
+      apiVersion: 1
     };
-  } else {
+  } else if (cmpVersion === 2) {
     consentData = {
       consentString: (cmpConsentObject) ? cmpConsentObject.tcString : undefined,
       vendorData: (cmpConsentObject) || undefined,
-      gdprApplies: cmpConsentObject && typeof cmpConsentObject.gdprApplies === 'boolean' ? cmpConsentObject.gdprApplies : undefined
+      gdprApplies: cmpConsentObject && typeof cmpConsentObject.gdprApplies === 'boolean' ? cmpConsentObject.gdprApplies : undefined,
+      apiVersion: 2
+    };
+  } else {
+    consentData = {
+      apiVersion: 0
     };
   }
-  consentData.apiVersion = cmpVersion;
 }
 
 /**
