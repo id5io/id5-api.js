@@ -1,6 +1,6 @@
 /**
  * id5-api.js - The ID5 API is designed to make accessing the ID5 Universal ID simple for publishers and their ad tech vendors. The ID5 Universal ID is a shared, neutral identifier that publishers and ad tech platforms can use to recognise users even in environments where 3rd party cookies are not available. For more information, visit https://id5.io/universal-id.
- * @version v0.9.3
+ * @version v0.9.4-pre
  * @link https://id5.io/
  * @license Apache-2.0
  */
@@ -93,6 +93,8 @@ var utils = __webpack_require__(1);
  * @property {(string|undefined)} partnerUserId - User ID for the publisher, to be stored by ID5 for further matching if provided
  * @property {(string|undefined)} cmpApi - API to use CMP. As of today, either 'iab' or 'static'
  * @property {(object|undefined)} consentData - Consent data if cmpApi is 'static'
+ * @property {(function|undefined)} callback - Function to call back when User ID is available. if callbackTimeoutInMs is not provided, will be fired only if a User ID is available.
+ * @property {(number|undefined)} callbackTimeoutInMs - Delay in ms after which the callback is guaranteed to be fired. A User ID may not yet be available at this time.
  */
 
 
@@ -111,6 +113,8 @@ function newConfig() {
     cookieExpirationInSeconds: 'Number',
     partnerId: 'Number',
     partnerUserId: 'String',
+    callback: 'Function',
+    callbackTimeoutInMs: 'Number',
     pd: 'String'
   };
 
@@ -131,6 +135,8 @@ function newConfig() {
       cookieExpirationInSeconds: 90 * 24 * 60 * 60,
       partnerId: undefined,
       partnerUserId: undefined,
+      callback: undefined,
+      callbackTimeoutInMs: undefined,
       pd: ''
     };
   }
@@ -220,7 +226,7 @@ function _slicedToArray(arr, i) { return _arrayWithHoles(arr) || _iterableToArra
 
 function _nonIterableRest() { throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); }
 
-function _unsupportedIterableToArray(o, minLen) { if (!o) return; if (typeof o === "string") return _arrayLikeToArray(o, minLen); var n = Object.prototype.toString.call(o).slice(8, -1); if (n === "Object" && o.constructor) n = o.constructor.name; if (n === "Map" || n === "Set") return Array.from(n); if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray(o, minLen); }
+function _unsupportedIterableToArray(o, minLen) { if (!o) return; if (typeof o === "string") return _arrayLikeToArray(o, minLen); var n = Object.prototype.toString.call(o).slice(8, -1); if (n === "Object" && o.constructor) n = o.constructor.name; if (n === "Map" || n === "Set") return Array.from(o); if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray(o, minLen); }
 
 function _arrayLikeToArray(arr, len) { if (len == null || len > arr.length) len = arr.length; for (var i = 0, arr2 = new Array(len); i < len; i++) { arr2[i] = arr[i]; } return arr2; }
 
@@ -572,8 +578,12 @@ function ajax(url, callback, data) {
  * @param syncUrl
  */
 
-function fireAsyncPixel(syncUrl) {
+function fireAsyncPixel(syncUrl, callback) {
   new Image().src = syncUrl;
+
+  if (isFn(callback)) {
+    callback();
+  }
 }
 ;
 /**
@@ -582,12 +592,12 @@ function fireAsyncPixel(syncUrl) {
  * @param syncUrl
  */
 
-function deferPixelFire(syncUrl) {
+function deferPixelFire(syncUrl, callback) {
   if (document.readyState !== 'loading') {
-    fireAsyncPixel(syncUrl);
+    fireAsyncPixel(syncUrl, callback);
   } else {
     document.addEventListener('DOMContentLoaded', function () {
-      fireAsyncPixel(syncUrl);
+      fireAsyncPixel(syncUrl, callback);
     });
   }
 }
@@ -613,6 +623,7 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 var ID5 = Object(__WEBPACK_IMPORTED_MODULE_0__id5_apiGlobal__["a" /* getGlobal */])();
 ID5.loaded = true;
 ID5.initialized = false;
+ID5.callbackFired = false;
 /**
  * This function will initialize ID5, wait for consent then try to fetch or refresh ID5 user id if required
  * @param {Id5Config} options
@@ -621,6 +632,8 @@ ID5.initialized = false;
 // TODO: Use Async init by pushing setting in a queue
 
 ID5.init = function (options) {
+  var _this = this;
+
   if (typeof ID5.version === 'undefined') {
     throw new Error('ID5.version variable is missing! Make sure you build from source with "gulp build" from this project. Contact support@id5.io for help.');
   }
@@ -631,6 +644,7 @@ ID5.init = function (options) {
     ID5.userConfig = options;
     ID5.config = cfg;
     ID5.initialized = true;
+    ID5.callbackFired = false;
     ID5.getConfig = __WEBPACK_IMPORTED_MODULE_1__config__["a" /* config */].getConfig;
     var referer = Object(__WEBPACK_IMPORTED_MODULE_4__refererDetection__["a" /* getRefererInfo */])();
     __WEBPACK_IMPORTED_MODULE_2__utils__["logInfo"]("ID5 detected referer is ".concat(referer.referer));
@@ -644,7 +658,13 @@ ID5.init = function (options) {
     var refreshNeeded = storedDateTime <= 0 || Date.now() - storedDateTime > cfg.refreshInSeconds * 1000;
     var expiresStr = new Date(Date.now() + cfg.cookieExpirationInSeconds * 1000).toUTCString();
     var nb = getNbFromCookie(cfg);
-    var idSetFromStoredResponse = false;
+    var idSetFromStoredResponse = false; // Callback watchdogs
+
+    if (__WEBPACK_IMPORTED_MODULE_2__utils__["isFn"](this.config.callback) && this.config.callbackTimeoutInMs >= 0) {
+      setTimeout(function () {
+        return _this.fireCallBack();
+      }, this.config.callbackTimeoutInMs);
+    }
 
     if (storedResponse) {
       // this is needed to avoid losing the ID5ID from publishers that was
@@ -660,13 +680,18 @@ ID5.init = function (options) {
 
       nb = incrementNb(cfg, expiresStr, nb);
       idSetFromStoredResponse = true;
+
+      if (ID5.userId) {
+        this.fireCallBack();
+      }
+
       __WEBPACK_IMPORTED_MODULE_2__utils__["logInfo"]('ID5 User ID available from cache:', {
         storedResponse: storedResponse,
         storedDateTime: storedDateTime,
         refreshNeeded: refreshNeeded
       });
     } else {
-      __WEBPACK_IMPORTED_MODULE_2__utils__["logInfo"]('No ID5 User ID available');
+      __WEBPACK_IMPORTED_MODULE_2__utils__["logInfo"]('No ID5 User ID available from cache');
     }
 
     __WEBPACK_IMPORTED_MODULE_3__consentManagement__["b" /* requestConsent */](function (consentData) {
@@ -694,33 +719,40 @@ ID5.init = function (options) {
             'nbPage': nb
           };
           __WEBPACK_IMPORTED_MODULE_2__utils__["logInfo"]('Fetching ID5 user ID from:', url, data);
-          __WEBPACK_IMPORTED_MODULE_2__utils__["ajax"](url, function (response) {
-            var responseObj;
+          __WEBPACK_IMPORTED_MODULE_2__utils__["ajax"](url, {
+            success: function success(response) {
+              __WEBPACK_IMPORTED_MODULE_2__utils__["logInfo"]('Response from ID5 received:', response);
+              var responseObj;
 
-            if (response) {
-              try {
-                responseObj = JSON.parse(response);
-                __WEBPACK_IMPORTED_MODULE_2__utils__["logInfo"]('Response from ID5 received:', responseObj);
+              if (response) {
+                try {
+                  responseObj = JSON.parse(response);
 
-                if (responseObj.universal_uid) {
-                  ID5.userId = responseObj.universal_uid;
-                  __WEBPACK_IMPORTED_MODULE_2__utils__["setCookie"](cfg.cookieName, response, expiresStr);
-                  __WEBPACK_IMPORTED_MODULE_2__utils__["setCookie"](lastCookieName(cfg), Date.now(), expiresStr);
-                  __WEBPACK_IMPORTED_MODULE_2__utils__["setCookie"](nbCookieName(cfg), idSetFromStoredResponse ? 0 : 1, expiresStr);
+                  if (responseObj.universal_uid) {
+                    ID5.userId = responseObj.universal_uid;
+                    __WEBPACK_IMPORTED_MODULE_2__utils__["setCookie"](cfg.cookieName, response, expiresStr);
+                    __WEBPACK_IMPORTED_MODULE_2__utils__["setCookie"](lastCookieName(cfg), Date.now(), expiresStr);
+                    __WEBPACK_IMPORTED_MODULE_2__utils__["setCookie"](nbCookieName(cfg), idSetFromStoredResponse ? 0 : 1, expiresStr);
 
-                  if (responseObj.cascade_needed === true) {
-                    var isSync = cfg.partnerUserId && cfg.partnerUserId.length > 0;
-                    var syncUrl = "https://id5-sync.com/".concat(isSync ? 's' : 'i', "/").concat(cfg.partnerId, "/8.gif?").concat(isSync ? 'puid=' + cfg.partnerUserId + '&' : '', "gdpr_consent=").concat(gdprConsentString, "&gdpr=").concat(gdprApplies);
-                    __WEBPACK_IMPORTED_MODULE_2__utils__["logInfo"]('Opportunities to cascade available:', syncUrl);
-                    __WEBPACK_IMPORTED_MODULE_2__utils__["deferPixelFire"](syncUrl);
-                  } // TODO: Server should use 1puid to override uid if not in 3rd party cookie
+                    if (responseObj.cascade_needed === true) {
+                      var isSync = cfg.partnerUserId && cfg.partnerUserId.length > 0;
+                      var syncUrl = "https://id5-sync.com/".concat(isSync ? 's' : 'i', "/").concat(cfg.partnerId, "/8.gif?").concat(isSync ? 'puid=' + cfg.partnerUserId + '&' : '', "gdpr_consent=").concat(gdprConsentString, "&gdpr=").concat(gdprApplies);
+                      __WEBPACK_IMPORTED_MODULE_2__utils__["logInfo"]('Opportunities to cascade available:', syncUrl);
+                      __WEBPACK_IMPORTED_MODULE_2__utils__["deferPixelFire"](syncUrl);
+                    }
 
-                } else {
-                  __WEBPACK_IMPORTED_MODULE_2__utils__["logError"]('Invalid response from ID5 servers:', response);
+                    _this.fireCallBack(); // TODO: Server should use 1puid to override uid if not in 3rd party cookie
+
+                  } else {
+                    __WEBPACK_IMPORTED_MODULE_2__utils__["logError"]('Invalid response from ID5 servers:', response);
+                  }
+                } catch (error) {
+                  __WEBPACK_IMPORTED_MODULE_2__utils__["logError"](error);
                 }
-              } catch (error) {
-                __WEBPACK_IMPORTED_MODULE_2__utils__["logError"](error);
               }
+            },
+            error: function error(_error) {
+              __WEBPACK_IMPORTED_MODULE_2__utils__["logError"](_error);
             }
           }, JSON.stringify(data), {
             method: 'POST',
@@ -733,6 +765,18 @@ ID5.init = function (options) {
     });
   } catch (e) {
     __WEBPACK_IMPORTED_MODULE_2__utils__["logError"]('Exception catch', e);
+  }
+};
+
+ID5.fireCallBack = function () {
+  var _this2 = this;
+
+  if (!this.callbackFired && __WEBPACK_IMPORTED_MODULE_2__utils__["isFn"](this.config.callback)) {
+    this.callbackFired = true;
+    __WEBPACK_IMPORTED_MODULE_2__utils__["logInfo"]('Scheduling callback');
+    setTimeout(function () {
+      return _this2.config.callback(ID5);
+    }, 0);
   }
 };
 
@@ -1280,4 +1324,4 @@ var getRefererInfo = detectReferer(window);
 /***/ })
 /******/ ]);
 //# sourceMappingURL=id5-api.js.map
-ID5.version = '0.9.3';
+ID5.version = '0.9.4-pre';

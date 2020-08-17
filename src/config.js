@@ -15,6 +15,8 @@ const utils = require('./utils');
  * @property {(string|undefined)} partnerUserId - User ID for the publisher, to be stored by ID5 for further matching if provided
  * @property {(string|undefined)} cmpApi - API to use CMP. As of today, either 'iab' or 'static'
  * @property {(object|undefined)} consentData - Consent data if cmpApi is 'static'
+ * @property {(function|undefined)} callback - Function to call back when User ID is available. if callbackTimeoutInMs is not provided, will be fired only if a User ID is available.
+ * @property {(number|undefined)} callbackTimeoutInMs - Delay in ms after which the callback is guaranteed to be fired. A User ID may not yet be available at this time.
  */
 
 export function newConfig() {
@@ -33,6 +35,8 @@ export function newConfig() {
     cookieExpirationInSeconds: 'Number',
     partnerId: 'Number',
     partnerUserId: 'String',
+    callback: 'Function',
+    callbackTimeoutInMs: 'Number',
     pd: 'String'
   };
 
@@ -53,6 +57,8 @@ export function newConfig() {
       cookieExpirationInSeconds: 90 * 24 * 60 * 60,
       partnerId: undefined,
       partnerUserId: undefined,
+      callback: undefined,
+      callbackTimeoutInMs: undefined,
       pd: ''
     };
   }

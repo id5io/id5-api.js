@@ -27,6 +27,8 @@ describe('ID5 Publisher API', function () {
       expect(ID5.loaded).to.be.true;
       expect(ID5.initialized).to.be.a('boolean');
       expect(ID5.initialized).to.be.false;
+      expect(ID5.callbackFired).to.be.a('boolean');
+      expect(ID5.callbackFired).to.be.false;
     });
     it('should have user-defined config and final config available', function () {
       ID5.init({ partnerId: 99, cmpApi: 'iab', allowID5WithoutConsentApi: false });
@@ -51,8 +53,8 @@ describe('ID5 Publisher API', function () {
 
     beforeEach(function () {
       ID5.userId = undefined;
-      ajaxStub = sinon.stub(utils, 'ajax').callsFake(function(url, callback, data, options) {
-        callback(jsonResponse);
+      ajaxStub = sinon.stub(utils, 'ajax').callsFake(function(url, callbacks, data, options) {
+        callbacks.success(jsonResponse);
       });
     });
 
@@ -94,15 +96,17 @@ describe('ID5 Publisher API', function () {
       });
       let ajaxStub;
       let syncStub;
+      let callbackStub;
 
       beforeEach(function () {
-        ajaxStub = sinon.stub(utils, 'ajax').callsFake(function(url, callback, data, options) {
-          callback(jsonResponse);
+        ajaxStub = sinon.stub(utils, 'ajax').callsFake(function(url, callbacks, data, options) {
+          callbacks.success(jsonResponse);
         });
         syncStub = sinon.stub(utils, 'deferPixelFire');
         utils.setCookie('id5id.1st', '', EXPIRED_COOKIE_DATE);
         utils.setCookie('id5id.1st_last', '', EXPIRED_COOKIE_DATE);
         utils.setCookie('id5id.1st_99_nb', '', EXPIRED_COOKIE_DATE);
+        callbackStub = sinon.spy();
       });
 
       afterEach(function () {
@@ -115,26 +119,53 @@ describe('ID5 Publisher API', function () {
         ID5.userId = undefined;
       });
 
-      it('Use non-expired cookie if available', function () {
-        const expStr = (new Date(Date.now() + 5000).toUTCString())
-        utils.setCookie('id5id.1st', JSON.stringify({'universal_uid': 'testid5id', 'signature': 'abc123'}), expStr);
-        utils.setCookie('id5id.1st_last', Date.now(), expStr);
-        ID5.init({ partnerId: 99, cmpApi: 'iab', allowID5WithoutConsentApi: true });
+      it('Use no cookie, without consent, nothing, callback watchdog should be used', function (done) {
+        ID5.init({ partnerId: 99, cmpApi: 'iab', allowID5WithoutConsentApi: false, callback: callbackStub, callbackTimeoutInMs: 100 });
 
         sinon.assert.notCalled(ajaxStub);
         sinon.assert.notCalled(syncStub);
-        expect(ID5.userId).to.be.equal('testid5id');
+        expect(ID5.userId).to.be.undefined;
+
+        setTimeout(() => {
+          sinon.assert.notCalled(callbackStub);
+          setTimeout(() => {
+            sinon.assert.calledOnce(callbackStub);
+            done();
+          }, 100);
+        }, 100);
       });
 
-      it('Use non-expired cookie if available, without consent', function () {
+      it('Use non-expired cookie if available', function (done) {
         const expStr = (new Date(Date.now() + 5000).toUTCString())
         utils.setCookie('id5id.1st', JSON.stringify({'universal_uid': 'testid5id', 'signature': 'abc123'}), expStr);
         utils.setCookie('id5id.1st_last', Date.now(), expStr);
-        ID5.init({ partnerId: 99, cmpApi: 'iab', allowID5WithoutConsentApi: false });
+        ID5.init({ partnerId: 99, cmpApi: 'iab', allowID5WithoutConsentApi: true, callback: callbackStub });
+
+        sinon.assert.notCalled(ajaxStub);
+        sinon.assert.notCalled(syncStub);
+
+        expect(ID5.userId).to.be.equal('testid5id');
+
+        setTimeout(() => {
+          sinon.assert.calledOnce(callbackStub);
+          done();
+        }, 10);
+      });
+
+      it('Use non-expired cookie if available, without consent', function (done) {
+        const expStr = (new Date(Date.now() + 5000).toUTCString())
+        utils.setCookie('id5id.1st', JSON.stringify({'universal_uid': 'testid5id', 'signature': 'abc123'}), expStr);
+        utils.setCookie('id5id.1st_last', Date.now(), expStr);
+        ID5.init({ partnerId: 99, cmpApi: 'iab', allowID5WithoutConsentApi: false, callback: callbackStub });
 
         sinon.assert.notCalled(ajaxStub);
         sinon.assert.notCalled(syncStub);
         expect(ID5.userId).to.be.equal('testid5id');
+
+        setTimeout(() => {
+          sinon.assert.calledOnce(callbackStub);
+          done();
+        }, 10);
       });
 
       it('Use non-expired legacy cookie if available, without consent', function () {
@@ -148,8 +179,8 @@ describe('ID5 Publisher API', function () {
         expect(ID5.userId).to.be.equal('testid5id');
       });
 
-      it('Call id5 servers via Ajax if consent but no cookie', function () {
-        ID5.init({ partnerId: 99, cmpApi: 'iab', allowID5WithoutConsentApi: true });
+      it('Call id5 servers via Ajax if consent but no cookie', function (done) {
+        ID5.init({ partnerId: 99, cmpApi: 'iab', allowID5WithoutConsentApi: true, callback: callbackStub });
 
         sinon.assert.calledOnce(ajaxStub);
         expect(ajaxStub.firstCall.args[0]).to.be.equal('https://id5-sync.com/g/v2/99.json?gdpr_consent=&gdpr=0');
@@ -161,6 +192,11 @@ describe('ID5 Publisher API', function () {
 
         sinon.assert.calledOnce(syncStub);
         expect(syncStub.args[0][0]).to.be.equal('https://id5-sync.com/i/99/8.gif?gdpr_consent=&gdpr=0');
+
+        setTimeout(() => {
+          sinon.assert.calledOnce(callbackStub);
+          done();
+        }, 10);
       });
 
       it('Call id5 servers via Ajax if consent but no cookie and sync with supplied userId', function () {
@@ -197,11 +233,11 @@ describe('ID5 Publisher API', function () {
         expect(syncStub.args[0][0]).to.be.equal('https://id5-sync.com/i/99/8.gif?gdpr_consent=&gdpr=0');
       });
 
-      it('Call id5 servers with existing value via Ajax if expired/missing "last" cookie', function () {
+      it('Call id5 servers with existing value via Ajax if expired/missing "last" cookie', function (done) {
         const expStr = (new Date(Date.now() + 5000).toUTCString());
         utils.setCookie('id5id.1st', JSON.stringify({'universal_uid': 'testid5id', 'signature': 'abc123'}), expStr);
         utils.setCookie('id5id.1st_last', '', EXPIRED_COOKIE_DATE);
-        ID5.init({ partnerId: 99, cmpApi: 'iab', allowID5WithoutConsentApi: true });
+        ID5.init({ partnerId: 99, cmpApi: 'iab', allowID5WithoutConsentApi: true, callback: callbackStub });
 
         sinon.assert.calledOnce(ajaxStub);
         expect(ajaxStub.firstCall.args[0]).to.be.equal('https://id5-sync.com/g/v2/99.json?gdpr_consent=&gdpr=0');
@@ -214,6 +250,11 @@ describe('ID5 Publisher API', function () {
 
         sinon.assert.calledOnce(syncStub);
         expect(syncStub.args[0][0]).to.be.equal('https://id5-sync.com/i/99/8.gif?gdpr_consent=&gdpr=0');
+
+        setTimeout(() => {
+          sinon.assert.calledOnce(callbackStub);
+          done();
+        }, 10);
       });
 
       it('Call id5 servers with existing legacy value via Ajax', function () {
@@ -274,8 +315,8 @@ describe('ID5 Publisher API', function () {
       let syncStub;
 
       beforeEach(function () {
-        ajaxStub = sinon.stub(utils, 'ajax').callsFake(function(url, callback, data, options) {
-          callback(jsonResponse);
+        ajaxStub = sinon.stub(utils, 'ajax').callsFake(function(url, callbacks, data, options) {
+          callbacks.success(jsonResponse);
         });
         syncStub = sinon.stub(utils, 'deferPixelFire');
       });
@@ -342,8 +383,8 @@ describe('ID5 Publisher API', function () {
       let syncStub;
 
       beforeEach(function () {
-        ajaxStub = sinon.stub(utils, 'ajax').callsFake(function(url, callback, data, options) {
-          setTimeout(() => { callback(jsonResponse) }, 100);
+        ajaxStub = sinon.stub(utils, 'ajax').callsFake(function(url, callbacks, data, options) {
+          setTimeout(() => { callbacks.success(jsonResponse) }, 100);
         });
         syncStub = sinon.stub(utils, 'deferPixelFire');
       });
@@ -412,8 +453,8 @@ describe('ID5 Publisher API', function () {
     let ajaxStub;
 
     beforeEach(function () {
-      ajaxStub = sinon.stub(utils, 'ajax').callsFake(function(url, callback, data, options) {
-        callback(jsonResponse);
+      ajaxStub = sinon.stub(utils, 'ajax').callsFake(function(url, callbacks, data, options) {
+        callbacks.success(jsonResponse);
       });
       utils.setCookie('id5id.1st', '', EXPIRED_COOKIE_DATE);
       utils.setCookie('id5id.1st_last', '', EXPIRED_COOKIE_DATE);

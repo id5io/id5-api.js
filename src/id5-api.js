@@ -10,6 +10,7 @@ export const ID5 = getGlobal();
 
 ID5.loaded = true;
 ID5.initialized = false;
+ID5.callbackFired = false;
 
 /**
  * This function will initialize ID5, wait for consent then try to fetch or refresh ID5 user id if required
@@ -28,6 +29,7 @@ ID5.init = function (options) {
     ID5.userConfig = options;
     ID5.config = cfg;
     ID5.initialized = true;
+    ID5.callbackFired = false;
     ID5.getConfig = config.getConfig;
     const referer = getRefererInfo();
     utils.logInfo(`ID5 detected referer is ${referer.referer}`);
@@ -43,6 +45,11 @@ ID5.init = function (options) {
     let nb = getNbFromCookie(cfg);
     let idSetFromStoredResponse = false;
 
+    // Callback watchdogs
+    if (utils.isFn(this.config.callback) && this.config.callbackTimeoutInMs >= 0) {
+      setTimeout(() => this.fireCallBack(), this.config.callbackTimeoutInMs);
+    }
+
     if (storedResponse) {
       // this is needed to avoid losing the ID5ID from publishers that was
       // previously stored. Eventually we can remove this, once pubs have all
@@ -55,9 +62,12 @@ ID5.init = function (options) {
       }
       nb = incrementNb(cfg, expiresStr, nb);
       idSetFromStoredResponse = true;
+      if (ID5.userId) {
+        this.fireCallBack();
+      }
       utils.logInfo('ID5 User ID available from cache:', { storedResponse, storedDateTime, refreshNeeded });
     } else {
-      utils.logInfo('No ID5 User ID available');
+      utils.logInfo('No ID5 User ID available from cache');
     }
 
     consent.requestConsent((consentData) => {
@@ -84,30 +94,36 @@ ID5.init = function (options) {
           };
 
           utils.logInfo('Fetching ID5 user ID from:', url, data);
-          utils.ajax(url, response => {
-            let responseObj;
-            if (response) {
-              try {
-                responseObj = JSON.parse(response);
-                utils.logInfo('Response from ID5 received:', responseObj);
-                if (responseObj.universal_uid) {
-                  ID5.userId = responseObj.universal_uid;
-                  utils.setCookie(cfg.cookieName, response, expiresStr);
-                  utils.setCookie(lastCookieName(cfg), Date.now(), expiresStr);
-                  utils.setCookie(nbCookieName(cfg), (idSetFromStoredResponse ? 0 : 1), expiresStr);
-                  if (responseObj.cascade_needed === true) {
-                    const isSync = cfg.partnerUserId && cfg.partnerUserId.length > 0;
-                    const syncUrl = `https://id5-sync.com/${isSync ? 's' : 'i'}/${cfg.partnerId}/8.gif?${isSync ? 'puid=' + cfg.partnerUserId + '&' : ''}gdpr_consent=${gdprConsentString}&gdpr=${gdprApplies}`;
-                    utils.logInfo('Opportunities to cascade available:', syncUrl);
-                    utils.deferPixelFire(syncUrl);
+          utils.ajax(url, {
+            success: response => {
+              utils.logInfo('Response from ID5 received:', response);
+              let responseObj;
+              if (response) {
+                try {
+                  responseObj = JSON.parse(response);
+                  if (responseObj.universal_uid) {
+                    ID5.userId = responseObj.universal_uid;
+                    utils.setCookie(cfg.cookieName, response, expiresStr);
+                    utils.setCookie(lastCookieName(cfg), Date.now(), expiresStr);
+                    utils.setCookie(nbCookieName(cfg), (idSetFromStoredResponse ? 0 : 1), expiresStr);
+                    if (responseObj.cascade_needed === true) {
+                      const isSync = cfg.partnerUserId && cfg.partnerUserId.length > 0;
+                      const syncUrl = `https://id5-sync.com/${isSync ? 's' : 'i'}/${cfg.partnerId}/8.gif?${isSync ? 'puid=' + cfg.partnerUserId + '&' : ''}gdpr_consent=${gdprConsentString}&gdpr=${gdprApplies}`;
+                      utils.logInfo('Opportunities to cascade available:', syncUrl);
+                      utils.deferPixelFire(syncUrl);
+                    }
+                    this.fireCallBack();
+                    // TODO: Server should use 1puid to override uid if not in 3rd party cookie
+                  } else {
+                    utils.logError('Invalid response from ID5 servers:', response);
                   }
-                  // TODO: Server should use 1puid to override uid if not in 3rd party cookie
-                } else {
-                  utils.logError('Invalid response from ID5 servers:', response);
+                } catch (error) {
+                  utils.logError(error);
                 }
-              } catch (error) {
-                utils.logError(error);
               }
+            },
+            error: error => {
+              utils.logError(error);
             }
           }, JSON.stringify(data), { method: 'POST', withCredentials: true });
         }
@@ -119,6 +135,14 @@ ID5.init = function (options) {
     utils.logError('Exception catch', e);
   }
 };
+
+ID5.fireCallBack = function () {
+  if (!this.callbackFired && utils.isFn(this.config.callback)) {
+    this.callbackFired = true;
+    utils.logInfo('Scheduling callback');
+    setTimeout(() => this.config.callback(ID5), 0);
+  }
+}
 
 function lastCookieName(cfg) {
   return `${cfg.cookieName}_last`;
