@@ -77,8 +77,6 @@ function lookupIabConsent(cmpSuccess, finalCallback) {
     if (success) {
       if (tcfData.eventStatus === 'tcloaded' || tcfData.eventStatus === 'useractioncomplete') {
         cmpSuccess(tcfData, finalCallback);
-      } else if (tcfData.eventStatus === 'cmpuishown' && tcfData.tcString && tcfData.purposeOneTreatment === true) {
-        cmpSuccess(tcfData, finalCallback);
       } else {
         // TODO cmperror?
         utils.logError(`CMP returned success but without a valid eventStatus`);
