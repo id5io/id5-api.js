@@ -163,7 +163,7 @@ Once the API has been loaded and initialized, the ID5 Universal ID can be access
 
 The `ID5.userId` variable always exists (once the API is loaded) and will return immediately with a value. If there is no ID available yet, the `ID5.userId` will return a value of `undefined`.
 
-There are a few cases in which the ID5.userId may not be ready or have a value:
+There are a few cases in which `ID5.userId` may not be ready or have a value:
 
 * There is no locally cached version of the ID and no response has been received yet from the ID5 servers (where the ID is generated)
 * The CMP has not finished loading or gathering consent from the user, so no ID can be retrieved
@@ -183,6 +183,8 @@ There are a few cases in which the ID5.userId may not be ready or have a value:
 | partnerUserId | Optional | string | | User ID of the platform if they are deploying this API on behalf of a publisher, to be used for cookie syncing with ID5 |
 | pd | Optional | string | | Publisher-supplied data used for linking ID5 IDs across domains. See [Generating Publisher Data String](#generating-publisher-data-string) below for details on generating the string |
 | refreshInSeconds | Optional | integer | `7200`<br>(2 hours) | Refresh period of first-party cookie |
+| callback | Optional | function | | Function to call back when `ID5.userId` is available. If `callbackTimeoutInMs` is not provided, `callback` will be fired only if and when `ID5.userId` is available. |
+| callbackTimeoutInMs | Optional | integer | | Delay in ms after which the `callback` is guaranteed to be fired. `ID5.userId` may not be available at this time. |
 
 #### Generating Publisher Data String
 The `pd` field (short for Publisher Data) is a base64 encoded string that contains any deterministic user data the publisher has access to. The data will be used strictly to provide better linking of ID5 IDs across domains for improved user identification. If the user has not provided ID5 with a legal basis to process data, the information sent to ID5 will be ignored and neither used nor saved for future requests.
