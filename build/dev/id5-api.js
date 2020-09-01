@@ -903,14 +903,10 @@ function lookupIabConsent(cmpSuccess, finalCallback) {
     __WEBPACK_IMPORTED_MODULE_0__utils__["logInfo"]('Received a response from CMP', tcfData);
 
     if (success) {
-      if (tcfData.eventStatus === 'tcloaded' || tcfData.eventStatus === 'useractioncomplete') {
+      if (tcfData.gdprApplies === false) {
         cmpSuccess(tcfData, finalCallback);
-      } else if (tcfData.eventStatus === 'cmpuishown' && tcfData.tcString && tcfData.purposeOneTreatment === true) {
+      } else if (tcfData.eventStatus === 'tcloaded' || tcfData.eventStatus === 'useractioncomplete') {
         cmpSuccess(tcfData, finalCallback);
-      } else {
-        // TODO cmperror?
-        __WEBPACK_IMPORTED_MODULE_0__utils__["logError"]("CMP returned success but without a valid eventStatus");
-        cmpSuccess(undefined, finalCallback);
       }
     } else {
       __WEBPACK_IMPORTED_MODULE_0__utils__["logError"]("CMP unable to register callback function.  Please check CMP setup.");
