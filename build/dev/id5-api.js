@@ -1,6 +1,6 @@
 /**
  * id5-api.js - The ID5 API is designed to make accessing the ID5 Universal ID simple for publishers and their ad tech vendors. The ID5 Universal ID is a shared, neutral identifier that publishers and ad tech platforms can use to recognise users even in environments where 3rd party cookies are not available. For more information, visit https://id5.io/universal-id.
- * @version v0.9.4
+ * @version v1.0.0-pre
  * @link https://id5.io/
  * @license Apache-2.0
  */
@@ -903,14 +903,8 @@ function lookupIabConsent(cmpSuccess, finalCallback) {
     __WEBPACK_IMPORTED_MODULE_0__utils__["logInfo"]('Received a response from CMP', tcfData);
 
     if (success) {
-      if (tcfData.eventStatus === 'tcloaded' || tcfData.eventStatus === 'useractioncomplete') {
+      if (tcfData.gdprApplies === false || tcfData.eventStatus === 'tcloaded' || tcfData.eventStatus === 'useractioncomplete') {
         cmpSuccess(tcfData, finalCallback);
-      } else if (tcfData.eventStatus === 'cmpuishown' && tcfData.tcString && tcfData.purposeOneTreatment === true) {
-        cmpSuccess(tcfData, finalCallback);
-      } else {
-        // TODO cmperror?
-        __WEBPACK_IMPORTED_MODULE_0__utils__["logError"]("CMP returned success but without a valid eventStatus");
-        cmpSuccess(undefined, finalCallback);
       }
     } else {
       __WEBPACK_IMPORTED_MODULE_0__utils__["logError"]("CMP unable to register callback function.  Please check CMP setup.");
@@ -1328,4 +1322,4 @@ var getRefererInfo = detectReferer(window);
 /***/ })
 /******/ ]);
 //# sourceMappingURL=id5-api.js.map
-ID5.version = '0.9.4';
+ID5.version = '1.0.0-pre';
