@@ -903,9 +903,7 @@ function lookupIabConsent(cmpSuccess, finalCallback) {
     __WEBPACK_IMPORTED_MODULE_0__utils__["logInfo"]('Received a response from CMP', tcfData);
 
     if (success) {
-      if (tcfData.gdprApplies === false) {
-        cmpSuccess(tcfData, finalCallback);
-      } else if (tcfData.eventStatus === 'tcloaded' || tcfData.eventStatus === 'useractioncomplete') {
+      if (tcfData.gdprApplies === false || tcfData.eventStatus === 'tcloaded' || tcfData.eventStatus === 'useractioncomplete') {
         cmpSuccess(tcfData, finalCallback);
       }
     } else {

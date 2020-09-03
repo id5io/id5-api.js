@@ -75,9 +75,7 @@ function lookupIabConsent(cmpSuccess, finalCallback) {
   function v2CmpResponseCallback(tcfData, success) {
     utils.logInfo('Received a response from CMP', tcfData);
     if (success) {
-      if (tcfData.gdprApplies === false) {
-        cmpSuccess(tcfData, finalCallback);
-      } else if (tcfData.eventStatus === 'tcloaded' || tcfData.eventStatus === 'useractioncomplete') {
+      if (tcfData.gdprApplies === false || tcfData.eventStatus === 'tcloaded' || tcfData.eventStatus === 'useractioncomplete') {
         cmpSuccess(tcfData, finalCallback);
       }
     } else {
