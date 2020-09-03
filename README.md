@@ -12,17 +12,31 @@ Stay up-to-date with all of our API releases by subscribing to our [release note
 
 # Table of Contents
 
-* [ID5 Universal ID](#id5-universal-id)
-* [ID5 API Overview](#id5-api-overview)
-* [Setup and Installation](#setup-and-installation)
-  * [ID5 Partner Creation](#id5-partner-creation)
-  * [Quick Start](#quick-start)
-  * [API Source Code](#api-source-code)
-  * [Usage](#usage)
-  * [Prebid.js](#prebidjs)
-* [API Process Flow](#api-process-flow)
-* [Benefits of Using the ID5 API](#benefits-of-using-the-id5-api)
-* [The GDPR and Privacy](#the-gdpr-and-privacy)
+- [ID5 Universal ID](#id5-universal-id)
+- [ID5 API Overview](#id5-api-overview)
+- [Table of Contents](#table-of-contents)
+- [Setup and Installation](#setup-and-installation)
+  - [ID5 Partner Creation](#id5-partner-creation)
+  - [Quick Start](#quick-start)
+  - [API Source Code](#api-source-code)
+    - [ID5-Hosted Source During BETA](#id5-hosted-source-during-beta)
+    - [Pre-built and Minified for Download](#pre-built-and-minified-for-download)
+    - [Build from Source (more advanced)](#build-from-source-more-advanced)
+  - [Usage](#usage)
+    - [Load the API javascript file](#load-the-api-javascript-file)
+    - [Initialize the API](#initialize-the-api)
+    - [Access the ID5 Universal ID](#access-the-id5-universal-id)
+    - [Available Configuration Options](#available-configuration-options)
+      - [Generating Publisher Data String](#generating-publisher-data-string)
+    - [Available Methods and Variables](#available-methods-and-variables)
+    - [Examples](#examples)
+    - [Test locally](#test-locally)
+  - [Prebid.js](#prebidjs)
+- [API Process Flow](#api-process-flow)
+- [Benefits of Using the ID5 API](#benefits-of-using-the-id5-api)
+- [The GDPR and Privacy](#the-gdpr-and-privacy)
+  - [GDPR](#gdpr)
+  - [Privacy Policy](#privacy-policy)
 
 # Setup and Installation
 
@@ -34,7 +48,7 @@ The first step to work with the ID5 API and Universal ID is to apply for an ID5 
 
 <!--Download the latest pre-built, minified version from Github
 
-* [https://github.com/id5io/id5-api.js/releases/download/v0.9.3/id5-api.js](https://github.com/id5io/id5-api.js/releases/download/v0.9.3/id5-api.js)
+* [https://github.com/id5io/id5-api.js/releases/download/v0.9.4/id5-api.js](https://github.com/id5io/id5-api.js/releases/download/v0.9.4/id5-api.js)
 
 Install the ID5 API after your CMP (if applicable), but as high in the `HEAD` as possible
 
@@ -83,7 +97,7 @@ This will enable us to make more frequent changes and bug fixes without the need
 
 You can download the latest release (and host on your own CDN) in a pre-built, minified version from:
 
-* [https://github.com/id5io/id5-api.js/releases/download/v0.9.3/id5-api.js](https://github.com/id5io/id5-api.js/releases/download/v0.9.3/id5-api.js)
+* [https://github.com/id5io/id5-api.js/releases/download/v0.9.4/id5-api.js](https://github.com/id5io/id5-api.js/releases/download/v0.9.4/id5-api.js)
 
 ### Build from Source (more advanced)
 
@@ -105,7 +119,7 @@ Build for production with gulp
 $ gulp build
 ```
 
-The resulting minified javascript file will be available in `./build/dist/id5-api.js`. 
+The resulting minified javascript file will be available in `./build/dist/id5-api.js`.
 
 *Note*: If you build from source, you must use our `gulp build` process as it appends a required variable to the end of the built file. If `ID5.version` is missing, the API will fail to load.
 
@@ -149,7 +163,7 @@ Once the API has been loaded and initialized, the ID5 Universal ID can be access
 
 The `ID5.userId` variable always exists (once the API is loaded) and will return immediately with a value. If there is no ID available yet, the `ID5.userId` will return a value of `undefined`.
 
-There are a few cases in which the ID5.userId may not be ready or have a value:
+There are a few cases in which `ID5.userId` may not be ready or have a value:
 
 * There is no locally cached version of the ID and no response has been received yet from the ID5 servers (where the ID is generated)
 * The CMP has not finished loading or gathering consent from the user, so no ID can be retrieved
@@ -169,15 +183,17 @@ There are a few cases in which the ID5.userId may not be ready or have a value:
 | partnerUserId | Optional | string | | User ID of the platform if they are deploying this API on behalf of a publisher, to be used for cookie syncing with ID5 |
 | pd | Optional | string | | Publisher-supplied data used for linking ID5 IDs across domains. See [Generating Publisher Data String](#generating-publisher-data-string) below for details on generating the string |
 | refreshInSeconds | Optional | integer | `7200`<br>(2 hours) | Refresh period of first-party cookie |
+| callback | Optional | function | | Function to call back when `ID5.userId` is available. If `callbackTimeoutInMs` is not provided, `callback` will be fired only if and when `ID5.userId` is available. |
+| callbackTimeoutInMs | Optional | integer | | Delay in ms after which the `callback` is guaranteed to be fired. `ID5.userId` may not be available at this time. |
 
 #### Generating Publisher Data String
-The `pd` field (short for Publisher Data) is a base64 encoded string that contains any deterministic user data the publisher has access to. The data will be used strictly to provide better linking of ID5 IDs across domains for improved user identification. If the user has not provided ID5 with a legal basis to process data, the information sent to ID5 will be ignored and neither used nor saved for future requests. 
+The `pd` field (short for Publisher Data) is a base64 encoded string that contains any deterministic user data the publisher has access to. The data will be used strictly to provide better linking of ID5 IDs across domains for improved user identification. If the user has not provided ID5 with a legal basis to process data, the information sent to ID5 will be ignored and neither used nor saved for future requests.
 
 If the publisher does not have any Publisher Data to pass to ID5, the `pd` parameter can be omitted or left with an empty string value (`pd: ""`).
 
 The possible keys in the string are:
 
-| Key | Value | 
+| Key | Value |
 | --- | --- |
 | 0 | other |
 | 1 | sha256 hashed email |
@@ -306,7 +322,7 @@ pbjs.setConfig({
             storage: {
                 type: "cookie",
                 name: "id5id.1st",      // make sure to use the same cookie name as the API, by default it's "id5id.1st"
-                expires: 90, 
+                expires: 90,
                 refreshInSeconds: 2*3600
             }
         }]
