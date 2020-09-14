@@ -305,10 +305,16 @@ describe('ID5 Publisher API', function () {
       });
 
       describe('Consent changes determine call to ID5 servers', function() {
+        beforeEach(function() {
+          utils.setCookie('id5id.cached_consent_data', '', EXPIRED_COOKIE_DATE);
+        });
+        after(function() {
+          utils.setCookie('id5id.cached_consent_data', '', EXPIRED_COOKIE_DATE);
+        });
+
         it('does not call id5 servers if no stored consent data and refresh is not needed', function () {
           const expStr = (new Date(Date.now() + 25000).toUTCString());
           utils.setCookie('id5id.1st', JSON.stringify({'universal_uid': 'testid5id', 'signature': 'abc123'}), expStr);
-          utils.setCookie('id5id.1st_last', (new Date(Date.now() - 1 * 1000).toUTCString()), expStr);
           utils.setCookie('id5id.1st_last', Date.now() - (1 * 1000), expStr);
 
           ID5.init({ partnerId: 99, refreshInSeconds: 30, cmpApi: 'iab', allowID5WithoutConsentApi: true });
@@ -362,7 +368,7 @@ describe('ID5 Publisher API', function () {
           it('calls id5 servers if stored consent data does not match current consent and refresh not needed', function () {
             const expStr = (new Date(Date.now() + 5000).toUTCString());
             utils.setCookie('id5id.1st', JSON.stringify({'universal_uid': 'testid5id', 'signature': 'abc123'}), expStr);
-            utils.setCookie('id5id.1st_last', Date.now() - (8000 * 1000), expStr);
+            utils.setCookie('id5id.1st_last', Date.now() - (1 * 1000), expStr);
 
             ID5.setStoredConsentData({
               gdprApplies: true,
@@ -370,7 +376,7 @@ describe('ID5 Publisher API', function () {
               apiVersion: 1
             });
 
-            ID5.init({ partnerId: 99, cmpApi: 'iab', allowID5WithoutConsentApi: false });
+            ID5.init({ partnerId: 99, refreshInSeconds: 30, cmpApi: 'iab', allowID5WithoutConsentApi: false });
 
             sinon.assert.calledOnce(ajaxStub);
           });
@@ -386,10 +392,75 @@ describe('ID5 Publisher API', function () {
               apiVersion: 1
             });
 
-            ID5.init({ partnerId: 99, cmpApi: 'iab', allowID5WithoutConsentApi: false });
+            ID5.init({ partnerId: 99, refreshInSeconds: 30, cmpApi: 'iab', allowID5WithoutConsentApi: false });
 
             sinon.assert.notCalled(ajaxStub);
           });
+        });
+      });
+
+      describe('PD changes determine call to ID5 servers', function() {
+        beforeEach(function() {
+          utils.setCookie('id5id.cached_pd', '', EXPIRED_COOKIE_DATE);
+        });
+        after(function() {
+          utils.setCookie('id5id.cached_pd', '', EXPIRED_COOKIE_DATE);
+        });
+
+        it('does not call id5 servers if no stored pd and refresh is not needed', function () {
+          const expStr = (new Date(Date.now() + 25000).toUTCString());
+          utils.setCookie('id5id.1st', JSON.stringify({'universal_uid': 'testid5id', 'signature': 'abc123'}), expStr);
+          utils.setCookie('id5id.1st_last', Date.now() - (1 * 1000), expStr);
+
+          ID5.init({ partnerId: 99, pd: 'xyz789', refreshInSeconds: 30, cmpApi: 'iab', allowID5WithoutConsentApi: true });
+
+          sinon.assert.notCalled(ajaxStub);
+        });
+
+        it('calls id5 servers if no stored pd but refresh is needed', function () {
+          const expStr = (new Date(Date.now() + 25000).toUTCString());
+          utils.setCookie('id5id.1st', JSON.stringify({'universal_uid': 'testid5id', 'signature': 'abc123'}), expStr);
+          utils.setCookie('id5id.1st_last', Date.now() - (100 * 1000), expStr);
+
+          ID5.init({ partnerId: 99, pd: 'xyz789', refreshInSeconds: 30, cmpApi: 'iab', allowID5WithoutConsentApi: true });
+
+          sinon.assert.calledOnce(ajaxStub);
+        });
+
+        it('calls id5 servers if empty stored pd and refresh not needed', function () {
+          const expStr = (new Date(Date.now() + 5000).toUTCString());
+          utils.setCookie('id5id.1st', JSON.stringify({'universal_uid': 'testid5id', 'signature': 'abc123'}), expStr);
+          utils.setCookie('id5id.1st_last', Date.now() - (1 * 1000), expStr);
+
+          ID5.setStoredPd();
+
+          ID5.init({ partnerId: 99, pd: 'xyz789', refreshInSeconds: 30, cmpApi: 'iab', allowID5WithoutConsentApi: true });
+
+          sinon.assert.calledOnce(ajaxStub);
+        });
+
+        it('calls id5 servers if stored pd does not match current pd and refresh not needed', function () {
+          const expStr = (new Date(Date.now() + 5000).toUTCString());
+          utils.setCookie('id5id.1st', JSON.stringify({'universal_uid': 'testid5id', 'signature': 'abc123'}), expStr);
+          utils.setCookie('id5id.1st_last', Date.now() - (1 * 1000), expStr);
+
+          ID5.setStoredPd('abcdefg');
+
+          ID5.init({ partnerId: 99, pd: 'xyz789', refreshInSeconds: 30, cmpApi: 'iab', allowID5WithoutConsentApi: true });
+
+          sinon.assert.calledOnce(ajaxStub);
+        });
+
+        it('does not call id5 servers if stored pd matches current pd and refresh not needed', function () {
+          const expStr = (new Date(Date.now() + 5000).toUTCString());
+          utils.setCookie('id5id.1st', JSON.stringify({'universal_uid': 'testid5id', 'signature': 'abc123'}), expStr);
+          utils.setCookie('id5id.1st_last', Date.now() - (1 * 1000), expStr);
+
+          ID5.setStoredPd('xyz789');
+
+          ID5.init({ partnerId: 99, pd: 'xyz789', refreshInSeconds: 30, cmpApi: 'iab', allowID5WithoutConsentApi: true });
+
+          sinon.assert.notCalled(ajaxStub);
         });
       });
     });

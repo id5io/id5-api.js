@@ -7,8 +7,12 @@ import * as consent from './consentManagement';
 import { getRefererInfo } from './refererDetection';
 
 const CONSENT_DATA_COOKIE_STORAGE_CONFIG = {
-  name: 'id5id.consent_data',
-  expires: 30 // 30 days expiration, which should match how often consent is refreshed by CMPs
+  name: 'id5id.cached_consent_data',
+  expires: 30
+};
+const PD_COOKIE_STORAGE_CONFIG = {
+  name: 'id5id.cached_pd',
+  expires: 30
 };
 
 export const ID5 = getGlobal();
@@ -45,17 +49,23 @@ ID5.init = function (options) {
 
     const storedResponse = JSON.parse(utils.getCookie(cfg.cookieName));
     const storedDateTime = (new Date(+utils.getCookie(lastCookieName(cfg)))).getTime();
-    const refreshNeeded = storedDateTime <= 0 || ((Date.now() - storedDateTime) > (cfg.refreshInSeconds * 1000));
+    const refreshInSecondsHasElapsed = storedDateTime <= 0 || ((Date.now() - storedDateTime) > (cfg.refreshInSeconds * 1000));
     const expiresStr = (new Date(Date.now() + (cfg.cookieExpirationInSeconds * 1000))).toUTCString();
     let nb = getNbFromCookie(cfg);
     let idSetFromStoredResponse = false;
+
+    // always save the current pd to track if it changes
+    const pd = cfg.pd || '';
+    const storedPd = getStoredPd();
+    this.setStoredPd(pd);
+    const pdHasChanged = !storedPdMatchesPd(storedPd, pd);
 
     // Callback watchdogs
     if (utils.isFn(this.config.callback) && this.config.callbackTimeoutInMs >= 0) {
       setTimeout(() => this.fireCallBack(), this.config.callbackTimeoutInMs);
     }
 
-    if (storedResponse) {
+    if (storedResponse && !pdHasChanged) {
       // this is needed to avoid losing the ID5ID from publishers that was
       // previously stored. Eventually we can remove this, once pubs have all
       // upgraded to this version of code
@@ -70,7 +80,9 @@ ID5.init = function (options) {
       if (ID5.userId) {
         this.fireCallBack();
       }
-      utils.logInfo('ID5 User ID available from cache:', { storedResponse, storedDateTime, refreshNeeded });
+      utils.logInfo('ID5 User ID available from cache:', { storedResponse, storedDateTime, refreshNeeded: refreshInSecondsHasElapsed });
+    } else if (storedResponse && pdHasChanged) {
+      utils.logInfo('PD value has changed, so ignoring User ID from cache');
     } else {
       utils.logInfo('No ID5 User ID available from cache');
     }
@@ -89,8 +101,9 @@ ID5.init = function (options) {
         // - consent has changed since the last ID was fetched
         if (
           !storedResponse || !storedResponse.universal_uid || !storedResponse.signature ||
-          refreshNeeded ||
-          !storedConsentDataMatchesConsentData(storedConsentData, consentData)
+          refreshInSecondsHasElapsed ||
+          !storedConsentDataMatchesConsentData(storedConsentData, consentData) ||
+          pdHasChanged
         ) {
           const gdprApplies = (consentData && consentData.gdprApplies) ? 1 : 0;
           const gdprConsentString = (consentData && consentData.gdprApplies) ? consentData.consentString : '';
@@ -106,7 +119,7 @@ ID5.init = function (options) {
             'u': referer.stack[0] || window.location.href,
             'top': referer.reachedTop ? 1 : 0,
             's': signature,
-            'pd': cfg.pd || '',
+            'pd': pd,
             'nbPage': nb
           };
 
@@ -182,7 +195,7 @@ function incrementNb(cfg, expiresStr, nb) {
  * excluding the vendorConsents object since the consentString is enough to know
  * if consent has changed without needing to have all the details in an object
  * @param consentData
- * @returns {{apiVersion: number, gdprApplies: boolean, consentString: string}}
+ * @returns string
  */
 function makeStoredConsentDataHash(consentData) {
   const storedConsentData = {
@@ -200,44 +213,72 @@ function makeStoredConsentDataHash(consentData) {
 }
 
 /**
- * puts the current consent data into cookie storage
- * @param consentData
+ * creates a hash of pd for storage
+ * @param pd
+ * @returns string
  */
-ID5.setStoredConsentData = function (consentData) {
+function makeStoredPdHash(pd) {
+  return utils.cyrb53Hash(typeof pd === 'string' ? pd : '');
+}
+
+/**
+ * puts the current data into cookie storage
+ * @param cookieConfig
+ * @param data
+ */
+function setStored(cookieConfig, data) {
   try {
-    const expiresStr = (new Date(Date.now() + (CONSENT_DATA_COOKIE_STORAGE_CONFIG.expires * (60 * 60 * 24 * 1000)))).toUTCString();
-    utils.setCookie(CONSENT_DATA_COOKIE_STORAGE_CONFIG.name, makeStoredConsentDataHash(consentData), expiresStr, 'Lax');
+    const expiresStr = (new Date(Date.now() + (cookieConfig.expires * (60 * 60 * 24 * 1000)))).toUTCString();
+    utils.setCookie(cookieConfig.name, data, expiresStr, 'Lax');
   } catch (error) {
     utils.logError(error);
   }
+};
+ID5.setStoredConsentData = function (consentData) {
+  setStored(CONSENT_DATA_COOKIE_STORAGE_CONFIG, makeStoredConsentDataHash(consentData));
+}
+ID5.setStoredPd = function (pd) {
+  setStored(PD_COOKIE_STORAGE_CONFIG, makeStoredPdHash(pd));
 }
 
 /**
- * test if the consent object stored locally matches the current consent data.
+ * test if the data stored locally matches the current data.
  * if there is nothing in storage, return true and we'll do an actual comparison next time.
  * this way, we don't force a refresh for every user when this code rolls out
- * @param storedConsentData
- * @param consentData
+ * @param storedData
+ * @param currentData
  * @returns {boolean}
  */
-function storedConsentDataMatchesConsentData(storedConsentData, consentData) {
+function storedDataMatchesCurrentData(storedData, currentData) {
   return (
-    typeof storedConsentData === 'undefined' ||
-    storedConsentData === null ||
-    storedConsentData === makeStoredConsentDataHash(consentData)
+    typeof storedData === 'undefined' ||
+    storedData === null ||
+    storedData === currentData
   );
+}
+function storedConsentDataMatchesConsentData(storedConsentData, consentData) {
+  return storedDataMatchesCurrentData(storedConsentData, makeStoredConsentDataHash(consentData));
+}
+function storedPdMatchesPd(storedPd, pd) {
+  return storedDataMatchesCurrentData(storedPd, makeStoredPdHash(pd));
 }
 
 /**
- * get the stored consent data from local storage, if any
+ * get stored data from cookie, if any
  * @returns {string}
  */
-function getStoredConsentData() {
+function getStored(cookieName) {
   try {
-    return utils.getCookie(CONSENT_DATA_COOKIE_STORAGE_CONFIG.name);
+    return utils.getCookie(cookieName);
   } catch (e) {
     utils.logError(e);
   }
+}
+function getStoredConsentData() {
+  return getStored(CONSENT_DATA_COOKIE_STORAGE_CONFIG.name);
+}
+function getStoredPd() {
+  return getStored(PD_COOKIE_STORAGE_CONFIG.name);
 }
 
 export default ID5;
