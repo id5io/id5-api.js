@@ -127,8 +127,6 @@ function lookupIabConsent(cmpSuccess, finalCallback) {
       cmpFunction('addEventListener', cmpVersion, v2CmpResponseCallback);
     }
   } else {
-    // TODO might need to check if we're in an iframe...
-
     cmpSuccess(undefined, finalCallback);
   }
 }
