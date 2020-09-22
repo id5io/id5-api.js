@@ -192,7 +192,8 @@ describe('ID5 Publisher API', function () {
         expect(ID5.userId).to.be.equal('testid5id');
 
         sinon.assert.calledOnce(syncStub);
-        expect(syncStub.args[0][0]).to.be.equal('https://id5-sync.com/i/99/8.gif?gdpr_consent=&gdpr=0');
+        expect(syncStub.args[0][0]).to.be.contain('https://id5-sync.com/i/99/8.gif');
+        expect(syncStub.args[0][0]).to.not.contain('puid=');
 
         setTimeout(() => {
           sinon.assert.calledOnce(callbackStub);
@@ -212,7 +213,8 @@ describe('ID5 Publisher API', function () {
         expect(ID5.userId).to.be.equal('testid5id');
 
         sinon.assert.calledOnce(syncStub);
-        expect(syncStub.args[0][0]).to.be.equal('https://id5-sync.com/s/99/8.gif?puid=abc123&gdpr_consent=&gdpr=0');
+        expect(syncStub.args[0][0]).to.be.contain('https://id5-sync.com/s/99/8.gif');
+        expect(syncStub.args[0][0]).to.be.contain('puid=abc123');
       });
 
       it('Call id5 servers with existing value via Ajax if refresh needed', function () {
@@ -231,7 +233,8 @@ describe('ID5 Publisher API', function () {
         expect(ID5.userId).to.be.equal('testid5id');
 
         sinon.assert.calledOnce(syncStub);
-        expect(syncStub.args[0][0]).to.be.equal('https://id5-sync.com/i/99/8.gif?gdpr_consent=&gdpr=0');
+        expect(syncStub.args[0][0]).to.be.contain('https://id5-sync.com/i/99/8.gif');
+        expect(syncStub.args[0][0]).to.not.contain('puid=');
       });
 
       it('removes legacy cookies when new cookie name is used', function () {
@@ -274,7 +277,8 @@ describe('ID5 Publisher API', function () {
         expect(ID5.userId).to.be.equal('testid5id');
 
         sinon.assert.calledOnce(syncStub);
-        expect(syncStub.args[0][0]).to.be.equal('https://id5-sync.com/i/99/8.gif?gdpr_consent=&gdpr=0');
+        expect(syncStub.args[0][0]).to.be.contain('https://id5-sync.com/i/99/8.gif');
+        expect(syncStub.args[0][0]).to.not.contain('puid=');
 
         setTimeout(() => {
           sinon.assert.calledOnce(callbackStub);
@@ -302,7 +306,8 @@ describe('ID5 Publisher API', function () {
         expect(utils.getCookie('id5id.1st')).to.be.eq(jsonResponse);
 
         sinon.assert.calledOnce(syncStub);
-        expect(syncStub.args[0][0]).to.be.equal('https://id5-sync.com/i/99/8.gif?gdpr_consent=&gdpr=0');
+        expect(syncStub.args[0][0]).to.be.contain('https://id5-sync.com/i/99/8.gif');
+        expect(syncStub.args[0][0]).to.not.contain('puid=');
       });
 
       it('Call id5 servers without existing legacy value via Ajax if expired cookie', function () {
@@ -325,7 +330,8 @@ describe('ID5 Publisher API', function () {
         expect(utils.getCookie('id5id.1st')).to.be.eq(jsonResponse);
 
         sinon.assert.calledOnce(syncStub);
-        expect(syncStub.args[0][0]).to.be.equal('https://id5-sync.com/i/99/8.gif?gdpr_consent=&gdpr=0');
+        expect(syncStub.args[0][0]).to.be.contain('https://id5-sync.com/i/99/8.gif');
+        expect(syncStub.args[0][0]).to.not.contain('puid=');
       });
 
       describe('Consent changes determine call to ID5 servers', function() {
@@ -597,7 +603,8 @@ describe('ID5 Publisher API', function () {
           expect(ID5.userId).to.be.equal('testid5id');
 
           sinon.assert.calledOnce(syncStub);
-          expect(syncStub.args[0][0]).to.be.equal('https://id5-sync.com/s/99/8.gif?puid=partnerUid&gdpr_consent=&gdpr=0');
+          expect(syncStub.args[0][0]).to.be.contain('https://id5-sync.com/s/99/8.gif');
+          expect(syncStub.args[0][0]).to.be.contain('puid=partnerUid');
 
           done();
         }, 200);
@@ -620,7 +627,95 @@ describe('ID5 Publisher API', function () {
           expect(ID5.userId).to.be.equal('testid5id');
 
           sinon.assert.calledOnce(syncStub);
-          expect(syncStub.args[0][0]).to.be.equal('https://id5-sync.com/i/99/8.gif?gdpr_consent=&gdpr=0');
+          expect(syncStub.args[0][0]).to.be.contain('https://id5-sync.com/i/99/8.gif');
+          expect(syncStub.args[0][0]).to.not.contain('puid=');
+
+          done();
+        }, 200);
+      });
+    });
+
+    describe('Handle Force Sync', function() {
+      const jsonResponse = JSON.stringify({
+        'universal_uid': 'testid5id',
+        'cascade_needed': true,
+        'signature': 'abcdef',
+        'link_type': 0
+      });
+      let ajaxStub;
+      let syncStub;
+
+      beforeEach(function () {
+        ajaxStub = sinon.stub(utils, 'ajax').callsFake(function(url, callbacks, data, options) {
+          setTimeout(() => { callbacks.success(jsonResponse) }, 100);
+        });
+        syncStub = sinon.stub(utils, 'deferPixelFire').callsFake(function(url, callback) {
+          callback();
+        });
+      });
+
+      afterEach(function () {
+        config.resetConfig();
+        ajaxStub.restore();
+        syncStub.restore();
+        utils.setCookie('id5id.1st', '', EXPIRED_COOKIE_DATE);
+        utils.setCookie('id5id.1st_last', '', EXPIRED_COOKIE_DATE);
+        utils.setCookie('id5id.1st_fs', '', EXPIRED_COOKIE_DATE);
+        ID5.userId = undefined;
+      });
+
+      it('sends fs=1 for new user without partnerUserId then sets fs cookie to 0', function (done) {
+        ID5.init({ partnerId: 99, cmpApi: 'iab', allowID5WithoutConsentApi: true });
+
+        sinon.assert.calledOnce(ajaxStub);
+        setTimeout(() => {
+          expect(ID5.userId).to.be.equal('testid5id');
+
+          sinon.assert.calledOnce(syncStub);
+          expect(syncStub.args[0][0]).to.be.contain('https://id5-sync.com/i/');
+          expect(syncStub.args[0][0]).to.be.contain('id5id=testid5id');
+          expect(syncStub.args[0][0]).to.be.contain('fs=1');
+          expect(syncStub.args[0][0]).to.not.contain('puid=');
+          expect(utils.getCookie('id5id.1st_fs')).to.be.eq('0');
+
+          done();
+        }, 200);
+      });
+
+      it('sends fs=1 for new user with partnerUserId then sets fs cookie to 0', function (done) {
+        ID5.init({ partnerId: 99, cmpApi: 'iab', allowID5WithoutConsentApi: true, partnerUserId: 'abc123' });
+
+        sinon.assert.calledOnce(ajaxStub);
+        setTimeout(() => {
+          expect(ID5.userId).to.be.equal('testid5id');
+
+          sinon.assert.calledOnce(syncStub);
+          expect(syncStub.args[0][0]).to.be.contain('https://id5-sync.com/s/');
+          expect(syncStub.args[0][0]).to.be.contain('id5id=testid5id');
+          expect(syncStub.args[0][0]).to.be.contain('fs=1');
+          expect(syncStub.args[0][0]).to.be.contain('puid=abc123');
+          expect(utils.getCookie('id5id.1st_fs')).to.be.eq('0');
+
+          done();
+        }, 200);
+      });
+
+      it('sends fs=0 for previously synced user', function (done) {
+        const expStr = (new Date(Date.now() + 5000).toUTCString());
+        utils.setCookie('id5id.1st_fs', 0, expStr);
+
+        ID5.init({ partnerId: 99, cmpApi: 'iab', allowID5WithoutConsentApi: true });
+
+        sinon.assert.calledOnce(ajaxStub);
+        setTimeout(() => {
+          expect(ID5.userId).to.be.equal('testid5id');
+
+          sinon.assert.calledOnce(syncStub);
+          expect(syncStub.args[0][0]).to.be.contain('https://id5-sync.com/i/');
+          expect(syncStub.args[0][0]).to.be.contain('id5id=testid5id');
+          expect(syncStub.args[0][0]).to.be.contain('fs=0');
+          expect(syncStub.args[0][0]).to.not.contain('puid=');
+          expect(utils.getCookie('id5id.1st_fs')).to.be.eq('0');
 
           done();
         }, 200);

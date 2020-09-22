@@ -140,9 +140,9 @@ ID5.init = function (options) {
                     utils.setCookie(nbCookieName(cfg), (idSetFromStoredResponse ? 0 : 1), expiresStr);
                     if (responseObj.cascade_needed === true) {
                       const isSync = cfg.partnerUserId && cfg.partnerUserId.length > 0;
-                      const syncUrl = `https://id5-sync.com/${isSync ? 's' : 'i'}/${cfg.partnerId}/8.gif?${isSync ? 'puid=' + cfg.partnerUserId + '&' : ''}gdpr_consent=${gdprConsentString}&gdpr=${gdprApplies}`;
+                      const syncUrl = `https://id5-sync.com/${isSync ? 's' : 'i'}/${cfg.partnerId}/8.gif?id5id=${ID5.userId}&fs=${forceSync()}&${isSync ? 'puid=' + cfg.partnerUserId + '&' : ''}gdpr_consent=${gdprConsentString}&gdpr=${gdprApplies}`;
                       utils.logInfo('Opportunities to cascade available:', syncUrl);
-                      utils.deferPixelFire(syncUrl);
+                      utils.deferPixelFire(syncUrl, handleDeferPixelFireCallback);
                     }
                     this.fireCallBack();
                   } else {
@@ -280,6 +280,18 @@ function getStoredConsentData() {
 }
 function getStoredPd() {
   return getStored(PD_COOKIE_STORAGE_CONFIG.name);
+}
+
+function fsCookieName() {
+  return `${ID5.config.cookieName}_fs`;
+}
+function handleDeferPixelFireCallback() {
+  const expiresStr = (new Date(Date.now() + (15 * 60 * 60 * 24 * 1000))).toUTCString(); // 15 days
+  utils.setCookie(fsCookieName(), 0, expiresStr)
+}
+function forceSync() {
+  const cachedFs = utils.getCookie(fsCookieName());
+  return (cachedFs) ? parseInt(cachedFs) : 1;
 }
 
 export default ID5;
