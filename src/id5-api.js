@@ -50,6 +50,15 @@ ID5.init = function (options) {
       setTimeout(() => this.fireCallBack(), this.config.callbackTimeoutInMs);
     }
 
+    // TEMPORARY until all clients have upgraded past v0.9.3
+    // remove cookies that were previously set with the old cookie name
+    if (cfg.cookieName !== 'id5.1st') {
+      const expired = (new Date(Date.now() - 1000)).toUTCString();
+      utils.setCookie('id5.1st', '', expired);
+      utils.setCookie('id5.1st_last', '', expired);
+      utils.setCookie('id5.1st_nb', '', expired);
+    }
+
     if (storedResponse) {
       // this is needed to avoid losing the ID5ID from publishers that was
       // previously stored. Eventually we can remove this, once pubs have all
