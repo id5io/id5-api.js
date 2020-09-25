@@ -1,6 +1,6 @@
 /**
  * id5-api.js - The ID5 API is designed to make accessing the ID5 Universal ID simple for publishers and their ad tech vendors. The ID5 Universal ID is a shared, neutral identifier that publishers and ad tech platforms can use to recognise users even in environments where 3rd party cookies are not available. For more information, visit https://id5.io/universal-id.
- * @version v0.9.5
+ * @version v1.0.0-pre
  * @link https://id5.io/
  * @license Apache-2.0
  */
@@ -217,6 +217,7 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 /* harmony export (immutable) */ __webpack_exports__["ajax"] = ajax;
 /* harmony export (immutable) */ __webpack_exports__["fireAsyncPixel"] = fireAsyncPixel;
 /* harmony export (immutable) */ __webpack_exports__["deferPixelFire"] = deferPixelFire;
+/* harmony export (immutable) */ __webpack_exports__["cyrb53Hash"] = cyrb53Hash;
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__config__ = __webpack_require__(0);
 function _extends() { _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends.apply(this, arguments); }
 
@@ -601,6 +602,51 @@ function deferPixelFire(syncUrl, callback) {
     });
   }
 }
+/**
+ * returns a hash of a string using a fast algorithm
+ * source: https://stackoverflow.com/a/52171480/845390
+ * @param str
+ * @param seed (optional)
+ * @returns {string}
+ */
+
+function cyrb53Hash(str) {
+  var seed = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 0;
+
+  // IE doesn't support imul
+  // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math/imul#Polyfill
+  var imul = function imul(opA, opB) {
+    if (isFn(Math.imul)) {
+      return Math.imul(opA, opB);
+    } else {
+      opB |= 0; // ensure that opB is an integer. opA will automatically be coerced.
+      // floating points give us 53 bits of precision to work with plus 1 sign bit
+      // automatically handled for our convienence:
+      // 1. 0x003fffff /*opA & 0x000fffff*/ * 0x7fffffff /*opB*/ = 0x1fffff7fc00001
+      //    0x1fffff7fc00001 < Number.MAX_SAFE_INTEGER /*0x1fffffffffffff*/
+
+      var result = (opA & 0x003fffff) * opB; // 2. We can remove an integer coersion from the statement above because:
+      //    0x1fffff7fc00001 + 0xffc00000 = 0x1fffffff800001
+      //    0x1fffffff800001 < Number.MAX_SAFE_INTEGER /*0x1fffffffffffff*/
+
+      if (opA & 0xffc00000) result += (opA & 0xffc00000) * opB | 0;
+      return result | 0;
+    }
+  };
+
+  var h1 = 0xdeadbeef ^ seed;
+  var h2 = 0x41c6ce57 ^ seed;
+
+  for (var i = 0, ch; i < str.length; i++) {
+    ch = str.charCodeAt(i);
+    h1 = imul(h1 ^ ch, 2654435761);
+    h2 = imul(h2 ^ ch, 1597334677);
+  }
+
+  h1 = imul(h1 ^ h1 >>> 16, 2246822507) ^ imul(h2 ^ h2 >>> 13, 3266489909);
+  h2 = imul(h2 ^ h2 >>> 16, 2246822507) ^ imul(h1 ^ h1 >>> 13, 3266489909);
+  return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString();
+}
 
 /***/ }),
 /* 2 */
@@ -620,6 +666,14 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 
 
 
+var CONSENT_DATA_COOKIE_STORAGE_CONFIG = {
+  name: 'id5id.cached_consent_data',
+  expires: 30
+};
+var PD_COOKIE_STORAGE_CONFIG = {
+  name: 'id5id.cached_pd',
+  expires: 30
+};
 var ID5 = Object(__WEBPACK_IMPORTED_MODULE_0__id5_apiGlobal__["a" /* getGlobal */])();
 ID5.loaded = true;
 ID5.initialized = false;
@@ -655,10 +709,15 @@ ID5.init = function (options) {
 
     var storedResponse = JSON.parse(__WEBPACK_IMPORTED_MODULE_2__utils__["getCookie"](cfg.cookieName));
     var storedDateTime = new Date(+__WEBPACK_IMPORTED_MODULE_2__utils__["getCookie"](lastCookieName(cfg))).getTime();
-    var refreshNeeded = storedDateTime <= 0 || Date.now() - storedDateTime > cfg.refreshInSeconds * 1000;
+    var refreshInSecondsHasElapsed = storedDateTime <= 0 || Date.now() - storedDateTime > cfg.refreshInSeconds * 1000;
     var expiresStr = new Date(Date.now() + cfg.cookieExpirationInSeconds * 1000).toUTCString();
     var nb = getNbFromCookie(cfg);
-    var idSetFromStoredResponse = false; // Callback watchdogs
+    var idSetFromStoredResponse = false; // always save the current pd to track if it changes
+
+    var pd = cfg.pd || '';
+    var storedPd = getStoredPd();
+    this.setStoredPd(pd);
+    var pdHasChanged = !storedPdMatchesPd(storedPd, pd); // Callback watchdogs
 
     if (__WEBPACK_IMPORTED_MODULE_2__utils__["isFn"](this.config.callback) && this.config.callbackTimeoutInMs >= 0) {
       setTimeout(function () {
@@ -675,7 +734,7 @@ ID5.init = function (options) {
       __WEBPACK_IMPORTED_MODULE_2__utils__["setCookie"]('id5.1st_nb', '', expired);
     }
 
-    if (storedResponse) {
+    if (storedResponse && !pdHasChanged) {
       // this is needed to avoid losing the ID5ID from publishers that was
       // previously stored. Eventually we can remove this, once pubs have all
       // upgraded to this version of code
@@ -697,17 +756,27 @@ ID5.init = function (options) {
       __WEBPACK_IMPORTED_MODULE_2__utils__["logInfo"]('ID5 User ID available from cache:', {
         storedResponse: storedResponse,
         storedDateTime: storedDateTime,
-        refreshNeeded: refreshNeeded
+        refreshNeeded: refreshInSecondsHasElapsed
       });
+    } else if (storedResponse && pdHasChanged) {
+      __WEBPACK_IMPORTED_MODULE_2__utils__["logInfo"]('PD value has changed, so ignoring User ID from cache');
     } else {
       __WEBPACK_IMPORTED_MODULE_2__utils__["logInfo"]('No ID5 User ID available from cache');
     }
 
     __WEBPACK_IMPORTED_MODULE_3__consentManagement__["b" /* requestConsent */](function (consentData) {
-      if (__WEBPACK_IMPORTED_MODULE_3__consentManagement__["a" /* isLocalStorageAllowed */]()) {
-        __WEBPACK_IMPORTED_MODULE_2__utils__["logInfo"]('Consent to access local storage and cookies is given');
+      // always save the current consent data to track if it changes
+      var storedConsentData = getStoredConsentData();
 
-        if (!storedResponse || !storedResponse.universal_uid || !storedResponse.signature || refreshNeeded) {
+      _this.setStoredConsentData(consentData);
+
+      if (__WEBPACK_IMPORTED_MODULE_3__consentManagement__["a" /* isLocalStorageAllowed */]()) {
+        __WEBPACK_IMPORTED_MODULE_2__utils__["logInfo"]('Consent to access local storage and cookies is given'); // make a call to fetch a new ID5 ID if:
+        // - there is no valid universal_uid or signature in cache
+        // - the last refresh was longer than refreshInSeconds ago
+        // - consent has changed since the last ID was fetched
+
+        if (!storedResponse || !storedResponse.universal_uid || !storedResponse.signature || refreshInSecondsHasElapsed || !storedConsentDataMatchesConsentData(storedConsentData, consentData) || pdHasChanged) {
           var gdprApplies = consentData && consentData.gdprApplies ? 1 : 0;
           var gdprConsentString = consentData && consentData.gdprApplies ? consentData.consentString : '';
           var url = "https://id5-sync.com/g/v2/".concat(cfg.partnerId, ".json?gdpr_consent=").concat(gdprConsentString, "&gdpr=").concat(gdprApplies);
@@ -724,7 +793,7 @@ ID5.init = function (options) {
             'u': referer.stack[0] || window.location.href,
             'top': referer.reachedTop ? 1 : 0,
             's': signature,
-            'pd': cfg.pd || '',
+            'pd': pd,
             'nbPage': nb
           };
           __WEBPACK_IMPORTED_MODULE_2__utils__["logInfo"]('Fetching ID5 user ID from:', url, data);
@@ -806,6 +875,107 @@ function incrementNb(cfg, expiresStr, nb) {
   nb++;
   __WEBPACK_IMPORTED_MODULE_2__utils__["setCookie"](nbCookieName(cfg), nb, expiresStr);
   return nb;
+}
+/**
+ * makes an object that can be stored with only the keys we need to check.
+ * excluding the vendorConsents object since the consentString is enough to know
+ * if consent has changed without needing to have all the details in an object
+ * @param consentData
+ * @returns string
+ */
+
+
+function makeStoredConsentDataHash(consentData) {
+  var storedConsentData = {
+    consentString: '',
+    gdprApplies: false,
+    apiVersion: 0
+  };
+
+  if (consentData) {
+    storedConsentData.consentString = consentData.consentString;
+    storedConsentData.gdprApplies = consentData.gdprApplies;
+    storedConsentData.apiVersion = consentData.apiVersion;
+  }
+
+  return __WEBPACK_IMPORTED_MODULE_2__utils__["cyrb53Hash"](JSON.stringify(storedConsentData));
+}
+/**
+ * creates a hash of pd for storage
+ * @param pd
+ * @returns string
+ */
+
+
+function makeStoredPdHash(pd) {
+  return __WEBPACK_IMPORTED_MODULE_2__utils__["cyrb53Hash"](typeof pd === 'string' ? pd : '');
+}
+/**
+ * puts the current data into cookie storage
+ * @param cookieConfig
+ * @param data
+ */
+
+
+function setStored(cookieConfig, data) {
+  try {
+    var expiresStr = new Date(Date.now() + cookieConfig.expires * (60 * 60 * 24 * 1000)).toUTCString();
+    __WEBPACK_IMPORTED_MODULE_2__utils__["setCookie"](cookieConfig.name, data, expiresStr, 'Lax');
+  } catch (error) {
+    __WEBPACK_IMPORTED_MODULE_2__utils__["logError"](error);
+  }
+}
+
+;
+
+ID5.setStoredConsentData = function (consentData) {
+  setStored(CONSENT_DATA_COOKIE_STORAGE_CONFIG, makeStoredConsentDataHash(consentData));
+};
+
+ID5.setStoredPd = function (pd) {
+  setStored(PD_COOKIE_STORAGE_CONFIG, makeStoredPdHash(pd));
+};
+/**
+ * test if the data stored locally matches the current data.
+ * if there is nothing in storage, return true and we'll do an actual comparison next time.
+ * this way, we don't force a refresh for every user when this code rolls out
+ * @param storedData
+ * @param currentData
+ * @returns {boolean}
+ */
+
+
+function storedDataMatchesCurrentData(storedData, currentData) {
+  return typeof storedData === 'undefined' || storedData === null || storedData === currentData;
+}
+
+function storedConsentDataMatchesConsentData(storedConsentData, consentData) {
+  return storedDataMatchesCurrentData(storedConsentData, makeStoredConsentDataHash(consentData));
+}
+
+function storedPdMatchesPd(storedPd, pd) {
+  return storedDataMatchesCurrentData(storedPd, makeStoredPdHash(pd));
+}
+/**
+ * get stored data from cookie, if any
+ * @returns {string}
+ */
+
+
+function getStored(cookieName) {
+  try {
+    return __WEBPACK_IMPORTED_MODULE_2__utils__["getCookie"](cookieName);
+  } catch (e) {
+    __WEBPACK_IMPORTED_MODULE_2__utils__["logError"](e);
+  }
+}
+
+function getStoredConsentData() {
+  return getStored(CONSENT_DATA_COOKIE_STORAGE_CONFIG.name);
+}
+
+function getStoredPd() {
+  return getStored(PD_COOKIE_STORAGE_CONFIG.name);
 }
 
 /* harmony default export */ __webpack_exports__["default"] = (ID5);
@@ -1331,4 +1501,4 @@ var getRefererInfo = detectReferer(window);
 /***/ })
 /******/ ]);
 //# sourceMappingURL=id5-api.js.map
-ID5.version = '0.9.5';
+ID5.version = '1.0.0-pre';
