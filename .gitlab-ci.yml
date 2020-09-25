@@ -2,7 +2,7 @@ stages:
   - build
 
 build:
-  image: nikolaik/python-nodejs:python3.7-nodejs10
+  image: weltn24/up-docker-node-chrome-headless
   stage: build
   script:
     - apt-get install g++ && npm install gulp && npm install gulp-cli -g
