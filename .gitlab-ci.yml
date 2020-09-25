@@ -1,0 +1,14 @@
+stages:
+  - build
+
+build:
+  image: nikolaik/python-nodejs:python3.7-nodejs10
+  stage: build
+  script:
+    - apt-get install g++ && npm install gulp && npm install gulp-cli -g
+    - npm install
+    - gulp build
+  artifacts:
+    paths:
+      - build/dist/id5-api.js
+      - build/dev/id5-api.js
