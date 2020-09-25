@@ -48,7 +48,7 @@ The first step to work with the ID5 API and Universal ID is to apply for an ID5 
 
 <!--Download the latest pre-built, minified version from Github
 
-* [https://github.com/id5io/id5-api.js/releases/download/v0.9.4/id5-api.js](https://github.com/id5io/id5-api.js/releases/download/v0.9.4/id5-api.js)
+* [https://github.com/id5io/id5-api.js/releases/download/v0.9.5/id5-api.js](https://github.com/id5io/id5-api.js/releases/download/v0.9.5/id5-api.js)
 
 Install the ID5 API after your CMP (if applicable), but as high in the `HEAD` as possible
 
@@ -97,7 +97,7 @@ This will enable us to make more frequent changes and bug fixes without the need
 
 You can download the latest release (and host on your own CDN) in a pre-built, minified version from:
 
-* [https://github.com/id5io/id5-api.js/releases/download/v0.9.4/id5-api.js](https://github.com/id5io/id5-api.js/releases/download/v0.9.4/id5-api.js)
+* [https://github.com/id5io/id5-api.js/releases/download/v0.9.5/id5-api.js](https://github.com/id5io/id5-api.js/releases/download/v0.9.5/id5-api.js)
 
 ### Build from Source (more advanced)
 
@@ -183,7 +183,7 @@ There are a few cases in which `ID5.userId` may not be ready or have a value:
 | partnerUserId | Optional | string | | User ID of the platform if they are deploying this API on behalf of a publisher, to be used for cookie syncing with ID5 |
 | pd | Optional | string | | Publisher-supplied data used for linking ID5 IDs across domains. See [Generating Publisher Data String](#generating-publisher-data-string) below for details on generating the string |
 | refreshInSeconds | Optional | integer | `7200`<br>(2 hours) | Refresh period of first-party cookie |
-| callback | Optional | function | | Function to call back when `ID5.userId` is available. If `callbackTimeoutInMs` is not provided, `callback` will be fired only if and when `ID5.userId` is available. |
+| callback | Optional | function | | Function to call back when `ID5.userId` is available. If `callbackTimeoutInMs` is not provided, `callback` will be fired only if and when `ID5.userId` is available. The callback does not take any parameters |
 | callbackTimeoutInMs | Optional | integer | | Delay in ms after which the `callback` is guaranteed to be fired. `ID5.userId` may not be available at this time. |
 
 #### Generating Publisher Data String
@@ -241,7 +241,7 @@ ID5.init({
 Default configuration options
 
 ```html
-<script src="/path/to/js/id5-api.js">
+<script src="/path/to/js/id5-api.js"></script>
 <script>
   ID5.init({partnerId: 173}); // modify with your own partnerId
 
@@ -252,15 +252,33 @@ Default configuration options
 Setting some configuration options at initialization
 
 ```html
-<script src="/path/to/js/id5-api.js">
+<script src="/path/to/js/id5-api.js"></script>
 <script>
   ID5.init({
     partnerId: 173, // modify with your own partnerId
     refreshInSeconds: 3600,
-    partnerUserId: myUserId()
   });
 
   var id5Id = ID5.userId;
+</script>
+```
+
+Using a callback method to retrieve the ID5 ID
+
+```html
+<script src="/path/to/js/id5-api.js"></script>
+<script>
+  var id5Callback = function () {
+    var id5Id = ID5.userId;
+
+    // do something with the ID5 ID
+    fireMyPixel(`https://pixel.url.com?id5id=${id5Id}`);
+  };
+
+  ID5.init({
+    partnerId: 173, // modify with your own partnerId
+    callback: id5Callback
+  });
 </script>
 ```
 

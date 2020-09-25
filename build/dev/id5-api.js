@@ -723,6 +723,15 @@ ID5.init = function (options) {
       setTimeout(function () {
         return _this.fireCallBack();
       }, this.config.callbackTimeoutInMs);
+    } // TEMPORARY until all clients have upgraded past v0.9.3
+    // remove cookies that were previously set with the old cookie name
+
+
+    if (cfg.cookieName !== 'id5.1st') {
+      var expired = new Date(Date.now() - 1000).toUTCString();
+      __WEBPACK_IMPORTED_MODULE_2__utils__["setCookie"]('id5.1st', '', expired);
+      __WEBPACK_IMPORTED_MODULE_2__utils__["setCookie"]('id5.1st_last', '', expired);
+      __WEBPACK_IMPORTED_MODULE_2__utils__["setCookie"]('id5.1st_nb', '', expired);
     }
 
     if (storedResponse && !pdHasChanged) {

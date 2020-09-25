@@ -166,7 +166,7 @@ gulp.task(viewCoverage);
 
 gulp.task('coveralls', gulp.series('test-coverage', coveralls));
 
-gulp.task('build', gulp.series(clean, 'build-bundle-dev', 'build-bundle-prod'));
+gulp.task('build', gulp.series(clean, test, 'build-bundle-dev', 'build-bundle-prod'));
 
 gulp.task('serve', gulp.series(clean, lint, gulp.parallel('build-bundle-dev', watch, test)));
 gulp.task('default', gulp.series(clean, makeWebpackPkg));
