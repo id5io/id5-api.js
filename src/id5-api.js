@@ -75,12 +75,7 @@ ID5.init = function (options) {
     }
 
     if (storedResponse && !pdHasChanged) {
-      // this is needed to avoid losing the ID5ID from publishers that was
-      // previously stored. Eventually we can remove this, once pubs have all
-      // upgraded to this version of code
-      if (storedResponse.ID5ID) { // TODO: remove this block when 1puid isn't needed
-        ID5.userId = storedResponse.ID5ID;
-      } else if (storedResponse.universal_uid) {
+      if (storedResponse.universal_uid) {
         ID5.userId = storedResponse.universal_uid;
         ID5.linkType = storedResponse.link_type || 0;
       }
@@ -118,10 +113,8 @@ ID5.init = function (options) {
           const gdprConsentString = (consentData && consentData.gdprApplies) ? consentData.consentString : '';
           const url = `https://id5-sync.com/g/v2/${cfg.partnerId}.json?gdpr_consent=${gdprConsentString}&gdpr=${gdprApplies}`;
           const signature = (storedResponse && storedResponse.signature) ? storedResponse.signature : '';
-          const pubId = (storedResponse && storedResponse.ID5ID) ? storedResponse.ID5ID : ''; // TODO: remove when 1puid isn't needed
           const data = {
             'partner': cfg.partnerId,
-            '1puid': pubId, // TODO: remove when 1puid isn't needed
             'v': ID5.version,
             'o': 'api',
             'rf': referer.referer,
@@ -152,7 +145,6 @@ ID5.init = function (options) {
                       utils.deferPixelFire(syncUrl);
                     }
                     this.fireCallBack();
-                    // TODO: Server should use 1puid to override uid if not in 3rd party cookie
                   } else {
                     utils.logError('Invalid response from ID5 servers:', response);
                   }
