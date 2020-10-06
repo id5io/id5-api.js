@@ -6,14 +6,30 @@ import * as utils from './utils';
 import * as consent from './consentManagement';
 import { getRefererInfo } from './refererDetection';
 
-const CONSENT_DATA_COOKIE_STORAGE_CONFIG = {
-  name: 'id5id.cached_consent_data',
-  expires: 30
+const ID5_STORAGE_CONFIG = {
+  name: 'id5id',
+  expiresDays: 90
 };
-const PD_COOKIE_STORAGE_CONFIG = {
-  name: 'id5id.cached_pd',
-  expires: 30
+const LAST_STORAGE_CONFIG = {
+  name: 'id5id_last',
+  expiresDays: 90
 };
+const CONSENT_DATA_STORAGE_CONFIG = {
+  name: 'id5id_cached_consent_data',
+  expiresDays: 30
+};
+const PD_STORAGE_CONFIG = {
+  name: 'id5id_cached_pd',
+  expiresDays: 30
+};
+const FS_STORAGE_CONFIG = {
+  name: 'id5id_fs',
+  expiresDays: 7
+};
+
+// order the legacy cookie names in reverse priority order so the last
+// cookie in the array is the most preferred to use
+export const LEGACY_COOKIE_NAMES = [ 'id5.1st', 'id5id.1st' ];
 
 export const ID5 = getGlobal();
 
@@ -47,11 +63,10 @@ ID5.init = function (options) {
       throw new Error('partnerId is required and must be a number');
     }
 
-    const storedResponse = JSON.parse(utils.getCookie(cfg.cookieName));
-    const storedDateTime = (new Date(+utils.getCookie(lastCookieName(cfg)))).getTime();
+    const storedResponse = JSON.parse(utils.getFromLocalStorage(ID5_STORAGE_CONFIG) || getFromLegacyCookie());
+    const storedDateTime = (new Date(+utils.getFromLocalStorage(LAST_STORAGE_CONFIG))).getTime();
     const refreshInSecondsHasElapsed = storedDateTime <= 0 || ((Date.now() - storedDateTime) > (cfg.refreshInSeconds * 1000));
-    const expiresStr = (new Date(Date.now() + (cfg.cookieExpirationInSeconds * 1000))).toUTCString();
-    let nb = getNbFromCookie(cfg);
+    let nb = getNbFromCache(cfg.partnerId);
     let idSetFromStoredResponse = false;
 
     // always save the current pd to track if it changes
@@ -65,21 +80,16 @@ ID5.init = function (options) {
       setTimeout(() => this.fireCallBack(), this.config.callbackTimeoutInMs);
     }
 
-    // TEMPORARY until all clients have upgraded past v0.9.3
-    // remove cookies that were previously set with the old cookie name
-    if (cfg.cookieName !== 'id5.1st') {
-      const expired = (new Date(Date.now() - 1000)).toUTCString();
-      utils.setCookie('id5.1st', '', expired);
-      utils.setCookie('id5.1st_last', '', expired);
-      utils.setCookie('id5.1st_nb', '', expired);
-    }
+    // TEMPORARY until all clients have upgraded past v1.0.0
+    // remove cookies that were previously set
+    removeLegacyCookies(cfg.partnerId);
 
     if (storedResponse && !pdHasChanged) {
       if (storedResponse.universal_uid) {
         ID5.userId = storedResponse.universal_uid;
         ID5.linkType = storedResponse.link_type || 0;
       }
-      nb = incrementNb(cfg, expiresStr, nb);
+      nb = incrementNb(cfg.partnerId, nb);
       idSetFromStoredResponse = true;
       if (ID5.userId) {
         this.fireCallBack();
@@ -100,9 +110,10 @@ ID5.init = function (options) {
         utils.logInfo('Consent to access local storage and cookies is given');
 
         // make a call to fetch a new ID5 ID if:
-        // - there is no valid universal_uid or signature in cache
+        // - there is no valid universal_uid or no signature in cache
         // - the last refresh was longer than refreshInSeconds ago
         // - consent has changed since the last ID was fetched
+        // - pd has changed since the last ID was fetched
         if (
           !storedResponse || !storedResponse.universal_uid || !storedResponse.signature ||
           refreshInSecondsHasElapsed ||
@@ -135,9 +146,9 @@ ID5.init = function (options) {
                   responseObj = JSON.parse(response);
                   if (responseObj.universal_uid) {
                     ID5.userId = responseObj.universal_uid;
-                    utils.setCookie(cfg.cookieName, response, expiresStr);
-                    utils.setCookie(lastCookieName(cfg), Date.now(), expiresStr);
-                    utils.setCookie(nbCookieName(cfg), (idSetFromStoredResponse ? 0 : 1), expiresStr);
+                    utils.setInLocalStorage(ID5_STORAGE_CONFIG, response);
+                    utils.setInLocalStorage(LAST_STORAGE_CONFIG, Date.now());
+                    utils.setInLocalStorage(nbCacheConfig(cfg.partnerId), (idSetFromStoredResponse ? 0 : 1));
                     if (responseObj.cascade_needed === true) {
                       const isSync = cfg.partnerUserId && cfg.partnerUserId.length > 0;
                       const syncUrl = `https://id5-sync.com/${isSync ? 's' : 'i'}/${cfg.partnerId}/8.gif?id5id=${ID5.userId}&fs=${forceSync()}&o=api&${isSync ? 'puid=' + cfg.partnerUserId + '&' : ''}gdpr_consent=${gdprConsentString}&gdpr=${gdprApplies}`;
@@ -175,19 +186,19 @@ ID5.fireCallBack = function () {
   }
 }
 
-function lastCookieName(cfg) {
-  return `${cfg.cookieName}_last`;
+function nbCacheConfig(partnerId) {
+  return {
+    name: `${ID5_STORAGE_CONFIG.name}_${partnerId}_nb`,
+    expiresDays: ID5_STORAGE_CONFIG.expiresDays
+  }
 }
-function nbCookieName(cfg) {
-  return `${cfg.cookieName}_${cfg.partnerId}_nb`;
-}
-function getNbFromCookie(cfg) {
-  const cachedNb = utils.getCookie(nbCookieName(cfg));
+function getNbFromCache(partnerId) {
+  const cachedNb = utils.getFromLocalStorage(nbCacheConfig(partnerId));
   return (cachedNb) ? parseInt(cachedNb) : 0;
 }
-function incrementNb(cfg, expiresStr, nb) {
+function incrementNb(partnerId, nb) {
   nb++;
-  utils.setCookie(nbCookieName(cfg), nb, expiresStr);
+  utils.setInLocalStorage(nbCacheConfig(partnerId), nb);
   return nb;
 }
 
@@ -210,6 +221,7 @@ function makeStoredConsentDataHash(consentData) {
     storedConsentData.gdprApplies = consentData.gdprApplies;
     storedConsentData.apiVersion = consentData.apiVersion;
   }
+
   return utils.cyrb53Hash(JSON.stringify(storedConsentData));
 }
 
@@ -223,23 +235,22 @@ function makeStoredPdHash(pd) {
 }
 
 /**
- * puts the current data into cookie storage
- * @param cookieConfig
+ * puts the current data into local storage
+ * @param cacheConfig
  * @param data
  */
-function setStored(cookieConfig, data) {
+function setStored(cacheConfig, data) {
   try {
-    const expiresStr = (new Date(Date.now() + (cookieConfig.expires * (60 * 60 * 24 * 1000)))).toUTCString();
-    utils.setCookie(cookieConfig.name, data, expiresStr, 'Lax');
+    utils.setInLocalStorage(cacheConfig, data);
   } catch (error) {
     utils.logError(error);
   }
 };
 ID5.setStoredConsentData = function (consentData) {
-  setStored(CONSENT_DATA_COOKIE_STORAGE_CONFIG, makeStoredConsentDataHash(consentData));
+  setStored(CONSENT_DATA_STORAGE_CONFIG, makeStoredConsentDataHash(consentData));
 }
 ID5.setStoredPd = function (pd) {
-  setStored(PD_COOKIE_STORAGE_CONFIG, makeStoredPdHash(pd));
+  setStored(PD_STORAGE_CONFIG, makeStoredPdHash(pd));
 }
 
 /**
@@ -265,33 +276,50 @@ function storedPdMatchesPd(storedPd, pd) {
 }
 
 /**
- * get stored data from cookie, if any
+ * get stored data from local storage, if any
  * @returns {string}
  */
-function getStored(cookieName) {
+function getStored(cacheConfig) {
   try {
-    return utils.getCookie(cookieName);
+    return utils.getFromLocalStorage(cacheConfig);
   } catch (e) {
     utils.logError(e);
   }
 }
 function getStoredConsentData() {
-  return getStored(CONSENT_DATA_COOKIE_STORAGE_CONFIG.name);
+  return getStored(CONSENT_DATA_STORAGE_CONFIG);
 }
 function getStoredPd() {
-  return getStored(PD_COOKIE_STORAGE_CONFIG.name);
+  return getStored(PD_STORAGE_CONFIG);
 }
 
-function fsCookieName() {
-  return `${ID5.config.cookieName}_fs`;
-}
 function handleDeferPixelFireCallback() {
-  const expiresStr = (new Date(Date.now() + (15 * 60 * 60 * 24 * 1000))).toUTCString(); // 15 days
-  utils.setCookie(fsCookieName(), 0, expiresStr)
+  setStored(FS_STORAGE_CONFIG, 0);
 }
 function forceSync() {
-  const cachedFs = utils.getCookie(fsCookieName());
+  const cachedFs = getStored(FS_STORAGE_CONFIG);
   return (cachedFs) ? parseInt(cachedFs) : 1;
 }
 
+function getFromLegacyCookie() {
+  let legacyStoredValue;
+  LEGACY_COOKIE_NAMES.forEach(function(cookie) {
+    if (utils.getCookie(cookie)) {
+      legacyStoredValue = utils.getCookie(cookie);
+    }
+  });
+  return legacyStoredValue || null;
+}
+
+function removeLegacyCookies(partnerId) {
+  const expired = (new Date(Date.now() - 1000)).toUTCString();
+  LEGACY_COOKIE_NAMES.forEach(function(cookie) {
+    utils.setCookie(`${cookie}`, '', expired);
+    utils.setCookie(`${cookie}_nb`, '', expired);
+    utils.setCookie(`${cookie}_${partnerId}_nb`, '', expired);
+    utils.setCookie(`${cookie}_last`, '', expired);
+    utils.setCookie(`${cookie}.cached_pd`, '', expired);
+    utils.setCookie(`${cookie}.cached_consent_data`, '', expired);
+  });
+}
 export default ID5;

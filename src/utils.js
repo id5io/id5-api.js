@@ -218,6 +218,59 @@ export function setCookie(key, value, expires) {
   document.cookie = `${key}=${encodeURIComponent(value)}${(expires !== '') ? `; expires=${expires}` : ''}; path=/`;
 }
 
+/**
+   * @returns {boolean}
+   */
+function hasLocalStorage() {
+  try {
+    return !!window.localStorage;
+  } catch (e) {
+    logError('Local storage api disabled!');
+  }
+  return false;
+}
+
+export function getItemFromLocalStorage(key) {
+  if (hasLocalStorage()) {
+    return window.localStorage.getItem(key);
+  }
+}
+export function getFromLocalStorage(config) {
+  const storedValueExp = window.localStorage.getItem(`${config.name}_exp`);
+  if (storedValueExp && (new Date(storedValueExp)).getTime() - Date.now() > 0) {
+    // result is not expired, so it can be retrieved
+    return getItemFromLocalStorage(config.name);
+  }
+
+  // if we got here, then we have an expired item, so we need to remove the item
+  // from the local storage
+  removeFromLocalStorage(config);
+
+  return null;
+}
+
+export function setItemInLocalStorage(key, value) {
+  if (hasLocalStorage()) {
+    window.localStorage.setItem(key, value);
+  }
+}
+export function setInLocalStorage(config, value) {
+  // always set an expiration
+  const expiresStr = (new Date(Date.now() + (config.expiresDays * (60 * 60 * 24 * 1000)))).toUTCString();
+  setItemInLocalStorage(`${config.name}_exp`, expiresStr);
+  setItemInLocalStorage(`${config.name}`, value);
+}
+
+export function removeItemFromLocalStorage(key) {
+  if (hasLocalStorage()) {
+    window.localStorage.removeItem(key);
+  }
+}
+export function removeFromLocalStorage(config) {
+  removeItemFromLocalStorage(`${config.name}`);
+  removeItemFromLocalStorage(`${config.name}_exp`);
+}
+
 export function parseQS(query) {
   return !query ? {} : query
     .replace(/^\?/, '')
