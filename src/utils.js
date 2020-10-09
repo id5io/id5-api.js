@@ -356,25 +356,37 @@ export function ajax(url, callback, data, options = {}) {
  * add an Image pixel to the DOM for the given sync Url
  *
  * @param syncUrl
+ * @param initCallBack Called when pixel is initiated. always called. Optional
+ * @param callback Called when pixel is loaded. May never be called. Optional
  */
-export function fireAsyncPixel(syncUrl, callback) {
-  (new Image()).src = syncUrl;
-  if (isFn(callback)) {
-    callback();
+export function fireAsyncPixel(syncUrl, initCallBack, callback) {
+  let img = new Image();
+  img.src = syncUrl;
+  if (isFn(initCallBack)) {
+    initCallBack();
   }
-};
+  if (isFn(callback)) {
+    if (img.complete) {
+      callback()
+    } else {
+      img.addEventListener('load', callback)
+    }
+  }
+}
 
 /**
  * wait until the page finishes loading and then fire a pixel
  *
  * @param syncUrl
+ * @param initCallBack Called when pixel is initiated. Optional
+ * @param loadedCallback Called when pixel is loaded (may never be called). Optional
  */
-export function deferPixelFire(syncUrl, callback) {
+export function deferPixelFire(syncUrl, initCallBack, loadedCallback) {
   if (document.readyState !== 'loading') {
-    fireAsyncPixel(syncUrl, callback);
+    fireAsyncPixel(syncUrl, initCallBack, loadedCallback);
   } else {
     document.addEventListener('DOMContentLoaded', function () {
-      fireAsyncPixel(syncUrl, callback);
+      fireAsyncPixel(syncUrl, initCallBack, loadedCallback);
     });
   }
 }
