@@ -142,7 +142,7 @@ ID5.init = function (options) {
                       const isSync = cfg.partnerUserId && cfg.partnerUserId.length > 0;
                       const syncUrl = `https://id5-sync.com/${isSync ? 's' : 'i'}/${cfg.partnerId}/8.gif?id5id=${ID5.userId}&fs=${forceSync()}&o=api&${isSync ? 'puid=' + cfg.partnerUserId + '&' : ''}gdpr_consent=${gdprConsentString}&gdpr=${gdprApplies}`;
                       utils.logInfo('Opportunities to cascade available:', syncUrl);
-                      utils.deferPixelFire(syncUrl, handleDeferPixelFireCallback);
+                      utils.deferPixelFire(syncUrl, undefined, handleDeferPixelFireCallback);
                     }
                     this.fireCallBack();
                   } else {

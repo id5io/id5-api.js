@@ -649,8 +649,13 @@ describe('ID5 Publisher API', function () {
         ajaxStub = sinon.stub(utils, 'ajax').callsFake(function(url, callbacks, data, options) {
           setTimeout(() => { callbacks.success(jsonResponse) }, 100);
         });
-        syncStub = sinon.stub(utils, 'deferPixelFire').callsFake(function(url, callback) {
-          callback();
+        syncStub = sinon.stub(utils, 'deferPixelFire').callsFake(function(url, initCallback, callback) {
+          if (utils.isFn(initCallback)) {
+            initCallback();
+          };
+          if (utils.isFn(callback)) {
+            callback();
+          }
         });
       });
 
