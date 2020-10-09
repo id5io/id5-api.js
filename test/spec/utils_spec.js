@@ -267,20 +267,21 @@ describe('Utils', function () {
   });
 
   describe('deferPixelFire', function () {
-    let fn;
+    let fn, fn2;
     beforeEach(function () {
       fn = sinon.spy();
+      fn2 = sinon.spy();
     });
-    it('should be called immediatly if dom is already ready', function () {
+    it('should be called immediately if dom is already ready', function () {
       utils.deferPixelFire('https://id5-sync.com/status', fn);
       sinon.assert.calledOnce(fn);
     });
-    it('should not be called synchrously, and called on DOMContentLoaded', function () {
+    it('should not be called synchronously, and called on DOMContentLoaded', function (done) {
       // Fake document.readyState
       Object.defineProperty(document, 'readyState', {
         get() { return 'loading'; }
       });
-      utils.deferPixelFire('https://id5-sync.com/status', fn);
+      utils.deferPixelFire('https://id5-sync.com/i/1/0.gif', fn, fn2);
 
       sinon.assert.notCalled(fn);
 
@@ -290,6 +291,19 @@ describe('Utils', function () {
       document.dispatchEvent(event);
 
       sinon.assert.calledOnce(fn);
+
+      setTimeout(() => {
+        sinon.assert.calledOnce(fn2);
+        done();
+      }, 1000);
+    });
+    it('second callback should not be called on invalid response', function (done) {
+      utils.deferPixelFire('https://id5-sync.com/i/0/0.gif', fn, fn2);
+      sinon.assert.notCalled(fn);
+      setTimeout(() => {
+        sinon.assert.notCalled(fn2);
+        done();
+      }, 1000);
     });
   });
 });
