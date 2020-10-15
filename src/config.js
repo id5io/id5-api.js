@@ -12,11 +12,13 @@ const utils = require('./utils');
  * @property {(number|undefined)} refreshInSeconds - Refresh period of first-party cookie (defaulting to 7200s)
  * @property {(number|undefined)} cookieExpirationInSeconds - Expiration of 1st party cookie (defaulting to 90 days)
  * @property {(number)} partnerId - ID5 Publisher ID, mandatory
- * @property {(string|undefined)} partnerUserId - User ID for the publisher, to be stored by ID5 for further matching if provided
+ * @property {(string|undefined)} partnerUserId - User ID for the platform deploying the API, to be stored by ID5 for further cookie matching if provided
  * @property {(string|undefined)} cmpApi - API to use CMP. As of today, either 'iab' or 'static'
  * @property {(object|undefined)} consentData - Consent data if cmpApi is 'static'
  * @property {(function|undefined)} callback - Function to call back when User ID is available. if callbackTimeoutInMs is not provided, will be fired only if a User ID is available.
  * @property {(number|undefined)} callbackTimeoutInMs - Delay in ms after which the callback is guaranteed to be fired. A User ID may not yet be available at this time.
+ * @property {(string)} pd - Publisher data that can be passed to help with cross-domain reconciliation of the ID5 ID, more details here: https://wiki.id5.io/x/BIAZ
+ * @property {(array|undefined)} tpids - An array of third party IDs that can be passed to usersync with ID5. Contact your ID5 representative to enable this
  */
 
 export function newConfig() {
@@ -35,7 +37,8 @@ export function newConfig() {
     partnerUserId: 'String',
     callback: 'Function',
     callbackTimeoutInMs: 'Number',
-    pd: 'String'
+    pd: 'String',
+    tpids: 'Array'
   };
 
   function resetConfig() {
@@ -55,7 +58,8 @@ export function newConfig() {
       partnerUserId: undefined,
       callback: undefined,
       callbackTimeoutInMs: undefined,
-      pd: ''
+      pd: '',
+      tpids: undefined
     };
   }
 
