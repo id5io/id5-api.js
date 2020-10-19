@@ -216,6 +216,61 @@ describe.only('ID5 JS API', function () {
         sinon.assert.notCalled(ajaxStub);
         expect(ID5.userId).to.be.undefined;
       });
+
+      describe('tpids', function() {
+        it('should include valid tpids', function () {
+          const testTpid = [
+            {
+              partnerId: 123,
+              uid: 'ABC'
+            }
+          ];
+
+          ID5.init({ partnerId: TEST_ID5_PARTNER_ID, allowID5WithoutConsentApi: true, tpids: testTpid });
+
+          sinon.assert.calledOnce(ajaxStub);
+          const dataPrebid = JSON.parse(ajaxStub.firstCall.args[2]);
+          expect(dataPrebid.tpids).to.be.eql(testTpid);
+        });
+
+        it('should not include tpids if an object', function () {
+          const testTpid = { abc: 123 };
+
+          ID5.init({ partnerId: TEST_ID5_PARTNER_ID, allowID5WithoutConsentApi: true, tpids: testTpid });
+
+          sinon.assert.calledOnce(ajaxStub);
+          const dataPrebid = JSON.parse(ajaxStub.firstCall.args[2]);
+          expect(dataPrebid.tpids).to.be.undefined;
+        });
+
+        it('should not include tpids if an empty array', function () {
+          const testTpid = [];
+
+          ID5.init({ partnerId: TEST_ID5_PARTNER_ID, allowID5WithoutConsentApi: true, tpids: testTpid });
+
+          sinon.assert.calledOnce(ajaxStub);
+          const dataPrebid = JSON.parse(ajaxStub.firstCall.args[2]);
+          expect(dataPrebid.tpids).to.be.undefined;
+        });
+
+        it('should not include tpids if a string', function () {
+          const testTpid = 'string';
+
+          ID5.init({ partnerId: TEST_ID5_PARTNER_ID, allowID5WithoutConsentApi: true, tpids: testTpid });
+
+          sinon.assert.calledOnce(ajaxStub);
+          const dataPrebid = JSON.parse(ajaxStub.firstCall.args[2]);
+          expect(dataPrebid.tpids).to.be.undefined;
+        });
+
+        it('should not include tpids if not set', function () {
+          ID5.init({ partnerId: TEST_ID5_PARTNER_ID, allowID5WithoutConsentApi: true });
+
+          sinon.assert.calledOnce(ajaxStub);
+          const dataPrebid = JSON.parse(ajaxStub.firstCall.args[2]);
+          expect(dataPrebid.tpids).to.be.undefined;
+        });
+      });
     });
 
     describe('Stored Value with No Refresh Needed', function() {
