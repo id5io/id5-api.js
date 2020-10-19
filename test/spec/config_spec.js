@@ -52,9 +52,16 @@ describe('config API', function () {
     expect(getConfig()[0]).to.not.equal('i');
   });
 
-  it('sets multiple config properties', function () {
+  it('sets multiple config properties in sequence', function () {
     setConfig({ partnerId: 999 });
     setConfig({ refreshInSeconds: -1 });
+    let config = getConfig();
+    expect(config.partnerId).to.equal(999);
+    expect(config.refreshInSeconds).to.equal(-1);
+  });
+
+  it('sets multiple config properties at once', function () {
+    setConfig({ partnerId: 999, refreshInSeconds: -1 });
     let config = getConfig();
     expect(config.partnerId).to.equal(999);
     expect(config.refreshInSeconds).to.equal(-1);
