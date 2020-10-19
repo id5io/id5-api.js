@@ -660,9 +660,10 @@ describe('ID5 JS API', function () {
       });
 
       describe('Check callbackFired', function () {
-        it('should not have callbackFired:false if no callback', function (done) {
+        it('should have callbackFired:false if no callback', function (done) {
           ID5.init({ partnerId: TEST_ID5_PARTNER_ID, allowID5WithoutConsentApi: true });
           expect(ID5.callbackFired).to.be.false;
+          sinon.assert.calledOnce(ajaxStub);
 
           setTimeout(() => {
             setTimeout(() => {
@@ -678,12 +679,12 @@ describe('ID5 JS API', function () {
 
           sinon.assert.notCalled(callbackSpy);
           expect(ID5.callbackFired).to.be.false;
+          sinon.assert.calledOnce(ajaxStub);
 
           setTimeout(() => {
             // callbackFired value is set before the callback is called
             expect(ID5.callbackFired).to.be.true;
             sinon.assert.notCalled(callbackSpy);
-
             setTimeout(() => {
               sinon.assert.calledOnce(callbackSpy);
               done();
