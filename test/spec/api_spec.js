@@ -87,14 +87,33 @@ describe('ID5 JS API', function () {
       expect(ID5.callbackFired).to.be.false;
     });
     it('should be initialized', function () {
+      let ajaxStub;
+      ajaxStub = sinon.stub(utils, 'ajax').callsFake(function(url, callbacks, data, options) {
+        callbacks.success(JSON_RESPONSE);
+      });
+
       ID5.init({ partnerId: TEST_ID5_PARTNER_ID, allowID5WithoutConsentApi: true });
       expect(ID5.initialized).to.be.true;
+
+      ajaxStub.restore();
     });
   });
 
   describe('Configuration and Parameters', function () {
+    let ajaxStub;
+
+    before(function () {
+      ID5.userId = undefined;
+    });
+    beforeEach(function () {
+      ajaxStub = sinon.stub(utils, 'ajax').callsFake(function(url, callbacks, data, options) {
+        callbacks.success(JSON_RESPONSE);
+      });
+    });
     afterEach(function () {
       config.resetConfig();
+      ajaxStub.restore();
+      ID5.userId = undefined;
     });
 
     describe('Set and Get Config', function () {
@@ -126,18 +145,8 @@ describe('ID5 JS API', function () {
     });
 
     describe('Required Parameters', function () {
-      let ajaxStub;
-
-      beforeEach(function () {
-        ID5.userId = undefined;
-        ajaxStub = sinon.stub(utils, 'ajax').callsFake(function(url, callbacks, data, options) {
-          callbacks.success('{}');
-        });
-      });
-
       afterEach(function () {
         config.resetConfig();
-        ajaxStub.restore();
       });
 
       it('should fail if partnerId not set in config', function() {
