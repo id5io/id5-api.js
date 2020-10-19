@@ -105,6 +105,7 @@ describe('ID5 Publisher API', function () {
       sinon.assert.notCalled(ajaxStub);
       expect(ID5.userId).to.be.equal(undefined);
     });
+
     it('should fail if ID5.version is not set', function () {
       let version;
       try {
@@ -280,6 +281,104 @@ describe('ID5 Publisher API', function () {
           sinon.assert.calledOnce(callbackStub);
           done();
         }, 10);
+      });
+
+      it('Call id5 servers with valid tpids', function () {
+        utils.setInLocalStorage(TEST_ID5ID_STORAGE_CONFIG, JSON.stringify({'universal_uid': 'testid5id', 'signature': 'abc123'}));
+        utils.setInLocalStorage(TEST_LAST_EXPIRED_STORAGE_CONFIG, Date.now() - (8000 * 1000));
+
+        const testTpid = [
+          {
+            partnerId: 123,
+            uid: 'ABC'
+          }
+        ];
+
+        ID5.init({
+          partnerId: TEST_ID5_PARTNER_ID,
+          cmpApi: 'iab',
+          allowID5WithoutConsentApi: true,
+          tpids: testTpid
+        });
+
+        sinon.assert.calledOnce(ajaxStub);
+        expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
+        expect(ajaxStub.firstCall.args[3].withCredentials).to.be.true;
+        const dataPrebid = JSON.parse(ajaxStub.firstCall.args[2]);
+        expect(dataPrebid.tpids).to.be.eql(testTpid);
+      });
+
+      it('Do not include tpids if an object', function () {
+        utils.setInLocalStorage(TEST_ID5ID_STORAGE_CONFIG, JSON.stringify({'universal_uid': 'testid5id', 'signature': 'abc123'}));
+        utils.setInLocalStorage(TEST_LAST_EXPIRED_STORAGE_CONFIG, Date.now() - (8000 * 1000));
+
+        const testTpid = { a: 1 };
+
+        ID5.init({
+          partnerId: TEST_ID5_PARTNER_ID,
+          cmpApi: 'iab',
+          allowID5WithoutConsentApi: true,
+          tpids: testTpid
+        });
+
+        sinon.assert.calledOnce(ajaxStub);
+        expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
+        expect(ajaxStub.firstCall.args[3].withCredentials).to.be.true;
+        const dataPrebid = JSON.parse(ajaxStub.firstCall.args[2]);
+        expect(dataPrebid.tpids).to.be.equal(undefined);
+      });
+
+      it('Do not include tpids if an empty array', function () {
+        utils.setInLocalStorage(TEST_ID5ID_STORAGE_CONFIG, JSON.stringify({'universal_uid': 'testid5id', 'signature': 'abc123'}));
+        utils.setInLocalStorage(TEST_LAST_EXPIRED_STORAGE_CONFIG, Date.now() - (8000 * 1000));
+
+        const testTpid = [];
+
+        ID5.init({
+          partnerId: TEST_ID5_PARTNER_ID,
+          cmpApi: 'iab',
+          allowID5WithoutConsentApi: true,
+          tpids: testTpid
+        });
+
+        sinon.assert.calledOnce(ajaxStub);
+        expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
+        expect(ajaxStub.firstCall.args[3].withCredentials).to.be.true;
+        const dataPrebid = JSON.parse(ajaxStub.firstCall.args[2]);
+        expect(dataPrebid.tpids).to.be.equal(undefined);
+      });
+
+      it('Do not include tpids if a string', function () {
+        utils.setInLocalStorage(TEST_ID5ID_STORAGE_CONFIG, JSON.stringify({'universal_uid': 'testid5id', 'signature': 'abc123'}));
+        utils.setInLocalStorage(TEST_LAST_EXPIRED_STORAGE_CONFIG, Date.now() - (8000 * 1000));
+
+        const testTpid = 'string';
+
+        ID5.init({
+          partnerId: TEST_ID5_PARTNER_ID,
+          cmpApi: 'iab',
+          allowID5WithoutConsentApi: true,
+          tpids: testTpid
+        });
+
+        sinon.assert.calledOnce(ajaxStub);
+        expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
+        expect(ajaxStub.firstCall.args[3].withCredentials).to.be.true;
+        const dataPrebid = JSON.parse(ajaxStub.firstCall.args[2]);
+        expect(dataPrebid.tpids).to.be.equal(undefined);
+      });
+
+      it('Do not include tpids if not set', function () {
+        utils.setInLocalStorage(TEST_ID5ID_STORAGE_CONFIG, JSON.stringify({'universal_uid': 'testid5id', 'signature': 'abc123'}));
+        utils.setInLocalStorage(TEST_LAST_EXPIRED_STORAGE_CONFIG, Date.now() - (8000 * 1000));
+
+        ID5.init({ partnerId: TEST_ID5_PARTNER_ID, cmpApi: 'iab', allowID5WithoutConsentApi: true });
+
+        sinon.assert.calledOnce(ajaxStub);
+        expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
+        expect(ajaxStub.firstCall.args[3].withCredentials).to.be.true;
+        const dataPrebid = JSON.parse(ajaxStub.firstCall.args[2]);
+        expect(dataPrebid.tpids).to.be.equal(undefined);
       });
 
       describe('Handle legacy cookies', function() {

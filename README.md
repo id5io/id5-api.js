@@ -185,6 +185,7 @@ There are a few cases in which `ID5.userId` may not be ready or have a value:
 | refreshInSeconds | Optional | integer | `7200`<br>(2 hours) | Refresh period of first-party cookie |
 | callback | Optional | function | | Function to call back when `ID5.userId` is available. If `callbackTimeoutInMs` is not provided, `callback` will be fired only if and when `ID5.userId` is available. The callback does not take any parameters |
 | callbackTimeoutInMs | Optional | integer | | Delay in ms after which the `callback` is guaranteed to be fired. `ID5.userId` may not be available at this time. |
+| tpids | Optional | array | | An array of third party IDs that can be passed to usersync with ID5. Contact your ID5 representative to enable this. |
 
 #### Generating Publisher Data String
 The `pd` field (short for Publisher Data) is a base64 encoded string that contains any deterministic user data the publisher has access to. The data will be used strictly to provide better linking of ID5 IDs across domains for improved user identification. If the user has not provided ID5 with a legal basis to process data, the information sent to ID5 will be ignored and neither used nor saved for future requests.
@@ -263,7 +264,7 @@ Setting some configuration options at initialization
 </script>
 ```
 
-Using a callback method to retrieve the ID5 ID
+Using a `callback` method to retrieve the ID5 ID
 
 ```html
 <script src="/path/to/js/id5-api.js"></script>
@@ -279,6 +280,26 @@ Using a callback method to retrieve the ID5 ID
     partnerId: 173, // modify with your own partnerId
     callback: id5Callback
   });
+</script>
+```
+
+Passing `tpids` to ID5
+_(this setting must be enabled by ID5 before we will use the `tpids` array when it's received server side)_
+
+```html
+<script src="/path/to/js/id5-api.js"></script>
+<script>
+  ID5.init({
+    partnerId: 173,   // modify with your own partnerId
+    tpids: [
+      {
+        partnerId: 2, // GVL ID of platform who's ID this is
+        uid: 'abc123' // platform's ID for this user
+      }
+    ]
+  });
+
+  var id5Id = ID5.userId;
 </script>
 ```
 

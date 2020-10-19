@@ -135,6 +135,9 @@ ID5.init = function (options) {
             'pd': pd,
             'nbPage': nb
           };
+          if (cfg.tpids && utils.isArray(cfg.tpids) && cfg.tpids.length > 0) {
+            data.tpids = cfg.tpids;
+          }
 
           utils.logInfo('Fetching ID5 user ID from:', url, data);
           utils.ajax(url, {
