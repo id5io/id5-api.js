@@ -37,6 +37,11 @@ ID5.loaded = true;
 ID5.initialized = false;
 ID5.callbackFired = false;
 
+// ID5.setConfig = function(options) {
+//   config.setConfig(options);
+//   ID5.userConfig = Object.assign(ID5.userConfig, options);
+// };
+
 /**
  * This function will initialize ID5, wait for consent then try to fetch or refresh ID5 user id if required
  * @param {Id5Config} options
@@ -51,11 +56,12 @@ ID5.init = function (options) {
   try {
     utils.logInfo('Invoking ID5.init', arguments);
     const cfg = config.setConfig(options);
-    ID5.userConfig = options;
     ID5.config = cfg;
     ID5.initialized = true;
     ID5.callbackFired = false;
     ID5.getConfig = config.getConfig;
+    ID5.getUserConfig = config.getUserConfig;
+    ID5.setConfig = config.setConfig;
     const referer = getRefererInfo();
     utils.logInfo(`ID5 detected referer is ${referer.referer}`);
 
@@ -104,7 +110,7 @@ ID5.init = function (options) {
     }
 
     consent.requestConsent((consentData) => {
-      // TODO movce inside isLocalStorageAllowed()
+      // TODO move inside isLocalStorageAllowed()
       // always save the current consent data to track if it changes
       const storedConsentData = getStoredConsentData();
       this.setStoredConsentData(consentData);
@@ -329,4 +335,5 @@ function removeLegacyCookies(partnerId) {
     utils.setCookie(`${cookie}.cached_consent_data`, '', expired);
   });
 }
+
 export default ID5;

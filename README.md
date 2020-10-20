@@ -235,7 +235,9 @@ ID5.init({
 | ID5.userId | variable | string | The ID5 Universal ID value. If not set yet, returns `undefined` |
 | ID5.loaded | variable | boolean | This variable will be set to `true` once the API is loaded and ready for use |
 | ID5.init({}) | method | n/a | Takes a config object as the only parameter and initializes the API with these configuration options |
-| ID5.getConfig() | method | object | Returns the current configuration object |
+| ID5.getConfig() | method | object | Returns the entire current configuration object |
+| ID5.getUserConfig() | method | object | Returns only the specific configuration settings made via `init()` or `setConfig()` |
+| ID5.setConfig() | method | object | Adds additional configurations to the current configuration object, and returns the updated configuration object |
 
 ### Examples
 

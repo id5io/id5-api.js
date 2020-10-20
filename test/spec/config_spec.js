@@ -4,12 +4,14 @@ import { newConfig } from 'src/config';
 const utils = require('src/utils');
 
 let getConfig;
+let getUserConfig;
 let setConfig;
 
 describe('config API', function () {
   beforeEach(function () {
     const config = newConfig();
     getConfig = config.getConfig;
+    getUserConfig = config.getUserConfig;
     setConfig = config.setConfig;
     sinon.spy(utils, 'logError');
     sinon.spy(utils, 'logWarn');
@@ -28,23 +30,34 @@ describe('config API', function () {
     expect(getConfig).to.be.a('function');
   });
 
+  it('getUserConfig is a function', function () {
+    expect(getUserConfig).to.be.a('function');
+  });
+
   it('getConfig returns an object', function () {
     expect(getConfig()).to.be.a('object');
+  });
+
+  it('getUserConfig returns an object', function () {
+    expect(getUserConfig()).to.be.a('object');
   });
 
   it('sets and gets a valid configuration property', function () {
     setConfig({ refreshInSeconds: -1 });
     expect(getConfig().refreshInSeconds).to.equal(-1);
+    expect(getUserConfig().refreshInSeconds).to.equal(-1);
   });
 
   it('sets and gets another valid configuration property', function () {
     setConfig({ partnerId: 999 });
     expect(getConfig().partnerId).to.equal(999);
+    expect(getUserConfig().partnerId).to.equal(999);
   });
 
   it('sets and gets a invalid configuration property', function () {
     setConfig({ foo: -1 });
     expect(getConfig().foo).to.not.equal(-1);
+    expect(getUserConfig().foo).to.be.undefined;
   });
 
   it('only accepts objects', function () {
@@ -55,16 +68,26 @@ describe('config API', function () {
   it('sets multiple config properties in sequence', function () {
     setConfig({ partnerId: 999 });
     setConfig({ refreshInSeconds: -1 });
+
     let config = getConfig();
     expect(config.partnerId).to.equal(999);
     expect(config.refreshInSeconds).to.equal(-1);
+
+    let userConfig = getUserConfig();
+    expect(userConfig.partnerId).to.equal(999);
+    expect(userConfig.refreshInSeconds).to.equal(-1);
   });
 
   it('sets multiple config properties at once', function () {
     setConfig({ partnerId: 999, refreshInSeconds: -1 });
+
     let config = getConfig();
     expect(config.partnerId).to.equal(999);
     expect(config.refreshInSeconds).to.equal(-1);
+
+    let userConfig = getUserConfig();
+    expect(userConfig.partnerId).to.equal(999);
+    expect(userConfig.refreshInSeconds).to.equal(-1);
   });
 
   it('sets and gets a valid configuration property with invalid type', function () {
@@ -74,16 +97,24 @@ describe('config API', function () {
     setConfig({ callback: -1 });
     expect(getConfig().refreshInSeconds).to.equal(-1);
     expect(getConfig().callback).to.be.a('function');
+    expect(getUserConfig().refreshInSeconds).to.equal(-1);
+    expect(getUserConfig().callback).to.be.a('function');
   });
 
   it('overwrites existing config properties', function () {
     setConfig({ refreshInSeconds: -1 });
     setConfig({ refreshInSeconds: 1 });
     expect(getConfig().refreshInSeconds).to.equal(1);
+    expect(getUserConfig().refreshInSeconds).to.equal(1);
   });
 
   it('sets debugging', function () {
     setConfig({ debug: true });
     expect(getConfig().debug).to.be.true;
+    expect(getUserConfig().debug).to.be.true;
+  });
+
+  it('does not set userConfig with default properties', function() {
+    expect(getUserConfig().refreshInSeconds).to.be.undefined;
   });
 });

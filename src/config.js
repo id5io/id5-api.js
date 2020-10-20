@@ -27,6 +27,11 @@ export function newConfig() {
    */
   let config;
 
+  /**
+   * @property {Id5Config}
+   */
+  let userConfig;
+
   const configTypes = {
     debug: 'Boolean',
     allowID5WithoutConsentApi: 'Boolean',
@@ -61,6 +66,7 @@ export function newConfig() {
       pd: '',
       tpids: undefined
     };
+    userConfig = {};
   }
 
   /**
@@ -72,9 +78,17 @@ export function newConfig() {
   }
 
   /**
+   * Return configuration set by user
+   * @returns {Id5Config} options
+   */
+  function getUserConfig() {
+    return userConfig;
+  }
+
+  /**
    * Sets configuration given an object containing key-value pairs
    * @param {Id5Config} options
-   * @returns {Id5Config} options
+   * @returns {Id5Config} config
    */
   function setConfig(options) {
     if (typeof options !== 'object') {
@@ -85,6 +99,7 @@ export function newConfig() {
     Object.keys(options).forEach(topic => {
       if (utils.isA(options[topic], configTypes[topic])) {
         config[topic] = options[topic];
+        userConfig[topic] = options[topic];
       } else {
         utils.logError(`setConfig options ${topic} must be of type ${configTypes[topic]} but was ${toString.call(options[topic])}`);
       }
@@ -96,6 +111,7 @@ export function newConfig() {
 
   return {
     getConfig,
+    getUserConfig,
     setConfig,
     resetConfig
   };
