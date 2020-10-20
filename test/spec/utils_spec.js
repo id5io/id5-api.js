@@ -295,7 +295,7 @@ describe('Utils', function () {
       setTimeout(() => {
         sinon.assert.calledOnce(fn2);
         done();
-      }, 250);
+      }, 1000);
     });
     it('second callback should not be called on invalid response', function (done) {
       utils.deferPixelFire('https://id5-sync.com/i/0/0.gif', fn, fn2);
@@ -303,7 +303,7 @@ describe('Utils', function () {
       setTimeout(() => {
         sinon.assert.notCalled(fn2);
         done();
-      }, 250);
+      }, 1000);
     });
   });
 });
