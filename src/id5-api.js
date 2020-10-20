@@ -59,7 +59,7 @@ ID5.init = function (options) {
     const referer = getRefererInfo();
     utils.logInfo(`ID5 detected referer is ${referer.referer}`);
 
-    if (typeof cfg.partnerId !== 'number') {
+    if (!cfg.partnerId || typeof cfg.partnerId !== 'number') {
       throw new Error('partnerId is required and must be a number');
     }
 
@@ -72,6 +72,7 @@ ID5.init = function (options) {
     // always save the current pd to track if it changes
     const pd = cfg.pd || '';
     const storedPd = getStoredPd();
+    // TODO move inside isLocalStorageAllowed() check
     this.setStoredPd(pd);
     const pdHasChanged = !storedPdMatchesPd(storedPd, pd);
 
@@ -89,6 +90,7 @@ ID5.init = function (options) {
         ID5.userId = storedResponse.universal_uid;
         ID5.linkType = storedResponse.link_type || 0;
       }
+      // TODO move inside isLocalStorageAllowed() check
       nb = incrementNb(cfg.partnerId, nb);
       idSetFromStoredResponse = true;
       if (ID5.userId) {
@@ -102,6 +104,7 @@ ID5.init = function (options) {
     }
 
     consent.requestConsent((consentData) => {
+      // TODO movce inside isLocalStorageAllowed()
       // always save the current consent data to track if it changes
       const storedConsentData = getStoredConsentData();
       this.setStoredConsentData(consentData);

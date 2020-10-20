@@ -254,6 +254,13 @@ export function isLocalStorageAllowed() {
   if (config.getConfig().allowID5WithoutConsentApi) {
     return true;
   } else if (!consentData) {
+    // if there is no CMP on page, consentData will be undefined. the publisher must tell us it's ok
+    // to access local storage via the `allowID5WithoutConsentApi` config option, otherwise we may be
+    // in violation of ePrivacy if the user is in the EU. as long as there is a cmp on page, if the user
+    // is not in a country requiring consent, consentData will be populated and will fall through
+    // one of the other branches below. if a publisher dynamically drops a cmp only for EU traffic,
+    // they should dynamically set `allowID5WithoutConsentApi: true` for non-EU traffic and
+    // `allowID5WithoutConsentApi: false` (or omit the option) for EU traffic.
     return false;
   } else if (typeof consentData.gdprApplies === 'boolean' && consentData.gdprApplies) {
     if (!consentData.consentString || consentData.apiVersion === 0) {
