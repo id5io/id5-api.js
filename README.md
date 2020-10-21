@@ -234,10 +234,13 @@ ID5.init({
 | --- | --- | --- | --- |
 | ID5.userId | variable | string | The ID5 Universal ID value. If not set yet, returns `undefined` |
 | ID5.loaded | variable | boolean | This variable will be set to `true` once the API is loaded and ready for use |
+| ID5.initialized | variable | boolean | This variable will be set to `true` once the `init()` method has been called; `false` before |
+| ID5.callbackFired | variable | boolean | This variable will be set to `true` once the `callback` function has been scheduled, if applicable; `false` before and if no `callback` is defined |
 | ID5.init({}) | method | n/a | Takes a config object as the only parameter and initializes the API with these configuration options |
+| ID5.refreshId(boolean, {}) | method | n/a | A method to refresh the ID without reloading the page. Must come _after_ the `init()` method is called. First parameter is a boolean, set to `true` to force a fetch call to ID5, set to `false` to only call ID5 if necessary. The second parameter is a config object to add/change options prior to refreshing the ID. If a callback method is defined in the configuration, it will be called once for `init` and once for every `refreshId` call that is made. |
 | ID5.getConfig() | method | object | Returns the entire current configuration object |
 | ID5.getUserConfig() | method | object | Returns only the specific configuration settings made via `init()` or `setConfig()` |
-| ID5.setConfig() | method | object | Adds additional configurations to the current configuration object, and returns the updated configuration object |
+| ID5.setConfig({}) | method | object | Adds additional configurations to the current configuration object, and returns the updated configuration object |
 
 ### Examples
 

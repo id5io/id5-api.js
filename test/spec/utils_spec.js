@@ -273,6 +273,7 @@ describe('Utils', function () {
       fn2 = sinon.spy();
     });
     it('should be called immediately if dom is already ready', function () {
+      // TODO mock these calls
       utils.deferPixelFire('https://id5-sync.com/status', fn);
       sinon.assert.calledOnce(fn);
     });
@@ -281,6 +282,7 @@ describe('Utils', function () {
       Object.defineProperty(document, 'readyState', {
         get() { return 'loading'; }
       });
+      // TODO mock these calls
       utils.deferPixelFire('https://id5-sync.com/i/1/0.gif', fn, fn2);
 
       sinon.assert.notCalled(fn);
@@ -298,6 +300,7 @@ describe('Utils', function () {
       }, 1000);
     });
     it('second callback should not be called on invalid response', function (done) {
+      // TODO mock these calls
       utils.deferPixelFire('https://id5-sync.com/i/0/0.gif', fn, fn2);
       sinon.assert.notCalled(fn);
       setTimeout(() => {
