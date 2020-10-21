@@ -17,7 +17,6 @@ var header = require('gulp-header');
 var shell = require('gulp-shell');
 var eslint = require('gulp-eslint');
 var gulpif = require('gulp-if');
-var jsEscape = require('gulp-js-escape');
 
 var id5Api = require('./package.json');
 var port = 9998;
