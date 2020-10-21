@@ -869,11 +869,12 @@ describe('ID5 JS API', function () {
   });
 
   describe('Async Responses', function () {
-    const AJAX_RESPONSE_MS = 5;
-    const CALLBACK_TIMEOUT_MS = 10;
+    const AJAX_RESPONSE_MS = 20;
+    const CALLBACK_TIMEOUT_MS = 30;
+    const SHORT_CALLBACK_TIMEOUT_MS = 10;
     // arbitrary timeout to test the ID later in the call process after any ajax calls
     // or other async activities
-    const LONG_TIMEOUT = 20;
+    const LONG_TIMEOUT = 50;
 
     let ajaxStub;
 
@@ -905,6 +906,7 @@ describe('ID5 JS API', function () {
       describe('Check callbackFired', function () {
         it('should have callbackFired:false if no callback', function (done) {
           ID5.init({ partnerId: TEST_ID5_PARTNER_ID, allowID5WithoutConsentApi: true });
+
           expect(ID5.callbackFired).to.be.false;
           sinon.assert.calledOnce(ajaxStub);
 
@@ -948,7 +950,12 @@ describe('ID5 JS API', function () {
             setTimeout(() => {
               sinon.assert.calledOnce(callbackSpy);
               expect(ID5.userId).to.be.undefined;
-              done();
+
+              // make sure the watchdog timeout is cleared before moving on
+              setTimeout(() => {
+                sinon.assert.calledOnce(callbackSpy);
+                done();
+              }, LONG_TIMEOUT);
             }, (CALLBACK_TIMEOUT_MS + 1));
           }, 0);
         });
@@ -987,7 +994,7 @@ describe('ID5 JS API', function () {
             setTimeout(() => {
               sinon.assert.calledOnce(callbackSpy);
               done();
-            }, CALLBACK_TIMEOUT_MS);
+            }, LONG_TIMEOUT);
           }, 0);
         });
 
@@ -1019,7 +1026,7 @@ describe('ID5 JS API', function () {
             setTimeout(() => {
               sinon.assert.calledOnce(callbackSpy);
               done();
-            }, CALLBACK_TIMEOUT_MS);
+            }, LONG_TIMEOUT);
           }, 0);
         });
 
@@ -1051,9 +1058,30 @@ describe('ID5 JS API', function () {
               setTimeout(() => {
                 sinon.assert.calledOnce(callbackSpy);
                 done();
-              }, CALLBACK_TIMEOUT_MS);
+              }, LONG_TIMEOUT);
             }, 0);
           }, AJAX_RESPONSE_MS);
+        });
+
+        it('should call callback after timeout with callback timeout set if server response takes too long', function (done) {
+          ID5.init({ partnerId: TEST_ID5_PARTNER_ID, allowID5WithoutConsentApi: true, callback: callbackSpy, callbackTimeoutInMs: SHORT_CALLBACK_TIMEOUT_MS });
+
+          sinon.assert.calledOnce(ajaxStub);
+          expect(ID5.userId).to.be.undefined;
+
+          setTimeout(() => {
+            sinon.assert.notCalled(callbackSpy);
+            setTimeout(() => {
+              sinon.assert.calledOnce(callbackSpy);
+              expect(ID5.userId).to.be.undefined;
+
+              // make sure the watchdog timeout is cleared before moving on
+              setTimeout(() => {
+                sinon.assert.calledOnce(callbackSpy);
+                done();
+              }, LONG_TIMEOUT);
+            }, 0);
+          }, SHORT_CALLBACK_TIMEOUT_MS);
         });
 
         it('should call callback after server response without callback timeout set', function (done) {
@@ -1097,7 +1125,7 @@ describe('ID5 JS API', function () {
               setTimeout(() => {
                 sinon.assert.calledOnce(callbackSpy);
                 done();
-              }, CALLBACK_TIMEOUT_MS);
+              }, LONG_TIMEOUT);
             }, 0);
           }, AJAX_RESPONSE_MS);
         });
@@ -1118,6 +1146,150 @@ describe('ID5 JS API', function () {
               done();
             }, 0);
           }, AJAX_RESPONSE_MS);
+        });
+      });
+
+      describe('With RefreshId', function () {
+        beforeEach(function () {
+          utils.setInLocalStorage(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON);
+          utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, Date.now());
+        });
+
+        describe('No Fetch Required on Refresh', function () {
+          it('should call callback from refresh immediately with callback timeout set', function (done) {
+            ID5.init({ partnerId: TEST_ID5_PARTNER_ID, allowID5WithoutConsentApi: true, callback: callbackSpy, callbackTimeoutInMs: CALLBACK_TIMEOUT_MS });
+
+            sinon.assert.notCalled(ajaxStub);
+            setTimeout(() => {
+              sinon.assert.calledOnce(callbackSpy);
+
+              // make sure the watchdog timeout from init is cleared before moving on
+              setTimeout(() => {
+                sinon.assert.calledOnce(callbackSpy);
+                expect(ID5.userId).to.be.equal(TEST_STORED_ID5ID);
+
+                ID5.refreshId();
+
+                sinon.assert.notCalled(ajaxStub);
+                setTimeout(() => {
+                  sinon.assert.calledTwice(callbackSpy);
+                  expect(ID5.userId).to.be.equal(TEST_STORED_ID5ID);
+
+                  // make sure the watchdog timeout from refresh is cleared before moving on
+                  setTimeout(() => {
+                    sinon.assert.calledTwice(callbackSpy);
+                    expect(ID5.userId).to.be.equal(TEST_STORED_ID5ID);
+                    done();
+                  }, LONG_TIMEOUT);
+                }, 0);
+              }, LONG_TIMEOUT);
+            }, 0);
+          });
+
+          it('should call callback from refresh immediately without callback timeout set', function (done) {
+            ID5.init({ partnerId: TEST_ID5_PARTNER_ID, allowID5WithoutConsentApi: true, callback: callbackSpy });
+
+            sinon.assert.notCalled(ajaxStub);
+            setTimeout(() => {
+              sinon.assert.calledOnce(callbackSpy);
+              expect(ID5.userId).to.be.equal(TEST_STORED_ID5ID);
+
+              ID5.refreshId();
+
+              sinon.assert.notCalled(ajaxStub);
+              setTimeout(() => {
+                sinon.assert.calledTwice(callbackSpy);
+                expect(ID5.userId).to.be.equal(TEST_STORED_ID5ID);
+                done();
+              }, 0);
+            }, 0);
+          });
+        });
+
+        describe('Fetch Required on Refresh', function () {
+          it('should call callback from refresh after server response with callback timeout set', function (done) {
+            ID5.init({ partnerId: TEST_ID5_PARTNER_ID, allowID5WithoutConsentApi: true, callback: callbackSpy, callbackTimeoutInMs: CALLBACK_TIMEOUT_MS });
+
+            sinon.assert.notCalled(ajaxStub);
+            setTimeout(() => {
+              sinon.assert.calledOnce(callbackSpy);
+
+              // make sure the watchdog timeout from init is cleared before moving on
+              setTimeout(() => {
+                sinon.assert.calledOnce(callbackSpy);
+                expect(ID5.userId).to.be.equal(TEST_STORED_ID5ID);
+
+                ID5.refreshId(true);
+
+                sinon.assert.calledOnce(ajaxStub);
+                setTimeout(() => {
+                  setTimeout(() => {
+                    sinon.assert.calledTwice(callbackSpy);
+                    expect(ID5.userId).to.be.equal(TEST_RESPONSE_ID5ID);
+
+                    // make sure the watchdog timeout from refresh is cleared before moving on
+                    setTimeout(() => {
+                      sinon.assert.calledTwice(callbackSpy);
+                      expect(ID5.userId).to.be.equal(TEST_RESPONSE_ID5ID);
+                      done();
+                    }, LONG_TIMEOUT);
+                  }, 0);
+                }, AJAX_RESPONSE_MS);
+              }, LONG_TIMEOUT);
+            }, 0);
+          });
+
+          it('should call callback from refresh after timeout with callback timeout set if server response takes too long', function (done) {
+            ID5.init({ partnerId: TEST_ID5_PARTNER_ID, allowID5WithoutConsentApi: true, callback: callbackSpy, callbackTimeoutInMs: SHORT_CALLBACK_TIMEOUT_MS });
+
+            sinon.assert.notCalled(ajaxStub);
+            setTimeout(() => {
+              sinon.assert.calledOnce(callbackSpy);
+              expect(ID5.userId).to.be.equal(TEST_STORED_ID5ID);
+
+              // make sure the watchdog timeout from init is cleared before moving on
+              setTimeout(() => {
+                sinon.assert.calledOnce(callbackSpy);
+
+                ID5.refreshId(true);
+
+                sinon.assert.calledOnce(ajaxStub);
+                setTimeout(() => {
+                  setTimeout(() => {
+                    sinon.assert.calledTwice(callbackSpy);
+                    expect(ID5.userId).to.be.equal(TEST_STORED_ID5ID);
+
+                    // make sure the watchdog timeout from refresh is cleared before moving on
+                    setTimeout(() => {
+                      sinon.assert.calledTwice(callbackSpy);
+                      done();
+                    }, LONG_TIMEOUT);
+                  }, 0);
+                }, SHORT_CALLBACK_TIMEOUT_MS);
+              }, LONG_TIMEOUT);
+            }, 0);
+          });
+
+          it('should call callback from refresh after server response without callback timeout set', function (done) {
+            ID5.init({ partnerId: TEST_ID5_PARTNER_ID, allowID5WithoutConsentApi: true, callback: callbackSpy });
+
+            sinon.assert.notCalled(ajaxStub);
+            setTimeout(() => {
+              sinon.assert.calledOnce(callbackSpy);
+              expect(ID5.userId).to.be.equal(TEST_STORED_ID5ID);
+
+              ID5.refreshId(true);
+
+              sinon.assert.calledOnce(ajaxStub);
+              setTimeout(() => {
+                setTimeout(() => {
+                  sinon.assert.calledTwice(callbackSpy);
+                  expect(ID5.userId).to.be.equal(TEST_RESPONSE_ID5ID);
+                  done();
+                }, 0);
+              }, AJAX_RESPONSE_MS);
+            }, 0);
+          });
         });
       });
     });
