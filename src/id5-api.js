@@ -55,8 +55,7 @@ ID5.init = function (options) {
 
   try {
     utils.logInfo('Invoking ID5.init', arguments);
-    const cfg = config.setConfig(options);
-    ID5.config = cfg;
+    ID5.config = config.setConfig(options);
     ID5.initialized = true;
     ID5.callbackFired = false;
     ID5.getConfig = config.getConfig;
@@ -65,18 +64,18 @@ ID5.init = function (options) {
     const referer = getRefererInfo();
     utils.logInfo(`ID5 detected referer is ${referer.referer}`);
 
-    if (!cfg.partnerId || typeof cfg.partnerId !== 'number') {
+    if (!this.config.partnerId || typeof this.config.partnerId !== 'number') {
       throw new Error('partnerId is required and must be a number');
     }
 
     const storedResponse = JSON.parse(utils.getFromLocalStorage(ID5_STORAGE_CONFIG) || getFromLegacyCookie());
     const storedDateTime = (new Date(+utils.getFromLocalStorage(LAST_STORAGE_CONFIG))).getTime();
-    const refreshInSecondsHasElapsed = storedDateTime <= 0 || ((Date.now() - storedDateTime) > (cfg.refreshInSeconds * 1000));
-    let nb = getNbFromCache(cfg.partnerId);
+    const refreshInSecondsHasElapsed = storedDateTime <= 0 || ((Date.now() - storedDateTime) > (this.config.refreshInSeconds * 1000));
+    let nb = getNbFromCache(this.config.partnerId);
     let idSetFromStoredResponse = false;
 
     // always save the current pd to track if it changes
-    const pd = cfg.pd || '';
+    const pd = this.config.pd || '';
     const storedPd = getStoredPd();
     // TODO move inside isLocalStorageAllowed() check
     this.setStoredPd(pd);
@@ -89,7 +88,7 @@ ID5.init = function (options) {
 
     // TEMPORARY until all clients have upgraded past v1.0.0
     // remove cookies that were previously set
-    removeLegacyCookies(cfg.partnerId);
+    removeLegacyCookies(this.config.partnerId);
 
     if (storedResponse && !pdHasChanged) {
       if (storedResponse.universal_uid) {
@@ -97,7 +96,7 @@ ID5.init = function (options) {
         ID5.linkType = storedResponse.link_type || 0;
       }
       // TODO move inside isLocalStorageAllowed() check
-      nb = incrementNb(cfg.partnerId, nb);
+      nb = incrementNb(this.config.partnerId, nb);
       idSetFromStoredResponse = true;
       if (ID5.userId) {
         this.fireCallBack();
@@ -131,10 +130,10 @@ ID5.init = function (options) {
         ) {
           const gdprApplies = (consentData && consentData.gdprApplies) ? 1 : 0;
           const gdprConsentString = (consentData && consentData.gdprApplies) ? consentData.consentString : '';
-          const url = `https://id5-sync.com/g/v2/${cfg.partnerId}.json?gdpr_consent=${gdprConsentString}&gdpr=${gdprApplies}`;
+          const url = `https://id5-sync.com/g/v2/${this.config.partnerId}.json?gdpr_consent=${gdprConsentString}&gdpr=${gdprApplies}`;
           const signature = (storedResponse && storedResponse.signature) ? storedResponse.signature : '';
           const data = {
-            'partner': cfg.partnerId,
+            'partner': this.config.partnerId,
             'v': ID5.version,
             'o': 'api',
             'rf': referer.referer,
@@ -145,8 +144,8 @@ ID5.init = function (options) {
             'nbPage': nb,
             'id5cdn': (document.currentScript && document.currentScript.src && document.currentScript.src.indexOf('https://cdn.id5-sync.com') === 0)
           };
-          if (cfg.tpids && utils.isArray(cfg.tpids) && cfg.tpids.length > 0) {
-            data.tpids = cfg.tpids;
+          if (this.config.tpids && utils.isArray(this.config.tpids) && this.config.tpids.length > 0) {
+            data.tpids = this.config.tpids;
           }
 
           utils.logInfo('Fetching ID5 user ID from:', url, data);
@@ -161,10 +160,10 @@ ID5.init = function (options) {
                     ID5.userId = responseObj.universal_uid;
                     utils.setInLocalStorage(ID5_STORAGE_CONFIG, response);
                     utils.setInLocalStorage(LAST_STORAGE_CONFIG, Date.now());
-                    utils.setInLocalStorage(nbCacheConfig(cfg.partnerId), (idSetFromStoredResponse ? 0 : 1));
+                    utils.setInLocalStorage(nbCacheConfig(this.config.partnerId), (idSetFromStoredResponse ? 0 : 1));
                     if (responseObj.cascade_needed === true) {
-                      const isSync = cfg.partnerUserId && cfg.partnerUserId.length > 0;
-                      const syncUrl = `https://id5-sync.com/${isSync ? 's' : 'i'}/${cfg.partnerId}/8.gif?id5id=${ID5.userId}&fs=${forceSync()}&o=api&${isSync ? 'puid=' + cfg.partnerUserId + '&' : ''}gdpr_consent=${gdprConsentString}&gdpr=${gdprApplies}`;
+                      const isSync = this.config.partnerUserId && this.config.partnerUserId.length > 0;
+                      const syncUrl = `https://id5-sync.com/${isSync ? 's' : 'i'}/${this.config.partnerId}/8.gif?id5id=${ID5.userId}&fs=${forceSync()}&o=api&${isSync ? 'puid=' + this.config.partnerUserId + '&' : ''}gdpr_consent=${gdprConsentString}&gdpr=${gdprApplies}`;
                       utils.logInfo('Opportunities to cascade available:', syncUrl);
                       utils.deferPixelFire(syncUrl, undefined, handleDeferPixelFireCallback);
                     }
