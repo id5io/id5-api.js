@@ -37,11 +37,6 @@ ID5.loaded = true;
 ID5.initialized = false;
 ID5.callbackFired = false;
 
-// ID5.setConfig = function(options) {
-//   config.setConfig(options);
-//   ID5.userConfig = Object.assign(ID5.userConfig, options);
-// };
-
 /**
  * This function will initialize ID5, wait for consent then try to fetch or refresh ID5 user id if required
  * @param {Id5Config} options
@@ -57,7 +52,7 @@ ID5.init = function (options) {
     utils.logInfo('Invoking ID5.init', arguments);
     ID5.initialized = true;
     ID5.getConfig = config.getConfig;
-    ID5.getUserConfig = config.getUserConfig;
+    ID5.getProvidedConfig = config.getProvidedConfig;
     ID5.setConfig = config.setConfig;
 
     this.getId(options, false);

@@ -30,7 +30,7 @@ export function newConfig() {
   /**
    * @property {Id5Config}
    */
-  let userConfig;
+  let providedConfig;
 
   const configTypes = {
     debug: 'Boolean',
@@ -66,7 +66,7 @@ export function newConfig() {
       pd: '',
       tpids: undefined
     };
-    userConfig = {};
+    providedConfig = {};
   }
 
   /**
@@ -81,8 +81,8 @@ export function newConfig() {
    * Return configuration set by user
    * @returns {Id5Config} options
    */
-  function getUserConfig() {
-    return userConfig;
+  function getProvidedConfig() {
+    return providedConfig;
   }
 
   /**
@@ -99,7 +99,7 @@ export function newConfig() {
     Object.keys(options).forEach(topic => {
       if (utils.isA(options[topic], configTypes[topic])) {
         config[topic] = options[topic];
-        userConfig[topic] = options[topic];
+        providedConfig[topic] = options[topic];
       } else {
         utils.logError(`setConfig options ${topic} must be of type ${configTypes[topic]} but was ${toString.call(options[topic])}`);
       }
@@ -111,7 +111,7 @@ export function newConfig() {
 
   return {
     getConfig,
-    getUserConfig,
+    getProvidedConfig,
     setConfig,
     resetConfig
   };

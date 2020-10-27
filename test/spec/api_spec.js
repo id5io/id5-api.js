@@ -120,20 +120,20 @@ describe('ID5 JS API', function () {
       it('should have user-defined config and final config available', function () {
         ID5.init({ partnerId: TEST_ID5_PARTNER_ID, allowID5WithoutConsentApi: true, refreshInSeconds: 10 });
 
-        expect(ID5.getUserConfig().partnerId).to.be.equal(TEST_ID5_PARTNER_ID);
+        expect(ID5.getProvidedConfig().partnerId).to.be.equal(TEST_ID5_PARTNER_ID);
         expect(ID5.config.partnerId).to.be.equal(TEST_ID5_PARTNER_ID);
         expect(ID5.getConfig().partnerId).to.be.equal(TEST_ID5_PARTNER_ID);
 
-        expect(ID5.getUserConfig().pd).to.be.undefined;
+        expect(ID5.getProvidedConfig().pd).to.be.undefined;
         expect(ID5.config.pd).to.be.equal('');
         expect(ID5.getConfig().pd).to.be.equal('');
 
-        expect(ID5.getUserConfig().refreshInSeconds).to.be.equal(10);
+        expect(ID5.getProvidedConfig().refreshInSeconds).to.be.equal(10);
         expect(ID5.config.refreshInSeconds).to.be.equal(10);
         expect(ID5.getConfig().refreshInSeconds).to.be.equal(10);
       });
 
-      it('should update userConfig and config with ID5.setConfig()', function () {
+      it('should update providedConfig and config with ID5.setConfig()', function () {
         ID5.init({ partnerId: TEST_ID5_PARTNER_ID, allowID5WithoutConsentApi: true });
         expect(ID5.getConfig().pd).to.be.equal('');
 
@@ -141,7 +141,7 @@ describe('ID5 JS API', function () {
 
         expect(ID5.config.pd).to.be.equal('newpd');
         expect(ID5.getConfig().pd).to.be.equal('newpd');
-        expect(ID5.getUserConfig().pd).to.be.equal('newpd');
+        expect(ID5.getProvidedConfig().pd).to.be.equal('newpd');
       });
     });
 
