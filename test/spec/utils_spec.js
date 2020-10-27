@@ -54,181 +54,181 @@ describe('Utils', function () {
       var source = {};
 
       var output = Object.assign(target, source);
-      assert.deepEqual(output, target);
+      assert.deepStrictEqual(output, target);
     });
   });
 
   describe('isA', function () {
     it('should return true with string object', function () {
       var output = utils.isA(OBJ_STRING, TYPE_STRING);
-      assert.deepEqual(output, true);
+      assert.deepStrictEqual(output, true);
     });
 
     it('should return false with object', function () {
       var output = utils.isA(OBJ_OBJECT, TYPE_STRING);
-      assert.deepEqual(output, false);
+      assert.deepStrictEqual(output, false);
     });
 
     it('should return true with object', function () {
       var output = utils.isA(OBJ_OBJECT, TYPE_OBJECT);
-      assert.deepEqual(output, true);
+      assert.deepStrictEqual(output, true);
     });
 
     it('should return false with array object', function () {
       var output = utils.isA(OBJ_ARRAY, TYPE_OBJECT);
-      assert.deepEqual(output, false);
+      assert.deepStrictEqual(output, false);
     });
 
     it('should return true with array object', function () {
       var output = utils.isA(OBJ_ARRAY, TYPE_ARRAY);
-      assert.deepEqual(output, true);
+      assert.deepStrictEqual(output, true);
     });
 
     it('should return false with array object', function () {
       var output = utils.isA(OBJ_ARRAY, TYPE_FUNCTION);
-      assert.deepEqual(output, false);
+      assert.deepStrictEqual(output, false);
     });
 
     it('should return true with function', function () {
       var output = utils.isA(OBJ_FUNCTION, TYPE_FUNCTION);
-      assert.deepEqual(output, true);
+      assert.deepStrictEqual(output, true);
     });
 
     it('should return false with number', function () {
       var output = utils.isA(OBJ_FUNCTION, TYPE_NUMBER);
-      assert.deepEqual(output, false);
+      assert.deepStrictEqual(output, false);
     });
 
     it('should return true with number', function () {
       var output = utils.isA(OBJ_NUMBER, TYPE_NUMBER);
-      assert.deepEqual(output, true);
+      assert.deepStrictEqual(output, true);
     });
   });
 
   describe('isFn', function () {
     it('should return true with input function', function () {
       var output = utils.isFn(OBJ_FUNCTION);
-      assert.deepEqual(output, true);
+      assert.deepStrictEqual(output, true);
     });
 
     it('should return false with input string', function () {
       var output = utils.isFn(OBJ_STRING);
-      assert.deepEqual(output, false);
+      assert.deepStrictEqual(output, false);
     });
 
     it('should return false with input number', function () {
       var output = utils.isFn(OBJ_NUMBER);
-      assert.deepEqual(output, false);
+      assert.deepStrictEqual(output, false);
     });
 
     it('should return false with input Array', function () {
       var output = utils.isFn(OBJ_ARRAY);
-      assert.deepEqual(output, false);
+      assert.deepStrictEqual(output, false);
     });
 
     it('should return false with input object', function () {
       var output = utils.isFn(OBJ_OBJECT);
-      assert.deepEqual(output, false);
+      assert.deepStrictEqual(output, false);
     });
   });
 
   describe('isStr', function () {
     it('should return true with input string', function () {
       var output = utils.isStr(OBJ_STRING);
-      assert.deepEqual(output, true);
+      assert.deepStrictEqual(output, true);
     });
 
     it('should return false with input number', function () {
       var output = utils.isStr(OBJ_NUMBER);
-      assert.deepEqual(output, false);
+      assert.deepStrictEqual(output, false);
     });
 
     it('should return false with input object', function () {
       var output = utils.isStr(OBJ_OBJECT);
-      assert.deepEqual(output, false);
+      assert.deepStrictEqual(output, false);
     });
 
     it('should return false with input array', function () {
       var output = utils.isStr(OBJ_ARRAY);
-      assert.deepEqual(output, false);
+      assert.deepStrictEqual(output, false);
     });
 
     it('should return false with input function', function () {
       var output = utils.isStr(OBJ_FUNCTION);
-      assert.deepEqual(output, false);
+      assert.deepStrictEqual(output, false);
     });
   });
 
   describe('isArray', function () {
     it('should return false with input string', function () {
       var output = utils.isArray(OBJ_STRING);
-      assert.deepEqual(output, false);
+      assert.deepStrictEqual(output, false);
     });
 
     it('should return false with input number', function () {
       var output = utils.isArray(OBJ_NUMBER);
-      assert.deepEqual(output, false);
+      assert.deepStrictEqual(output, false);
     });
 
     it('should return false with input object', function () {
       var output = utils.isArray(OBJ_OBJECT);
-      assert.deepEqual(output, false);
+      assert.deepStrictEqual(output, false);
     });
 
     it('should return true with input array', function () {
       var output = utils.isArray(OBJ_ARRAY);
-      assert.deepEqual(output, true);
+      assert.deepStrictEqual(output, true);
     });
 
     it('should return false with input function', function () {
       var output = utils.isArray(OBJ_FUNCTION);
-      assert.deepEqual(output, false);
+      assert.deepStrictEqual(output, false);
     });
   });
 
   describe('isPlainObject', function () {
     it('should return false with input string', function () {
       var output = utils.isPlainObject(OBJ_STRING);
-      assert.deepEqual(output, false);
+      assert.deepStrictEqual(output, false);
     });
 
     it('should return false with input number', function () {
       var output = utils.isPlainObject(OBJ_NUMBER);
-      assert.deepEqual(output, false);
+      assert.deepStrictEqual(output, false);
     });
 
     it('should return true with input object', function () {
       var output = utils.isPlainObject(OBJ_OBJECT);
-      assert.deepEqual(output, true);
+      assert.deepStrictEqual(output, true);
     });
 
     it('should return false with input array', function () {
       var output = utils.isPlainObject(OBJ_ARRAY);
-      assert.deepEqual(output, false);
+      assert.deepStrictEqual(output, false);
     });
 
     it('should return false with input function', function () {
       var output = utils.isPlainObject(OBJ_FUNCTION);
-      assert.deepEqual(output, false);
+      assert.deepStrictEqual(output, false);
     });
   });
 
   describe('isEmpty', function () {
     it('should return true with empty object', function () {
       var output = utils.isEmpty(OBJ_OBJECT);
-      assert.deepEqual(output, true);
+      assert.deepStrictEqual(output, true);
     });
 
     it('should return false with non-empty object', function () {
       var obj = { a: 'b' };
       var output = utils.isEmpty(obj);
-      assert.deepEqual(output, false);
+      assert.deepStrictEqual(output, false);
     });
 
     it('should return false with null', function () {
       var obj = null;
       var output = utils.isEmpty(obj);
-      assert.deepEqual(output, true);
+      assert.deepStrictEqual(output, true);
     });
   });
 
@@ -238,7 +238,7 @@ describe('Utils', function () {
       var callback = function () {};
 
       var output = utils._map(input, callback);
-      assert.deepEqual(output, []);
+      assert.deepStrictEqual(output, []);
     });
 
     it('return value array with vaild input object', function () {
@@ -246,7 +246,7 @@ describe('Utils', function () {
       var callback = function (v) { return v; };
 
       var output = utils._map(input, callback);
-      assert.deepEqual(output, ['A', 'B']);
+      assert.deepStrictEqual(output, ['A', 'B']);
     });
 
     it('return value array with vaild input object_callback func changed 1', function () {
@@ -254,7 +254,7 @@ describe('Utils', function () {
       var callback = function (v, k) { return v + k; };
 
       var output = utils._map(input, callback);
-      assert.deepEqual(output, ['Aa', 'Bb']);
+      assert.deepStrictEqual(output, ['Aa', 'Bb']);
     });
 
     it('return value array with vaild input object_callback func changed 2', function () {
@@ -262,7 +262,7 @@ describe('Utils', function () {
       var callback = function (v, k, o) { return o; };
 
       var output = utils._map(input, callback);
-      assert.deepEqual(output, [input, input]);
+      assert.deepStrictEqual(output, [input, input]);
     });
   });
 
@@ -273,6 +273,7 @@ describe('Utils', function () {
       fn2 = sinon.spy();
     });
     it('should be called immediately if dom is already ready', function () {
+      // TODO mock these calls
       utils.deferPixelFire('https://id5-sync.com/status', fn);
       sinon.assert.calledOnce(fn);
     });
@@ -281,6 +282,7 @@ describe('Utils', function () {
       Object.defineProperty(document, 'readyState', {
         get() { return 'loading'; }
       });
+      // TODO mock these calls
       utils.deferPixelFire('https://id5-sync.com/i/1/0.gif', fn, fn2);
 
       sinon.assert.notCalled(fn);
@@ -298,6 +300,7 @@ describe('Utils', function () {
       }, 1000);
     });
     it('second callback should not be called on invalid response', function (done) {
+      // TODO mock these calls
       utils.deferPixelFire('https://id5-sync.com/i/0/0.gif', fn, fn2);
       sinon.assert.notCalled(fn);
       setTimeout(() => {

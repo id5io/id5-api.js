@@ -17,7 +17,6 @@ var header = require('gulp-header');
 var shell = require('gulp-shell');
 var eslint = require('gulp-eslint');
 var gulpif = require('gulp-if');
-var jsEscape = require('gulp-js-escape');
 
 var id5Api = require('./package.json');
 var port = 9998;
@@ -97,13 +96,13 @@ function makeDevpackPkg() {
   cloned.devtool = 'source-map';
 
   const isNotMapFile = function(file) {
-    return file.extname != '.map';
+    return file.extname !== '.map';
   };
 
   return gulp.src(['src/id5-api.js'])
     .pipe(webpackStream(cloned, webpack))
-    .pipe(gulpif(isNotMapFile, footer(setId5VersionJs, { id5Api : id5Api })))
-    .pipe(gulpif(isNotMapFile, header(banner, { id5Api : id5Api } )))
+    .pipe(gulpif(isNotMapFile, footer(setId5VersionJs, { id5Api: id5Api })))
+    .pipe(gulpif(isNotMapFile, header(banner, { id5Api: id5Api })))
     .pipe(gulp.dest('build/dev'))
     .pipe(connect.reload());
 }
@@ -114,9 +113,9 @@ function makeWebpackPkg() {
 
   return gulp.src(['src/id5-api.js'])
     .pipe(webpackStream(cloned, webpack))
-    .pipe(footer(setId5VersionJs, { id5Api : id5Api }))
+    .pipe(footer(setId5VersionJs, { id5Api: id5Api }))
     .pipe(uglify())
-    .pipe(header(banner, { id5Api : id5Api } ))
+    .pipe(header(banner, { id5Api: id5Api }))
     .pipe(gulp.dest('build/dist'));
 }
 

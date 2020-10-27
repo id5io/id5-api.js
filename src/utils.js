@@ -409,7 +409,7 @@ export function ajax(url, callback, data, options = {}) {
  * add an Image pixel to the DOM for the given sync Url
  *
  * @param syncUrl
- * @param initCallBack Called when pixel is initiated. always called. Optional
+ * @param initCallBack Called when pixel is initiated. Always called. Optional
  * @param callback Called when pixel is loaded. May never be called. Optional
  */
 export function fireAsyncPixel(syncUrl, initCallBack, callback) {
