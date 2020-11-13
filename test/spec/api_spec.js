@@ -53,21 +53,22 @@ describe('ID5 JS API', function () {
     'universal_uid': TEST_STORED_ID5ID,
     'cascade_needed': false,
     'signature': TEST_STORED_SIGNATURE,
-    'link_type': 0
+    'link_type': TEST_STORED_LINK_TYPE
   });
   const TEST_RESPONSE_ID5ID = 'testresponseid5id';
   const TEST_RESPONSE_SIGNATURE = 'uvwxyz';
+  const TEST_RESPONSE_LINK_TYPE = 2;
   const JSON_RESPONSE = JSON.stringify({
     'universal_uid': TEST_RESPONSE_ID5ID,
     'cascade_needed': false,
     'signature': TEST_RESPONSE_SIGNATURE,
-    'link_type': 0
+    'link_type': TEST_RESPONSE_LINK_TYPE
   });
   const JSON_RESPONSE_CASCADE = JSON.stringify({
     'universal_uid': TEST_RESPONSE_ID5ID,
     'cascade_needed': true,
     'signature': TEST_RESPONSE_SIGNATURE,
-    'link_type': 0
+    'link_type': TEST_RESPONSE_LINK_TYPE
   });
 
   describe('Core API Availability', function () {
@@ -228,6 +229,7 @@ describe('ID5 JS API', function () {
         expect(requestData.tpids).to.be.undefined;
 
         expect(ID5.userId).to.be.equal(TEST_RESPONSE_ID5ID);
+        expect(ID5.linkType).to.be.equal(TEST_RESPONSE_LINK_TYPE);
         expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(JSON_RESPONSE);
       });
 
@@ -314,6 +316,7 @@ describe('ID5 JS API', function () {
 
         sinon.assert.notCalled(ajaxStub);
         expect(ID5.userId).to.be.equal(TEST_STORED_ID5ID);
+        expect(ID5.linkType).to.be.equal(TEST_STORED_LINK_TYPE);
       });
 
       it('should use stored value without consent', function () {
@@ -321,6 +324,7 @@ describe('ID5 JS API', function () {
 
         sinon.assert.notCalled(ajaxStub);
         expect(ID5.userId).to.be.equal(TEST_STORED_ID5ID);
+        expect(ID5.linkType).to.be.equal(TEST_STORED_LINK_TYPE);
       });
     });
 
@@ -336,6 +340,7 @@ describe('ID5 JS API', function () {
         sinon.assert.calledOnce(ajaxStub);
         expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
         expect(ID5.userId).to.be.equal(TEST_RESPONSE_ID5ID);
+        expect(ID5.linkType).to.be.equal(TEST_RESPONSE_LINK_TYPE);
       });
 
       it('should not request new value, instead use stored value without consent', function () {
@@ -343,6 +348,7 @@ describe('ID5 JS API', function () {
 
         sinon.assert.notCalled(ajaxStub);
         expect(ID5.userId).to.be.equal(TEST_STORED_ID5ID);
+        expect(ID5.linkType).to.be.equal(TEST_STORED_LINK_TYPE);
       });
     });
 
@@ -364,6 +370,7 @@ describe('ID5 JS API', function () {
 
         sinon.assert.notCalled(ajaxStub);
         expect(ID5.userId).to.be.equal(TEST_STORED_ID5ID);
+        expect(ID5.linkType).to.be.equal(TEST_STORED_LINK_TYPE);
       });
     });
 
@@ -379,6 +386,7 @@ describe('ID5 JS API', function () {
         sinon.assert.calledOnce(ajaxStub);
         expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
         expect(ID5.userId).to.be.equal(TEST_RESPONSE_ID5ID);
+        expect(ID5.linkType).to.be.equal(TEST_RESPONSE_LINK_TYPE);
       });
 
       it('should not request new value and not use stored value without consent', function () {
@@ -565,6 +573,7 @@ describe('ID5 JS API', function () {
         expect(requestData['1puid']).to.be.undefined;
 
         expect(ID5.userId).to.be.equal(TEST_RESPONSE_ID5ID);
+        expect(ID5.linkType).to.be.equal(TEST_RESPONSE_LINK_TYPE);
         expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(JSON_RESPONSE);
 
         utils.setCookie('id5id.1st', '', expStrExpired);
@@ -580,6 +589,7 @@ describe('ID5 JS API', function () {
         expect(requestData.s).to.be.equal('legacycookiesignature');
 
         expect(ID5.userId).to.be.equal(TEST_RESPONSE_ID5ID);
+        expect(ID5.linkType).to.be.equal(TEST_RESPONSE_LINK_TYPE);
 
         utils.setCookie('id5id.1st', '', expStrExpired);
       });
@@ -594,6 +604,7 @@ describe('ID5 JS API', function () {
         expect(requestData.s).to.be.equal('legacycookiesignature');
 
         expect(ID5.userId).to.be.equal(TEST_RESPONSE_ID5ID);
+        expect(ID5.linkType).to.be.equal(TEST_RESPONSE_LINK_TYPE);
 
         utils.setCookie('id5id.1st', '', expStrExpired);
       });
@@ -609,6 +620,7 @@ describe('ID5 JS API', function () {
         expect(requestData.s).to.be.equal('legacycookiesignature-id5id.1st');
 
         expect(ID5.userId).to.be.equal(TEST_RESPONSE_ID5ID);
+        expect(ID5.linkType).to.be.equal(TEST_RESPONSE_LINK_TYPE);
 
         utils.setCookie('id5.1st', '', expStrExpired);
         utils.setCookie('id5id.1st', '', expStrExpired);
@@ -727,6 +739,7 @@ describe('ID5 JS API', function () {
         sinon.assert.calledTwice(getIdSpy);
 
         expect(ID5.userId).to.be.equal(TEST_RESPONSE_ID5ID);
+        expect(ID5.linkType).to.be.equal(TEST_RESPONSE_LINK_TYPE);
         expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(JSON_RESPONSE);
       });
 
@@ -744,6 +757,7 @@ describe('ID5 JS API', function () {
         sinon.assert.calledTwice(getIdSpy);
 
         expect(ID5.userId).to.be.equal(TEST_RESPONSE_ID5ID);
+        expect(ID5.linkType).to.be.equal(TEST_RESPONSE_LINK_TYPE);
         expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(JSON_RESPONSE);
       });
 
@@ -808,6 +822,7 @@ describe('ID5 JS API', function () {
           sinon.assert.calledTwice(getIdSpy);
 
           expect(ID5.userId).to.be.equal(TEST_RESPONSE_ID5ID);
+          expect(ID5.linkType).to.be.equal(TEST_RESPONSE_LINK_TYPE);
           expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(JSON_RESPONSE);
         });
 
@@ -1056,6 +1071,7 @@ describe('ID5 JS API', function () {
             setTimeout(() => {
               sinon.assert.calledOnce(callbackSpy);
               expect(ID5.userId).to.be.equal(TEST_RESPONSE_ID5ID);
+              expect(ID5.linkType).to.be.equal(TEST_RESPONSE_LINK_TYPE);
 
               // make sure the watchdog timeout is cleared before moving on
               setTimeout(() => {
@@ -1098,6 +1114,7 @@ describe('ID5 JS API', function () {
             setTimeout(() => {
               sinon.assert.calledOnce(callbackSpy);
               expect(ID5.userId).to.be.equal(TEST_RESPONSE_ID5ID);
+              expect(ID5.linkType).to.be.equal(TEST_RESPONSE_LINK_TYPE);
               done();
             }, 0);
           }, AJAX_RESPONSE_MS);
@@ -1115,6 +1132,7 @@ describe('ID5 JS API', function () {
 
           sinon.assert.calledOnce(ajaxStub);
           expect(ID5.userId).to.be.equal(TEST_STORED_ID5ID);
+          expect(ID5.linkType).to.be.equal(TEST_STORED_LINK_TYPE);
           setTimeout(() => {
             sinon.assert.calledOnce(callbackSpy);
           }, 0);
@@ -1123,6 +1141,7 @@ describe('ID5 JS API', function () {
             setTimeout(() => {
               sinon.assert.calledOnce(callbackSpy);
               expect(ID5.userId).to.be.equal(TEST_RESPONSE_ID5ID);
+              expect(ID5.linkType).to.be.equal(TEST_RESPONSE_LINK_TYPE);
 
               // make sure the watchdog timeout is cleared before moving on
               setTimeout(() => {
@@ -1138,6 +1157,7 @@ describe('ID5 JS API', function () {
 
           sinon.assert.calledOnce(ajaxStub);
           expect(ID5.userId).to.be.equal(TEST_STORED_ID5ID);
+          expect(ID5.linkType).to.be.equal(TEST_STORED_LINK_TYPE);
           setTimeout(() => {
             sinon.assert.calledOnce(callbackSpy);
           }, 0);
@@ -1146,6 +1166,7 @@ describe('ID5 JS API', function () {
             setTimeout(() => {
               sinon.assert.calledOnce(callbackSpy);
               expect(ID5.userId).to.be.equal(TEST_RESPONSE_ID5ID);
+              expect(ID5.linkType).to.be.equal(TEST_RESPONSE_LINK_TYPE);
               done();
             }, 0);
           }, AJAX_RESPONSE_MS);
@@ -1170,6 +1191,7 @@ describe('ID5 JS API', function () {
               setTimeout(() => {
                 sinon.assert.calledOnce(callbackSpy);
                 expect(ID5.userId).to.be.equal(TEST_STORED_ID5ID);
+                expect(ID5.linkType).to.be.equal(TEST_STORED_LINK_TYPE);
 
                 ID5.refreshId();
 
@@ -1177,11 +1199,13 @@ describe('ID5 JS API', function () {
                 setTimeout(() => {
                   sinon.assert.calledTwice(callbackSpy);
                   expect(ID5.userId).to.be.equal(TEST_STORED_ID5ID);
+                  expect(ID5.linkType).to.be.equal(TEST_STORED_LINK_TYPE);
 
                   // make sure the watchdog timeout from refresh is cleared before moving on
                   setTimeout(() => {
                     sinon.assert.calledTwice(callbackSpy);
                     expect(ID5.userId).to.be.equal(TEST_STORED_ID5ID);
+                    expect(ID5.linkType).to.be.equal(TEST_STORED_LINK_TYPE);
                     done();
                   }, LONG_TIMEOUT);
                 }, 0);
@@ -1196,6 +1220,7 @@ describe('ID5 JS API', function () {
             setTimeout(() => {
               sinon.assert.calledOnce(callbackSpy);
               expect(ID5.userId).to.be.equal(TEST_STORED_ID5ID);
+              expect(ID5.linkType).to.be.equal(TEST_STORED_LINK_TYPE);
 
               ID5.refreshId();
 
@@ -1203,6 +1228,7 @@ describe('ID5 JS API', function () {
               setTimeout(() => {
                 sinon.assert.calledTwice(callbackSpy);
                 expect(ID5.userId).to.be.equal(TEST_STORED_ID5ID);
+                expect(ID5.linkType).to.be.equal(TEST_STORED_LINK_TYPE);
                 done();
               }, 0);
             }, 0);
@@ -1221,6 +1247,7 @@ describe('ID5 JS API', function () {
               setTimeout(() => {
                 sinon.assert.calledOnce(callbackSpy);
                 expect(ID5.userId).to.be.equal(TEST_STORED_ID5ID);
+                expect(ID5.linkType).to.be.equal(TEST_STORED_LINK_TYPE);
 
                 ID5.refreshId(true);
 
@@ -1229,11 +1256,13 @@ describe('ID5 JS API', function () {
                   setTimeout(() => {
                     sinon.assert.calledTwice(callbackSpy);
                     expect(ID5.userId).to.be.equal(TEST_RESPONSE_ID5ID);
+                    expect(ID5.linkType).to.be.equal(TEST_RESPONSE_LINK_TYPE);
 
                     // make sure the watchdog timeout from refresh is cleared before moving on
                     setTimeout(() => {
                       sinon.assert.calledTwice(callbackSpy);
                       expect(ID5.userId).to.be.equal(TEST_RESPONSE_ID5ID);
+                      expect(ID5.linkType).to.be.equal(TEST_RESPONSE_LINK_TYPE);
                       done();
                     }, LONG_TIMEOUT);
                   }, 0);
@@ -1249,6 +1278,7 @@ describe('ID5 JS API', function () {
             setTimeout(() => {
               sinon.assert.calledOnce(callbackSpy);
               expect(ID5.userId).to.be.equal(TEST_STORED_ID5ID);
+              expect(ID5.linkType).to.be.equal(TEST_STORED_LINK_TYPE);
 
               // make sure the watchdog timeout from init is cleared before moving on
               setTimeout(() => {
@@ -1261,6 +1291,7 @@ describe('ID5 JS API', function () {
                   setTimeout(() => {
                     sinon.assert.calledTwice(callbackSpy);
                     expect(ID5.userId).to.be.equal(TEST_STORED_ID5ID);
+                    expect(ID5.linkType).to.be.equal(TEST_STORED_LINK_TYPE);
 
                     // make sure the watchdog timeout from refresh is cleared before moving on
                     setTimeout(() => {
@@ -1280,6 +1311,7 @@ describe('ID5 JS API', function () {
             setTimeout(() => {
               sinon.assert.calledOnce(callbackSpy);
               expect(ID5.userId).to.be.equal(TEST_STORED_ID5ID);
+              expect(ID5.linkType).to.be.equal(TEST_STORED_LINK_TYPE);
 
               ID5.refreshId(true);
 
@@ -1288,6 +1320,7 @@ describe('ID5 JS API', function () {
                 setTimeout(() => {
                   sinon.assert.calledTwice(callbackSpy);
                   expect(ID5.userId).to.be.equal(TEST_RESPONSE_ID5ID);
+                  expect(ID5.linkType).to.be.equal(TEST_RESPONSE_LINK_TYPE);
                   done();
                 }, 0);
               }, AJAX_RESPONSE_MS);
@@ -1323,9 +1356,11 @@ describe('ID5 JS API', function () {
 
           sinon.assert.notCalled(ajaxStub);
           expect(ID5.userId).to.be.equal(TEST_STORED_ID5ID);
+          expect(ID5.linkType).to.be.equal(TEST_STORED_LINK_TYPE);
 
           setTimeout(() => {
             expect(ID5.userId).to.be.equal(TEST_STORED_ID5ID);
+            expect(ID5.linkType).to.be.equal(TEST_STORED_LINK_TYPE);
             done();
           }, LONG_TIMEOUT);
         });
@@ -1342,9 +1377,11 @@ describe('ID5 JS API', function () {
 
           sinon.assert.notCalled(ajaxStub);
           expect(ID5.userId).to.be.equal(TEST_STORED_ID5ID);
+          expect(ID5.linkType).to.be.equal(TEST_STORED_LINK_TYPE);
 
           setTimeout(() => {
             expect(ID5.userId).to.be.equal(TEST_STORED_ID5ID);
+            expect(ID5.linkType).to.be.equal(TEST_STORED_LINK_TYPE);
             done();
           }, LONG_TIMEOUT);
         });
@@ -1359,6 +1396,7 @@ describe('ID5 JS API', function () {
 
           setTimeout(() => {
             expect(ID5.userId).to.be.equal(TEST_RESPONSE_ID5ID);
+            expect(ID5.linkType).to.be.equal(TEST_RESPONSE_LINK_TYPE);
             done();
           }, LONG_TIMEOUT);
         });
@@ -1375,9 +1413,11 @@ describe('ID5 JS API', function () {
 
           sinon.assert.calledOnce(ajaxStub);
           expect(ID5.userId).to.be.equal(TEST_STORED_ID5ID);
+          expect(ID5.linkType).to.be.equal(TEST_STORED_LINK_TYPE);
 
           setTimeout(() => {
             expect(ID5.userId).to.be.equal(TEST_RESPONSE_ID5ID);
+            expect(ID5.linkType).to.be.equal(TEST_RESPONSE_LINK_TYPE);
             done();
           }, LONG_TIMEOUT);
         });
