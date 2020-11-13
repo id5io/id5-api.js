@@ -28,6 +28,7 @@ Stay up-to-date with all of our API releases by subscribing to our [release note
     - [Access the ID5 Universal ID](#access-the-id5-universal-id)
     - [Available Configuration Options](#available-configuration-options)
       - [Generating Publisher Data String](#generating-publisher-data-string)
+      - [A/B Testing](#ab-testing)
     - [Available Methods and Variables](#available-methods-and-variables)
     - [Examples](#examples)
     - [Test locally](#test-locally)
@@ -186,6 +187,7 @@ There are a few cases in which `ID5.userId` may not be ready or have a value:
 | callback | Optional | function | | Function to call back when `ID5.userId` is available. If `callbackTimeoutInMs` is not provided, `callback` will be fired only if and when `ID5.userId` is available. The callback does not take any parameters |
 | callbackTimeoutInMs | Optional | integer | | Delay in ms after which the `callback` is guaranteed to be fired. `ID5.userId` may not be available at this time. |
 | tpids | Optional | array | | An array of third party IDs that can be passed to usersync with ID5. Contact your ID5 representative to enable this. |
+| abTesting | Optional | object | `{ enabled: false, controlGroupPct: 0 }` | Enables A/B testing of the ID5 ID. See [A/B Testing](#ab-testing) below for more details |
 
 #### Generating Publisher Data String
 The `pd` field (short for Publisher Data) is a base64 encoded string that contains any deterministic user data the publisher has access to. The data will be used strictly to provide better linking of ID5 IDs across domains for improved user identification. If the user has not provided ID5 with a legal basis to process data, the information sent to ID5 will be ignored and neither used nor saved for future requests.
@@ -227,6 +229,20 @@ ID5.init({
   pd: "MT1iNTBjYTA4MjcxNzk1YThlN2U0MDEyODEzZjIzZDUwNTE5M2Q3NWMwZjJlMmJiOTliYWE2M2FhODIyZjY2ZWQzJjU9QUJDMTIz"
 });
 ```
+
+#### A/B Testing
+
+Publishers may want to test the value of the ID5 ID with their downstream partners. While there are various ways to do this, A/B testing is a standard approach. Instead of publishers manually enabling or disabling the ID5 API based on their control group settings (which leads to fewer calls to ID5, reducing our ability to recognize the user), we have baked this in to the API itself.
+
+To turn on A/B Testing, simply edit the configuration (see below) to enable it and set what percentage of requests you would like to set for the control group. The control group is the set of requests where an ID5 ID will not be exposed in the `ID5.userId` variable - this variable will be set to `0` for the control group. It's important to note that the control group is request based, and not user based. In other words, from one page view to another, a user may be in or out of the control group.
+
+The configuration object for `abTesting` contains two variables:
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| enabled | boolean | `false` | Set this to `true` to turn on this feature |
+| controlGroupPct | number | `0` | Must be a number between 0 and 1 (inclusive) and is used to determine the percentage of requests that fall into the control group (and thus not exposing the ID5 ID). For example, a value of `0.20` will result in 20% of requests without an ID5 ID and 80% with an ID. |
+
 
 ### Available Methods and Variables
 

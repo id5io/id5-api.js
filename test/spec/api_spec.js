@@ -2,6 +2,7 @@ import { config } from 'src/config';
 import * as utils from 'src/utils';
 import { resetConsentData } from 'src/consentManagement';
 import { LEGACY_COOKIE_NAMES } from 'src/id5-api.js';
+import * as abTesting from 'src/abTesting';
 
 require('src/id5-api.js');
 
@@ -44,7 +45,9 @@ describe('ID5 JS API', function () {
     expiresDays: 7
   };
 
+  const TEST_CONTROL_GROUP_VALUE = 0;
   const TEST_STORED_ID5ID = 'teststoredid5id';
+  const TEST_STORED_LINK_TYPE = 1;
   const TEST_STORED_SIGNATURE = 'abcdef';
   const STORED_JSON = JSON.stringify({
     'universal_uid': TEST_STORED_ID5ID,
@@ -1631,6 +1634,98 @@ describe('ID5 JS API', function () {
 
       const nb = parseInt(utils.getFromLocalStorage(TEST_NB_STORAGE_CONFIG));
       expect(nb).to.be.equal(1);
+    });
+  });
+
+  describe('A/B Testing', function () {
+    let ajaxStub;
+    let exposeIdStub;
+
+    before(function () {
+      utils.removeFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG);
+      utils.removeFromLocalStorage(TEST_LAST_STORAGE_CONFIG);
+      ID5.userId = undefined;
+    });
+    beforeEach(function () {
+      ajaxStub = sinon.stub(utils, 'ajax').callsFake(function(url, callbacks, data, options) {
+        callbacks.success(JSON_RESPONSE);
+      });
+    });
+    afterEach(function () {
+      config.resetConfig();
+      ajaxStub.restore();
+      exposeIdStub.restore();
+      utils.removeFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG);
+      utils.removeFromLocalStorage(TEST_LAST_STORAGE_CONFIG);
+      ID5.userId = undefined;
+    });
+
+    describe('Not in Control Group', function() {
+      let apiConfig = {
+        partnerId: TEST_ID5_PARTNER_ID,
+        allowID5WithoutConsentApi: true,
+        abTesting: { enabled: true, controlGroupPct: 0.5 } // config not relevant with the stub
+      };
+
+      beforeEach(function () {
+        exposeIdStub = sinon.stub(abTesting, 'exposeId').callsFake(function() {
+          return true;
+        });
+      });
+
+      it('should expose ID5.userId from a server response', function () {
+        ID5.init(apiConfig);
+
+        sinon.assert.calledOnce(ajaxStub);
+        expect(ID5.userId).to.be.equal(TEST_RESPONSE_ID5ID);
+        expect(ID5.linkType).to.be.equal(TEST_RESPONSE_LINK_TYPE);
+        expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(JSON_RESPONSE);
+      });
+
+      it('should expose ID5.userId from a stored response', function () {
+        utils.setInLocalStorage(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON);
+        utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, Date.now());
+
+        ID5.init(apiConfig);
+
+        sinon.assert.notCalled(ajaxStub);
+        expect(ID5.userId).to.be.equal(TEST_STORED_ID5ID);
+        expect(ID5.linkType).to.be.equal(TEST_STORED_LINK_TYPE);
+      });
+    });
+
+    describe('In Control Group', function() {
+      let apiConfig = {
+        partnerId: TEST_ID5_PARTNER_ID,
+        allowID5WithoutConsentApi: true,
+        abTesting: { enabled: true, controlGroupPct: 0.5 } // config not relevant with the stub
+      };
+
+      beforeEach(function () {
+        exposeIdStub = sinon.stub(abTesting, 'exposeId').callsFake(function() {
+          return false;
+        });
+      });
+
+      it('should not expose ID5.userId from a server response', function () {
+        ID5.init(apiConfig);
+
+        sinon.assert.calledOnce(ajaxStub);
+        expect(ID5.userId).to.be.equal(TEST_CONTROL_GROUP_VALUE);
+        expect(ID5.linkType).to.be.equal(TEST_CONTROL_GROUP_VALUE);
+        expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(JSON_RESPONSE);
+      });
+
+      it('should not expose ID5.userId from a stored response', function () {
+        utils.setInLocalStorage(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON);
+        utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, Date.now());
+
+        ID5.init(apiConfig);
+
+        sinon.assert.notCalled(ajaxStub);
+        expect(ID5.userId).to.be.equal(TEST_CONTROL_GROUP_VALUE);
+        expect(ID5.linkType).to.be.equal(TEST_CONTROL_GROUP_VALUE);
+      });
     });
   });
 });

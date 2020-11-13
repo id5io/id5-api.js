@@ -5,6 +5,7 @@ import { config } from './config';
 import * as utils from './utils';
 import * as consent from './consentManagement';
 import { getRefererInfo } from './refererDetection';
+import * as abTesting from './abTesting';
 
 const ID5_STORAGE_CONFIG = {
   name: 'id5id',
@@ -84,6 +85,7 @@ ID5.refreshId = function (forceFetch = false, options = {}) {
 ID5.getId = function(options, forceFetch = false) {
   ID5.config = config.setConfig(options);
   ID5.callbackFired = false;
+  abTesting.init();
 
   const referer = getRefererInfo();
   utils.logInfo(`ID5 detected referer is ${referer.referer}`);
@@ -115,10 +117,15 @@ ID5.getId = function(options, forceFetch = false) {
   removeLegacyCookies(this.config.partnerId);
 
   if (storedResponse && !pdHasChanged) {
-    if (storedResponse.universal_uid) {
+    if (storedResponse.universal_uid && abTesting.exposeId()) {
       ID5.userId = storedResponse.universal_uid;
       ID5.linkType = storedResponse.link_type || 0;
+    } else if (storedResponse.universal_uid) {
+      // we're in A/B testing and this is the control group, so do
+      // not set a userId or linkType
+      ID5.userId = ID5.linkType = 0;
     }
+
     // TODO move inside isLocalStorageAllowed() check
     nb = incrementNb(this.config.partnerId, nb);
     idSetFromStoredResponse = true;
@@ -185,7 +192,15 @@ ID5.getId = function(options, forceFetch = false) {
               try {
                 responseObj = JSON.parse(response);
                 if (responseObj.universal_uid) {
-                  ID5.userId = responseObj.universal_uid;
+                  if (abTesting.exposeId()) {
+                    ID5.userId = responseObj.universal_uid;
+                    ID5.linkType = responseObj.link_type || 0
+                  } else {
+                    // we're in A/B testing and this is the control group, so do
+                    // not set a userId or linkType
+                    ID5.userId = ID5.linkType = 0;
+                  }
+
                   utils.setInLocalStorage(ID5_STORAGE_CONFIG, response);
                   utils.setInLocalStorage(LAST_STORAGE_CONFIG, Date.now());
                   utils.setInLocalStorage(nbCacheConfig(this.config.partnerId), (idSetFromStoredResponse ? 0 : 1));
