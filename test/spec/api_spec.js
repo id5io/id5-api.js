@@ -1694,10 +1694,19 @@ describe('ID5 JS API', function () {
     afterEach(function () {
       config.resetConfig();
       ajaxStub.restore();
-      exposeIdStub.restore();
       utils.removeFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG);
       utils.removeFromLocalStorage(TEST_LAST_STORAGE_CONFIG);
       ID5.userId = undefined;
+    });
+
+    describe('Function Availability', function() {
+      it('should have function ID5.exposeId', function() {
+        expect(ID5.exposeId).to.be.a('function');
+      });
+
+      it('should set exposeId to true without any config', function() {
+        expect(ID5.exposeId()).to.be.true;
+      });
     });
 
     describe('Not in Control Group', function() {
@@ -1712,6 +1721,9 @@ describe('ID5 JS API', function () {
           return true;
         });
       });
+      afterEach(function () {
+        exposeIdStub.restore();
+      });
 
       it('should expose ID5.userId from a server response', function () {
         ID5.init(apiConfig);
@@ -1720,6 +1732,7 @@ describe('ID5 JS API', function () {
         expect(ID5.userId).to.be.equal(TEST_RESPONSE_ID5ID);
         expect(ID5.linkType).to.be.equal(TEST_RESPONSE_LINK_TYPE);
         expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(JSON_RESPONSE);
+        expect(ID5.exposeId()).to.be.true;
       });
 
       it('should expose ID5.userId from a stored response', function () {
@@ -1731,6 +1744,7 @@ describe('ID5 JS API', function () {
         sinon.assert.notCalled(ajaxStub);
         expect(ID5.userId).to.be.equal(TEST_STORED_ID5ID);
         expect(ID5.linkType).to.be.equal(TEST_STORED_LINK_TYPE);
+        expect(ID5.exposeId()).to.be.true;
       });
     });
 
@@ -1746,6 +1760,9 @@ describe('ID5 JS API', function () {
           return false;
         });
       });
+      afterEach(function () {
+        exposeIdStub.restore();
+      });
 
       it('should not expose ID5.userId from a server response', function () {
         ID5.init(apiConfig);
@@ -1754,6 +1771,7 @@ describe('ID5 JS API', function () {
         expect(ID5.userId).to.be.equal(TEST_CONTROL_GROUP_VALUE);
         expect(ID5.linkType).to.be.equal(TEST_CONTROL_GROUP_VALUE);
         expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(JSON_RESPONSE);
+        expect(ID5.exposeId()).to.be.false;
       });
 
       it('should not expose ID5.userId from a stored response', function () {
@@ -1765,6 +1783,7 @@ describe('ID5 JS API', function () {
         sinon.assert.notCalled(ajaxStub);
         expect(ID5.userId).to.be.equal(TEST_CONTROL_GROUP_VALUE);
         expect(ID5.linkType).to.be.equal(TEST_CONTROL_GROUP_VALUE);
+        expect(ID5.exposeId()).to.be.false;
       });
     });
   });

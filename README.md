@@ -257,6 +257,7 @@ The configuration object for `abTesting` contains two variables:
 | ID5.getConfig() | method | object | Returns the entire current configuration object |
 | ID5.getProvidedConfig() | method | object | Returns only the specific configuration settings made via `init()` or `setConfig()` |
 | ID5.setConfig({}) | method | object | Adds additional configurations to the current configuration object, and returns the updated configuration object |
+| ID5.exposeId() | method | boolean | Applicable when [A/B Testing](#ab-testing) is turned on; when this method returns `true`, the request was not in the control group and `ID5.userId` is populated with the ID5 ID; when `false`, the request was considered as part of the control group and `ID5.userId` will be `0`. This method can be used to inform your reporting systems that an ID was available or not, instead of relying on the value of `ID5.userId` directly. |
 
 ### Examples
 

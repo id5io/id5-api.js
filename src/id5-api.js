@@ -55,6 +55,7 @@ ID5.init = function (options) {
     ID5.getConfig = config.getConfig;
     ID5.getProvidedConfig = config.getProvidedConfig;
     ID5.setConfig = config.setConfig;
+    ID5.exposeId = abTesting.exposeId;
 
     this.getId(options, false);
   } catch (e) {
