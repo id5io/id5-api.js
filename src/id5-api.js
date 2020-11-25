@@ -153,14 +153,16 @@ ID5.getId = function(options, forceFetch = false) {
         pdHasChanged ||
         forceFetch
       ) {
+        const url = `https://id5-sync.com/g/v2/${this.config.partnerId}.json`;
         const gdprApplies = (consentData && consentData.gdprApplies) ? 1 : 0;
         const gdprConsentString = (consentData && consentData.gdprApplies) ? consentData.consentString : '';
-        const url = `https://id5-sync.com/g/v2/${this.config.partnerId}.json?gdpr_consent=${gdprConsentString}&gdpr=${gdprApplies}`;
         const signature = (storedResponse && storedResponse.signature) ? storedResponse.signature : '';
         const data = {
           'partner': this.config.partnerId,
           'v': ID5.version,
           'o': 'api',
+          'gdpr': gdprApplies,
+          'gdpr_consent': gdprConsentString,
           'rf': referer.referer,
           'u': referer.stack[0] || window.location.href,
           'top': referer.reachedTop ? 1 : 0,

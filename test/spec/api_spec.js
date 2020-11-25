@@ -223,6 +223,8 @@ describe('ID5 JS API', function () {
         expect(requestData.rf).to.include('http://localhost');
         expect(requestData.top).to.be.equal(1);
         expect(requestData.tpids).to.be.undefined;
+        expect(requestData.gdpr).to.exist;
+        expect(requestData.gdpr_consent).to.exist;
 
         expect(ID5.userId).to.be.equal(TEST_RESPONSE_ID5ID);
         expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(JSON_RESPONSE);
