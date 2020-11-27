@@ -188,6 +188,7 @@ ID5.getId = function(options, forceFetch = false) {
                 responseObj = JSON.parse(response);
                 if (responseObj.universal_uid) {
                   ID5.userId = responseObj.universal_uid;
+                  ID5.linkType = responseObj.link_type;
                   utils.setInLocalStorage(ID5_STORAGE_CONFIG, response);
                   utils.setInLocalStorage(LAST_STORAGE_CONFIG, Date.now());
                   utils.setInLocalStorage(nbCacheConfig(this.config.partnerId), (idSetFromStoredResponse ? 0 : 1));
