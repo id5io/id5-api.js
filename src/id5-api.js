@@ -123,6 +123,7 @@ ID5.getId = function(options, forceFetch = false) {
     nb = incrementNb(this.config.partnerId, nb);
     idSetFromStoredResponse = true;
     if (ID5.userId) {
+      ID5.fromCache = true;
       this.fireCallBack();
     }
     utils.logInfo('ID5 User ID available from cache:', { storedResponse, storedDateTime, refreshNeeded: refreshInSecondsHasElapsed });
@@ -181,14 +182,15 @@ ID5.getId = function(options, forceFetch = false) {
         }
         utils.ajax(url, {
           success: response => {
-            utils.logInfo('Response from ID5 received:', response);
             let responseObj;
             if (response) {
               try {
                 responseObj = JSON.parse(response);
+                utils.logInfo('Response from ID5 received:', responseObj);
                 if (responseObj.universal_uid) {
                   ID5.userId = responseObj.universal_uid;
                   ID5.linkType = responseObj.link_type;
+                  ID5.fromCache = false;
                   utils.setInLocalStorage(ID5_STORAGE_CONFIG, response);
                   utils.setInLocalStorage(LAST_STORAGE_CONFIG, Date.now());
                   utils.setInLocalStorage(nbCacheConfig(this.config.partnerId), (idSetFromStoredResponse ? 0 : 1));
@@ -205,6 +207,8 @@ ID5.getId = function(options, forceFetch = false) {
               } catch (error) {
                 utils.logError(error);
               }
+            } else {
+              utils.logError('Empty response from ID5 servers:', response);
             }
           },
           error: error => {

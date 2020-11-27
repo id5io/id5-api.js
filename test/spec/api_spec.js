@@ -199,6 +199,7 @@ describe('ID5 JS API', function () {
       utils.removeFromLocalStorage(TEST_LAST_STORAGE_CONFIG);
       ID5.userId = undefined;
       ID5.linkType = undefined;
+      ID5.fromCache = undefined;
     });
     beforeEach(function () {
       ajaxStub = sinon.stub(utils, 'ajax').callsFake(function(url, callbacks, data, options) {
@@ -212,6 +213,7 @@ describe('ID5 JS API', function () {
       utils.removeFromLocalStorage(TEST_LAST_STORAGE_CONFIG);
       ID5.userId = undefined;
       ID5.linkType = undefined;
+      ID5.fromCache = undefined;
     });
 
     describe('No Stored Value', function () {
@@ -236,6 +238,7 @@ describe('ID5 JS API', function () {
 
         expect(ID5.userId).to.be.equal(TEST_RESPONSE_ID5ID);
         expect(ID5.linkType).to.be.equal(TEST_RESPONSE_LINK_TYPE);
+        expect(ID5.fromCache).to.be.false;
         expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(JSON_RESPONSE);
       });
 
@@ -254,6 +257,7 @@ describe('ID5 JS API', function () {
         sinon.assert.notCalled(ajaxStub);
         expect(ID5.userId).to.be.undefined;
         expect(ID5.linkType).to.be.undefined;
+        expect(ID5.fromCache).to.be.undefined;
       });
 
       describe('tpids', function () {
@@ -324,6 +328,7 @@ describe('ID5 JS API', function () {
         sinon.assert.notCalled(ajaxStub);
         expect(ID5.userId).to.be.equal(TEST_STORED_ID5ID);
         expect(ID5.linkType).to.be.equal(TEST_STORED_LINK_TYPE);
+        expect(ID5.fromCache).to.be.true;
       });
 
       it('should use stored value without consent', function () {
@@ -332,6 +337,7 @@ describe('ID5 JS API', function () {
         sinon.assert.notCalled(ajaxStub);
         expect(ID5.userId).to.be.equal(TEST_STORED_ID5ID);
         expect(ID5.linkType).to.be.equal(TEST_STORED_LINK_TYPE);
+        expect(ID5.fromCache).to.be.true;
       });
     });
 

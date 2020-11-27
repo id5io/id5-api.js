@@ -233,7 +233,8 @@ ID5.init({
 | Name | Type | Return Type | Description |
 | --- | --- | --- | --- |
 | ID5.userId | variable | string | The ID5 Universal ID value. If not set yet, returns `undefined` |
-| ID5.linkType | variable | integer | Indicates the type of connection ID5 has made with this ID across domains. Possible values are: `0` = ID5 has not linked this user across domains (i.e. `original_uid` == `universal_uid`); `1` = ID5 has made a probabilistic link to another UID; `2` = ID5 has made a deterministic link to another UID |
+| ID5.linkType | variable | integer | Indicates the type of connection ID5 has made with this ID across domains. Possible values are: `0` = ID5 has not linked this user across domains (i.e. `original_uid` == `universal_uid`); `1` = ID5 has made a probabilistic link to another UID; `2` = ID5 has made a deterministic link to another UID. If `ID5.userId` is not set yet, returns `undefined` |
+| ID5.fromCache| variable | boolean | Indicates whether the `ID5.userId` value is from cache (when set to `true`) or from a server response (when set to `false`). If `ID5.userId` is not set yet, returns `undefined` |
 | ID5.loaded | variable | boolean | This variable will be set to `true` once the API is loaded and ready for use |
 | ID5.initialized | variable | boolean | This variable will be set to `true` once the `init()` method has been called; `false` before |
 | ID5.callbackFired | variable | boolean | This variable will be set to `true` once the `callback` function has been scheduled, if applicable; `false` before and if no `callback` is defined |
