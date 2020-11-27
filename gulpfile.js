@@ -124,7 +124,11 @@ function makeWebpackPkg() {
 // If --watch is given, the task will re-run unit tests whenever the source code changes
 // If --file "<path-to-test-file>" is given, the task will only run tests in the specified file.
 function test(done) {
-  new KarmaServer(karmaConfMaker(false, argv.watch, argv.file), karmaCallback(done)).start();
+  if (argv.notest) {
+    done();
+  } else {
+    new KarmaServer(karmaConfMaker(false, argv.watch, argv.file), karmaCallback(done)).start();
+  }
 }
 
 function karmaCallback(done) {
