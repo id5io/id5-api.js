@@ -131,6 +131,7 @@ ID5.getId = function(options, forceFetch = false) {
     nb = incrementNb(this.config.partnerId, nb);
     idSetFromStoredResponse = true;
     if (ID5.userId) {
+      ID5.fromCache = true;
       this.fireCallBack();
     }
     utils.logInfo('ID5 User ID available from cache:', { storedResponse, storedDateTime, refreshNeeded: refreshInSecondsHasElapsed });
@@ -161,14 +162,16 @@ ID5.getId = function(options, forceFetch = false) {
         pdHasChanged ||
         forceFetch
       ) {
+        const url = `https://id5-sync.com/g/v2/${this.config.partnerId}.json`;
         const gdprApplies = (consentData && consentData.gdprApplies) ? 1 : 0;
         const gdprConsentString = (consentData && consentData.gdprApplies) ? consentData.consentString : '';
-        const url = `https://id5-sync.com/g/v2/${this.config.partnerId}.json?gdpr_consent=${gdprConsentString}&gdpr=${gdprApplies}`;
         const signature = (storedResponse && storedResponse.signature) ? storedResponse.signature : '';
         const data = {
           'partner': this.config.partnerId,
           'v': ID5.version,
           'o': 'api',
+          'gdpr': gdprApplies,
+          'gdpr_consent': gdprConsentString,
           'rf': referer.referer,
           'u': referer.stack[0] || window.location.href,
           'top': referer.reachedTop ? 1 : 0,
@@ -187,11 +190,11 @@ ID5.getId = function(options, forceFetch = false) {
         }
         utils.ajax(url, {
           success: response => {
-            utils.logInfo('Response from ID5 received:', response);
             let responseObj;
             if (response) {
               try {
                 responseObj = JSON.parse(response);
+                utils.logInfo('Response from ID5 received:', responseObj);
                 if (responseObj.universal_uid) {
                   if (abTesting.exposeId()) {
                     ID5.userId = responseObj.universal_uid;
@@ -201,7 +204,7 @@ ID5.getId = function(options, forceFetch = false) {
                     // not set a userId or linkType
                     ID5.userId = ID5.linkType = 0;
                   }
-
+                  ID5.fromCache = false;
                   utils.setInLocalStorage(ID5_STORAGE_CONFIG, response);
                   utils.setInLocalStorage(LAST_STORAGE_CONFIG, Date.now());
                   utils.setInLocalStorage(nbCacheConfig(this.config.partnerId), (idSetFromStoredResponse ? 0 : 1));
@@ -218,6 +221,8 @@ ID5.getId = function(options, forceFetch = false) {
               } catch (error) {
                 utils.logError(error);
               }
+            } else {
+              utils.logError('Empty response from ID5 servers:', response);
             }
           },
           error: error => {
