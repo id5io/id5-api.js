@@ -5,6 +5,7 @@ import { config } from './config';
 import * as utils from './utils';
 import * as consent from './consentManagement';
 import { getRefererInfo } from './refererDetection';
+import * as abTesting from './abTesting';
 
 const ID5_STORAGE_CONFIG = {
   name: 'id5id',
@@ -54,6 +55,7 @@ ID5.init = function (options) {
     ID5.getConfig = config.getConfig;
     ID5.getProvidedConfig = config.getProvidedConfig;
     ID5.setConfig = config.setConfig;
+    ID5.exposeId = abTesting.exposeId;
 
     this.getId(options, false);
   } catch (e) {
@@ -84,6 +86,7 @@ ID5.refreshId = function (forceFetch = false, options = {}) {
 ID5.getId = function(options, forceFetch = false) {
   ID5.config = config.setConfig(options);
   ID5.callbackFired = false;
+  abTesting.init();
 
   const referer = getRefererInfo();
   utils.logInfo(`ID5 detected referer is ${referer.referer}`);
@@ -115,10 +118,15 @@ ID5.getId = function(options, forceFetch = false) {
   removeLegacyCookies(this.config.partnerId);
 
   if (storedResponse && !pdHasChanged) {
-    if (storedResponse.universal_uid) {
+    if (storedResponse.universal_uid && abTesting.exposeId()) {
       ID5.userId = storedResponse.universal_uid;
       ID5.linkType = storedResponse.link_type || 0;
+    } else if (storedResponse.universal_uid) {
+      // we're in A/B testing and this is the control group, so do
+      // not set a userId or linkType
+      ID5.userId = ID5.linkType = 0;
     }
+
     // TODO move inside isLocalStorageAllowed() check
     nb = incrementNb(this.config.partnerId, nb);
     idSetFromStoredResponse = true;
@@ -188,8 +196,14 @@ ID5.getId = function(options, forceFetch = false) {
                 responseObj = JSON.parse(response);
                 utils.logInfo('Response from ID5 received:', responseObj);
                 if (responseObj.universal_uid) {
-                  ID5.userId = responseObj.universal_uid;
-                  ID5.linkType = responseObj.link_type;
+                  if (abTesting.exposeId()) {
+                    ID5.userId = responseObj.universal_uid;
+                    ID5.linkType = responseObj.link_type || 0
+                  } else {
+                    // we're in A/B testing and this is the control group, so do
+                    // not set a userId or linkType
+                    ID5.userId = ID5.linkType = 0;
+                  }
                   ID5.fromCache = false;
                   utils.setInLocalStorage(ID5_STORAGE_CONFIG, response);
                   utils.setInLocalStorage(LAST_STORAGE_CONFIG, Date.now());

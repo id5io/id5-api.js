@@ -19,6 +19,7 @@ const utils = require('./utils');
  * @property {(number|undefined)} callbackTimeoutInMs - Delay in ms after which the callback is guaranteed to be fired. A User ID may not yet be available at this time.
  * @property {(string)} pd - Publisher data that can be passed to help with cross-domain reconciliation of the ID5 ID, more details here: https://wiki.id5.io/x/BIAZ
  * @property {(array|undefined)} tpids - An array of third party IDs that can be passed to usersync with ID5. Contact your ID5 representative to enable this
+ * @property {(object|undefined)} abTesting - An object defining if and how A/B testing should be enabled
  */
 
 export function newConfig() {
@@ -43,7 +44,8 @@ export function newConfig() {
     callback: 'Function',
     callbackTimeoutInMs: 'Number',
     pd: 'String',
-    tpids: 'Array'
+    tpids: 'Array',
+    abTesting: 'Object'
   };
 
   function resetConfig() {
@@ -64,7 +66,11 @@ export function newConfig() {
       callback: undefined,
       callbackTimeoutInMs: undefined,
       pd: '',
-      tpids: undefined
+      tpids: undefined,
+      abTesting: {
+        enabled: false,
+        controlGroupPct: 0
+      }
     };
     providedConfig = {};
   }
