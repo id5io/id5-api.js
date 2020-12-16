@@ -915,7 +915,7 @@ describe('ID5 JS API', function () {
     const SHORT_CALLBACK_TIMEOUT_MS = 10;
     // arbitrary timeout to test the ID later in the call process after any ajax calls
     // or other async activities
-    const LONG_TIMEOUT = 50;
+    const LONG_TIMEOUT = 100;
 
     let ajaxStub;
 
@@ -944,6 +944,10 @@ describe('ID5 JS API', function () {
 
       beforeEach(function () {
         callbackSpy = sinon.spy();
+      });
+
+      afterEach(function() {
+        callbackSpy.resetHistory();
       });
 
       describe('Check callbackFired', function () {
