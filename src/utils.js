@@ -235,16 +235,16 @@ export function getItemFromLocalStorage(key) {
     return window.localStorage.getItem(key);
   }
 }
-export function getFromLocalStorage(config) {
-  const storedValueExp = window.localStorage.getItem(`${config.name}_exp`);
+export function getFromLocalStorage(storageConfig) {
+  const storedValueExp = window.localStorage.getItem(`${storageConfig.name}_exp`);
   if (storedValueExp && (new Date(storedValueExp)).getTime() - Date.now() > 0) {
     // result is not expired, so it can be retrieved
-    return getItemFromLocalStorage(config.name);
+    return getItemFromLocalStorage(storageConfig.name);
   }
 
   // if we got here, then we have an expired item, so we need to remove the item
   // from the local storage
-  removeFromLocalStorage(config);
+  removeFromLocalStorage(storageConfig);
 
   return null;
 }
@@ -254,11 +254,11 @@ export function setItemInLocalStorage(key, value) {
     window.localStorage.setItem(key, value);
   }
 }
-export function setInLocalStorage(config, value) {
+export function setInLocalStorage(storageConfig, value) {
   // always set an expiration
-  const expiresStr = (new Date(Date.now() + (config.expiresDays * (60 * 60 * 24 * 1000)))).toUTCString();
-  setItemInLocalStorage(`${config.name}_exp`, expiresStr);
-  setItemInLocalStorage(`${config.name}`, value);
+  const expiresStr = (new Date(Date.now() + (storageConfig.expiresDays * (60 * 60 * 24 * 1000)))).toUTCString();
+  setItemInLocalStorage(`${storageConfig.name}_exp`, expiresStr);
+  setItemInLocalStorage(`${storageConfig.name}`, value);
 }
 
 export function removeItemFromLocalStorage(key) {
@@ -266,9 +266,9 @@ export function removeItemFromLocalStorage(key) {
     window.localStorage.removeItem(key);
   }
 }
-export function removeFromLocalStorage(config) {
-  removeItemFromLocalStorage(`${config.name}`);
-  removeItemFromLocalStorage(`${config.name}_exp`);
+export function removeFromLocalStorage(storageConfig) {
+  removeItemFromLocalStorage(`${storageConfig.name}`);
+  removeItemFromLocalStorage(`${storageConfig.name}_exp`);
 }
 
 export function parseQS(query) {
@@ -338,7 +338,6 @@ const XHR_DONE = 4;
  * @param data mixed data
  * @param options object
  */
-
 export function ajax(url, callback, data, options = {}) {
   try {
     let x;
