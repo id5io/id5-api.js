@@ -246,9 +246,9 @@ ID5.getId = function(options, forceFetch = false) {
 
 ID5.fireCallBack = function () {
   if (!this.callbackFired && utils.isFn(this.config.callback)) {
-    this.callbackFired = true;
     utils.logInfo('Scheduling callback');
     setTimeout(() => this.config.callback(ID5), 0);
+    this.callbackFired = true;
   }
 }
 
