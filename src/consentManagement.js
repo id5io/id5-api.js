@@ -3,6 +3,7 @@ import {config} from './config';
 
 export let consentData;
 export let staticConsentData;
+export let storedPrivacyData;
 
 let cmpVersion = 0;
 
@@ -218,6 +219,7 @@ function cmpSuccess(consentObject, finalCallback) {
  */
 export function resetConsentData() {
   consentData = undefined;
+  storedPrivacyData = undefined;
 }
 
 /**
@@ -251,17 +253,11 @@ function storeConsentData(cmpConsentObject) {
  * @returns {boolean}
  */
 export function isLocalStorageAllowed() {
-  if (config.getConfig().allowID5WithoutConsentApi) {
+  if (config.getConfig().allowID5WithoutConsentApi === true) {
+    // allowID5WithoutConsentApi:true forces local storage access
     return true;
   } else if (!consentData) {
-    // if there is no CMP on page, consentData will be undefined. the publisher must tell us it's ok
-    // to access local storage via the `allowID5WithoutConsentApi` config option, otherwise we may be
-    // in violation of ePrivacy if the user is in the EU. as long as there is a cmp on page, if the user
-    // is not in a country requiring consent, consentData will be populated and will fall through
-    // one of the other branches below. if a publisher dynamically drops a cmp only for EU traffic,
-    // they should dynamically set `allowID5WithoutConsentApi: true` for non-EU traffic and
-    // `allowID5WithoutConsentApi: false` (or omit the option) for EU traffic.
-    return false;
+    return isProvisionalLocalStorageAllowed();
   } else if (typeof consentData.gdprApplies === 'boolean' && consentData.gdprApplies) {
     if (!consentData.consentString || consentData.apiVersion === 0) {
       return false;
@@ -275,4 +271,14 @@ export function isLocalStorageAllowed() {
   } else {
     return true;
   }
+}
+
+/**
+ * if there is no CMP on page, consentData will be undefined. we will check if we had stored
+ * privacy data from a previous request. if so, use that as a basis before calling our servers.
+ * if we do not have any stored privacy data, we will need to call our servers to know if we
+ * are in a jurisdiction that requires consent or not.
+ */
+export function isProvisionalLocalStorageAllowed() {
+  return false;
 }

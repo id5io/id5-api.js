@@ -2,35 +2,36 @@
 
 import { getGlobal } from './id5-apiGlobal';
 import { config } from './config';
+import CONSTANTS from 'src/constants.json';
 import * as utils from './utils';
 import * as consent from './consentManagement';
 import { getRefererInfo } from './refererDetection';
 import * as abTesting from './abTesting';
 
-const ID5_STORAGE_CONFIG = {
-  name: 'id5id',
-  expiresDays: 90
-};
-const LAST_STORAGE_CONFIG = {
-  name: 'id5id_last',
-  expiresDays: 90
-};
-const CONSENT_DATA_STORAGE_CONFIG = {
-  name: 'id5id_cached_consent_data',
-  expiresDays: 30
-};
-const PD_STORAGE_CONFIG = {
-  name: 'id5id_cached_pd',
-  expiresDays: 30
-};
-const FS_STORAGE_CONFIG = {
-  name: 'id5id_fs',
-  expiresDays: 7
-};
+// const ID5_STORAGE_CONFIG = {
+//   name: 'id5id',
+//   expiresDays: 90
+// };
+// const LAST_STORAGE_CONFIG = {
+//   name: 'id5id_last',
+//   expiresDays: 90
+// };
+// const CONSENT_DATA_STORAGE_CONFIG = {
+//   name: 'id5id_cached_consent_data',
+//   expiresDays: 30
+// };
+// const PD_STORAGE_CONFIG = {
+//   name: 'id5id_cached_pd',
+//   expiresDays: 30
+// };
+// const FS_STORAGE_CONFIG = {
+//   name: 'id5id_fs',
+//   expiresDays: 7
+// };
 
 // order the legacy cookie names in reverse priority order so the last
 // cookie in the array is the most preferred to use
-export const LEGACY_COOKIE_NAMES = [ 'id5.1st', 'id5id.1st' ];
+// export const CONSTANTS.LEGACY_COOKIE_NAMES = [ 'id5.1st', 'id5id.1st' ];
 
 export const ID5 = getGlobal();
 
@@ -74,6 +75,7 @@ ID5.refreshId = function (forceFetch = false, options = {}) {
     if (!utils.isBoolean(forceFetch)) {
       throw new Error('Invalid signature for ID5.refreshID: first parameter must be a boolean');
     }
+
     // consent may have changed, so we need to check it again
     consent.resetConsentData();
 
@@ -95,17 +97,17 @@ ID5.getId = function(options, forceFetch = false) {
     throw new Error('partnerId is required and must be a number');
   }
 
-  const storedResponse = JSON.parse(utils.getFromLocalStorage(ID5_STORAGE_CONFIG) || getFromLegacyCookie());
-  const storedDateTime = (new Date(+utils.getFromLocalStorage(LAST_STORAGE_CONFIG))).getTime();
+  // pick up data from local storage, if access is allowed and the data exists
+  const storedResponse = getStoredResponse();
+  const storedDateTime = getStoredDateTime();
   const refreshInSecondsHasElapsed = storedDateTime <= 0 || ((Date.now() - storedDateTime) > (this.config.refreshInSeconds * 1000));
-  let nb = getNbFromCache(this.config.partnerId);
-  let idSetFromStoredResponse = false;
+  let nb = getStoredNb(this.config.partnerId);
+  ID5.fromCache = false;
 
   // always save the current pd to track if it changes
+  // (will only store if local storage access is allowed)
   const pd = this.config.pd || '';
   const storedPd = getStoredPd();
-  // TODO move inside isLocalStorageAllowed() check
-  this.setStoredPd(pd);
   const pdHasChanged = !storedPdMatchesPd(storedPd, pd);
 
   // Callback watchdogs
@@ -118,6 +120,9 @@ ID5.getId = function(options, forceFetch = false) {
   removeLegacyCookies(this.config.partnerId);
 
   if (storedResponse && !pdHasChanged) {
+    // we have a valid stored response and pd is not different, so
+    // use the stored response to make the ID available right away
+
     if (storedResponse.universal_uid && abTesting.exposeId()) {
       ID5.userId = storedResponse.universal_uid;
       ID5.linkType = storedResponse.link_type || 0;
@@ -127,13 +132,13 @@ ID5.getId = function(options, forceFetch = false) {
       ID5.userId = ID5.linkType = 0;
     }
 
-    // TODO move inside isLocalStorageAllowed() check
     nb = incrementNb(this.config.partnerId, nb);
-    idSetFromStoredResponse = true;
+    ID5.fromCache = true;
     if (ID5.userId) {
-      ID5.fromCache = true;
       this.fireCallBack();
     }
+
+
     utils.logInfo('ID5 User ID available from cache:', { storedResponse, storedDateTime, refreshNeeded: refreshInSecondsHasElapsed });
   } else if (storedResponse && pdHasChanged) {
     utils.logInfo('PD value has changed, so ignoring User ID from cache');
@@ -142,19 +147,20 @@ ID5.getId = function(options, forceFetch = false) {
   }
 
   consent.requestConsent((consentData) => {
-    // TODO move inside isLocalStorageAllowed()
-    // always save the current consent data to track if it changes
-    const storedConsentData = getStoredConsentData();
-    this.setStoredConsentData(consentData);
-
     if (consent.isLocalStorageAllowed()) {
       utils.logInfo('Consent to access local storage and cookies is given');
+
+      // store hashed consent data and pd for future page loads
+      const storedConsentData = getStoredConsentData();
+      this.setStoredConsentData(consentData);
+      this.setStoredPd(pd);
 
       // make a call to fetch a new ID5 ID if:
       // - there is no valid universal_uid or no signature in cache
       // - the last refresh was longer than refreshInSeconds ago
       // - consent has changed since the last ID was fetched
       // - pd has changed since the last ID was fetched
+      // - fetch is being forced (e.g. by refreshId())
       if (
         !storedResponse || !storedResponse.universal_uid || !storedResponse.signature ||
         refreshInSecondsHasElapsed ||
@@ -204,10 +210,12 @@ ID5.getId = function(options, forceFetch = false) {
                     // not set a userId or linkType
                     ID5.userId = ID5.linkType = 0;
                   }
+                  setStoredResponse(response);
+                  setStoredDateTime(Date.now());
+                  setStoredNb(this.config.partnerId, (ID5.fromCache ? 0 : 1));
+                  setStoredPrivacy(response.privacy);
                   ID5.fromCache = false;
-                  utils.setInLocalStorage(ID5_STORAGE_CONFIG, response);
-                  utils.setInLocalStorage(LAST_STORAGE_CONFIG, Date.now());
-                  utils.setInLocalStorage(nbCacheConfig(this.config.partnerId), (idSetFromStoredResponse ? 0 : 1));
+
                   if (responseObj.cascade_needed === true) {
                     const isSync = this.config.partnerUserId && this.config.partnerUserId.length > 0;
                     const syncUrl = `https://id5-sync.com/${isSync ? 's' : 'i'}/${this.config.partnerId}/8.gif?id5id=${ID5.userId}&fs=${forceSync()}&o=api&${isSync ? 'puid=' + this.config.partnerUserId + '&' : ''}gdpr_consent=${gdprConsentString}&gdpr=${gdprApplies}`;
@@ -246,17 +254,20 @@ ID5.fireCallBack = function () {
 
 function nbCacheConfig(partnerId) {
   return {
-    name: `${ID5_STORAGE_CONFIG.name}_${partnerId}_nb`,
-    expiresDays: ID5_STORAGE_CONFIG.expiresDays
+    name: `${CONSTANTS.STORAGE_CONFIG.ID5.name}_${partnerId}_nb`,
+    expiresDays: CONSTANTS.STORAGE_CONFIG.ID5.expiresDays
   }
 }
-function getNbFromCache(partnerId) {
-  const cachedNb = utils.getFromLocalStorage(nbCacheConfig(partnerId));
+function getStoredNb(partnerId) {
+  const cachedNb = getStored(nbCacheConfig(partnerId));
   return (cachedNb) ? parseInt(cachedNb) : 0;
+}
+function setStoredNb(partnerId, nb) {
+  setStored(nbCacheConfig(partnerId), nb);
 }
 function incrementNb(partnerId, nb) {
   nb++;
-  utils.setInLocalStorage(nbCacheConfig(partnerId), nb);
+  setStoredNb(partnerId, nb);
   return nb;
 }
 
@@ -303,12 +314,22 @@ function setStored(cacheConfig, data) {
   } catch (error) {
     utils.logError(error);
   }
-};
+}
+
 ID5.setStoredConsentData = function (consentData) {
-  setStored(CONSENT_DATA_STORAGE_CONFIG, makeStoredConsentDataHash(consentData));
+  setStored(CONSTANTS.STORAGE_CONFIG.CONSENT_DATA, makeStoredConsentDataHash(consentData));
 }
 ID5.setStoredPd = function (pd) {
-  setStored(PD_STORAGE_CONFIG, makeStoredPdHash(pd));
+  setStored(CONSTANTS.STORAGE_CONFIG.PD, makeStoredPdHash(pd));
+}
+function setStoredResponse(response) {
+  setStored(CONSTANTS.STORAGE_CONFIG.ID5, response);
+}
+function setStoredDateTime(timestamp) {
+  setStored(CONSTANTS.STORAGE_CONFIG.LAST, timestamp);
+}
+function setStoredPrivacy(privacy) {
+  setStored(CONSTANTS.STORAGE_CONFIG.PRIVACY, JSON.stringify(privacy));
 }
 
 /**
@@ -344,24 +365,31 @@ function getStored(cacheConfig) {
     utils.logError(e);
   }
 }
+
 function getStoredConsentData() {
-  return getStored(CONSENT_DATA_STORAGE_CONFIG);
+  return getStored(CONSTANTS.STORAGE_CONFIG.CONSENT_DATA);
 }
 function getStoredPd() {
-  return getStored(PD_STORAGE_CONFIG);
+  return getStored(CONSTANTS.STORAGE_CONFIG.PD);
+}
+function getStoredResponse() {
+  return JSON.parse(getStored(CONSTANTS.STORAGE_CONFIG.ID5) || getFromLegacyCookie());
+}
+function getStoredDateTime() {
+  return (new Date(+getStored(CONSTANTS.STORAGE_CONFIG.LAST))).getTime()
 }
 
 function handleDeferPixelFireCallback() {
-  setStored(FS_STORAGE_CONFIG, 0);
+  setStored(CONSTANTS.STORAGE_CONFIG.FS, 0);
 }
 function forceSync() {
-  const cachedFs = getStored(FS_STORAGE_CONFIG);
+  const cachedFs = getStored(CONSTANTS.STORAGE_CONFIG.FS);
   return (cachedFs) ? parseInt(cachedFs) : 1;
 }
 
 function getFromLegacyCookie() {
   let legacyStoredValue;
-  LEGACY_COOKIE_NAMES.forEach(function(cookie) {
+  CONSTANTS.LEGACY_COOKIE_NAMES.forEach(function(cookie) {
     if (utils.getCookie(cookie)) {
       legacyStoredValue = utils.getCookie(cookie);
     }
@@ -371,7 +399,7 @@ function getFromLegacyCookie() {
 
 function removeLegacyCookies(partnerId) {
   const expired = (new Date(Date.now() - 1000)).toUTCString();
-  LEGACY_COOKIE_NAMES.forEach(function(cookie) {
+  CONSTANTS.LEGACY_COOKIE_NAMES.forEach(function(cookie) {
     utils.setCookie(`${cookie}`, '', expired);
     utils.setCookie(`${cookie}_nb`, '', expired);
     utils.setCookie(`${cookie}_${partnerId}_nb`, '', expired);

@@ -1,7 +1,7 @@
 import { config } from 'src/config';
+import CONSTANTS from 'src/constants.json';
 import * as utils from 'src/utils';
 import { resetConsentData } from 'src/consentManagement';
-import { LEGACY_COOKIE_NAMES } from 'src/id5-api.js';
 import * as abTesting from 'src/abTesting';
 
 require('src/id5-api.js');
@@ -259,7 +259,7 @@ describe('ID5 JS API', function () {
         sinon.assert.notCalled(ajaxStub);
         expect(ID5.userId).to.be.undefined;
         expect(ID5.linkType).to.be.undefined;
-        expect(ID5.fromCache).to.be.undefined;
+        expect(ID5.fromCache).to.be.false;
       });
 
       describe('tpids', function () {
@@ -644,7 +644,7 @@ describe('ID5 JS API', function () {
       });
 
       it('removes legacy cookies', function () {
-        LEGACY_COOKIE_NAMES.forEach(function(cookie) {
+        CONSTANTS.LEGACY_COOKIE_NAMES.forEach(function(cookie) {
           utils.setCookie(`${cookie}`, JSON.stringify({'universal_uid': 'legacycookieuid', 'signature': 'legacycookiesignature'}), expStrFuture);
           utils.setCookie(`${cookie}_nb`, 1, expStrFuture);
           utils.setCookie(`${cookie}_${TEST_ID5_PARTNER_ID}_nb`, 2, expStrFuture);
@@ -655,7 +655,7 @@ describe('ID5 JS API', function () {
 
         ID5.init({ partnerId: TEST_ID5_PARTNER_ID, allowID5WithoutConsentApi: true });
 
-        LEGACY_COOKIE_NAMES.forEach(function(cookie) {
+        CONSTANTS.LEGACY_COOKIE_NAMES.forEach(function(cookie) {
           expect(utils.getCookie(`${cookie}`)).to.be.equal(null);
           expect(utils.getCookie(`${cookie}_nb`)).to.be.equal(null);
           expect(utils.getCookie(`${cookie}_${TEST_ID5_PARTNER_ID}_nb`)).to.be.equal(null);
@@ -665,7 +665,7 @@ describe('ID5 JS API', function () {
         });
 
         // just for safety's sake, forcibly remove the cookies that should already be gone
-        LEGACY_COOKIE_NAMES.forEach(function(cookie) {
+        CONSTANTS.LEGACY_COOKIE_NAMES.forEach(function(cookie) {
           utils.setCookie(`${cookie}`, '', expStrExpired);
           utils.setCookie(`${cookie}_nb`, '', expStrExpired);
           utils.setCookie(`${cookie}_${TEST_ID5_PARTNER_ID}_nb`, '', expStrExpired);
