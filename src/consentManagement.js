@@ -1,5 +1,6 @@
 import * as utils from './utils';
 import {config} from './config';
+import CONSTANTS from 'src/constants.json';
 
 export let consentData;
 export let staticConsentData;
@@ -257,8 +258,10 @@ export function isLocalStorageAllowed() {
     // allowID5WithoutConsentApi:true forces local storage access
     return true;
   } else if (!consentData) {
+    // no cmp on page, so check if provisional acess is allowed
     return isProvisionalLocalStorageAllowed();
   } else if (typeof consentData.gdprApplies === 'boolean' && consentData.gdprApplies) {
+    // gdpr applies
     if (!consentData.consentString || consentData.apiVersion === 0) {
       return false;
     } else if (consentData.apiVersion === 1 && consentData.vendorData && consentData.vendorData.purposeConsents && consentData.vendorData.purposeConsents['1'] === false) {
@@ -269,16 +272,43 @@ export function isLocalStorageAllowed() {
       return true;
     }
   } else {
+    // we have consent data and it tells us gdpr doesn't apply
     return true;
   }
 }
 
 /**
- * if there is no CMP on page, consentData will be undefined. we will check if we had stored
- * privacy data from a previous request. if so, use that as a basis before calling our servers.
+ * if there is no CMP on page, consentData will be undefined, so we will check if we had stored
+ * privacy data from a previous request to determine if we are allowed to access local storage.
+ * if so, we use the previous authorization as a legal basis before calling our servers to confirm.
  * if we do not have any stored privacy data, we will need to call our servers to know if we
- * are in a jurisdiction that requires consent or not.
+ * are in a jurisdiction that requires consent or not before accessing local storage.
+ *
+ * if there is no stored privacy data or jurisdiction wasn't set, will return undefined so the
+ * caller can decide what to do with in that case
+ *
+ * @return bool|undefined
  */
 export function isProvisionalLocalStorageAllowed() {
-  return false;
+  if (!utils.isPlainObject(storedPrivacyData)) {
+    storedPrivacyData = JSON.parse(utils.getFromLocalStorage(CONSTANTS.STORAGE_CONFIG.PRIVACY));
+  }
+
+  if (storedPrivacyData && storedPrivacyData.id5_consent === true) {
+    return true;
+  } else if (!storedPrivacyData || typeof storedPrivacyData.jurisdiction === 'undefined') {
+    return undefined;
+  } else {
+    const jurisdictionRequiresConsent = (typeof CONSTANTS.PRIVACY.JURISDICTIONS[storedPrivacyData.jurisdiction] !== 'undefined') ? CONSTANTS.PRIVACY.JURISDICTIONS[storedPrivacyData.jurisdiction] : false;
+    return (jurisdictionRequiresConsent === false || storedPrivacyData.id5_consent === true);
+  }
+}
+
+export function setStoredPrivacy(privacy) {
+  try {
+    storedPrivacyData = privacy;
+    utils.setInLocalStorage(CONSTANTS.STORAGE_CONFIG.PRIVACY, JSON.stringify(privacy));
+  } catch (e) {
+    utils.logError(e);
+  }
 }
