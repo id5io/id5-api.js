@@ -8,31 +8,6 @@ import * as consent from './consentManagement';
 import { getRefererInfo } from './refererDetection';
 import * as abTesting from './abTesting';
 
-// const ID5_STORAGE_CONFIG = {
-//   name: 'id5id',
-//   expiresDays: 90
-// };
-// const LAST_STORAGE_CONFIG = {
-//   name: 'id5id_last',
-//   expiresDays: 90
-// };
-// const CONSENT_DATA_STORAGE_CONFIG = {
-//   name: 'id5id_cached_consent_data',
-//   expiresDays: 30
-// };
-// const PD_STORAGE_CONFIG = {
-//   name: 'id5id_cached_pd',
-//   expiresDays: 30
-// };
-// const FS_STORAGE_CONFIG = {
-//   name: 'id5id_fs',
-//   expiresDays: 7
-// };
-
-// order the legacy cookie names in reverse priority order so the last
-// cookie in the array is the most preferred to use
-// export const CONSTANTS.LEGACY_COOKIE_NAMES = [ 'id5.1st', 'id5id.1st' ];
-
 export const ID5 = getGlobal();
 
 ID5.loaded = true;
