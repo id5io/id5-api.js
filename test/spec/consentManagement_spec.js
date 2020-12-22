@@ -124,7 +124,7 @@ describe('Consent Management TCFv1', function () {
         sinon.assert.calledOnce(utils.logError);
         expect(callbackCalled).to.be.true;
         expect(consentData).to.be.undefined;
-        expect(isLocalStorageAllowed()).to.be.false;
+        expect(isLocalStorageAllowed()).to.be.undefined;
       });
 
       it('throws an error + calls callback when processCmpData check failed while config had allowID5WithoutConsentApi set to true', function () {
@@ -194,7 +194,7 @@ describe('Consent Management TCFv1', function () {
         sinon.assert.calledOnce(utils.logError);
         expect(callbackCalled).to.be.true;
         expect(consentData).to.be.undefined;
-        expect(isLocalStorageAllowed()).to.be.false;
+        expect(isLocalStorageAllowed()).to.be.undefined;
       });
 
       it('throws an error + calls callback when processCmpData check failed while config had allowID5WithoutConsentApi=true', function () {
@@ -211,7 +211,16 @@ describe('Consent Management TCFv1', function () {
   });
 });
 
-describe('consentManagementV2', function () {
+describe('Consent Management TCFv2', function () {
+  before(function() {
+    utils.removeFromLocalStorage(TEST_PRIVACY_STORAGE_CONFIG);
+    resetConsentData();
+  });
+  afterEach(function() {
+    utils.removeFromLocalStorage(TEST_PRIVACY_STORAGE_CONFIG);
+    resetConsentData();
+  });
+
   describe('requestConsent tests:', function () {
     let callbackCalled = false;
     let testConsentData = {
@@ -285,10 +294,6 @@ describe('consentManagementV2', function () {
       callbackCalled = false;
     });
 
-    afterEach(function () {
-      resetConsentData();
-    });
-
     describe('error checks:', function () {
       beforeEach(function () {
         sinon.spy(utils, 'logWarn');
@@ -298,7 +303,6 @@ describe('consentManagementV2', function () {
       afterEach(function () {
         utils.logWarn.restore();
         utils.logError.restore();
-        resetConsentData();
       });
 
       it('should throw a warning and return to callback function when an unknown CMP framework ID is used', function () {
@@ -331,7 +335,6 @@ describe('consentManagementV2', function () {
         config.resetConfig();
         utils.logError.restore();
         utils.logWarn.restore();
-        resetConsentData();
       });
 
       it('normal cmp static call, callback should be called', function () {
@@ -353,7 +356,7 @@ describe('consentManagementV2', function () {
         sinon.assert.calledOnce(utils.logError);
         expect(callbackCalled).to.be.true;
         expect(consentData).to.be.undefined;
-        expect(isLocalStorageAllowed()).to.be.false;
+        expect(isLocalStorageAllowed()).to.be.undefined;
       });
 
       it('throws an error + calls callback when processCmpData check failed while config had allowID5WithoutConsentApi set to true', function () {
@@ -383,7 +386,6 @@ describe('consentManagementV2', function () {
         utils.logError.restore();
         utils.logWarn.restore();
         delete window.__tcfapi;
-        resetConsentData();
       });
 
       it('normal first call then second call should bypass CMP and simply use previously stored consentData', function () {
@@ -423,7 +425,7 @@ describe('consentManagementV2', function () {
         sinon.assert.calledTwice(utils.logError);
         expect(callbackCalled).to.be.true;
         expect(consentData).to.be.undefined;
-        expect(isLocalStorageAllowed()).to.be.false;
+        expect(isLocalStorageAllowed()).to.be.undefined;
       });
 
       it('throws an error + calls callback when processCmpData check failed while config had allowID5WithoutConsentApi=true', function () {

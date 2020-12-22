@@ -72,7 +72,8 @@ ID5.getId = function(options, forceFetch = false) {
     throw new Error('partnerId is required and must be a number');
   }
 
-  // pick up data from local storage, if access is allowed and the data exists
+  // pick up data from local storage
+  // (will only read if local storage access is allowed)
   const storedResponse = getStoredResponse();
   const storedDateTime = getStoredDateTime();
   const refreshInSecondsHasElapsed = storedDateTime <= 0 || ((Date.now() - storedDateTime) > (this.config.refreshInSeconds * 1000));
@@ -113,7 +114,6 @@ ID5.getId = function(options, forceFetch = false) {
       this.fireCallBack();
     }
 
-
     utils.logInfo('ID5 User ID available from cache:', { storedResponse, storedDateTime, refreshNeeded: refreshInSecondsHasElapsed });
   } else if (storedResponse && pdHasChanged) {
     utils.logInfo('PD value has changed, so ignoring User ID from cache');
@@ -122,8 +122,8 @@ ID5.getId = function(options, forceFetch = false) {
   }
 
   consent.requestConsent((consentData) => {
-    if (consent.isLocalStorageAllowed()) {
-      utils.logInfo('Consent to access local storage and cookies is given');
+    if (consent.isLocalStorageAllowed() !== false) {
+      utils.logInfo('Consent to access local storage is given: ', consent.isLocalStorageAllowed());
 
       // store hashed consent data and pd for future page loads
       const storedConsentData = getStoredConsentData();
@@ -185,13 +185,22 @@ ID5.getId = function(options, forceFetch = false) {
                     // not set a userId or linkType
                     ID5.userId = ID5.linkType = 0;
                   }
-                  setStoredResponse(response);
-                  setStoredDateTime(Date.now());
-                  setStoredNb(this.config.partnerId, (ID5.fromCache ? 0 : 1));
-                  setStoredPrivacy(response.privacy);
+
+                  // privacy has to be stored first so we can use it when storing other values
+                  consent.setStoredPrivacy(responseObj.privacy);
+
+                  if (consent.isLocalStorageAllowed() === true) {
+                    setStoredResponse(response);
+                    setStoredDateTime(Date.now());
+                    setStoredNb(this.config.partnerId, (ID5.fromCache ? 0 : 1));
+                  } else {
+                    clearAllStored(this.config.partnerId);
+                  }
+
+                  // this must come after storing Nb or it will store the wrong value
                   ID5.fromCache = false;
 
-                  if (responseObj.cascade_needed === true) {
+                  if (responseObj.cascade_needed === true && consent.isLocalStorageAllowed() === true) {
                     const isSync = this.config.partnerUserId && this.config.partnerUserId.length > 0;
                     const syncUrl = `https://id5-sync.com/${isSync ? 's' : 'i'}/${this.config.partnerId}/8.gif?id5id=${ID5.userId}&fs=${forceSync()}&o=api&${isSync ? 'puid=' + this.config.partnerUserId + '&' : ''}gdpr_consent=${gdprConsentString}&gdpr=${gdprApplies}`;
                     utils.logInfo('Opportunities to cascade available:', syncUrl);
@@ -245,6 +254,9 @@ function incrementNb(partnerId, nb) {
   setStoredNb(partnerId, nb);
   return nb;
 }
+function clearStoredNb(partnerId) {
+  clearStored(nbCacheConfig(partnerId));
+}
 
 /**
  * makes an object that can be stored with only the keys we need to check.
@@ -279,15 +291,18 @@ function makeStoredPdHash(pd) {
 }
 
 /**
- * puts the current data into local storage
- * @param cacheConfig
- * @param data
+ * puts the current data into local storage, after checking for local storage access
+ * @param {object} cacheConfig
+ * @param {string} data
+ * @param {bool} always
  */
 function setStored(cacheConfig, data) {
   try {
-    utils.setInLocalStorage(cacheConfig, data);
-  } catch (error) {
-    utils.logError(error);
+    if (consent.isLocalStorageAllowed() === true) {
+      utils.setInLocalStorage(cacheConfig, data);
+    }
+  } catch (e) {
+    utils.logError(e);
   }
 }
 
@@ -302,9 +317,6 @@ function setStoredResponse(response) {
 }
 function setStoredDateTime(timestamp) {
   setStored(CONSTANTS.STORAGE_CONFIG.LAST, timestamp);
-}
-function setStoredPrivacy(privacy) {
-  setStored(CONSTANTS.STORAGE_CONFIG.PRIVACY, JSON.stringify(privacy));
 }
 
 /**
@@ -330,12 +342,16 @@ function storedPdMatchesPd(storedPd, pd) {
 }
 
 /**
- * get stored data from local storage, if any
+ * get stored data from local storage, if any, after checking
+ * if local storage is allowed
+ *
  * @returns {string}
  */
 function getStored(cacheConfig) {
   try {
-    return utils.getFromLocalStorage(cacheConfig);
+    if (consent.isLocalStorageAllowed() === true) {
+      return utils.getFromLocalStorage(cacheConfig);
+    }
   } catch (e) {
     utils.logError(e);
   }
@@ -352,6 +368,33 @@ function getStoredResponse() {
 }
 function getStoredDateTime() {
   return (new Date(+getStored(CONSTANTS.STORAGE_CONFIG.LAST))).getTime()
+}
+
+function clearStored(cacheConfig) {
+  try {
+    utils.removeFromLocalStorage(cacheConfig);
+  } catch (e) {
+    utils.logError(e);
+  }
+}
+function clearAllStored(partnerId) {
+  clearStoredResponse();
+  clearStoredDateTime();
+  clearStoredNb(partnerId);
+  clearStoredPd();
+  clearStoredConsentData();
+}
+function clearStoredPd() {
+  clearStored(CONSTANTS.STORAGE_CONFIG.PD);
+}
+function clearStoredDateTime() {
+  clearStored(CONSTANTS.STORAGE_CONFIG.LAST);
+}
+function clearStoredResponse() {
+  clearStored(CONSTANTS.STORAGE_CONFIG.ID5);
+}
+function clearStoredConsentData() {
+  clearStored(CONSTANTS.STORAGE_CONFIG.CONSENT_DATA);
 }
 
 function handleDeferPixelFireCallback() {
