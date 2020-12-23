@@ -239,6 +239,34 @@ describe('ID5 JS API', function () {
       resetAll();
     });
 
+    describe('Legacy Response from Server without Privacy Data', function () {
+      let ajaxStub;
+      let response = JSON.parse(JSON_RESPONSE_ID5_CONSENT);
+      response.privacy = undefined;
+      response = JSON.stringify(response);
+
+      beforeEach(function () {
+        ajaxStub = sinon.stub(utils, 'ajax').callsFake(function(url, callbacks, data, options) {
+          callbacks.success(response);
+        });
+      });
+      afterEach(function () {
+        ajaxStub.restore();
+      });
+
+      it('should call server and handle response without privacy data', function () {
+        ID5.init({ partnerId: TEST_ID5_PARTNER_ID, allowID5WithoutConsentApi: true });
+
+        sinon.assert.calledOnce(ajaxStub);
+        expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
+        expect(ID5.userId).to.be.equal(TEST_RESPONSE_ID5ID);
+        expect(ID5.linkType).to.be.equal(TEST_RESPONSE_LINK_TYPE);
+        expect(ID5.fromCache).to.be.false;
+        expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(response);
+        expect(utils.getFromLocalStorage(TEST_PRIVACY_STORAGE_CONFIG)).to.be.null;
+      });
+    });
+
     describe('Consent on Request and Response', function () {
       let ajaxStub;
 
@@ -1598,6 +1626,7 @@ describe('ID5 JS API', function () {
           expect(ID5.linkType).to.be.undefined;
 
           setTimeout(() => {
+            // TODO this test is flaky and fails 1 out of 5 times when running local tests with error on this line for "expected callback to not have been called but was called once"
             sinon.assert.notCalled(callbackSpy);
             setTimeout(() => {
               sinon.assert.calledOnce(callbackSpy);

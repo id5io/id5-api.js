@@ -189,7 +189,9 @@ ID5.getId = function(options, forceFetch = false) {
                   // privacy has to be stored first so we can use it when storing other values
                   consent.setStoredPrivacy(responseObj.privacy);
 
-                  if (consent.isLocalStorageAllowed() === true) {
+                  // TODO typeof responseObj.privacy === 'undefined' is only needed until fetch endpoint is updated and always returns a privacy object
+                  // once it does, I don't see a reason to keep that part of the if clause
+                  if (consent.isLocalStorageAllowed() === true || typeof responseObj.privacy === 'undefined') {
                     setStoredResponse(response);
                     setStoredDateTime(Date.now());
                     setStoredNb(this.config.partnerId, (ID5.fromCache ? 0 : 1));

@@ -306,8 +306,12 @@ export function isProvisionalLocalStorageAllowed() {
 
 export function setStoredPrivacy(privacy) {
   try {
-    storedPrivacyData = privacy;
-    utils.setInLocalStorage(CONSTANTS.STORAGE_CONFIG.PRIVACY, JSON.stringify(privacy));
+    if (utils.isPlainObject(privacy)) {
+      storedPrivacyData = privacy;
+      utils.setInLocalStorage(CONSTANTS.STORAGE_CONFIG.PRIVACY, JSON.stringify(privacy));
+    } else {
+      utils.logInfo('Cannot store privacy if it\'s not an object: ', privacy);
+    }
   } catch (e) {
     utils.logError(e);
   }
