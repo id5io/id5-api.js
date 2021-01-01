@@ -1,3 +1,4 @@
+import sinon from 'sinon';
 import { resetConsentData, requestConsent, consentData, isLocalStorageAllowed, isProvisionalLocalStorageAllowed } from 'src/consentManagement';
 import * as utils from 'src/utils';
 import { config } from 'src/config';

@@ -14,7 +14,7 @@ let consoleInfoExists = Boolean(consoleExists && window.console.info);
 let consoleWarnExists = Boolean(consoleExists && window.console.warn);
 let consoleErrorExists = Boolean(consoleExists && window.console.error);
 
-var uniqueRef = {};
+let uniqueRef = {};
 export let bind = function(a, b) { return b; }.bind(null, 1, uniqueRef)() === uniqueRef
   ? Function.prototype.bind
   : function(bind) {
@@ -38,8 +38,8 @@ export function replaceTokenInString(str, map, token) {
   _each(map, function (value, key) {
     value = (value === undefined) ? '' : value;
 
-    var keyString = token + key.toUpperCase() + token;
-    var re = new RegExp(keyString, 'g');
+    let keyString = token + key.toUpperCase() + token;
+    let re = new RegExp(keyString, 'g');
 
     str = str.replace(re, value);
   });
@@ -91,9 +91,9 @@ export function debugTurnedOn() {
  *   and if it does return the value
  */
 export function getParameterByName(name) {
-  var regexS = '[\\?&]' + name + '=([^&#]*)';
-  var regex = new RegExp(regexS);
-  var results = regex.exec(window.location.search);
+  const regexS = '[\\?&]' + name + '=([^&#]*)';
+  const regex = new RegExp(regexS);
+  const results = regex.exec(window.location.search);
   if (results === null) {
     return '';
   }
@@ -148,7 +148,7 @@ export function isEmpty(object) {
     return !(object.length > 0);
   }
 
-  for (var k in object) {
+  for (let k in object) {
     if (hasOwnProperty.call(object, k)) return false;
   }
 
@@ -159,14 +159,14 @@ export function isEmpty(object) {
  * Iterate object with the function
  * falls back to es5 `forEach`
  * @param {Array|Object} object
- * @param {Function(value, key, object)} fn
+ * @param {function(value, key, object)} fn
  */
 export function _each(object, fn) {
   if (isEmpty(object)) return;
   if (isFn(object.forEach)) return object.forEach(fn, this);
 
-  var k = 0;
-  var l = object.length;
+  let k = 0;
+  let l = object.length;
 
   if (l > 0) {
     for (; k < l; k++) fn(object[k], k, object);
@@ -181,7 +181,7 @@ export function _each(object, fn) {
  * Map an array or object into another array
  * given a function
  * @param {Array|Object} object
- * @param {Function(value, key, object)} callback
+ * @param {function(value, key, object)} callback
  * @return {Array}
  */
 export function _map(object, callback) {
@@ -219,8 +219,8 @@ export function setCookie(key, value, expires) {
 }
 
 /**
-   * @returns {boolean}
-   */
+ * @returns {boolean}
+ */
 function hasLocalStorage() {
   try {
     return !!window.localStorage;
@@ -230,30 +230,64 @@ function hasLocalStorage() {
   return false;
 }
 
+/**
+ * @typedef {object} StoreItem
+ * @property {string} name - Unique key of the stored value
+ * @property {number} expiresDays - Number of days of TTL
+ */
+
+/**
+ * Get stored string from local storage
+ *
+ * @param {string} key
+ * @returns {string|null|undefined} the stored value, null if no value or expired were stored, undefined if no localStorage
+ */
 export function getItemFromLocalStorage(key) {
   if (hasLocalStorage()) {
     return window.localStorage.getItem(key);
   }
 }
+
+/**
+ * Get StoreItem from local storage
+ *
+ * @param {string} storageConfig.name
+ * @param {number} storageConfig.expiresDays
+ * @returns {string|null|undefined} the stored value, null if no value or expired were stored, undefined if no localStorage
+ */
 export function getFromLocalStorage(storageConfig) {
   const storedValueExp = window.localStorage.getItem(`${storageConfig.name}_exp`);
   if (storedValueExp && (new Date(storedValueExp)).getTime() - Date.now() > 0) {
     // result is not expired, so it can be retrieved
     return getItemFromLocalStorage(storageConfig.name);
+  } else {
+    // if we got here, then we have an expired item, so we need to remove the item
+    // from the local storage
+    removeFromLocalStorage(storageConfig);
+    return null;
   }
-
-  // if we got here, then we have an expired item, so we need to remove the item
-  // from the local storage
-  removeFromLocalStorage(storageConfig);
-
-  return null;
 }
 
+/**
+ * Put string in local storage
+ *
+ * @param {string} key
+ * @param {string} value
+ * @returns {string|null|undefined} the stored value, null if no value or expired were stored, undefined if no localStorage
+ */
 export function setItemInLocalStorage(key, value) {
   if (hasLocalStorage()) {
     window.localStorage.setItem(key, value);
   }
 }
+
+/**
+ * Put StoreItem in local storage
+ *
+ * @param {StoreItem} storageConfig
+ * @param {string} value
+ * @returns {string|null|undefined} the stored value, null if no value or expired were stored, undefined if no localStorage
+ */
 export function setInLocalStorage(storageConfig, value) {
   // always set an expiration
   const expiresStr = (new Date(Date.now() + (storageConfig.expiresDays * (60 * 60 * 24 * 1000)))).toUTCString();
@@ -261,11 +295,22 @@ export function setInLocalStorage(storageConfig, value) {
   setItemInLocalStorage(`${storageConfig.name}`, value);
 }
 
+/**
+ * Clear a string in local storage
+ *
+ * @param {string} key
+ */
 export function removeItemFromLocalStorage(key) {
   if (hasLocalStorage()) {
     window.localStorage.removeItem(key);
   }
 }
+
+/**
+ * Clear StoreItem in local storage
+ *
+ * @param {StoreItem} storageConfig
+ */
 export function removeFromLocalStorage(storageConfig) {
   removeItemFromLocalStorage(`${storageConfig.name}`);
   removeItemFromLocalStorage(`${storageConfig.name}_exp`);

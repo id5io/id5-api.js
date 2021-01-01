@@ -1,8 +1,8 @@
+import sinon from 'sinon';
 import { config } from 'src/config';
 import CONSTANTS from 'src/constants.json';
 import * as utils from 'src/utils';
 import { resetConsentData } from 'src/consentManagement';
-import * as abTesting from 'src/abTesting';
 
 require('src/id5-api.js');
 
@@ -2223,7 +2223,7 @@ describe('ID5 JS API', function () {
         });
       });
 
-      it('sends fs=1 for new user without partnerUserId then sets fs storage to 0', function (done) {
+      it('sends fs=1 for new user without partnerUserId then sets fs storage to 1', function (done) {
         ID5.init({ partnerId: TEST_ID5_PARTNER_ID, allowID5WithoutConsentApi: true });
 
         sinon.assert.calledOnce(ajaxStub);
@@ -2235,12 +2235,12 @@ describe('ID5 JS API', function () {
           expect(syncStub.args[0][0]).to.not.contain('puid=');
 
           const fs = parseInt(utils.getFromLocalStorage(TEST_FS_STORAGE_CONFIG));
-          expect(fs).to.be.equal(0);
+          expect(fs).to.be.equal(1);
 
           done();
         }, AJAX_RESPONSE_MS);
       });
-      it('sends fs=1 for new user with partnerUserId then sets fs storage to 0', function (done) {
+      it('sends fs=1 for new user with partnerUserId then sets fs storage to 1', function (done) {
         ID5.init({ partnerId: TEST_ID5_PARTNER_ID, allowID5WithoutConsentApi: true, partnerUserId: 'abc123' });
 
         sinon.assert.calledOnce(ajaxStub);
@@ -2252,13 +2252,13 @@ describe('ID5 JS API', function () {
           expect(syncStub.args[0][0]).to.contain('puid=abc123');
 
           const fs = parseInt(utils.getFromLocalStorage(TEST_FS_STORAGE_CONFIG));
-          expect(fs).to.be.equal(0);
+          expect(fs).to.be.equal(1);
 
           done();
         }, AJAX_RESPONSE_MS);
       });
       it('sends fs=0 for previously synced user', function (done) {
-        utils.setInLocalStorage(TEST_FS_STORAGE_CONFIG, 0);
+        utils.setInLocalStorage(TEST_FS_STORAGE_CONFIG, '1');
 
         ID5.init({ partnerId: TEST_ID5_PARTNER_ID, allowID5WithoutConsentApi: true });
 
@@ -2270,7 +2270,7 @@ describe('ID5 JS API', function () {
           expect(syncStub.args[0][0]).to.contain('fs=0');
 
           const fs = parseInt(utils.getFromLocalStorage(TEST_FS_STORAGE_CONFIG));
-          expect(fs).to.be.equal(0);
+          expect(fs).to.be.equal(1);
 
           done();
         }, AJAX_RESPONSE_MS);
@@ -2419,7 +2419,7 @@ describe('ID5 JS API', function () {
       };
 
       beforeEach(function () {
-        exposeIdStub = sinon.stub(abTesting, 'exposeId').callsFake(function() {
+        exposeIdStub = sinon.stub(ID5, 'exposeId').callsFake(function() {
           return true;
         });
       });
@@ -2458,7 +2458,7 @@ describe('ID5 JS API', function () {
       };
 
       beforeEach(function () {
-        exposeIdStub = sinon.stub(abTesting, 'exposeId').callsFake(function() {
+        exposeIdStub = sinon.stub(ID5, 'exposeId').callsFake(function() {
           return false;
         });
       });

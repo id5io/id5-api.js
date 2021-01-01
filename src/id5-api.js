@@ -2,11 +2,11 @@
 
 import { getGlobal } from './id5-apiGlobal';
 import { config } from './config';
-import CONSTANTS from 'src/constants.json';
 import * as utils from './utils';
 import * as consent from './consentManagement';
 import { getRefererInfo } from './refererDetection';
-import * as abTesting from './abTesting';
+import AbTesting from './abTesting';
+import * as clientStore from './clientStore';
 
 export const ID5 = getGlobal();
 
@@ -31,13 +31,22 @@ ID5.init = function (options) {
     ID5.getConfig = config.getConfig;
     ID5.getProvidedConfig = config.getProvidedConfig;
     ID5.setConfig = config.setConfig;
-    ID5.exposeId = abTesting.exposeId;
+    ID5.setStoredConsentData = clientStore.putHashedConsentData;
+    ID5.setStoredPd = clientStore.putHashedPd;
+    ID5.abTesting = new AbTesting(options.abTesting);
 
     this.getId(options, false);
   } catch (e) {
     utils.logError('Exception caught from ID5.init', e);
   }
 };
+
+ID5.exposeId = function() {
+  if (ID5.initialized !== true) {
+    throw new Error('ID5.refreshID() cannot be called before ID5.exposeId()!');
+  }
+  return ID5.abTesting.exposeId();
+}
 
 ID5.refreshId = function (forceFetch = false, options = {}) {
   if (ID5.initialized !== true) {
@@ -63,7 +72,7 @@ ID5.refreshId = function (forceFetch = false, options = {}) {
 ID5.getId = function(options, forceFetch = false) {
   ID5.config = config.setConfig(options);
   ID5.callbackFired = false;
-  abTesting.init();
+  // @FIXME: Not required => Add doc to say that refresh does not change control group
 
   const referer = getRefererInfo();
   utils.logInfo(`ID5 detected referer is ${referer.referer}`);
@@ -74,17 +83,16 @@ ID5.getId = function(options, forceFetch = false) {
 
   // pick up data from local storage
   // (will only read if local storage access is allowed)
-  const storedResponse = getStoredResponse();
-  const storedDateTime = getStoredDateTime();
+  const storedResponse = clientStore.getResponse();
+  const storedDateTime = clientStore.getDateTime();
   const refreshInSecondsHasElapsed = storedDateTime <= 0 || ((Date.now() - storedDateTime) > (this.config.refreshInSeconds * 1000));
-  let nb = getStoredNb(this.config.partnerId);
+  let nb = clientStore.getNb(this.config.partnerId);
   ID5.fromCache = false;
 
   // always save the current pd to track if it changes
-  // (will only store if local storage access is allowed)
+  // (will only read if local storage access is allowed)
   const pd = this.config.pd || '';
-  const storedPd = getStoredPd();
-  const pdHasChanged = !storedPdMatchesPd(storedPd, pd);
+  const pdHasChanged = !clientStore.storedPdMatchesPd(pd);
 
   // Callback watchdogs
   if (utils.isFn(this.config.callback) && this.config.callbackTimeoutInMs >= 0) {
@@ -93,24 +101,27 @@ ID5.getId = function(options, forceFetch = false) {
 
   // TEMPORARY until all clients have upgraded past v1.0.0
   // remove cookies that were previously set
-  removeLegacyCookies(this.config.partnerId);
+  // @FIXME: There is a risk of clearing without storing in local storage
+  clientStore.removeLegacyCookies(this.config.partnerId);
 
   if (storedResponse && !pdHasChanged) {
     // we have a valid stored response and pd is not different, so
     // use the stored response to make the ID available right away
 
-    if (storedResponse.universal_uid && abTesting.exposeId()) {
+    if (storedResponse.universal_uid && this.exposeId()) {
       ID5.userId = storedResponse.universal_uid;
       ID5.linkType = storedResponse.link_type || 0;
     } else if (storedResponse.universal_uid) {
       // we're in A/B testing and this is the control group, so do
       // not set a userId or linkType
       ID5.userId = ID5.linkType = 0;
+    } else {
+      utils.logError('Invalid stored response: ', JSON.stringify(storedResponse));
     }
 
-    nb = incrementNb(this.config.partnerId, nb);
+    nb = clientStore.incNb(this.config.partnerId, nb);
     ID5.fromCache = true;
-    if (ID5.userId) {
+    if (typeof ID5.userId !== 'undefined') {
       this.fireCallBack();
     }
 
@@ -125,10 +136,12 @@ ID5.getId = function(options, forceFetch = false) {
     if (consent.isLocalStorageAllowed() !== false) {
       utils.logInfo('Consent to access local storage is given: ', consent.isLocalStorageAllowed());
 
+      // @FIXME: If we had not consent before, we should read response/Nb/everything
+
       // store hashed consent data and pd for future page loads
-      const storedConsentData = getStoredConsentData();
-      this.setStoredConsentData(consentData);
-      this.setStoredPd(pd);
+      const consentHasChanged = !clientStore.storedConsentDataMatchesConsentData(consentData);
+      clientStore.putHashedConsentData(consentData);
+      clientStore.putHashedPd(pd);
 
       // make a call to fetch a new ID5 ID if:
       // - there is no valid universal_uid or no signature in cache
@@ -139,7 +152,7 @@ ID5.getId = function(options, forceFetch = false) {
       if (
         !storedResponse || !storedResponse.universal_uid || !storedResponse.signature ||
         refreshInSecondsHasElapsed ||
-        !storedConsentDataMatchesConsentData(storedConsentData, consentData) ||
+        consentHasChanged ||
         pdHasChanged ||
         forceFetch
       ) {
@@ -177,7 +190,7 @@ ID5.getId = function(options, forceFetch = false) {
                 responseObj = JSON.parse(response);
                 utils.logInfo('Response from ID5 received:', responseObj);
                 if (responseObj.universal_uid) {
-                  if (abTesting.exposeId()) {
+                  if (this.exposeId()) {
                     ID5.userId = responseObj.universal_uid;
                     ID5.linkType = responseObj.link_type || 0
                   } else {
@@ -189,14 +202,14 @@ ID5.getId = function(options, forceFetch = false) {
                   // privacy has to be stored first so we can use it when storing other values
                   consent.setStoredPrivacy(responseObj.privacy);
 
-                  // TODO typeof responseObj.privacy === 'undefined' is only needed until fetch endpoint is updated and always returns a privacy object
+                  // @TODO: typeof responseObj.privacy === 'undefined' is only needed until fetch endpoint is updated and always returns a privacy object
                   // once it does, I don't see a reason to keep that part of the if clause
                   if (consent.isLocalStorageAllowed() === true || typeof responseObj.privacy === 'undefined') {
-                    setStoredResponse(response);
-                    setStoredDateTime(Date.now());
-                    setStoredNb(this.config.partnerId, (ID5.fromCache ? 0 : 1));
+                    clientStore.putResponse(response);
+                    clientStore.setDateTime(Date.now());
+                    clientStore.setNb(this.config.partnerId, (ID5.fromCache ? 0 : 1));
                   } else {
-                    clearAllStored(this.config.partnerId);
+                    clientStore.clearAll(this.config.partnerId);
                   }
 
                   // this must come after storing Nb or it will store the wrong value
@@ -204,9 +217,9 @@ ID5.getId = function(options, forceFetch = false) {
 
                   if (responseObj.cascade_needed === true && consent.isLocalStorageAllowed() === true) {
                     const isSync = this.config.partnerUserId && this.config.partnerUserId.length > 0;
-                    const syncUrl = `https://id5-sync.com/${isSync ? 's' : 'i'}/${this.config.partnerId}/8.gif?id5id=${ID5.userId}&fs=${forceSync()}&o=api&${isSync ? 'puid=' + this.config.partnerUserId + '&' : ''}gdpr_consent=${gdprConsentString}&gdpr=${gdprApplies}`;
+                    const syncUrl = `https://id5-sync.com/${isSync ? 's' : 'i'}/${this.config.partnerId}/8.gif?id5id=${ID5.userId}&fs=${clientStore.forceSync()}&o=api&${isSync ? 'puid=' + this.config.partnerUserId + '&' : ''}gdpr_consent=${gdprConsentString}&gdpr=${gdprApplies}`;
                     utils.logInfo('Opportunities to cascade available:', syncUrl);
-                    utils.deferPixelFire(syncUrl, undefined, handleDeferPixelFireCallback);
+                    utils.deferPixelFire(syncUrl, undefined, clientStore.syncCallback);
                   }
                   this.fireCallBack();
                 } else {
@@ -236,197 +249,6 @@ ID5.fireCallBack = function () {
     setTimeout(() => this.config.callback(ID5), 0);
     this.callbackFired = true;
   }
-}
-
-function nbCacheConfig(partnerId) {
-  return {
-    name: `${CONSTANTS.STORAGE_CONFIG.ID5.name}_${partnerId}_nb`,
-    expiresDays: CONSTANTS.STORAGE_CONFIG.ID5.expiresDays
-  }
-}
-function getStoredNb(partnerId) {
-  const cachedNb = getStored(nbCacheConfig(partnerId));
-  return (cachedNb) ? parseInt(cachedNb) : 0;
-}
-function setStoredNb(partnerId, nb) {
-  setStored(nbCacheConfig(partnerId), nb);
-}
-function incrementNb(partnerId, nb) {
-  nb++;
-  setStoredNb(partnerId, nb);
-  return nb;
-}
-function clearStoredNb(partnerId) {
-  clearStored(nbCacheConfig(partnerId));
-}
-
-/**
- * makes an object that can be stored with only the keys we need to check.
- * excluding the vendorConsents object since the consentString is enough to know
- * if consent has changed without needing to have all the details in an object
- * @param consentData
- * @returns string
- */
-function makeStoredConsentDataHash(consentData) {
-  const storedConsentData = {
-    consentString: '',
-    gdprApplies: false,
-    apiVersion: 0
-  };
-
-  if (consentData) {
-    storedConsentData.consentString = consentData.consentString;
-    storedConsentData.gdprApplies = consentData.gdprApplies;
-    storedConsentData.apiVersion = consentData.apiVersion;
-  }
-
-  return utils.cyrb53Hash(JSON.stringify(storedConsentData));
-}
-
-/**
- * creates a hash of pd for storage
- * @param pd
- * @returns string
- */
-function makeStoredPdHash(pd) {
-  return utils.cyrb53Hash(typeof pd === 'string' ? pd : '');
-}
-
-/**
- * puts the current data into local storage, after checking for local storage access
- * @param {object} cacheConfig
- * @param {string} data
- * @param {bool} always
- */
-function setStored(cacheConfig, data) {
-  try {
-    if (consent.isLocalStorageAllowed() === true) {
-      utils.setInLocalStorage(cacheConfig, data);
-    }
-  } catch (e) {
-    utils.logError(e);
-  }
-}
-
-ID5.setStoredConsentData = function (consentData) {
-  setStored(CONSTANTS.STORAGE_CONFIG.CONSENT_DATA, makeStoredConsentDataHash(consentData));
-}
-ID5.setStoredPd = function (pd) {
-  setStored(CONSTANTS.STORAGE_CONFIG.PD, makeStoredPdHash(pd));
-}
-function setStoredResponse(response) {
-  setStored(CONSTANTS.STORAGE_CONFIG.ID5, response);
-}
-function setStoredDateTime(timestamp) {
-  setStored(CONSTANTS.STORAGE_CONFIG.LAST, timestamp);
-}
-
-/**
- * test if the data stored locally matches the current data.
- * if there is nothing in storage, return true and we'll do an actual comparison next time.
- * this way, we don't force a refresh for every user when this code rolls out
- * @param storedData
- * @param currentData
- * @returns {boolean}
- */
-function storedDataMatchesCurrentData(storedData, currentData) {
-  return (
-    typeof storedData === 'undefined' ||
-    storedData === null ||
-    storedData === currentData
-  );
-}
-function storedConsentDataMatchesConsentData(storedConsentData, consentData) {
-  return storedDataMatchesCurrentData(storedConsentData, makeStoredConsentDataHash(consentData));
-}
-function storedPdMatchesPd(storedPd, pd) {
-  return storedDataMatchesCurrentData(storedPd, makeStoredPdHash(pd));
-}
-
-/**
- * get stored data from local storage, if any, after checking
- * if local storage is allowed
- *
- * @returns {string}
- */
-function getStored(cacheConfig) {
-  try {
-    if (consent.isLocalStorageAllowed() === true) {
-      return utils.getFromLocalStorage(cacheConfig);
-    }
-  } catch (e) {
-    utils.logError(e);
-  }
-}
-
-function getStoredConsentData() {
-  return getStored(CONSTANTS.STORAGE_CONFIG.CONSENT_DATA);
-}
-function getStoredPd() {
-  return getStored(CONSTANTS.STORAGE_CONFIG.PD);
-}
-function getStoredResponse() {
-  return JSON.parse(getStored(CONSTANTS.STORAGE_CONFIG.ID5) || getFromLegacyCookie());
-}
-function getStoredDateTime() {
-  return (new Date(+getStored(CONSTANTS.STORAGE_CONFIG.LAST))).getTime()
-}
-
-function clearStored(cacheConfig) {
-  try {
-    utils.removeFromLocalStorage(cacheConfig);
-  } catch (e) {
-    utils.logError(e);
-  }
-}
-function clearAllStored(partnerId) {
-  clearStoredResponse();
-  clearStoredDateTime();
-  clearStoredNb(partnerId);
-  clearStoredPd();
-  clearStoredConsentData();
-}
-function clearStoredPd() {
-  clearStored(CONSTANTS.STORAGE_CONFIG.PD);
-}
-function clearStoredDateTime() {
-  clearStored(CONSTANTS.STORAGE_CONFIG.LAST);
-}
-function clearStoredResponse() {
-  clearStored(CONSTANTS.STORAGE_CONFIG.ID5);
-}
-function clearStoredConsentData() {
-  clearStored(CONSTANTS.STORAGE_CONFIG.CONSENT_DATA);
-}
-
-function handleDeferPixelFireCallback() {
-  setStored(CONSTANTS.STORAGE_CONFIG.FS, 0);
-}
-function forceSync() {
-  const cachedFs = getStored(CONSTANTS.STORAGE_CONFIG.FS);
-  return (cachedFs) ? parseInt(cachedFs) : 1;
-}
-
-function getFromLegacyCookie() {
-  let legacyStoredValue;
-  CONSTANTS.LEGACY_COOKIE_NAMES.forEach(function(cookie) {
-    if (utils.getCookie(cookie)) {
-      legacyStoredValue = utils.getCookie(cookie);
-    }
-  });
-  return legacyStoredValue || null;
-}
-
-function removeLegacyCookies(partnerId) {
-  const expired = (new Date(Date.now() - 1000)).toUTCString();
-  CONSTANTS.LEGACY_COOKIE_NAMES.forEach(function(cookie) {
-    utils.setCookie(`${cookie}`, '', expired);
-    utils.setCookie(`${cookie}_nb`, '', expired);
-    utils.setCookie(`${cookie}_${partnerId}_nb`, '', expired);
-    utils.setCookie(`${cookie}_last`, '', expired);
-    utils.setCookie(`${cookie}.cached_pd`, '', expired);
-    utils.setCookie(`${cookie}.cached_consent_data`, '', expired);
-  });
 }
 
 export default ID5;

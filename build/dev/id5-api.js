@@ -1,6 +1,6 @@
 /**
  * id5-api.js - The ID5 API is designed to make accessing the ID5 Universal ID simple for publishers and their ad tech vendors. The ID5 Universal ID is a shared, neutral identifier that publishers and ad tech platforms can use to recognise users even in environments where 3rd party cookies are not available. For more information, visit https://id5.io/universal-id.
- * @version v0.9.6
+ * @version v0.9.7-pre
  * @link https://id5.io/
  * @license Apache-2.0
  */
@@ -66,140 +66,11 @@
 /******/ 	__webpack_require__.p = "";
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 2);
+/******/ 	return __webpack_require__(__webpack_require__.s = 4);
 /******/ })
 /************************************************************************/
 /******/ ([
 /* 0 */
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
-/* unused harmony export newConfig */
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return config; });
-function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
-
-/*
- * Module for getting and setting ID5 API configuration.
- */
-var utils = __webpack_require__(1);
-/**
- * @typedef {Object} Id5Config
- * @property {boolean|false} debug - enable verbose debug mode (defaulting to id5_debug query string param if present, or false)
- * @property {boolean|false} allowID5WithoutConsentApi - Allow ID5 to fetch user id even if no consent API
- * @property {(string|undefined)} cookieName - ID5 1st party cookie name (defaulting to id5.1st)
- * @property {(number|undefined)} refreshInSeconds - Refresh period of first-party cookie (defaulting to 7200s)
- * @property {(number|undefined)} cookieExpirationInSeconds - Expiration of 1st party cookie (defaulting to 90 days)
- * @property {(number)} partnerId - ID5 Publisher ID, mandatory
- * @property {(string|undefined)} partnerUserId - User ID for the platform deploying the API, to be stored by ID5 for further cookie matching if provided
- * @property {(string|undefined)} cmpApi - API to use CMP. As of today, either 'iab' or 'static'
- * @property {(object|undefined)} consentData - Consent data if cmpApi is 'static'
- * @property {(function|undefined)} callback - Function to call back when User ID is available. if callbackTimeoutInMs is not provided, will be fired only if a User ID is available.
- * @property {(number|undefined)} callbackTimeoutInMs - Delay in ms after which the callback is guaranteed to be fired. A User ID may not yet be available at this time.
- * @property {(string)} pd - Publisher data that can be passed to help with cross-domain reconciliation of the ID5 ID, more details here: https://wiki.id5.io/x/BIAZ
- * @property {(array|undefined)} tpids - An array of third party IDs that can be passed to usersync with ID5. Contact your ID5 representative to enable this
- */
-
-
-function newConfig() {
-  /**
-   * @property {Id5Config}
-   */
-  var config;
-  /**
-   * @property {Id5Config}
-   */
-
-  var providedConfig;
-  var configTypes = {
-    debug: 'Boolean',
-    allowID5WithoutConsentApi: 'Boolean',
-    cmpApi: 'String',
-    consentData: 'Object',
-    refreshInSeconds: 'Number',
-    partnerId: 'Number',
-    partnerUserId: 'String',
-    callback: 'Function',
-    callbackTimeoutInMs: 'Number',
-    pd: 'String',
-    tpids: 'Array'
-  };
-
-  function resetConfig() {
-    config = {
-      debug: utils.getParameterByName('id5_debug').toUpperCase() === 'TRUE',
-      allowID5WithoutConsentApi: false,
-      cmpApi: 'iab',
-      consentData: {
-        getConsentData: {
-          consentData: undefined,
-          gdprApplies: undefined
-        },
-        getVendorConsents: {}
-      },
-      refreshInSeconds: 7200,
-      partnerId: undefined,
-      partnerUserId: undefined,
-      callback: undefined,
-      callbackTimeoutInMs: undefined,
-      pd: '',
-      tpids: undefined
-    };
-    providedConfig = {};
-  }
-  /**
-   * Return current configuration
-   * @returns {Id5Config} options
-   */
-
-
-  function getConfig() {
-    return config;
-  }
-  /**
-   * Return configuration set by user
-   * @returns {Id5Config} options
-   */
-
-
-  function getProvidedConfig() {
-    return providedConfig;
-  }
-  /**
-   * Sets configuration given an object containing key-value pairs
-   * @param {Id5Config} options
-   * @returns {Id5Config} config
-   */
-
-
-  function setConfig(options) {
-    if (_typeof(options) !== 'object') {
-      utils.logError('setConfig options must be an object');
-      return undefined;
-    }
-
-    Object.keys(options).forEach(function (topic) {
-      if (utils.isA(options[topic], configTypes[topic])) {
-        config[topic] = options[topic];
-        providedConfig[topic] = options[topic];
-      } else {
-        utils.logError("setConfig options ".concat(topic, " must be of type ").concat(configTypes[topic], " but was ").concat(toString.call(options[topic])));
-      }
-    });
-    return config;
-  }
-
-  resetConfig();
-  return {
-    getConfig: getConfig,
-    getProvidedConfig: getProvidedConfig,
-    setConfig: setConfig,
-    resetConfig: resetConfig
-  };
-}
-var config = newConfig();
-
-/***/ }),
-/* 1 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -241,7 +112,7 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 /* harmony export (immutable) */ __webpack_exports__["fireAsyncPixel"] = fireAsyncPixel;
 /* harmony export (immutable) */ __webpack_exports__["deferPixelFire"] = deferPixelFire;
 /* harmony export (immutable) */ __webpack_exports__["cyrb53Hash"] = cyrb53Hash;
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__config__ = __webpack_require__(0);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__config__ = __webpack_require__(1);
 function _extends() { _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends.apply(this, arguments); }
 
 function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
@@ -406,7 +277,7 @@ function isEmpty(object) {
  * Iterate object with the function
  * falls back to es5 `forEach`
  * @param {Array|Object} object
- * @param {Function(value, key, object)} fn
+ * @param {function(value, key, object)} fn
  */
 
 function _each(object, fn) {
@@ -429,7 +300,7 @@ function _each(object, fn) {
  * Map an array or object into another array
  * given a function
  * @param {Array|Object} object
- * @param {Function(value, key, object)} callback
+ * @param {function(value, key, object)} callback
  * @return {Array}
  */
 
@@ -464,8 +335,8 @@ function setCookie(key, value, expires) {
   document.cookie = "".concat(key, "=").concat(encodeURIComponent(value)).concat(expires !== '' ? "; expires=".concat(expires) : '', "; path=/");
 }
 /**
-   * @returns {boolean}
-   */
+ * @returns {boolean}
+ */
 
 function hasLocalStorage() {
   try {
@@ -476,44 +347,93 @@ function hasLocalStorage() {
 
   return false;
 }
+/**
+ * @typedef {object} StoreItem
+ * @property {string} name - Unique key of the stored value
+ * @property {number} expiresDays - Number of days of TTL
+ */
+
+/**
+ * Get stored string from local storage
+ *
+ * @param {string} key
+ * @returns {string|null|undefined} the stored value, null if no value or expired were stored, undefined if no localStorage
+ */
+
 
 function getItemFromLocalStorage(key) {
   if (hasLocalStorage()) {
     return window.localStorage.getItem(key);
   }
 }
-function getFromLocalStorage(config) {
-  var storedValueExp = window.localStorage.getItem("".concat(config.name, "_exp"));
+/**
+ * Get StoreItem from local storage
+ *
+ * @param {string} storageConfig.name
+ * @param {number} storageConfig.expiresDays
+ * @returns {string|null|undefined} the stored value, null if no value or expired were stored, undefined if no localStorage
+ */
+
+function getFromLocalStorage(storageConfig) {
+  var storedValueExp = window.localStorage.getItem("".concat(storageConfig.name, "_exp"));
 
   if (storedValueExp && new Date(storedValueExp).getTime() - Date.now() > 0) {
     // result is not expired, so it can be retrieved
-    return getItemFromLocalStorage(config.name);
-  } // if we got here, then we have an expired item, so we need to remove the item
-  // from the local storage
-
-
-  removeFromLocalStorage(config);
-  return null;
+    return getItemFromLocalStorage(storageConfig.name);
+  } else {
+    // if we got here, then we have an expired item, so we need to remove the item
+    // from the local storage
+    removeFromLocalStorage(storageConfig);
+    return null;
+  }
 }
+/**
+ * Put string in local storage
+ *
+ * @param {string} key
+ * @param {string} value
+ * @returns {string|null|undefined} the stored value, null if no value or expired were stored, undefined if no localStorage
+ */
+
 function setItemInLocalStorage(key, value) {
   if (hasLocalStorage()) {
     window.localStorage.setItem(key, value);
   }
 }
-function setInLocalStorage(config, value) {
+/**
+ * Put StoreItem in local storage
+ *
+ * @param {StoreItem} storageConfig
+ * @param {string} value
+ * @returns {string|null|undefined} the stored value, null if no value or expired were stored, undefined if no localStorage
+ */
+
+function setInLocalStorage(storageConfig, value) {
   // always set an expiration
-  var expiresStr = new Date(Date.now() + config.expiresDays * (60 * 60 * 24 * 1000)).toUTCString();
-  setItemInLocalStorage("".concat(config.name, "_exp"), expiresStr);
-  setItemInLocalStorage("".concat(config.name), value);
+  var expiresStr = new Date(Date.now() + storageConfig.expiresDays * (60 * 60 * 24 * 1000)).toUTCString();
+  setItemInLocalStorage("".concat(storageConfig.name, "_exp"), expiresStr);
+  setItemInLocalStorage("".concat(storageConfig.name), value);
 }
+/**
+ * Clear a string in local storage
+ *
+ * @param {string} key
+ */
+
 function removeItemFromLocalStorage(key) {
   if (hasLocalStorage()) {
     window.localStorage.removeItem(key);
   }
 }
-function removeFromLocalStorage(config) {
-  removeItemFromLocalStorage("".concat(config.name));
-  removeItemFromLocalStorage("".concat(config.name, "_exp"));
+/**
+ * Clear StoreItem in local storage
+ *
+ * @param {StoreItem} storageConfig
+ */
+
+function removeFromLocalStorage(storageConfig) {
+  removeItemFromLocalStorage("".concat(storageConfig.name));
+  removeItemFromLocalStorage("".concat(storageConfig.name, "_exp"));
 }
 function parseQS(query) {
   return !query ? {} : query.replace(/^\?/, '').split('&').reduce(function (acc, criteria) {
@@ -736,435 +656,157 @@ function cyrb53Hash(str) {
 }
 
 /***/ }),
-/* 2 */
+/* 1 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "LEGACY_COOKIE_NAMES", function() { return LEGACY_COOKIE_NAMES; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "ID5", function() { return ID5; });
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__id5_apiGlobal__ = __webpack_require__(3);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__config__ = __webpack_require__(0);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__utils__ = __webpack_require__(1);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__consentManagement__ = __webpack_require__(4);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__refererDetection__ = __webpack_require__(5);
-/** @module id5-api */
+/* unused harmony export newConfig */
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return config; });
+function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
 
-
-
-
-
-var ID5_STORAGE_CONFIG = {
-  name: 'id5id',
-  expiresDays: 90
-};
-var LAST_STORAGE_CONFIG = {
-  name: 'id5id_last',
-  expiresDays: 90
-};
-var CONSENT_DATA_STORAGE_CONFIG = {
-  name: 'id5id_cached_consent_data',
-  expiresDays: 30
-};
-var PD_STORAGE_CONFIG = {
-  name: 'id5id_cached_pd',
-  expiresDays: 30
-};
-var FS_STORAGE_CONFIG = {
-  name: 'id5id_fs',
-  expiresDays: 7
-}; // order the legacy cookie names in reverse priority order so the last
-// cookie in the array is the most preferred to use
-
-var LEGACY_COOKIE_NAMES = ['id5.1st', 'id5id.1st'];
-var ID5 = Object(__WEBPACK_IMPORTED_MODULE_0__id5_apiGlobal__["a" /* getGlobal */])();
-ID5.loaded = true;
-ID5.initialized = false;
-ID5.callbackFired = false;
-/**
- * This function will initialize ID5, wait for consent then try to fetch or refresh ID5 user id if required
- * @param {Id5Config} options
- * @alias module:ID5.init
+/*
+ * Module for getting and setting ID5 API configuration.
  */
-// TODO: Use Async init by pushing setting in a queue
-
-ID5.init = function (options) {
-  if (typeof ID5.version === 'undefined') {
-    throw new Error('ID5.version variable is missing! Make sure you build from source with "gulp build" from this project. Contact support@id5.io for help.');
-  }
-
-  try {
-    __WEBPACK_IMPORTED_MODULE_2__utils__["logInfo"]('Invoking ID5.init', arguments);
-    ID5.initialized = true;
-    ID5.getConfig = __WEBPACK_IMPORTED_MODULE_1__config__["a" /* config */].getConfig;
-    ID5.getProvidedConfig = __WEBPACK_IMPORTED_MODULE_1__config__["a" /* config */].getProvidedConfig;
-    ID5.setConfig = __WEBPACK_IMPORTED_MODULE_1__config__["a" /* config */].setConfig;
-    this.getId(options, false);
-  } catch (e) {
-    __WEBPACK_IMPORTED_MODULE_2__utils__["logError"]('Exception caught from ID5.init', e);
-  }
-};
-
-ID5.refreshId = function () {
-  var forceFetch = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : false;
-  var options = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-  if (ID5.initialized !== true) {
-    throw new Error('ID5.refreshID() cannot be called before ID5.init()!');
-  }
-
-  try {
-    __WEBPACK_IMPORTED_MODULE_2__utils__["logInfo"]('Invoking ID5.refreshId', arguments);
-
-    if (!__WEBPACK_IMPORTED_MODULE_2__utils__["isBoolean"](forceFetch)) {
-      throw new Error('Invalid signature for ID5.refreshID: first parameter must be a boolean');
-    } // consent may have changed, so we need to check it again
+var utils = __webpack_require__(0);
+/**
+ * @typedef {Object} Id5Config
+ * @property {number} partnerId - ID5 Publisher ID, mandatory
+ * @property {boolean|false} [debug] - enable verbose debug mode (defaulting to id5_debug query string param if present, or false)
+ * @property {boolean|false} [allowID5WithoutConsentApi] - Allow ID5 to fetch user id even if no consent API
+ * @property {number} [refreshInSeconds] - Refresh period of first-party cookie (defaulting to 7200s)
+ * @property {string} [partnerUserId] - User ID for the platform deploying the API, to be stored by ID5 for further cookie matching if provided
+ * @property {string} [cmpApi] - API to use CMP. As of today, either 'iab' or 'static'
+ * @property {object} [consentData] - Consent data if cmpApi is 'static'
+ * @property {function} [callback] - Function to call back when User ID is available. if callbackTimeoutInMs is not provided, will be fired only if a User ID is available.
+ * @property {number} [callbackTimeoutInMs] - Delay in ms after which the callback is guaranteed to be fired. A User ID may not yet be available at this time.
+ * @property {string} [pd] - Publisher data that can be passed to help with cross-domain reconciliation of the ID5 ID, more details here: https://wiki.id5.io/x/BIAZ
+ * @property {array} [tpids] - An array of third party IDs that can be passed to usersync with ID5. Contact your ID5 representative to enable this
+ * @property {AbTestConfig} [abTesting] - An object defining if and how A/B testing should be enabled
+ */
 
 
-    __WEBPACK_IMPORTED_MODULE_3__consentManagement__["c" /* resetConsentData */]();
-    this.getId(options, forceFetch);
-  } catch (e) {
-    __WEBPACK_IMPORTED_MODULE_2__utils__["logError"]('Exception caught from ID5.refreshId', e);
-  }
-};
+function newConfig() {
+  /** @type {Id5Config} */
+  var config;
+  /** @type {Id5Config} */
 
-ID5.getId = function (options) {
-  var _this = this;
+  var providedConfig;
+  var configTypes = {
+    debug: 'Boolean',
+    allowID5WithoutConsentApi: 'Boolean',
+    cmpApi: 'String',
+    consentData: 'Object',
+    refreshInSeconds: 'Number',
+    partnerId: 'Number',
+    partnerUserId: 'String',
+    callback: 'Function',
+    callbackTimeoutInMs: 'Number',
+    pd: 'String',
+    tpids: 'Array',
+    abTesting: 'Object'
+  };
 
-  var forceFetch = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : false;
-  ID5.config = __WEBPACK_IMPORTED_MODULE_1__config__["a" /* config */].setConfig(options);
-  ID5.callbackFired = false;
-  var referer = Object(__WEBPACK_IMPORTED_MODULE_4__refererDetection__["a" /* getRefererInfo */])();
-  __WEBPACK_IMPORTED_MODULE_2__utils__["logInfo"]("ID5 detected referer is ".concat(referer.referer));
-
-  if (!this.config.partnerId || typeof this.config.partnerId !== 'number') {
-    throw new Error('partnerId is required and must be a number');
-  }
-
-  var storedResponse = JSON.parse(__WEBPACK_IMPORTED_MODULE_2__utils__["getFromLocalStorage"](ID5_STORAGE_CONFIG) || getFromLegacyCookie());
-  var storedDateTime = new Date(+__WEBPACK_IMPORTED_MODULE_2__utils__["getFromLocalStorage"](LAST_STORAGE_CONFIG)).getTime();
-  var refreshInSecondsHasElapsed = storedDateTime <= 0 || Date.now() - storedDateTime > this.config.refreshInSeconds * 1000;
-  var nb = getNbFromCache(this.config.partnerId);
-  var idSetFromStoredResponse = false; // always save the current pd to track if it changes
-
-  var pd = this.config.pd || '';
-  var storedPd = getStoredPd(); // TODO move inside isLocalStorageAllowed() check
-
-  this.setStoredPd(pd);
-  var pdHasChanged = !storedPdMatchesPd(storedPd, pd); // Callback watchdogs
-
-  if (__WEBPACK_IMPORTED_MODULE_2__utils__["isFn"](this.config.callback) && this.config.callbackTimeoutInMs >= 0) {
-    setTimeout(function () {
-      return _this.fireCallBack();
-    }, this.config.callbackTimeoutInMs);
-  } // TEMPORARY until all clients have upgraded past v1.0.0
-  // remove cookies that were previously set
-
-
-  removeLegacyCookies(this.config.partnerId);
-
-  if (storedResponse && !pdHasChanged) {
-    if (storedResponse.universal_uid) {
-      ID5.userId = storedResponse.universal_uid;
-      ID5.linkType = storedResponse.link_type || 0;
-    } // TODO move inside isLocalStorageAllowed() check
-
-
-    nb = incrementNb(this.config.partnerId, nb);
-    idSetFromStoredResponse = true;
-
-    if (ID5.userId) {
-      this.fireCallBack();
-    }
-
-    __WEBPACK_IMPORTED_MODULE_2__utils__["logInfo"]('ID5 User ID available from cache:', {
-      storedResponse: storedResponse,
-      storedDateTime: storedDateTime,
-      refreshNeeded: refreshInSecondsHasElapsed
-    });
-  } else if (storedResponse && pdHasChanged) {
-    __WEBPACK_IMPORTED_MODULE_2__utils__["logInfo"]('PD value has changed, so ignoring User ID from cache');
-  } else {
-    __WEBPACK_IMPORTED_MODULE_2__utils__["logInfo"]('No ID5 User ID available from cache');
-  }
-
-  __WEBPACK_IMPORTED_MODULE_3__consentManagement__["b" /* requestConsent */](function (consentData) {
-    // TODO move inside isLocalStorageAllowed()
-    // always save the current consent data to track if it changes
-    var storedConsentData = getStoredConsentData();
-
-    _this.setStoredConsentData(consentData);
-
-    if (__WEBPACK_IMPORTED_MODULE_3__consentManagement__["a" /* isLocalStorageAllowed */]()) {
-      __WEBPACK_IMPORTED_MODULE_2__utils__["logInfo"]('Consent to access local storage and cookies is given'); // make a call to fetch a new ID5 ID if:
-      // - there is no valid universal_uid or no signature in cache
-      // - the last refresh was longer than refreshInSeconds ago
-      // - consent has changed since the last ID was fetched
-      // - pd has changed since the last ID was fetched
-
-      if (!storedResponse || !storedResponse.universal_uid || !storedResponse.signature || refreshInSecondsHasElapsed || !storedConsentDataMatchesConsentData(storedConsentData, consentData) || pdHasChanged || forceFetch) {
-        var gdprApplies = consentData && consentData.gdprApplies ? 1 : 0;
-        var gdprConsentString = consentData && consentData.gdprApplies ? consentData.consentString : '';
-        var url = "https://id5-sync.com/g/v2/".concat(_this.config.partnerId, ".json?gdpr_consent=").concat(gdprConsentString, "&gdpr=").concat(gdprApplies);
-        var signature = storedResponse && storedResponse.signature ? storedResponse.signature : '';
-        var data = {
-          'partner': _this.config.partnerId,
-          'v': ID5.version,
-          'o': 'api',
-          'rf': referer.referer,
-          'u': referer.stack[0] || window.location.href,
-          'top': referer.reachedTop ? 1 : 0,
-          's': signature,
-          'pd': pd,
-          'nbPage': nb,
-          'id5cdn': document.currentScript && document.currentScript.src && document.currentScript.src.indexOf('https://cdn.id5-sync.com') === 0
-        };
-
-        if (_this.config.tpids && __WEBPACK_IMPORTED_MODULE_2__utils__["isArray"](_this.config.tpids) && _this.config.tpids.length > 0) {
-          data.tpids = _this.config.tpids;
-        }
-
-        __WEBPACK_IMPORTED_MODULE_2__utils__["logInfo"]('Fetching ID5 user ID from:', url, data);
-
-        if (forceFetch) {
-          __WEBPACK_IMPORTED_MODULE_2__utils__["logInfo"]('...with Force Fetch');
-        }
-
-        __WEBPACK_IMPORTED_MODULE_2__utils__["ajax"](url, {
-          success: function success(response) {
-            __WEBPACK_IMPORTED_MODULE_2__utils__["logInfo"]('Response from ID5 received:', response);
-            var responseObj;
-
-            if (response) {
-              try {
-                responseObj = JSON.parse(response);
-
-                if (responseObj.universal_uid) {
-                  ID5.userId = responseObj.universal_uid;
-                  __WEBPACK_IMPORTED_MODULE_2__utils__["setInLocalStorage"](ID5_STORAGE_CONFIG, response);
-                  __WEBPACK_IMPORTED_MODULE_2__utils__["setInLocalStorage"](LAST_STORAGE_CONFIG, Date.now());
-                  __WEBPACK_IMPORTED_MODULE_2__utils__["setInLocalStorage"](nbCacheConfig(_this.config.partnerId), idSetFromStoredResponse ? 0 : 1);
-
-                  if (responseObj.cascade_needed === true) {
-                    var isSync = _this.config.partnerUserId && _this.config.partnerUserId.length > 0;
-                    var syncUrl = "https://id5-sync.com/".concat(isSync ? 's' : 'i', "/").concat(_this.config.partnerId, "/8.gif?id5id=").concat(ID5.userId, "&fs=").concat(forceSync(), "&o=api&").concat(isSync ? 'puid=' + _this.config.partnerUserId + '&' : '', "gdpr_consent=").concat(gdprConsentString, "&gdpr=").concat(gdprApplies);
-                    __WEBPACK_IMPORTED_MODULE_2__utils__["logInfo"]('Opportunities to cascade available:', syncUrl);
-                    __WEBPACK_IMPORTED_MODULE_2__utils__["deferPixelFire"](syncUrl, undefined, handleDeferPixelFireCallback);
-                  }
-
-                  _this.fireCallBack();
-                } else {
-                  __WEBPACK_IMPORTED_MODULE_2__utils__["logError"]('Invalid response from ID5 servers:', response);
-                }
-              } catch (error) {
-                __WEBPACK_IMPORTED_MODULE_2__utils__["logError"](error);
-              }
-            }
-          },
-          error: function error(_error) {
-            __WEBPACK_IMPORTED_MODULE_2__utils__["logError"](_error);
-          }
-        }, JSON.stringify(data), {
-          method: 'POST',
-          withCredentials: true
-        });
+  function resetConfig() {
+    config = {
+      debug: utils.getParameterByName('id5_debug').toUpperCase() === 'TRUE',
+      allowID5WithoutConsentApi: false,
+      cmpApi: 'iab',
+      consentData: {
+        getConsentData: {
+          consentData: undefined,
+          gdprApplies: undefined
+        },
+        getVendorConsents: {}
+      },
+      refreshInSeconds: 7200,
+      partnerId: undefined,
+      partnerUserId: undefined,
+      callback: undefined,
+      callbackTimeoutInMs: undefined,
+      pd: '',
+      tpids: undefined,
+      abTesting: {
+        enabled: false,
+        controlGroupPct: 0
       }
-    } else {
-      __WEBPACK_IMPORTED_MODULE_2__utils__["logInfo"]('No legal basis to use ID5', consentData);
-    }
-  });
-};
-
-ID5.fireCallBack = function () {
-  var _this2 = this;
-
-  if (!this.callbackFired && __WEBPACK_IMPORTED_MODULE_2__utils__["isFn"](this.config.callback)) {
-    this.callbackFired = true;
-    __WEBPACK_IMPORTED_MODULE_2__utils__["logInfo"]('Scheduling callback');
-    setTimeout(function () {
-      return _this2.config.callback(ID5);
-    }, 0);
+    };
+    providedConfig = {};
   }
-};
+  /**
+   * Return current configuration
+   * @returns {Id5Config} options
+   */
 
-function nbCacheConfig(partnerId) {
+
+  function getConfig() {
+    return config;
+  }
+  /**
+   * Return configuration set by user
+   * @returns {Id5Config} options
+   */
+
+
+  function getProvidedConfig() {
+    return providedConfig;
+  }
+  /**
+   * Sets configuration given an object containing key-value pairs
+   * @param {Id5Config} options
+   * @returns {Id5Config} config
+   */
+
+
+  function setConfig(options) {
+    if (_typeof(options) !== 'object') {
+      utils.logError('setConfig options must be an object');
+      return undefined;
+    }
+
+    Object.keys(options).forEach(function (topic) {
+      if (utils.isA(options[topic], configTypes[topic])) {
+        config[topic] = options[topic];
+        providedConfig[topic] = options[topic];
+      } else {
+        utils.logError("setConfig options ".concat(topic, " must be of type ").concat(configTypes[topic], " but was ").concat(toString.call(options[topic])));
+      }
+    });
+    return config;
+  }
+
+  resetConfig();
   return {
-    name: "".concat(ID5_STORAGE_CONFIG.name, "_").concat(partnerId, "_nb"),
-    expiresDays: ID5_STORAGE_CONFIG.expiresDays
+    getConfig: getConfig,
+    getProvidedConfig: getProvidedConfig,
+    setConfig: setConfig,
+    resetConfig: resetConfig
   };
 }
-
-function getNbFromCache(partnerId) {
-  var cachedNb = __WEBPACK_IMPORTED_MODULE_2__utils__["getFromLocalStorage"](nbCacheConfig(partnerId));
-  return cachedNb ? parseInt(cachedNb) : 0;
-}
-
-function incrementNb(partnerId, nb) {
-  nb++;
-  __WEBPACK_IMPORTED_MODULE_2__utils__["setInLocalStorage"](nbCacheConfig(partnerId), nb);
-  return nb;
-}
-/**
- * makes an object that can be stored with only the keys we need to check.
- * excluding the vendorConsents object since the consentString is enough to know
- * if consent has changed without needing to have all the details in an object
- * @param consentData
- * @returns string
- */
-
-
-function makeStoredConsentDataHash(consentData) {
-  var storedConsentData = {
-    consentString: '',
-    gdprApplies: false,
-    apiVersion: 0
-  };
-
-  if (consentData) {
-    storedConsentData.consentString = consentData.consentString;
-    storedConsentData.gdprApplies = consentData.gdprApplies;
-    storedConsentData.apiVersion = consentData.apiVersion;
-  }
-
-  return __WEBPACK_IMPORTED_MODULE_2__utils__["cyrb53Hash"](JSON.stringify(storedConsentData));
-}
-/**
- * creates a hash of pd for storage
- * @param pd
- * @returns string
- */
-
-
-function makeStoredPdHash(pd) {
-  return __WEBPACK_IMPORTED_MODULE_2__utils__["cyrb53Hash"](typeof pd === 'string' ? pd : '');
-}
-/**
- * puts the current data into local storage
- * @param cacheConfig
- * @param data
- */
-
-
-function setStored(cacheConfig, data) {
-  try {
-    __WEBPACK_IMPORTED_MODULE_2__utils__["setInLocalStorage"](cacheConfig, data);
-  } catch (error) {
-    __WEBPACK_IMPORTED_MODULE_2__utils__["logError"](error);
-  }
-}
-
-;
-
-ID5.setStoredConsentData = function (consentData) {
-  setStored(CONSENT_DATA_STORAGE_CONFIG, makeStoredConsentDataHash(consentData));
-};
-
-ID5.setStoredPd = function (pd) {
-  setStored(PD_STORAGE_CONFIG, makeStoredPdHash(pd));
-};
-/**
- * test if the data stored locally matches the current data.
- * if there is nothing in storage, return true and we'll do an actual comparison next time.
- * this way, we don't force a refresh for every user when this code rolls out
- * @param storedData
- * @param currentData
- * @returns {boolean}
- */
-
-
-function storedDataMatchesCurrentData(storedData, currentData) {
-  return typeof storedData === 'undefined' || storedData === null || storedData === currentData;
-}
-
-function storedConsentDataMatchesConsentData(storedConsentData, consentData) {
-  return storedDataMatchesCurrentData(storedConsentData, makeStoredConsentDataHash(consentData));
-}
-
-function storedPdMatchesPd(storedPd, pd) {
-  return storedDataMatchesCurrentData(storedPd, makeStoredPdHash(pd));
-}
-/**
- * get stored data from local storage, if any
- * @returns {string}
- */
-
-
-function getStored(cacheConfig) {
-  try {
-    return __WEBPACK_IMPORTED_MODULE_2__utils__["getFromLocalStorage"](cacheConfig);
-  } catch (e) {
-    __WEBPACK_IMPORTED_MODULE_2__utils__["logError"](e);
-  }
-}
-
-function getStoredConsentData() {
-  return getStored(CONSENT_DATA_STORAGE_CONFIG);
-}
-
-function getStoredPd() {
-  return getStored(PD_STORAGE_CONFIG);
-}
-
-function handleDeferPixelFireCallback() {
-  setStored(FS_STORAGE_CONFIG, 0);
-}
-
-function forceSync() {
-  var cachedFs = getStored(FS_STORAGE_CONFIG);
-  return cachedFs ? parseInt(cachedFs) : 1;
-}
-
-function getFromLegacyCookie() {
-  var legacyStoredValue;
-  LEGACY_COOKIE_NAMES.forEach(function (cookie) {
-    if (__WEBPACK_IMPORTED_MODULE_2__utils__["getCookie"](cookie)) {
-      legacyStoredValue = __WEBPACK_IMPORTED_MODULE_2__utils__["getCookie"](cookie);
-    }
-  });
-  return legacyStoredValue || null;
-}
-
-function removeLegacyCookies(partnerId) {
-  var expired = new Date(Date.now() - 1000).toUTCString();
-  LEGACY_COOKIE_NAMES.forEach(function (cookie) {
-    __WEBPACK_IMPORTED_MODULE_2__utils__["setCookie"]("".concat(cookie), '', expired);
-    __WEBPACK_IMPORTED_MODULE_2__utils__["setCookie"]("".concat(cookie, "_nb"), '', expired);
-    __WEBPACK_IMPORTED_MODULE_2__utils__["setCookie"]("".concat(cookie, "_").concat(partnerId, "_nb"), '', expired);
-    __WEBPACK_IMPORTED_MODULE_2__utils__["setCookie"]("".concat(cookie, "_last"), '', expired);
-    __WEBPACK_IMPORTED_MODULE_2__utils__["setCookie"]("".concat(cookie, ".cached_pd"), '', expired);
-    __WEBPACK_IMPORTED_MODULE_2__utils__["setCookie"]("".concat(cookie, ".cached_consent_data"), '', expired);
-  });
-}
-
-/* harmony default export */ __webpack_exports__["default"] = (ID5);
+var config = newConfig();
 
 /***/ }),
-/* 3 */
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
-/* harmony export (immutable) */ __webpack_exports__["a"] = getGlobal;
-window.ID5 = window.ID5 || {};
-function getGlobal() {
-  return window.ID5;
-}
-
-/***/ }),
-/* 4 */
+/* 2 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 /* unused harmony export consentData */
 /* unused harmony export staticConsentData */
+/* unused harmony export storedPrivacyData */
 /* harmony export (immutable) */ __webpack_exports__["b"] = requestConsent;
 /* harmony export (immutable) */ __webpack_exports__["c"] = resetConsentData;
 /* harmony export (immutable) */ __webpack_exports__["a"] = isLocalStorageAllowed;
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__utils__ = __webpack_require__(1);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__config__ = __webpack_require__(0);
+/* unused harmony export isProvisionalLocalStorageAllowed */
+/* harmony export (immutable) */ __webpack_exports__["d"] = setStoredPrivacy;
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__utils__ = __webpack_require__(0);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__config__ = __webpack_require__(1);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2_src_constants_json__ = __webpack_require__(3);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2_src_constants_json___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_2_src_constants_json__);
+
 
 
 var consentData;
 var staticConsentData;
+var storedPrivacyData;
 var cmpVersion = 0;
 var cmpCallMap = {
   'iab': lookupIabConsent,
@@ -1380,6 +1022,7 @@ function cmpSuccess(consentObject, finalCallback) {
 
 function resetConsentData() {
   consentData = undefined;
+  storedPrivacyData = undefined;
 }
 /**
  * Stores CMP data locally in module
@@ -1414,18 +1057,14 @@ function storeConsentData(cmpConsentObject) {
 
 
 function isLocalStorageAllowed() {
-  if (__WEBPACK_IMPORTED_MODULE_1__config__["a" /* config */].getConfig().allowID5WithoutConsentApi) {
+  if (__WEBPACK_IMPORTED_MODULE_1__config__["a" /* config */].getConfig().allowID5WithoutConsentApi === true) {
+    // allowID5WithoutConsentApi:true forces local storage access
     return true;
   } else if (!consentData) {
-    // if there is no CMP on page, consentData will be undefined. the publisher must tell us it's ok
-    // to access local storage via the `allowID5WithoutConsentApi` config option, otherwise we may be
-    // in violation of ePrivacy if the user is in the EU. as long as there is a cmp on page, if the user
-    // is not in a country requiring consent, consentData will be populated and will fall through
-    // one of the other branches below. if a publisher dynamically drops a cmp only for EU traffic,
-    // they should dynamically set `allowID5WithoutConsentApi: true` for non-EU traffic and
-    // `allowID5WithoutConsentApi: false` (or omit the option) for EU traffic.
-    return false;
+    // no cmp on page, so check if provisional access is allowed
+    return isProvisionalLocalStorageAllowed();
   } else if (typeof consentData.gdprApplies === 'boolean' && consentData.gdprApplies) {
+    // gdpr applies
     if (!consentData.consentString || consentData.apiVersion === 0) {
       return false;
     } else if (consentData.apiVersion === 1 && consentData.vendorData && consentData.vendorData.purposeConsents && consentData.vendorData.purposeConsents['1'] === false) {
@@ -1436,12 +1075,346 @@ function isLocalStorageAllowed() {
       return true;
     }
   } else {
+    // we have consent data and it tells us gdpr doesn't apply
     return true;
+  }
+}
+/**
+ * if there is no CMP on page, consentData will be undefined, so we will check if we had stored
+ * privacy data from a previous request to determine if we are allowed to access local storage.
+ * if so, we use the previous authorization as a legal basis before calling our servers to confirm.
+ * if we do not have any stored privacy data, we will need to call our servers to know if we
+ * are in a jurisdiction that requires consent or not before accessing local storage.
+ *
+ * if there is no stored privacy data or jurisdiction wasn't set, will return undefined so the
+ * caller can decide what to do with in that case
+ *
+ * @return boolean|undefined
+ */
+
+function isProvisionalLocalStorageAllowed() {
+  if (!__WEBPACK_IMPORTED_MODULE_0__utils__["isPlainObject"](storedPrivacyData)) {
+    storedPrivacyData = JSON.parse(__WEBPACK_IMPORTED_MODULE_0__utils__["getFromLocalStorage"](__WEBPACK_IMPORTED_MODULE_2_src_constants_json___default.a.STORAGE_CONFIG.PRIVACY));
+  }
+
+  if (storedPrivacyData && storedPrivacyData.id5_consent === true) {
+    return true;
+  } else if (!storedPrivacyData || typeof storedPrivacyData.jurisdiction === 'undefined') {
+    return undefined;
+  } else {
+    var jurisdictionRequiresConsent = typeof __WEBPACK_IMPORTED_MODULE_2_src_constants_json___default.a.PRIVACY.JURISDICTIONS[storedPrivacyData.jurisdiction] !== 'undefined' ? __WEBPACK_IMPORTED_MODULE_2_src_constants_json___default.a.PRIVACY.JURISDICTIONS[storedPrivacyData.jurisdiction] : false;
+    return jurisdictionRequiresConsent === false || storedPrivacyData.id5_consent === true;
+  }
+}
+function setStoredPrivacy(privacy) {
+  try {
+    if (__WEBPACK_IMPORTED_MODULE_0__utils__["isPlainObject"](privacy)) {
+      storedPrivacyData = privacy;
+      __WEBPACK_IMPORTED_MODULE_0__utils__["setInLocalStorage"](__WEBPACK_IMPORTED_MODULE_2_src_constants_json___default.a.STORAGE_CONFIG.PRIVACY, JSON.stringify(privacy));
+    } else {
+      __WEBPACK_IMPORTED_MODULE_0__utils__["logInfo"]('Cannot store privacy if it\'s not an object: ', privacy);
+    }
+  } catch (e) {
+    __WEBPACK_IMPORTED_MODULE_0__utils__["logError"](e);
   }
 }
 
 /***/ }),
+/* 3 */
+/***/ (function(module, exports) {
+
+module.exports = {"STORAGE_CONFIG":{"ID5":{"name":"id5id","expiresDays":90},"LAST":{"name":"id5id_last","expiresDays":90},"CONSENT_DATA":{"name":"id5id_cached_consent_data","expiresDays":30},"PD":{"name":"id5id_cached_pd","expiresDays":30},"FS":{"name":"id5id_fs","expiresDays":7},"PRIVACY":{"name":"id5id_privacy","expiresDays":30}},"LEGACY_COOKIE_NAMES":["id5.1st","id5id.1st"],"PRIVACY":{"JURISDICTIONS":{"gdpr":true,"ccpa":false,"lgpd":true,"other":false}}}
+
+/***/ }),
+/* 4 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "ID5", function() { return ID5; });
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__id5_apiGlobal__ = __webpack_require__(5);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__config__ = __webpack_require__(1);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__utils__ = __webpack_require__(0);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__consentManagement__ = __webpack_require__(2);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__refererDetection__ = __webpack_require__(6);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_5__abTesting__ = __webpack_require__(7);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_6__clientStore__ = __webpack_require__(8);
+/** @module id5-api */
+
+
+
+
+
+
+
+var ID5 = Object(__WEBPACK_IMPORTED_MODULE_0__id5_apiGlobal__["a" /* getGlobal */])();
+ID5.loaded = true;
+ID5.initialized = false;
+ID5.callbackFired = false;
+/**
+ * This function will initialize ID5, wait for consent then try to fetch or refresh ID5 user id if required
+ * @param {Id5Config} options
+ * @alias module:ID5.init
+ */
+// TODO: Use Async init by pushing setting in a queue
+
+ID5.init = function (options) {
+  if (typeof ID5.version === 'undefined') {
+    throw new Error('ID5.version variable is missing! Make sure you build from source with "gulp build" from this project. Contact support@id5.io for help.');
+  }
+
+  try {
+    __WEBPACK_IMPORTED_MODULE_2__utils__["logInfo"]('Invoking ID5.init', arguments);
+    ID5.initialized = true;
+    ID5.getConfig = __WEBPACK_IMPORTED_MODULE_1__config__["a" /* config */].getConfig;
+    ID5.getProvidedConfig = __WEBPACK_IMPORTED_MODULE_1__config__["a" /* config */].getProvidedConfig;
+    ID5.setConfig = __WEBPACK_IMPORTED_MODULE_1__config__["a" /* config */].setConfig;
+    ID5.setStoredConsentData = __WEBPACK_IMPORTED_MODULE_6__clientStore__["g" /* putHashedConsentData */];
+    ID5.setStoredPd = __WEBPACK_IMPORTED_MODULE_6__clientStore__["h" /* putHashedPd */];
+    ID5.abTesting = new __WEBPACK_IMPORTED_MODULE_5__abTesting__["a" /* default */](options.abTesting);
+    this.getId(options, false);
+  } catch (e) {
+    __WEBPACK_IMPORTED_MODULE_2__utils__["logError"]('Exception caught from ID5.init', e);
+  }
+};
+
+ID5.exposeId = function () {
+  if (ID5.initialized !== true) {
+    throw new Error('ID5.refreshID() cannot be called before ID5.exposeId()!');
+  }
+
+  return ID5.abTesting.exposeId();
+};
+
+ID5.refreshId = function () {
+  var forceFetch = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : false;
+  var options = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+
+  if (ID5.initialized !== true) {
+    throw new Error('ID5.refreshID() cannot be called before ID5.init()!');
+  }
+
+  try {
+    __WEBPACK_IMPORTED_MODULE_2__utils__["logInfo"]('Invoking ID5.refreshId', arguments);
+
+    if (!__WEBPACK_IMPORTED_MODULE_2__utils__["isBoolean"](forceFetch)) {
+      throw new Error('Invalid signature for ID5.refreshID: first parameter must be a boolean');
+    } // consent may have changed, so we need to check it again
+
+
+    __WEBPACK_IMPORTED_MODULE_3__consentManagement__["c" /* resetConsentData */]();
+    this.getId(options, forceFetch);
+  } catch (e) {
+    __WEBPACK_IMPORTED_MODULE_2__utils__["logError"]('Exception caught from ID5.refreshId', e);
+  }
+};
+
+ID5.getId = function (options) {
+  var _this = this;
+
+  var forceFetch = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : false;
+  ID5.config = __WEBPACK_IMPORTED_MODULE_1__config__["a" /* config */].setConfig(options);
+  ID5.callbackFired = false; // @FIXME: Not required => Add doc to say that refresh does not change control group
+
+  var referer = Object(__WEBPACK_IMPORTED_MODULE_4__refererDetection__["a" /* getRefererInfo */])();
+  __WEBPACK_IMPORTED_MODULE_2__utils__["logInfo"]("ID5 detected referer is ".concat(referer.referer));
+
+  if (!this.config.partnerId || typeof this.config.partnerId !== 'number') {
+    throw new Error('partnerId is required and must be a number');
+  } // pick up data from local storage
+  // (will only read if local storage access is allowed)
+
+
+  var storedResponse = __WEBPACK_IMPORTED_MODULE_6__clientStore__["e" /* getResponse */]();
+  var storedDateTime = __WEBPACK_IMPORTED_MODULE_6__clientStore__["c" /* getDateTime */]();
+  var refreshInSecondsHasElapsed = storedDateTime <= 0 || Date.now() - storedDateTime > this.config.refreshInSeconds * 1000;
+  var nb = __WEBPACK_IMPORTED_MODULE_6__clientStore__["d" /* getNb */](this.config.partnerId);
+  ID5.fromCache = false; // always save the current pd to track if it changes
+  // (will only read if local storage access is allowed)
+
+  var pd = this.config.pd || '';
+  var pdHasChanged = !__WEBPACK_IMPORTED_MODULE_6__clientStore__["n" /* storedPdMatchesPd */](pd); // Callback watchdogs
+
+  if (__WEBPACK_IMPORTED_MODULE_2__utils__["isFn"](this.config.callback) && this.config.callbackTimeoutInMs >= 0) {
+    setTimeout(function () {
+      return _this.fireCallBack();
+    }, this.config.callbackTimeoutInMs);
+  } // TEMPORARY until all clients have upgraded past v1.0.0
+  // remove cookies that were previously set
+  // @FIXME: There is a risk of clearing without storing in local storage
+
+
+  __WEBPACK_IMPORTED_MODULE_6__clientStore__["j" /* removeLegacyCookies */](this.config.partnerId);
+
+  if (storedResponse && !pdHasChanged) {
+    // we have a valid stored response and pd is not different, so
+    // use the stored response to make the ID available right away
+    if (storedResponse.universal_uid && this.exposeId()) {
+      ID5.userId = storedResponse.universal_uid;
+      ID5.linkType = storedResponse.link_type || 0;
+    } else if (storedResponse.universal_uid) {
+      // we're in A/B testing and this is the control group, so do
+      // not set a userId or linkType
+      ID5.userId = ID5.linkType = 0;
+    } else {
+      __WEBPACK_IMPORTED_MODULE_2__utils__["logError"]('Invalid stored response: ', JSON.stringify(storedResponse));
+    }
+
+    nb = __WEBPACK_IMPORTED_MODULE_6__clientStore__["f" /* incNb */](this.config.partnerId, nb);
+    ID5.fromCache = true;
+
+    if (typeof ID5.userId !== 'undefined') {
+      this.fireCallBack();
+    }
+
+    __WEBPACK_IMPORTED_MODULE_2__utils__["logInfo"]('ID5 User ID available from cache:', {
+      storedResponse: storedResponse,
+      storedDateTime: storedDateTime,
+      refreshNeeded: refreshInSecondsHasElapsed
+    });
+  } else if (storedResponse && pdHasChanged) {
+    __WEBPACK_IMPORTED_MODULE_2__utils__["logInfo"]('PD value has changed, so ignoring User ID from cache');
+  } else {
+    __WEBPACK_IMPORTED_MODULE_2__utils__["logInfo"]('No ID5 User ID available from cache');
+  }
+
+  __WEBPACK_IMPORTED_MODULE_3__consentManagement__["b" /* requestConsent */](function (consentData) {
+    if (__WEBPACK_IMPORTED_MODULE_3__consentManagement__["a" /* isLocalStorageAllowed */]() !== false) {
+      __WEBPACK_IMPORTED_MODULE_2__utils__["logInfo"]('Consent to access local storage is given: ', __WEBPACK_IMPORTED_MODULE_3__consentManagement__["a" /* isLocalStorageAllowed */]()); // @FIXME: If we had not consent before, we should read response/Nb/everything
+      // store hashed consent data and pd for future page loads
+
+      var consentHasChanged = !__WEBPACK_IMPORTED_MODULE_6__clientStore__["m" /* storedConsentDataMatchesConsentData */](consentData);
+      __WEBPACK_IMPORTED_MODULE_6__clientStore__["g" /* putHashedConsentData */](consentData);
+      __WEBPACK_IMPORTED_MODULE_6__clientStore__["h" /* putHashedPd */](pd); // make a call to fetch a new ID5 ID if:
+      // - there is no valid universal_uid or no signature in cache
+      // - the last refresh was longer than refreshInSeconds ago
+      // - consent has changed since the last ID was fetched
+      // - pd has changed since the last ID was fetched
+      // - fetch is being forced (e.g. by refreshId())
+
+      if (!storedResponse || !storedResponse.universal_uid || !storedResponse.signature || refreshInSecondsHasElapsed || consentHasChanged || pdHasChanged || forceFetch) {
+        var url = "https://id5-sync.com/g/v2/".concat(_this.config.partnerId, ".json");
+        var gdprApplies = consentData && consentData.gdprApplies ? 1 : 0;
+        var gdprConsentString = consentData && consentData.gdprApplies ? consentData.consentString : '';
+        var signature = storedResponse && storedResponse.signature ? storedResponse.signature : '';
+        var data = {
+          'partner': _this.config.partnerId,
+          'v': ID5.version,
+          'o': 'api',
+          'gdpr': gdprApplies,
+          'gdpr_consent': gdprConsentString,
+          'rf': referer.referer,
+          'u': referer.stack[0] || window.location.href,
+          'top': referer.reachedTop ? 1 : 0,
+          's': signature,
+          'pd': pd,
+          'nbPage': nb,
+          'id5cdn': document.currentScript && document.currentScript.src && document.currentScript.src.indexOf('https://cdn.id5-sync.com') === 0
+        };
+
+        if (_this.config.tpids && __WEBPACK_IMPORTED_MODULE_2__utils__["isArray"](_this.config.tpids) && _this.config.tpids.length > 0) {
+          data.tpids = _this.config.tpids;
+        }
+
+        __WEBPACK_IMPORTED_MODULE_2__utils__["logInfo"]('Fetching ID5 user ID from:', url, data);
+
+        if (forceFetch) {
+          __WEBPACK_IMPORTED_MODULE_2__utils__["logInfo"]('...with Force Fetch');
+        }
+
+        __WEBPACK_IMPORTED_MODULE_2__utils__["ajax"](url, {
+          success: function success(response) {
+            var responseObj;
+
+            if (response) {
+              try {
+                responseObj = JSON.parse(response);
+                __WEBPACK_IMPORTED_MODULE_2__utils__["logInfo"]('Response from ID5 received:', responseObj);
+
+                if (responseObj.universal_uid) {
+                  if (_this.exposeId()) {
+                    ID5.userId = responseObj.universal_uid;
+                    ID5.linkType = responseObj.link_type || 0;
+                  } else {
+                    // we're in A/B testing and this is the control group, so do
+                    // not set a userId or linkType
+                    ID5.userId = ID5.linkType = 0;
+                  } // privacy has to be stored first so we can use it when storing other values
+
+
+                  __WEBPACK_IMPORTED_MODULE_3__consentManagement__["d" /* setStoredPrivacy */](responseObj.privacy); // @TODO: typeof responseObj.privacy === 'undefined' is only needed until fetch endpoint is updated and always returns a privacy object
+                  // once it does, I don't see a reason to keep that part of the if clause
+
+                  if (__WEBPACK_IMPORTED_MODULE_3__consentManagement__["a" /* isLocalStorageAllowed */]() === true || typeof responseObj.privacy === 'undefined') {
+                    __WEBPACK_IMPORTED_MODULE_6__clientStore__["i" /* putResponse */](response);
+                    __WEBPACK_IMPORTED_MODULE_6__clientStore__["k" /* setDateTime */](Date.now());
+                    __WEBPACK_IMPORTED_MODULE_6__clientStore__["l" /* setNb */](_this.config.partnerId, ID5.fromCache ? 0 : 1);
+                  } else {
+                    __WEBPACK_IMPORTED_MODULE_6__clientStore__["a" /* clearAll */](_this.config.partnerId);
+                  } // this must come after storing Nb or it will store the wrong value
+
+
+                  ID5.fromCache = false;
+
+                  if (responseObj.cascade_needed === true && __WEBPACK_IMPORTED_MODULE_3__consentManagement__["a" /* isLocalStorageAllowed */]() === true) {
+                    var isSync = _this.config.partnerUserId && _this.config.partnerUserId.length > 0;
+                    var syncUrl = "https://id5-sync.com/".concat(isSync ? 's' : 'i', "/").concat(_this.config.partnerId, "/8.gif?id5id=").concat(ID5.userId, "&fs=").concat(__WEBPACK_IMPORTED_MODULE_6__clientStore__["b" /* forceSync */](), "&o=api&").concat(isSync ? 'puid=' + _this.config.partnerUserId + '&' : '', "gdpr_consent=").concat(gdprConsentString, "&gdpr=").concat(gdprApplies);
+                    __WEBPACK_IMPORTED_MODULE_2__utils__["logInfo"]('Opportunities to cascade available:', syncUrl);
+                    __WEBPACK_IMPORTED_MODULE_2__utils__["deferPixelFire"](syncUrl, undefined, __WEBPACK_IMPORTED_MODULE_6__clientStore__["o" /* syncCallback */]);
+                  }
+
+                  _this.fireCallBack();
+                } else {
+                  __WEBPACK_IMPORTED_MODULE_2__utils__["logError"]('Invalid response from ID5 servers:', response);
+                }
+              } catch (error) {
+                __WEBPACK_IMPORTED_MODULE_2__utils__["logError"](error);
+              }
+            } else {
+              __WEBPACK_IMPORTED_MODULE_2__utils__["logError"]('Empty response from ID5 servers:', response);
+            }
+          },
+          error: function error(_error) {
+            __WEBPACK_IMPORTED_MODULE_2__utils__["logError"](_error);
+          }
+        }, JSON.stringify(data), {
+          method: 'POST',
+          withCredentials: true
+        });
+      }
+    } else {
+      __WEBPACK_IMPORTED_MODULE_2__utils__["logInfo"]('No legal basis to use ID5', consentData);
+    }
+  });
+};
+
+ID5.fireCallBack = function () {
+  var _this2 = this;
+
+  if (!this.callbackFired && __WEBPACK_IMPORTED_MODULE_2__utils__["isFn"](this.config.callback)) {
+    __WEBPACK_IMPORTED_MODULE_2__utils__["logInfo"]('Scheduling callback');
+    setTimeout(function () {
+      return _this2.config.callback(ID5);
+    }, 0);
+    this.callbackFired = true;
+  }
+};
+
+/* harmony default export */ __webpack_exports__["default"] = (ID5);
+
+/***/ }),
 /* 5 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony export (immutable) */ __webpack_exports__["a"] = getGlobal;
+window.ID5 = window.ID5 || {};
+function getGlobal() {
+  return window.ID5;
+}
+
+/***/ }),
+/* 6 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -1662,7 +1635,295 @@ function detectReferer(win) {
 }
 var getRefererInfo = detectReferer(window);
 
+/***/ }),
+/* 7 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* unused harmony export AbTesting */
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__utils__ = __webpack_require__(0);
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+function _defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
+
+function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _defineProperties(Constructor.prototype, protoProps); if (staticProps) _defineProperties(Constructor, staticProps); return Constructor; }
+
+function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
+
+/*
+ * Module for managing A/B Testing
+ */
+
+var AbTesting = /*#__PURE__*/function () {
+  /** @type boolean */
+
+  /**
+   * @typedef {Object} AbTestConfig
+   * @property {boolean|false} [enabled] - Enable control group
+   * @property {number} [controlGroupPct] - Ratio of users in control group [0,1]
+   */
+
+  /** @param {AbTestConfig} [abConfig] */
+  function AbTesting(abConfig) {
+    _classCallCheck(this, AbTesting);
+
+    _defineProperty(this, "controlGroup", false);
+
+    if (abConfig && abConfig.enabled === true && (!Object(__WEBPACK_IMPORTED_MODULE_0__utils__["isNumber"])(abConfig.controlGroupPct) || abConfig.controlGroupPct < 0 || abConfig.controlGroupPct > 1)) {
+      throw new Error('A/B Testing controlGroupPct must be a number >= 0 and <= 1');
+    }
+
+    if (abConfig && abConfig.enabled === true) {
+      this.controlGroup = Math.random() < abConfig.controlGroupPct;
+    }
+  }
+
+  _createClass(AbTesting, [{
+    key: "exposeId",
+    value: function exposeId() {
+      return typeof this.controlGroup !== 'boolean' || this.controlGroup === false;
+    }
+  }]);
+
+  return AbTesting;
+}();
+/* harmony default export */ __webpack_exports__["a"] = (AbTesting);
+
+/***/ }),
+/* 8 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony export (immutable) */ __webpack_exports__["e"] = getResponse;
+/* unused harmony export clearResponse */
+/* harmony export (immutable) */ __webpack_exports__["i"] = putResponse;
+/* unused harmony export clearHashedConsentData */
+/* harmony export (immutable) */ __webpack_exports__["g"] = putHashedConsentData;
+/* unused harmony export clearHashedPd */
+/* harmony export (immutable) */ __webpack_exports__["h"] = putHashedPd;
+/* harmony export (immutable) */ __webpack_exports__["c"] = getDateTime;
+/* unused harmony export clearDateTime */
+/* harmony export (immutable) */ __webpack_exports__["k"] = setDateTime;
+/* harmony export (immutable) */ __webpack_exports__["d"] = getNb;
+/* harmony export (immutable) */ __webpack_exports__["l"] = setNb;
+/* harmony export (immutable) */ __webpack_exports__["f"] = incNb;
+/* harmony export (immutable) */ __webpack_exports__["o"] = syncCallback;
+/* harmony export (immutable) */ __webpack_exports__["b"] = forceSync;
+/* harmony export (immutable) */ __webpack_exports__["a"] = clearAll;
+/* harmony export (immutable) */ __webpack_exports__["j"] = removeLegacyCookies;
+/* harmony export (immutable) */ __webpack_exports__["m"] = storedConsentDataMatchesConsentData;
+/* harmony export (immutable) */ __webpack_exports__["n"] = storedPdMatchesPd;
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__consentManagement__ = __webpack_require__(2);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__utils__ = __webpack_require__(0);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__constants_json__ = __webpack_require__(3);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__constants_json___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_2__constants_json__);
+/*
+ * Module for managing storage of information in browser Local Storage and/or cookies
+ */
+
+
+
+/**
+ * Get stored data from local storage, if any, after checking if local storage is allowed
+ * @param {{name: string, expiresDays: number}} cacheConfig
+ * @returns {string|null|undefined} the stored value, null if no value or expired were stored, undefined if no consent or no access to localStorage
+ */
+
+function get(cacheConfig) {
+  try {
+    if (__WEBPACK_IMPORTED_MODULE_0__consentManagement__["a" /* isLocalStorageAllowed */]() === true) {
+      return __WEBPACK_IMPORTED_MODULE_1__utils__["getFromLocalStorage"](cacheConfig);
+    }
+  } catch (e) {
+    __WEBPACK_IMPORTED_MODULE_1__utils__["logError"](e);
+  }
+}
+/**
+ * clear stored data from local storage, if any
+ * @param {StoreItem} cacheConfig
+ */
+
+
+function clear(cacheConfig) {
+  try {
+    __WEBPACK_IMPORTED_MODULE_1__utils__["removeFromLocalStorage"](cacheConfig);
+  } catch (e) {
+    __WEBPACK_IMPORTED_MODULE_1__utils__["logError"](e);
+  }
+}
+/**
+ * puts the current data into local storage, after checking for local storage access
+ * @param {StoreItem} cacheConfig
+ * @param {string} data
+ */
+
+
+function put(cacheConfig, data) {
+  try {
+    if (__WEBPACK_IMPORTED_MODULE_0__consentManagement__["a" /* isLocalStorageAllowed */]() === true) {
+      __WEBPACK_IMPORTED_MODULE_1__utils__["setInLocalStorage"](cacheConfig, data);
+    }
+  } catch (e) {
+    __WEBPACK_IMPORTED_MODULE_1__utils__["logError"](e);
+  }
+}
+
+function getResponseFromLegacyCookie() {
+  var legacyStoredValue;
+  __WEBPACK_IMPORTED_MODULE_2__constants_json___default.a.LEGACY_COOKIE_NAMES.forEach(function (cookie) {
+    if (__WEBPACK_IMPORTED_MODULE_1__utils__["getCookie"](cookie)) {
+      legacyStoredValue = __WEBPACK_IMPORTED_MODULE_1__utils__["getCookie"](cookie);
+    }
+  });
+  return legacyStoredValue || null;
+}
+
+function getResponse() {
+  return JSON.parse(get(__WEBPACK_IMPORTED_MODULE_2__constants_json___default.a.STORAGE_CONFIG.ID5) || getResponseFromLegacyCookie());
+}
+function clearResponse() {
+  clear(__WEBPACK_IMPORTED_MODULE_2__constants_json___default.a.STORAGE_CONFIG.ID5);
+}
+function putResponse(response) {
+  put(__WEBPACK_IMPORTED_MODULE_2__constants_json___default.a.STORAGE_CONFIG.ID5, response);
+}
+
+function getHashedConsentData() {
+  return get(__WEBPACK_IMPORTED_MODULE_2__constants_json___default.a.STORAGE_CONFIG.CONSENT_DATA);
+}
+
+function clearHashedConsentData() {
+  clear(__WEBPACK_IMPORTED_MODULE_2__constants_json___default.a.STORAGE_CONFIG.CONSENT_DATA);
+}
+function putHashedConsentData(consentData) {
+  put(__WEBPACK_IMPORTED_MODULE_2__constants_json___default.a.STORAGE_CONFIG.CONSENT_DATA, makeStoredConsentDataHash(consentData));
+}
+
+function getHashedPd() {
+  return get(__WEBPACK_IMPORTED_MODULE_2__constants_json___default.a.STORAGE_CONFIG.PD);
+}
+
+function clearHashedPd() {
+  clear(__WEBPACK_IMPORTED_MODULE_2__constants_json___default.a.STORAGE_CONFIG.PD);
+}
+function putHashedPd(pd) {
+  // @FIXME: per partner storage
+  put(__WEBPACK_IMPORTED_MODULE_2__constants_json___default.a.STORAGE_CONFIG.PD, makeStoredPdHash(pd));
+}
+function getDateTime() {
+  return new Date(+get(__WEBPACK_IMPORTED_MODULE_2__constants_json___default.a.STORAGE_CONFIG.LAST)).getTime();
+}
+function clearDateTime() {
+  clear(__WEBPACK_IMPORTED_MODULE_2__constants_json___default.a.STORAGE_CONFIG.LAST);
+}
+function setDateTime(timestamp) {
+  put(__WEBPACK_IMPORTED_MODULE_2__constants_json___default.a.STORAGE_CONFIG.LAST, timestamp);
+}
+
+function nbCacheConfig(partnerId) {
+  return {
+    name: "".concat(__WEBPACK_IMPORTED_MODULE_2__constants_json___default.a.STORAGE_CONFIG.ID5.name, "_").concat(partnerId, "_nb"),
+    expiresDays: __WEBPACK_IMPORTED_MODULE_2__constants_json___default.a.STORAGE_CONFIG.ID5.expiresDays
+  };
+}
+
+function getNb(partnerId) {
+  var cachedNb = get(nbCacheConfig(partnerId));
+  return cachedNb ? parseInt(cachedNb) : 0;
+}
+
+function clearNb(partnerId) {
+  clear(nbCacheConfig(partnerId));
+}
+
+function setNb(partnerId, nb) {
+  put(nbCacheConfig(partnerId), nb);
+}
+function incNb(partnerId, nb) {
+  nb++;
+  setNb(partnerId, nb);
+  return nb;
+}
+function syncCallback() {
+  put(__WEBPACK_IMPORTED_MODULE_2__constants_json___default.a.STORAGE_CONFIG.FS, '1');
+}
+function forceSync() {
+  var cachedFs = get(__WEBPACK_IMPORTED_MODULE_2__constants_json___default.a.STORAGE_CONFIG.FS); // Force cascade if we have access to Local Storage and we never cascaded
+
+  return typeof cachedFs === 'undefined' || cachedFs === '1' ? 0 : 1;
+}
+function clearAll(partnerId) {
+  clearResponse();
+  clearDateTime();
+  clearNb(partnerId);
+  clearHashedPd();
+  clearHashedConsentData();
+}
+function removeLegacyCookies(partnerId) {
+  var expired = new Date(Date.now() - 1000).toUTCString();
+  __WEBPACK_IMPORTED_MODULE_2__constants_json___default.a.LEGACY_COOKIE_NAMES.forEach(function (cookie) {
+    __WEBPACK_IMPORTED_MODULE_1__utils__["setCookie"]("".concat(cookie), '', expired);
+    __WEBPACK_IMPORTED_MODULE_1__utils__["setCookie"]("".concat(cookie, "_nb"), '', expired);
+    __WEBPACK_IMPORTED_MODULE_1__utils__["setCookie"]("".concat(cookie, "_").concat(partnerId, "_nb"), '', expired);
+    __WEBPACK_IMPORTED_MODULE_1__utils__["setCookie"]("".concat(cookie, "_last"), '', expired);
+    __WEBPACK_IMPORTED_MODULE_1__utils__["setCookie"]("".concat(cookie, ".cached_pd"), '', expired);
+    __WEBPACK_IMPORTED_MODULE_1__utils__["setCookie"]("".concat(cookie, ".cached_consent_data"), '', expired);
+  });
+}
+/**
+ * test if the data stored locally matches the current data.
+ * if there is nothing in storage, return true and we'll do an actual comparison next time.
+ * this way, we don't force a refresh for every user when this code rolls out
+ * @param storedData
+ * @param currentData
+ * @returns {boolean}
+ */
+
+function storedDataMatchesCurrentData(storedData, currentData) {
+  return typeof storedData === 'undefined' || storedData === null || storedData === currentData;
+}
+
+function storedConsentDataMatchesConsentData(consentData) {
+  return storedDataMatchesCurrentData(getHashedConsentData(), makeStoredConsentDataHash(consentData));
+}
+function storedPdMatchesPd(pd) {
+  return storedDataMatchesCurrentData(getHashedPd(), makeStoredPdHash(pd));
+}
+/**
+ * makes an object that can be stored with only the keys we need to check.
+ * excluding the vendorConsents object since the consentString is enough to know
+ * if consent has changed without needing to have all the details in an object
+ * @param consentData
+ * @returns string
+ */
+
+function makeStoredConsentDataHash(consentData) {
+  var storedConsentData = {
+    consentString: '',
+    gdprApplies: false,
+    apiVersion: 0
+  };
+
+  if (consentData) {
+    storedConsentData.consentString = consentData.consentString;
+    storedConsentData.gdprApplies = consentData.gdprApplies;
+    storedConsentData.apiVersion = consentData.apiVersion;
+  }
+
+  return __WEBPACK_IMPORTED_MODULE_1__utils__["cyrb53Hash"](JSON.stringify(storedConsentData));
+}
+/**
+ * creates a hash of pd for storage
+ * @param pd
+ * @returns string
+ */
+
+
+function makeStoredPdHash(pd) {
+  return __WEBPACK_IMPORTED_MODULE_1__utils__["cyrb53Hash"](typeof pd === 'string' ? pd : '');
+}
+
 /***/ })
 /******/ ]);
 //# sourceMappingURL=id5-api.js.map
-ID5.version = '0.9.6';
+ID5.version = '0.9.7-pre';

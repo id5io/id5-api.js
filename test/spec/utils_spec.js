@@ -1,3 +1,4 @@
+import sinon from 'sinon';
 import * as utils from 'src/utils';
 
 let assert = require('assert');

@@ -258,7 +258,7 @@ export function isLocalStorageAllowed() {
     // allowID5WithoutConsentApi:true forces local storage access
     return true;
   } else if (!consentData) {
-    // no cmp on page, so check if provisional acess is allowed
+    // no cmp on page, so check if provisional access is allowed
     return isProvisionalLocalStorageAllowed();
   } else if (typeof consentData.gdprApplies === 'boolean' && consentData.gdprApplies) {
     // gdpr applies
@@ -287,7 +287,7 @@ export function isLocalStorageAllowed() {
  * if there is no stored privacy data or jurisdiction wasn't set, will return undefined so the
  * caller can decide what to do with in that case
  *
- * @return bool|undefined
+ * @return boolean|undefined
  */
 export function isProvisionalLocalStorageAllowed() {
   if (!utils.isPlainObject(storedPrivacyData)) {

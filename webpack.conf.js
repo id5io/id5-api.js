@@ -19,9 +19,13 @@ module.exports = {
       {
         test: /\.js$/,
         exclude: path.resolve('./node_modules'), // required to prevent loader from choking on node_modules
-        use: [{
-         loader: 'babel-loader',
-        }]
+        loader: 'babel-loader',
+        options: {
+          presets: [
+            '@babel/preset-env',
+            { 'plugins': ['@babel/plugin-proposal-class-properties'] }
+          ]
+        }
       }
     ]
   }
