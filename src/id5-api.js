@@ -72,7 +72,6 @@ ID5.refreshId = function (forceFetch = false, options = {}) {
 ID5.getId = function(options, forceFetch = false) {
   ID5.config = config.setConfig(options);
   ID5.callbackFired = false;
-  // @FIXME: Not required => Add doc to say that refresh does not change control group
 
   const referer = getRefererInfo();
   utils.logInfo(`ID5 detected referer is ${referer.referer}`);
@@ -87,6 +86,7 @@ ID5.getId = function(options, forceFetch = false) {
   const storedDateTime = clientStore.getDateTime();
   const refreshInSecondsHasElapsed = storedDateTime <= 0 || ((Date.now() - storedDateTime) > (this.config.refreshInSeconds * 1000));
   let nb = clientStore.getNb(this.config.partnerId);
+  // @FIXME: on a refresh call, we should not reset, as partner may have passed pd on refresh
   ID5.fromCache = false;
 
   // always save the current pd to track if it changes

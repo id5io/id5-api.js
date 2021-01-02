@@ -135,7 +135,6 @@ function lookupIabConsent(cmpSuccess, finalCallback) {
 
 /**
  * Try to fetch consent from CMP
- * @param {string} cmpApi - API to use to fetch consent. Either iab or static
  * @param {function(object)} finalCallback required; final callback
  */
 export function requestConsent(finalCallback) {
@@ -149,8 +148,8 @@ export function requestConsent(finalCallback) {
     finalCallback(consentData);
   } else if (!consentData) {
     if (cfg.cmpApi === 'static') {
-      if (utils.isPlainObject(config.getConfig().consentData)) {
-        staticConsentData = config.getConfig().consentData;
+      if (utils.isPlainObject(cfg.consentData)) {
+        staticConsentData = cfg.consentData;
       } else {
         utils.logError(`cmpApi: 'static' did not specify consentData.`);
       }
@@ -310,7 +309,7 @@ export function setStoredPrivacy(privacy) {
       storedPrivacyData = privacy;
       utils.setInLocalStorage(CONSTANTS.STORAGE_CONFIG.PRIVACY, JSON.stringify(privacy));
     } else {
-      utils.logInfo('Cannot store privacy if it\'s not an object: ', privacy);
+      utils.logInfo('Cannot store privacy if it is not an object: ', privacy);
     }
   } catch (e) {
     utils.logError(e);
