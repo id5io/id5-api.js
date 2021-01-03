@@ -70,13 +70,14 @@ ID5.refreshId = function (forceFetch = false, options = {}) {
 };
 
 ID5.getId = function(options, forceFetch = false) {
-  ID5.config = config.setConfig(options);
+  const cfg = config.setConfig(options);
+  ID5.config = cfg;
   ID5.callbackFired = false;
 
   const referer = getRefererInfo();
   utils.logInfo(`ID5 detected referer is ${referer.referer}`);
 
-  if (!this.config.partnerId || typeof this.config.partnerId !== 'number') {
+  if (!cfg.partnerId || typeof cfg.partnerId !== 'number') {
     throw new Error('partnerId is required and must be a number');
   }
 
@@ -84,19 +85,19 @@ ID5.getId = function(options, forceFetch = false) {
   // (will only read if local storage access is allowed)
   const storedResponse = clientStore.getResponse();
   const storedDateTime = clientStore.getDateTime();
-  const refreshInSecondsHasElapsed = storedDateTime <= 0 || ((Date.now() - storedDateTime) > (this.config.refreshInSeconds * 1000));
-  let nb = clientStore.getNb(this.config.partnerId);
+  const refreshInSecondsHasElapsed = storedDateTime <= 0 || ((Date.now() - storedDateTime) > (cfg.refreshInSeconds * 1000));
+  let nb = clientStore.getNb(cfg.partnerId);
   // @FIXME: on a refresh call, we should not reset, as partner may have passed pd on refresh
   ID5.fromCache = false;
 
   // always save the current pd to track if it changes
   // (will only read if local storage access is allowed)
-  const pd = this.config.pd || '';
+  const pd = cfg.pd || '';
   const pdHasChanged = !clientStore.storedPdMatchesPd(pd);
 
   // Callback watchdogs
-  if (utils.isFn(this.config.callback) && this.config.callbackTimeoutInMs >= 0) {
-    setTimeout(() => this.fireCallBack(), this.config.callbackTimeoutInMs);
+  if (utils.isFn(cfg.callback) && cfg.callbackTimeoutInMs >= 0) {
+    setTimeout(() => this.fireCallBack(), cfg.callbackTimeoutInMs);
   }
 
   if (storedResponse && !pdHasChanged) {
@@ -114,7 +115,7 @@ ID5.getId = function(options, forceFetch = false) {
       utils.logError('Invalid stored response: ', JSON.stringify(storedResponse));
     }
 
-    nb = clientStore.incNb(this.config.partnerId, nb);
+    nb = clientStore.incNb(cfg.partnerId, nb);
     ID5.fromCache = true;
     if (typeof ID5.userId !== 'undefined') {
       this.fireCallBack();
@@ -151,12 +152,12 @@ ID5.getId = function(options, forceFetch = false) {
         pdHasChanged ||
         forceFetch
       ) {
-        const url = `https://id5-sync.com/g/v2/${this.config.partnerId}.json`;
+        const url = `https://id5-sync.com/g/v2/${cfg.partnerId}.json`;
         const gdprApplies = (consentData && consentData.gdprApplies) ? 1 : 0;
         const gdprConsentString = (consentData && consentData.gdprApplies) ? consentData.consentString : '';
         const signature = (storedResponse && storedResponse.signature) ? storedResponse.signature : '';
         const data = {
-          'partner': this.config.partnerId,
+          'partner': cfg.partnerId,
           'v': ID5.version,
           'o': 'api',
           'gdpr': gdprApplies,
@@ -169,8 +170,8 @@ ID5.getId = function(options, forceFetch = false) {
           'nbPage': nb,
           'id5cdn': (document.currentScript && document.currentScript.src && document.currentScript.src.indexOf('https://cdn.id5-sync.com') === 0)
         };
-        if (this.config.tpids && utils.isArray(this.config.tpids) && this.config.tpids.length > 0) {
-          data.tpids = this.config.tpids;
+        if (cfg.tpids && utils.isArray(cfg.tpids) && cfg.tpids.length > 0) {
+          data.tpids = cfg.tpids;
         }
 
         utils.logInfo('Fetching ID5 user ID from:', url, data);
@@ -202,20 +203,20 @@ ID5.getId = function(options, forceFetch = false) {
                   if (consent.isLocalStorageAllowed() === true || typeof responseObj.privacy === 'undefined') {
                     clientStore.putResponse(response);
                     clientStore.setDateTime(Date.now());
-                    clientStore.setNb(this.config.partnerId, (ID5.fromCache ? 0 : 1));
+                    clientStore.setNb(cfg.partnerId, (ID5.fromCache ? 0 : 1));
                   } else {
-                    clientStore.clearAll(this.config.partnerId);
+                    clientStore.clearAll(cfg.partnerId);
                   }
                   // TEMPORARY until all clients have upgraded past v1.0.0
                   // remove cookies that were previously set
-                  clientStore.removeLegacyCookies(this.config.partnerId);
+                  clientStore.removeLegacyCookies(cfg.partnerId);
 
                   // this must come after storing Nb or it will store the wrong value
                   ID5.fromCache = false;
 
                   if (responseObj.cascade_needed === true && consent.isLocalStorageAllowed() === true) {
-                    const isSync = this.config.partnerUserId && this.config.partnerUserId.length > 0;
-                    const syncUrl = `https://id5-sync.com/${isSync ? 's' : 'i'}/${this.config.partnerId}/8.gif?id5id=${ID5.userId}&fs=${clientStore.forceSync()}&o=api&${isSync ? 'puid=' + this.config.partnerUserId + '&' : ''}gdpr_consent=${gdprConsentString}&gdpr=${gdprApplies}`;
+                    const isSync = cfg.partnerUserId && cfg.partnerUserId.length > 0;
+                    const syncUrl = `https://id5-sync.com/${isSync ? 's' : 'i'}/${cfg.partnerId}/8.gif?id5id=${ID5.userId}&fs=${clientStore.forceSync()}&o=api&${isSync ? 'puid=' + cfg.partnerUserId + '&' : ''}gdpr_consent=${gdprConsentString}&gdpr=${gdprApplies}`;
                     utils.logInfo('Opportunities to cascade available:', syncUrl);
                     utils.deferPixelFire(syncUrl, undefined, clientStore.syncCallback);
                   }
@@ -242,10 +243,10 @@ ID5.getId = function(options, forceFetch = false) {
 }
 
 ID5.fireCallBack = function () {
-  if (!this.callbackFired && utils.isFn(this.config.callback)) {
+  if (!this.callbackFired && utils.isFn(ID5.config.callback)) {
     utils.logInfo('Scheduling callback');
     setTimeout(() => this.config.callback(ID5), 0);
-    this.callbackFired = true;
+    ID5.callbackFired = true;
   }
 }
 
