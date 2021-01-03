@@ -99,11 +99,6 @@ ID5.getId = function(options, forceFetch = false) {
     setTimeout(() => this.fireCallBack(), this.config.callbackTimeoutInMs);
   }
 
-  // TEMPORARY until all clients have upgraded past v1.0.0
-  // remove cookies that were previously set
-  // @FIXME: There is a risk of clearing without storing in local storage
-  clientStore.removeLegacyCookies(this.config.partnerId);
-
   if (storedResponse && !pdHasChanged) {
     // we have a valid stored response and pd is not different, so
     // use the stored response to make the ID available right away
@@ -211,6 +206,9 @@ ID5.getId = function(options, forceFetch = false) {
                   } else {
                     clientStore.clearAll(this.config.partnerId);
                   }
+                  // TEMPORARY until all clients have upgraded past v1.0.0
+                  // remove cookies that were previously set
+                  clientStore.removeLegacyCookies(this.config.partnerId);
 
                   // this must come after storing Nb or it will store the wrong value
                   ID5.fromCache = false;
