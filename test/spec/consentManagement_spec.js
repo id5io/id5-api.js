@@ -1,10 +1,25 @@
-import { resetConsentData, requestConsent, consentData, isLocalStorageAllowed } from 'src/consentManagement';
+import sinon from 'sinon';
+import { resetConsentData, requestConsent, consentData, isLocalStorageAllowed, isProvisionalLocalStorageAllowed } from 'src/consentManagement';
 import * as utils from 'src/utils';
 import { config } from 'src/config';
 
 let expect = require('chai').expect;
 
-describe('consentManagementV1', function () {
+const TEST_PRIVACY_STORAGE_CONFIG = {
+  name: 'id5id_privacy',
+  expiresDays: 30
+}
+
+describe('Consent Management TCFv1', function () {
+  before(function() {
+    utils.removeFromLocalStorage(TEST_PRIVACY_STORAGE_CONFIG);
+    resetConsentData();
+  });
+  afterEach(function() {
+    utils.removeFromLocalStorage(TEST_PRIVACY_STORAGE_CONFIG);
+    resetConsentData();
+  });
+
   describe('requestConsent tests:', function () {
     let callbackCalled = false;
     let testConsentData = {
@@ -110,7 +125,7 @@ describe('consentManagementV1', function () {
         sinon.assert.calledOnce(utils.logError);
         expect(callbackCalled).to.be.true;
         expect(consentData).to.be.undefined;
-        expect(isLocalStorageAllowed()).to.be.false;
+        expect(isLocalStorageAllowed()).to.be.undefined;
       });
 
       it('throws an error + calls callback when processCmpData check failed while config had allowID5WithoutConsentApi set to true', function () {
@@ -180,7 +195,7 @@ describe('consentManagementV1', function () {
         sinon.assert.calledOnce(utils.logError);
         expect(callbackCalled).to.be.true;
         expect(consentData).to.be.undefined;
-        expect(isLocalStorageAllowed()).to.be.false;
+        expect(isLocalStorageAllowed()).to.be.undefined;
       });
 
       it('throws an error + calls callback when processCmpData check failed while config had allowID5WithoutConsentApi=true', function () {
@@ -197,7 +212,16 @@ describe('consentManagementV1', function () {
   });
 });
 
-describe('consentManagementV2', function () {
+describe('Consent Management TCFv2', function () {
+  before(function() {
+    utils.removeFromLocalStorage(TEST_PRIVACY_STORAGE_CONFIG);
+    resetConsentData();
+  });
+  afterEach(function() {
+    utils.removeFromLocalStorage(TEST_PRIVACY_STORAGE_CONFIG);
+    resetConsentData();
+  });
+
   describe('requestConsent tests:', function () {
     let callbackCalled = false;
     let testConsentData = {
@@ -271,10 +295,6 @@ describe('consentManagementV2', function () {
       callbackCalled = false;
     });
 
-    afterEach(function () {
-      resetConsentData();
-    });
-
     describe('error checks:', function () {
       beforeEach(function () {
         sinon.spy(utils, 'logWarn');
@@ -284,7 +304,6 @@ describe('consentManagementV2', function () {
       afterEach(function () {
         utils.logWarn.restore();
         utils.logError.restore();
-        resetConsentData();
       });
 
       it('should throw a warning and return to callback function when an unknown CMP framework ID is used', function () {
@@ -317,7 +336,6 @@ describe('consentManagementV2', function () {
         config.resetConfig();
         utils.logError.restore();
         utils.logWarn.restore();
-        resetConsentData();
       });
 
       it('normal cmp static call, callback should be called', function () {
@@ -339,7 +357,7 @@ describe('consentManagementV2', function () {
         sinon.assert.calledOnce(utils.logError);
         expect(callbackCalled).to.be.true;
         expect(consentData).to.be.undefined;
-        expect(isLocalStorageAllowed()).to.be.false;
+        expect(isLocalStorageAllowed()).to.be.undefined;
       });
 
       it('throws an error + calls callback when processCmpData check failed while config had allowID5WithoutConsentApi set to true', function () {
@@ -369,7 +387,6 @@ describe('consentManagementV2', function () {
         utils.logError.restore();
         utils.logWarn.restore();
         delete window.__tcfapi;
-        resetConsentData();
       });
 
       it('normal first call then second call should bypass CMP and simply use previously stored consentData', function () {
@@ -409,7 +426,7 @@ describe('consentManagementV2', function () {
         sinon.assert.calledTwice(utils.logError);
         expect(callbackCalled).to.be.true;
         expect(consentData).to.be.undefined;
-        expect(isLocalStorageAllowed()).to.be.false;
+        expect(isLocalStorageAllowed()).to.be.undefined;
       });
 
       it('throws an error + calls callback when processCmpData check failed while config had allowID5WithoutConsentApi=true', function () {
@@ -422,6 +439,39 @@ describe('consentManagementV2', function () {
         expect(consentData).to.be.undefined;
         expect(isLocalStorageAllowed()).to.be.true;
       });
+    });
+  });
+});
+
+describe('Provisional Local Storage Access', function() {
+  before(function() {
+    utils.removeFromLocalStorage(TEST_PRIVACY_STORAGE_CONFIG);
+    resetConsentData();
+  });
+  afterEach(function() {
+    utils.removeFromLocalStorage(TEST_PRIVACY_STORAGE_CONFIG);
+    resetConsentData();
+  });
+
+  it('should be true if privacy data is not set', function() {
+    expect(isProvisionalLocalStorageAllowed()).to.be.undefined;
+  });
+
+  const tests = [
+    { expected_result: undefined, data: { } },
+    { expected_result: true, data: { id5_consent: true } },
+    { expected_result: false, data: { jurisdiction: 'gdpr' } },
+    { expected_result: true, data: { jurisdiction: 'other' } },
+    { expected_result: false, data: { jurisdiction: 'gdpr', id5_consent: false } },
+    { expected_result: true, data: { jurisdiction: 'gdpr', id5_consent: true } },
+    { expected_result: true, data: { jurisdiction: 'other', id5_consent: true } },
+    { expected_result: true, data: { jurisdiction: 'other', id5_consent: false } }
+  ];
+  tests.forEach((test) => {
+    it(`should be ${test.expected_result} with stored privacy data ${JSON.stringify(test.data)}`, function() {
+      utils.setInLocalStorage(TEST_PRIVACY_STORAGE_CONFIG, JSON.stringify(test.data));
+
+      expect(isProvisionalLocalStorageAllowed()).to.equal(test.expected_result);
     });
   });
 });

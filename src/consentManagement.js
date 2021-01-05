@@ -1,8 +1,10 @@
 import * as utils from './utils';
 import {config} from './config';
+import CONSTANTS from 'src/constants.json';
 
 export let consentData;
 export let staticConsentData;
+export let storedPrivacyData;
 
 let cmpVersion = 0;
 
@@ -133,7 +135,6 @@ function lookupIabConsent(cmpSuccess, finalCallback) {
 
 /**
  * Try to fetch consent from CMP
- * @param {string} cmpApi - API to use to fetch consent. Either iab or static
  * @param {function(object)} finalCallback required; final callback
  */
 export function requestConsent(finalCallback) {
@@ -147,8 +148,8 @@ export function requestConsent(finalCallback) {
     finalCallback(consentData);
   } else if (!consentData) {
     if (cfg.cmpApi === 'static') {
-      if (utils.isPlainObject(config.getConfig().consentData)) {
-        staticConsentData = config.getConfig().consentData;
+      if (utils.isPlainObject(cfg.consentData)) {
+        staticConsentData = cfg.consentData;
       } else {
         utils.logError(`cmpApi: 'static' did not specify consentData.`);
       }
@@ -218,6 +219,7 @@ function cmpSuccess(consentObject, finalCallback) {
  */
 export function resetConsentData() {
   consentData = undefined;
+  storedPrivacyData = undefined;
 }
 
 /**
@@ -251,18 +253,14 @@ function storeConsentData(cmpConsentObject) {
  * @returns {boolean}
  */
 export function isLocalStorageAllowed() {
-  if (config.getConfig().allowID5WithoutConsentApi) {
+  if (config.getConfig().allowID5WithoutConsentApi === true) {
+    // allowID5WithoutConsentApi:true forces local storage access
     return true;
   } else if (!consentData) {
-    // if there is no CMP on page, consentData will be undefined. the publisher must tell us it's ok
-    // to access local storage via the `allowID5WithoutConsentApi` config option, otherwise we may be
-    // in violation of ePrivacy if the user is in the EU. as long as there is a cmp on page, if the user
-    // is not in a country requiring consent, consentData will be populated and will fall through
-    // one of the other branches below. if a publisher dynamically drops a cmp only for EU traffic,
-    // they should dynamically set `allowID5WithoutConsentApi: true` for non-EU traffic and
-    // `allowID5WithoutConsentApi: false` (or omit the option) for EU traffic.
-    return false;
+    // no cmp on page, so check if provisional access is allowed
+    return isProvisionalLocalStorageAllowed();
   } else if (typeof consentData.gdprApplies === 'boolean' && consentData.gdprApplies) {
+    // gdpr applies
     if (!consentData.consentString || consentData.apiVersion === 0) {
       return false;
     } else if (consentData.apiVersion === 1 && consentData.vendorData && consentData.vendorData.purposeConsents && consentData.vendorData.purposeConsents['1'] === false) {
@@ -273,6 +271,47 @@ export function isLocalStorageAllowed() {
       return true;
     }
   } else {
+    // we have consent data and it tells us gdpr doesn't apply
     return true;
+  }
+}
+
+/**
+ * if there is no CMP on page, consentData will be undefined, so we will check if we had stored
+ * privacy data from a previous request to determine if we are allowed to access local storage.
+ * if so, we use the previous authorization as a legal basis before calling our servers to confirm.
+ * if we do not have any stored privacy data, we will need to call our servers to know if we
+ * are in a jurisdiction that requires consent or not before accessing local storage.
+ *
+ * if there is no stored privacy data or jurisdiction wasn't set, will return undefined so the
+ * caller can decide what to do with in that case
+ *
+ * @return boolean|undefined
+ */
+export function isProvisionalLocalStorageAllowed() {
+  if (!utils.isPlainObject(storedPrivacyData)) {
+    storedPrivacyData = JSON.parse(utils.getFromLocalStorage(CONSTANTS.STORAGE_CONFIG.PRIVACY));
+  }
+
+  if (storedPrivacyData && storedPrivacyData.id5_consent === true) {
+    return true;
+  } else if (!storedPrivacyData || typeof storedPrivacyData.jurisdiction === 'undefined') {
+    return undefined;
+  } else {
+    const jurisdictionRequiresConsent = (typeof CONSTANTS.PRIVACY.JURISDICTIONS[storedPrivacyData.jurisdiction] !== 'undefined') ? CONSTANTS.PRIVACY.JURISDICTIONS[storedPrivacyData.jurisdiction] : false;
+    return (jurisdictionRequiresConsent === false || storedPrivacyData.id5_consent === true);
+  }
+}
+
+export function setStoredPrivacy(privacy) {
+  try {
+    if (utils.isPlainObject(privacy)) {
+      storedPrivacyData = privacy;
+      utils.setInLocalStorage(CONSTANTS.STORAGE_CONFIG.PRIVACY, JSON.stringify(privacy));
+    } else {
+      utils.logInfo('Cannot store privacy if it is not an object: ', privacy);
+    }
+  } catch (e) {
+    utils.logError(e);
   }
 }

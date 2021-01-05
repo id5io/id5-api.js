@@ -5,32 +5,8 @@ import { config } from './config';
 import * as utils from './utils';
 import * as consent from './consentManagement';
 import { getRefererInfo } from './refererDetection';
-import * as abTesting from './abTesting';
-
-const ID5_STORAGE_CONFIG = {
-  name: 'id5id',
-  expiresDays: 90
-};
-const LAST_STORAGE_CONFIG = {
-  name: 'id5id_last',
-  expiresDays: 90
-};
-const CONSENT_DATA_STORAGE_CONFIG = {
-  name: 'id5id_cached_consent_data',
-  expiresDays: 30
-};
-const PD_STORAGE_CONFIG = {
-  name: 'id5id_cached_pd',
-  expiresDays: 30
-};
-const FS_STORAGE_CONFIG = {
-  name: 'id5id_fs',
-  expiresDays: 7
-};
-
-// order the legacy cookie names in reverse priority order so the last
-// cookie in the array is the most preferred to use
-export const LEGACY_COOKIE_NAMES = [ 'id5.1st', 'id5id.1st' ];
+import AbTesting from './abTesting';
+import * as clientStore from './clientStore';
 
 export const ID5 = getGlobal();
 
@@ -55,13 +31,22 @@ ID5.init = function (options) {
     ID5.getConfig = config.getConfig;
     ID5.getProvidedConfig = config.getProvidedConfig;
     ID5.setConfig = config.setConfig;
-    ID5.exposeId = abTesting.exposeId;
+    ID5.setStoredConsentData = clientStore.putHashedConsentData;
+    ID5.setStoredPd = clientStore.putHashedPd;
+    ID5.abTesting = new AbTesting(options.abTesting);
 
     this.getId(options, false);
   } catch (e) {
     utils.logError('Exception caught from ID5.init', e);
   }
 };
+
+ID5.exposeId = function() {
+  if (ID5.initialized !== true) {
+    throw new Error('ID5.refreshID() cannot be called before ID5.exposeId()!');
+  }
+  return ID5.abTesting.exposeId();
+}
 
 ID5.refreshId = function (forceFetch = false, options = {}) {
   if (ID5.initialized !== true) {
@@ -74,6 +59,7 @@ ID5.refreshId = function (forceFetch = false, options = {}) {
     if (!utils.isBoolean(forceFetch)) {
       throw new Error('Invalid signature for ID5.refreshID: first parameter must be a boolean');
     }
+
     // consent may have changed, so we need to check it again
     consent.resetConsentData();
 
@@ -84,56 +70,57 @@ ID5.refreshId = function (forceFetch = false, options = {}) {
 };
 
 ID5.getId = function(options, forceFetch = false) {
-  ID5.config = config.setConfig(options);
+  const cfg = config.setConfig(options);
+  ID5.config = cfg;
   ID5.callbackFired = false;
-  abTesting.init();
 
   const referer = getRefererInfo();
   utils.logInfo(`ID5 detected referer is ${referer.referer}`);
 
-  if (!this.config.partnerId || typeof this.config.partnerId !== 'number') {
+  if (!cfg.partnerId || typeof cfg.partnerId !== 'number') {
     throw new Error('partnerId is required and must be a number');
   }
 
-  const storedResponse = JSON.parse(utils.getFromLocalStorage(ID5_STORAGE_CONFIG) || getFromLegacyCookie());
-  const storedDateTime = (new Date(+utils.getFromLocalStorage(LAST_STORAGE_CONFIG))).getTime();
-  const refreshInSecondsHasElapsed = storedDateTime <= 0 || ((Date.now() - storedDateTime) > (this.config.refreshInSeconds * 1000));
-  let nb = getNbFromCache(this.config.partnerId);
-  let idSetFromStoredResponse = false;
+  // pick up data from local storage
+  // (will only read if local storage access is allowed)
+  const storedResponse = clientStore.getResponse();
+  const storedDateTime = clientStore.getDateTime();
+  const refreshInSecondsHasElapsed = storedDateTime <= 0 || ((Date.now() - storedDateTime) > (cfg.refreshInSeconds * 1000));
+  let nb = clientStore.getNb(cfg.partnerId);
+  // @FIXME: on a refresh call, we should not reset, as partner may have passed pd on refresh
+  ID5.fromCache = false;
 
   // always save the current pd to track if it changes
-  const pd = this.config.pd || '';
-  const storedPd = getStoredPd();
-  // TODO move inside isLocalStorageAllowed() check
-  this.setStoredPd(pd);
-  const pdHasChanged = !storedPdMatchesPd(storedPd, pd);
+  // (will only read if local storage access is allowed)
+  const pd = cfg.pd || '';
+  const pdHasChanged = !clientStore.storedPdMatchesPd(pd);
 
   // Callback watchdogs
-  if (utils.isFn(this.config.callback) && this.config.callbackTimeoutInMs >= 0) {
-    setTimeout(() => this.fireCallBack(), this.config.callbackTimeoutInMs);
+  if (utils.isFn(cfg.callback) && cfg.callbackTimeoutInMs >= 0) {
+    setTimeout(() => this.fireCallBack(), cfg.callbackTimeoutInMs);
   }
 
-  // TEMPORARY until all clients have upgraded past v1.0.0
-  // remove cookies that were previously set
-  removeLegacyCookies(this.config.partnerId);
-
   if (storedResponse && !pdHasChanged) {
-    if (storedResponse.universal_uid && abTesting.exposeId()) {
+    // we have a valid stored response and pd is not different, so
+    // use the stored response to make the ID available right away
+
+    if (storedResponse.universal_uid && this.exposeId()) {
       ID5.userId = storedResponse.universal_uid;
       ID5.linkType = storedResponse.link_type || 0;
     } else if (storedResponse.universal_uid) {
       // we're in A/B testing and this is the control group, so do
       // not set a userId or linkType
       ID5.userId = ID5.linkType = 0;
+    } else {
+      utils.logError('Invalid stored response: ', JSON.stringify(storedResponse));
     }
 
-    // TODO move inside isLocalStorageAllowed() check
-    nb = incrementNb(this.config.partnerId, nb);
-    idSetFromStoredResponse = true;
-    if (ID5.userId) {
-      ID5.fromCache = true;
+    nb = clientStore.incNb(cfg.partnerId, nb);
+    ID5.fromCache = true;
+    if (typeof ID5.userId !== 'undefined') {
       this.fireCallBack();
     }
+
     utils.logInfo('ID5 User ID available from cache:', { storedResponse, storedDateTime, refreshNeeded: refreshInSecondsHasElapsed });
   } else if (storedResponse && pdHasChanged) {
     utils.logInfo('PD value has changed, so ignoring User ID from cache');
@@ -142,32 +129,35 @@ ID5.getId = function(options, forceFetch = false) {
   }
 
   consent.requestConsent((consentData) => {
-    // TODO move inside isLocalStorageAllowed()
-    // always save the current consent data to track if it changes
-    const storedConsentData = getStoredConsentData();
-    this.setStoredConsentData(consentData);
+    if (consent.isLocalStorageAllowed() !== false) {
+      utils.logInfo('Consent to access local storage is given: ', consent.isLocalStorageAllowed());
 
-    if (consent.isLocalStorageAllowed()) {
-      utils.logInfo('Consent to access local storage and cookies is given');
+      // @FIXME: If we had not consent before, we should read response/Nb/everything
+
+      // store hashed consent data and pd for future page loads
+      const consentHasChanged = !clientStore.storedConsentDataMatchesConsentData(consentData);
+      clientStore.putHashedConsentData(consentData);
+      clientStore.putHashedPd(pd);
 
       // make a call to fetch a new ID5 ID if:
       // - there is no valid universal_uid or no signature in cache
       // - the last refresh was longer than refreshInSeconds ago
       // - consent has changed since the last ID was fetched
       // - pd has changed since the last ID was fetched
+      // - fetch is being forced (e.g. by refreshId())
       if (
         !storedResponse || !storedResponse.universal_uid || !storedResponse.signature ||
         refreshInSecondsHasElapsed ||
-        !storedConsentDataMatchesConsentData(storedConsentData, consentData) ||
+        consentHasChanged ||
         pdHasChanged ||
         forceFetch
       ) {
-        const url = `https://id5-sync.com/g/v2/${this.config.partnerId}.json`;
+        const url = `https://id5-sync.com/g/v2/${cfg.partnerId}.json`;
         const gdprApplies = (consentData && consentData.gdprApplies) ? 1 : 0;
         const gdprConsentString = (consentData && consentData.gdprApplies) ? consentData.consentString : '';
         const signature = (storedResponse && storedResponse.signature) ? storedResponse.signature : '';
         const data = {
-          'partner': this.config.partnerId,
+          'partner': cfg.partnerId,
           'v': ID5.version,
           'o': 'api',
           'gdpr': gdprApplies,
@@ -180,8 +170,8 @@ ID5.getId = function(options, forceFetch = false) {
           'nbPage': nb,
           'id5cdn': (document.currentScript && document.currentScript.src && document.currentScript.src.indexOf('https://cdn.id5-sync.com') === 0)
         };
-        if (this.config.tpids && utils.isArray(this.config.tpids) && this.config.tpids.length > 0) {
-          data.tpids = this.config.tpids;
+        if (cfg.tpids && utils.isArray(cfg.tpids) && cfg.tpids.length > 0) {
+          data.tpids = cfg.tpids;
         }
 
         utils.logInfo('Fetching ID5 user ID from:', url, data);
@@ -196,7 +186,7 @@ ID5.getId = function(options, forceFetch = false) {
                 responseObj = JSON.parse(response);
                 utils.logInfo('Response from ID5 received:', responseObj);
                 if (responseObj.universal_uid) {
-                  if (abTesting.exposeId()) {
+                  if (this.exposeId()) {
                     ID5.userId = responseObj.universal_uid;
                     ID5.linkType = responseObj.link_type || 0
                   } else {
@@ -204,15 +194,31 @@ ID5.getId = function(options, forceFetch = false) {
                     // not set a userId or linkType
                     ID5.userId = ID5.linkType = 0;
                   }
+
+                  // privacy has to be stored first so we can use it when storing other values
+                  consent.setStoredPrivacy(responseObj.privacy);
+
+                  // @TODO: typeof responseObj.privacy === 'undefined' is only needed until fetch endpoint is updated and always returns a privacy object
+                  // once it does, I don't see a reason to keep that part of the if clause
+                  if (consent.isLocalStorageAllowed() === true || typeof responseObj.privacy === 'undefined') {
+                    clientStore.putResponse(response);
+                    clientStore.setDateTime(Date.now());
+                    clientStore.setNb(cfg.partnerId, (ID5.fromCache ? 0 : 1));
+                  } else {
+                    clientStore.clearAll(cfg.partnerId);
+                  }
+                  // TEMPORARY until all clients have upgraded past v1.0.0
+                  // remove cookies that were previously set
+                  clientStore.removeLegacyCookies(cfg.partnerId);
+
+                  // this must come after storing Nb or it will store the wrong value
                   ID5.fromCache = false;
-                  utils.setInLocalStorage(ID5_STORAGE_CONFIG, response);
-                  utils.setInLocalStorage(LAST_STORAGE_CONFIG, Date.now());
-                  utils.setInLocalStorage(nbCacheConfig(this.config.partnerId), (idSetFromStoredResponse ? 0 : 1));
-                  if (responseObj.cascade_needed === true) {
-                    const isSync = this.config.partnerUserId && this.config.partnerUserId.length > 0;
-                    const syncUrl = `https://id5-sync.com/${isSync ? 's' : 'i'}/${this.config.partnerId}/8.gif?id5id=${ID5.userId}&fs=${forceSync()}&o=api&${isSync ? 'puid=' + this.config.partnerUserId + '&' : ''}gdpr_consent=${gdprConsentString}&gdpr=${gdprApplies}`;
+
+                  if (responseObj.cascade_needed === true && consent.isLocalStorageAllowed() === true) {
+                    const isSync = cfg.partnerUserId && cfg.partnerUserId.length > 0;
+                    const syncUrl = `https://id5-sync.com/${isSync ? 's' : 'i'}/${cfg.partnerId}/8.gif?id5id=${ID5.userId}&fs=${clientStore.forceSync()}&o=api&${isSync ? 'puid=' + cfg.partnerUserId + '&' : ''}gdpr_consent=${gdprConsentString}&gdpr=${gdprApplies}`;
                     utils.logInfo('Opportunities to cascade available:', syncUrl);
-                    utils.deferPixelFire(syncUrl, undefined, handleDeferPixelFireCallback);
+                    utils.deferPixelFire(syncUrl, undefined, clientStore.syncCallback);
                   }
                   this.fireCallBack();
                 } else {
@@ -237,148 +243,11 @@ ID5.getId = function(options, forceFetch = false) {
 }
 
 ID5.fireCallBack = function () {
-  if (!this.callbackFired && utils.isFn(this.config.callback)) {
-    this.callbackFired = true;
+  if (!this.callbackFired && utils.isFn(ID5.config.callback)) {
     utils.logInfo('Scheduling callback');
     setTimeout(() => this.config.callback(ID5), 0);
+    ID5.callbackFired = true;
   }
-}
-
-function nbCacheConfig(partnerId) {
-  return {
-    name: `${ID5_STORAGE_CONFIG.name}_${partnerId}_nb`,
-    expiresDays: ID5_STORAGE_CONFIG.expiresDays
-  }
-}
-function getNbFromCache(partnerId) {
-  const cachedNb = utils.getFromLocalStorage(nbCacheConfig(partnerId));
-  return (cachedNb) ? parseInt(cachedNb) : 0;
-}
-function incrementNb(partnerId, nb) {
-  nb++;
-  utils.setInLocalStorage(nbCacheConfig(partnerId), nb);
-  return nb;
-}
-
-/**
- * makes an object that can be stored with only the keys we need to check.
- * excluding the vendorConsents object since the consentString is enough to know
- * if consent has changed without needing to have all the details in an object
- * @param consentData
- * @returns string
- */
-function makeStoredConsentDataHash(consentData) {
-  const storedConsentData = {
-    consentString: '',
-    gdprApplies: false,
-    apiVersion: 0
-  };
-
-  if (consentData) {
-    storedConsentData.consentString = consentData.consentString;
-    storedConsentData.gdprApplies = consentData.gdprApplies;
-    storedConsentData.apiVersion = consentData.apiVersion;
-  }
-
-  return utils.cyrb53Hash(JSON.stringify(storedConsentData));
-}
-
-/**
- * creates a hash of pd for storage
- * @param pd
- * @returns string
- */
-function makeStoredPdHash(pd) {
-  return utils.cyrb53Hash(typeof pd === 'string' ? pd : '');
-}
-
-/**
- * puts the current data into local storage
- * @param cacheConfig
- * @param data
- */
-function setStored(cacheConfig, data) {
-  try {
-    utils.setInLocalStorage(cacheConfig, data);
-  } catch (error) {
-    utils.logError(error);
-  }
-};
-ID5.setStoredConsentData = function (consentData) {
-  setStored(CONSENT_DATA_STORAGE_CONFIG, makeStoredConsentDataHash(consentData));
-}
-ID5.setStoredPd = function (pd) {
-  setStored(PD_STORAGE_CONFIG, makeStoredPdHash(pd));
-}
-
-/**
- * test if the data stored locally matches the current data.
- * if there is nothing in storage, return true and we'll do an actual comparison next time.
- * this way, we don't force a refresh for every user when this code rolls out
- * @param storedData
- * @param currentData
- * @returns {boolean}
- */
-function storedDataMatchesCurrentData(storedData, currentData) {
-  return (
-    typeof storedData === 'undefined' ||
-    storedData === null ||
-    storedData === currentData
-  );
-}
-function storedConsentDataMatchesConsentData(storedConsentData, consentData) {
-  return storedDataMatchesCurrentData(storedConsentData, makeStoredConsentDataHash(consentData));
-}
-function storedPdMatchesPd(storedPd, pd) {
-  return storedDataMatchesCurrentData(storedPd, makeStoredPdHash(pd));
-}
-
-/**
- * get stored data from local storage, if any
- * @returns {string}
- */
-function getStored(cacheConfig) {
-  try {
-    return utils.getFromLocalStorage(cacheConfig);
-  } catch (e) {
-    utils.logError(e);
-  }
-}
-function getStoredConsentData() {
-  return getStored(CONSENT_DATA_STORAGE_CONFIG);
-}
-function getStoredPd() {
-  return getStored(PD_STORAGE_CONFIG);
-}
-
-function handleDeferPixelFireCallback() {
-  setStored(FS_STORAGE_CONFIG, 0);
-}
-function forceSync() {
-  const cachedFs = getStored(FS_STORAGE_CONFIG);
-  return (cachedFs) ? parseInt(cachedFs) : 1;
-}
-
-function getFromLegacyCookie() {
-  let legacyStoredValue;
-  LEGACY_COOKIE_NAMES.forEach(function(cookie) {
-    if (utils.getCookie(cookie)) {
-      legacyStoredValue = utils.getCookie(cookie);
-    }
-  });
-  return legacyStoredValue || null;
-}
-
-function removeLegacyCookies(partnerId) {
-  const expired = (new Date(Date.now() - 1000)).toUTCString();
-  LEGACY_COOKIE_NAMES.forEach(function(cookie) {
-    utils.setCookie(`${cookie}`, '', expired);
-    utils.setCookie(`${cookie}_nb`, '', expired);
-    utils.setCookie(`${cookie}_${partnerId}_nb`, '', expired);
-    utils.setCookie(`${cookie}_last`, '', expired);
-    utils.setCookie(`${cookie}.cached_pd`, '', expired);
-    utils.setCookie(`${cookie}.cached_consent_data`, '', expired);
-  });
 }
 
 export default ID5;
