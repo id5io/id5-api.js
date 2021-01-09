@@ -48,18 +48,27 @@ function put(cacheConfig, data) {
   }
 }
 
-function getResponseFromLegacyCookie() {
+export function getResponseFromLegacyCookie() {
   let legacyStoredValue;
   CONSTANTS.LEGACY_COOKIE_NAMES.forEach(function(cookie) {
     if (utils.getCookie(cookie)) {
       legacyStoredValue = utils.getCookie(cookie);
     }
   });
-  return legacyStoredValue || null;
+  if (legacyStoredValue) {
+    return JSON.parse(legacyStoredValue);
+  } else {
+    return null;
+  }
 }
 
 export function getResponse() {
-  return JSON.parse(get(CONSTANTS.STORAGE_CONFIG.ID5) || getResponseFromLegacyCookie());
+  let storedValue = get(CONSTANTS.STORAGE_CONFIG.ID5);
+  if (storedValue) {
+    return JSON.parse(storedValue);
+  } else {
+    return storedValue;
+  }
 }
 
 export function clearResponse() {

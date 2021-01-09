@@ -70,7 +70,7 @@ ID5.refreshId = function (forceFetch = false, options = {}) {
 };
 
 ID5.getId = function(options, forceFetch = false) {
-  const cfg = config.setConfig(options);
+  const cfg = ID5.setConfig(options);
   ID5.config = cfg;
   ID5.callbackFired = false;
 
@@ -81,19 +81,27 @@ ID5.getId = function(options, forceFetch = false) {
     throw new Error('partnerId is required and must be a number');
   }
 
-  // pick up data from local storage
-  // (will only read if local storage access is allowed)
-  const storedResponse = clientStore.getResponse();
-  const storedDateTime = clientStore.getDateTime();
-  const refreshInSecondsHasElapsed = storedDateTime <= 0 || ((Date.now() - storedDateTime) > (cfg.refreshInSeconds * 1000));
-  let nb = clientStore.getNb(cfg.partnerId);
+  let storedResponse;
+  let storedDateTime;
+  let nb = 0;
+  let refreshInSecondsHasElapsed = false;
+  let pdHasChanged = false;
+
+  if (consent.isLocalStorageAllowed()) {
+    storedResponse = clientStore.getResponse();
+    storedDateTime = clientStore.getDateTime();
+    refreshInSecondsHasElapsed = storedDateTime <= 0 || ((Date.now() - storedDateTime) > (cfg.refreshInSeconds * 1000));
+    nb = clientStore.getNb(cfg.partnerId);
+    pdHasChanged = !clientStore.storedPdMatchesPd(cfg.pd);
+  }
+
+  if (!storedResponse) {
+    storedResponse = clientStore.getResponseFromLegacyCookie();
+    refreshInSecondsHasElapsed = true; // Force a refresh if we have legacy cookie
+  }
+
   // @FIXME: on a refresh call, we should not reset, as partner may have passed pd on refresh
   ID5.fromCache = false;
-
-  // always save the current pd to track if it changes
-  // (will only read if local storage access is allowed)
-  const pd = cfg.pd || '';
-  const pdHasChanged = !clientStore.storedPdMatchesPd(pd);
 
   // Callback watchdogs
   if (utils.isFn(cfg.callback) && cfg.callbackTimeoutInMs >= 0) {
@@ -133,11 +141,12 @@ ID5.getId = function(options, forceFetch = false) {
       utils.logInfo('Consent to access local storage is given: ', consent.isLocalStorageAllowed());
 
       // @FIXME: If we had not consent before, we should read response/Nb/everything
+      storedResponse = clientStore.getResponse() || clientStore.getResponseFromLegacyCookie();
 
       // store hashed consent data and pd for future page loads
       const consentHasChanged = !clientStore.storedConsentDataMatchesConsentData(consentData);
       clientStore.putHashedConsentData(consentData);
-      clientStore.putHashedPd(pd);
+      clientStore.putHashedPd(cfg.pd);
 
       // make a call to fetch a new ID5 ID if:
       // - there is no valid universal_uid or no signature in cache
@@ -166,7 +175,7 @@ ID5.getId = function(options, forceFetch = false) {
           'u': referer.stack[0] || window.location.href,
           'top': referer.reachedTop ? 1 : 0,
           's': signature,
-          'pd': pd,
+          'pd': cfg.pd,
           'nbPage': nb,
           'id5cdn': (document.currentScript && document.currentScript.src && document.currentScript.src.indexOf('https://cdn.id5-sync.com') === 0)
         };
