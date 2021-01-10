@@ -491,8 +491,8 @@ export function deferPixelFire(syncUrl, initCallBack, loadedCallback) {
 /**
  * returns a hash of a string using a fast algorithm
  * source: https://stackoverflow.com/a/52171480/845390
- * @param str
- * @param seed (optional)
+ * @param {string} str
+ * @param {number} [seed] (optional)
  * @returns {string}
  */
 export function cyrb53Hash(str, seed = 0) {

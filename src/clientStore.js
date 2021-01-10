@@ -8,7 +8,7 @@ import CONSTANTS from './constants.json';
 
 /**
  * Get stored data from local storage, if any, after checking if local storage is allowed
- * @param {{name: string, expiresDays: number}} cacheConfig
+ * @param {StoreItem} cacheConfig
  * @returns {string|null|undefined} the stored value, null if no value or expired were stored, undefined if no consent or no access to localStorage
  */
 function get(cacheConfig) {
@@ -91,17 +91,59 @@ export function putHashedConsentData(consentData) {
   put(CONSTANTS.STORAGE_CONFIG.CONSENT_DATA, makeStoredConsentDataHash(consentData));
 }
 
-function getHashedPd() {
-  return get(CONSTANTS.STORAGE_CONFIG.PD);
+/**
+ * Get current hash PD for this partner
+ * @param {number} partnerId
+ */
+function getHashedPd(partnerId) {
+  return get(pdCacheConfig(partnerId));
 }
 
-export function clearHashedPd() {
-  clear(CONSTANTS.STORAGE_CONFIG.PD);
+/**
+ * Check current hash PD for this partner against the one in cache
+ * @param {number} partnerId
+ * @param {string} pd
+ */
+export function storedPdMatchesPd(partnerId, pd) {
+  return storedDataMatchesCurrentData(getHashedPd(partnerId), makeStoredPdHash(pd));
 }
 
-export function putHashedPd(pd) {
-  // @FIXME: per partner storage
-  put(CONSTANTS.STORAGE_CONFIG.PD, makeStoredPdHash(pd));
+/**
+ * Clear the hash PD for this partner
+ * @param {number} partnerId
+ */
+export function clearHashedPd(partnerId) {
+  clear(pdCacheConfig(partnerId));
+}
+
+/**
+ * Hash and store the PD for this partner
+ * @param {number} partnerId
+ * @param {string} [pd]
+ */
+export function putHashedPd(partnerId, pd) {
+  put(pdCacheConfig(partnerId), makeStoredPdHash(pd));
+}
+
+/**
+ * Generate local storage config for PD of a given partner
+ * @param {number} partnerId
+ * @return {StoreItem}
+ */
+function pdCacheConfig(partnerId) {
+  return {
+    name: `${CONSTANTS.STORAGE_CONFIG.PD.name}_${partnerId}`,
+    expiresDays: CONSTANTS.STORAGE_CONFIG.PD.expiresDays
+  }
+}
+
+/**
+ * creates a hash of pd for storage
+ * @param {string} pd
+ * @returns {string}
+ */
+function makeStoredPdHash(pd) {
+  return utils.cyrb53Hash(typeof pd === 'string' ? pd : '');
 }
 
 export function getDateTime() {
@@ -156,7 +198,7 @@ export function clearAll(partnerId) {
   clearResponse();
   clearDateTime();
   clearNb(partnerId);
-  clearHashedPd();
+  clearHashedPd(partnerId);
   clearHashedConsentData();
 }
 
@@ -190,9 +232,6 @@ function storedDataMatchesCurrentData(storedData, currentData) {
 export function storedConsentDataMatchesConsentData(consentData) {
   return storedDataMatchesCurrentData(getHashedConsentData(), makeStoredConsentDataHash(consentData));
 }
-export function storedPdMatchesPd(pd) {
-  return storedDataMatchesCurrentData(getHashedPd(), makeStoredPdHash(pd));
-}
 
 /**
  * makes an object that can be stored with only the keys we need to check.
@@ -215,13 +254,4 @@ function makeStoredConsentDataHash(consentData) {
   }
 
   return utils.cyrb53Hash(JSON.stringify(storedConsentData));
-}
-
-/**
- * creates a hash of pd for storage
- * @param pd
- * @returns string
- */
-function makeStoredPdHash(pd) {
-  return utils.cyrb53Hash(typeof pd === 'string' ? pd : '');
 }

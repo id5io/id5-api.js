@@ -19,7 +19,7 @@ ID5.callbackFired = false;
  * @param {Id5Config} options
  * @alias module:ID5.init
  */
-// TODO: Use Async init by pushing setting in a queue
+
 ID5.init = function (options) {
   if (typeof ID5.version === 'undefined') {
     throw new Error('ID5.version variable is missing! Make sure you build from source with "gulp build" from this project. Contact support@id5.io for help.');
@@ -31,8 +31,6 @@ ID5.init = function (options) {
     ID5.getConfig = config.getConfig;
     ID5.getProvidedConfig = config.getProvidedConfig;
     ID5.setConfig = config.setConfig;
-    ID5.setStoredConsentData = clientStore.putHashedConsentData;
-    ID5.setStoredPd = clientStore.putHashedPd;
     ID5.abTesting = new AbTesting(options.abTesting);
 
     this.getId(options, false);
@@ -43,7 +41,7 @@ ID5.init = function (options) {
 
 ID5.exposeId = function() {
   if (ID5.initialized !== true) {
-    throw new Error('ID5.refreshID() cannot be called before ID5.exposeId()!');
+    throw new Error('ID5.exposeId() cannot be called before ID5.init()!');
   }
   return ID5.abTesting.exposeId();
 }
@@ -92,7 +90,7 @@ ID5.getId = function(options, forceFetch = false) {
     storedDateTime = clientStore.getDateTime();
     refreshInSecondsHasElapsed = storedDateTime <= 0 || ((Date.now() - storedDateTime) > (cfg.refreshInSeconds * 1000));
     nb = clientStore.getNb(cfg.partnerId);
-    pdHasChanged = !clientStore.storedPdMatchesPd(cfg.pd);
+    pdHasChanged = !clientStore.storedPdMatchesPd(cfg.partnerId, cfg.pd);
   }
 
   if (!storedResponse) {
@@ -140,13 +138,12 @@ ID5.getId = function(options, forceFetch = false) {
     if (consent.isLocalStorageAllowed() !== false) {
       utils.logInfo('Consent to access local storage is given: ', consent.isLocalStorageAllowed());
 
-      // @FIXME: If we had not consent before, we should read response/Nb/everything
       storedResponse = clientStore.getResponse() || clientStore.getResponseFromLegacyCookie();
 
       // store hashed consent data and pd for future page loads
       const consentHasChanged = !clientStore.storedConsentDataMatchesConsentData(consentData);
       clientStore.putHashedConsentData(consentData);
-      clientStore.putHashedPd(cfg.pd);
+      clientStore.putHashedPd(cfg.partnerId, cfg.pd);
 
       // make a call to fetch a new ID5 ID if:
       // - there is no valid universal_uid or no signature in cache
