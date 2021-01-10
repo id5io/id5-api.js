@@ -1512,7 +1512,7 @@ describe('ID5 JS API', function () {
                   sinon.assert.calledOnce(callbackSpy);
                   done();
                 }, LONG_TIMEOUT);
-              }, (CALLBACK_TIMEOUT_MS + 1));
+              }, (CALLBACK_TIMEOUT_MS + 10));
             }, 0);
           });
 
