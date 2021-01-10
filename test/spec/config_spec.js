@@ -118,4 +118,29 @@ describe('config API', function () {
   it('does not set providedConfig with default properties', function() {
     expect(getProvidedConfig().refreshInSeconds).to.be.undefined;
   });
+
+  describe('Set and Get Config', function () {
+    it('should have user-defined config and final config available', function () {
+      setConfig({ partnerId: 44, allowID5WithoutConsentApi: true, refreshInSeconds: 10 });
+
+      expect(getProvidedConfig().partnerId).to.be.equal(44);
+      expect(getConfig().partnerId).to.be.equal(44);
+
+      expect(getProvidedConfig().pd).to.be.undefined;
+      expect(getConfig().pd).to.be.equal('');
+
+      expect(getProvidedConfig().refreshInSeconds).to.be.equal(10);
+      expect(getConfig().refreshInSeconds).to.be.equal(10);
+    });
+
+    it('should update providedConfig and config with ID5.setConfig()', function () {
+      setConfig({ partnerId: 44, allowID5WithoutConsentApi: true });
+      expect(getConfig().pd).to.be.equal('');
+
+      setConfig({ pd: 'newpd' });
+
+      expect(getConfig().pd).to.be.equal('newpd');
+      expect(getProvidedConfig().pd).to.be.equal('newpd');
+    });
+  });
 });

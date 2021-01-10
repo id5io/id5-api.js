@@ -69,7 +69,6 @@ ID5.refreshId = function (forceFetch = false, options = {}) {
 
 ID5.getId = function(options, forceFetch = false) {
   const cfg = ID5.setConfig(options);
-  ID5.config = cfg;
   ID5.callbackFired = false;
 
   const referer = getRefererInfo();
@@ -103,7 +102,7 @@ ID5.getId = function(options, forceFetch = false) {
 
   // Callback watchdogs
   if (utils.isFn(cfg.callback) && cfg.callbackTimeoutInMs >= 0) {
-    setTimeout(() => this.fireCallBack(), cfg.callbackTimeoutInMs);
+    setTimeout(() => this.fireCallBack(cfg), cfg.callbackTimeoutInMs);
   }
 
   if (storedResponse && !pdHasChanged) {
@@ -124,7 +123,7 @@ ID5.getId = function(options, forceFetch = false) {
     nb = clientStore.incNb(cfg.partnerId, nb);
     ID5.fromCache = true;
     if (typeof ID5.userId !== 'undefined') {
-      this.fireCallBack();
+      this.fireCallBack(cfg);
     }
 
     utils.logInfo('ID5 User ID available from cache:', { storedResponse, storedDateTime, refreshNeeded: refreshInSecondsHasElapsed });
@@ -226,7 +225,7 @@ ID5.getId = function(options, forceFetch = false) {
                     utils.logInfo('Opportunities to cascade available:', syncUrl);
                     utils.deferPixelFire(syncUrl, undefined, clientStore.syncCallback);
                   }
-                  this.fireCallBack();
+                  this.fireCallBack(cfg);
                 } else {
                   utils.logError('Invalid response from ID5 servers:', response);
                 }
@@ -248,10 +247,14 @@ ID5.getId = function(options, forceFetch = false) {
   });
 }
 
-ID5.fireCallBack = function () {
-  if (!this.callbackFired && utils.isFn(ID5.config.callback)) {
+/**
+ * This function fire the callback of the provided config
+ * @param {Id5Config} options
+ */
+ID5.fireCallBack = function (options) {
+  if (!this.callbackFired && utils.isFn(options.callback)) {
     utils.logInfo('Scheduling callback');
-    setTimeout(() => this.config.callback(ID5), 0);
+    setTimeout(() => options.callback(ID5), 0);
     ID5.callbackFired = true;
   }
 }
