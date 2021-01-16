@@ -26,15 +26,18 @@ const utils = require('./utils');
  * @property {array} [tpids] - An array of third party IDs that can be passed to usersync with ID5. Contact your ID5 representative to enable this
  * @property {AbTestConfig} [abTesting] - An object defining if and how A/B testing should be enabled
  * => per partner
- * => repeatable per user ? => Local Storage for the partner
  *
  * => multiple instance with same partner and different PD ?
  * => multiple callback
  *
  * myID5 = ID5.init(*config);
  * myID5.refresh(consent, pd, callback, callbackTimeoutInMs);
- *
- *
+ */
+
+/**
+ * @typedef {Object} AbTestConfig
+ * @property {boolean|false} [enabled] - Enable control group
+ * @property {number} [controlGroupPct] - Ratio of users in control group [0,1]
  */
 
 export function newConfig() {

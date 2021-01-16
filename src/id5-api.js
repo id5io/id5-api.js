@@ -5,7 +5,7 @@ import { config } from './config';
 import * as utils from './utils';
 import * as consent from './consentManagement';
 import { getRefererInfo } from './refererDetection';
-import AbTesting from './abTesting';
+import isInControlGroup from 'src/abTesting';
 import * as clientStore from './clientStore';
 
 export const ID5 = getGlobal();
@@ -28,8 +28,6 @@ ID5.init = function (options) {
   try {
     utils.logInfo('Invoking ID5.init', arguments);
     ID5.initialized = true;
-    ID5.abTesting = new AbTesting(options.abTesting);
-
     this.getId(options, false);
   } catch (e) {
     utils.logError('Exception caught from ID5.init', e);
@@ -40,7 +38,12 @@ ID5.exposeId = function() {
   if (ID5.initialized !== true) {
     throw new Error('ID5.exposeId() cannot be called before ID5.init()!');
   }
-  return ID5.abTesting.exposeId();
+  const cfg = config.getConfig();
+  if (cfg.abTesting.enabled === true) {
+    return !isInControlGroup(ID5.userId, cfg.abTesting.controlGroupPct);
+  } else {
+    return true;
+  }
 }
 
 ID5.refreshId = function (forceFetch = false, options = {}) {

@@ -2,36 +2,35 @@
  * Module for managing A/B Testing
  */
 
-import { isNumber } from './utils';
+import { isNumber, cyrb53Hash } from './utils';
 
-export class AbTesting {
-  /** @type boolean */
-  controlGroup = false;
+const ABTEST_RESOLUTION = 10000;
 
-  /**
-   * @typedef {Object} AbTestConfig
-   * @property {boolean|false} [enabled] - Enable control group
-   * @property {number} [controlGroupPct] - Ratio of users in control group [0,1]
-   */
-
-  /** @param {AbTestConfig} [abConfig] */
-  constructor(abConfig) {
-    if (abConfig && abConfig.enabled === true &&
-      (!isNumber(abConfig.controlGroupPct) ||
-        abConfig.controlGroupPct < 0 ||
-        abConfig.controlGroupPct > 1)
-    ) {
-      throw new Error('A/B Testing controlGroupPct must be a number >= 0 and <= 1');
-    }
-
-    if (abConfig && abConfig.enabled === true) {
-      this.controlGroup = Math.random() < abConfig.controlGroupPct;
-    }
-  }
-
-  exposeId() {
-    return typeof this.controlGroup !== 'boolean' || this.controlGroup === false;
+/**
+ * Return a consistant random number between 0 and ABTEST_RESOLUTION-1 for this user
+ * Falls back to plain random if no user provided
+ * @param {string} [userId]
+ * @returns {number}
+ */
+function abTestBucket(userId) {
+  if (userId) {
+    return ((cyrb53Hash(userId) % ABTEST_RESOLUTION) + ABTEST_RESOLUTION) % ABTEST_RESOLUTION;
+  } else {
+    return Math.floor(Math.random() * ABTEST_RESOLUTION);
   }
 }
 
-export default AbTesting;
+/**
+ * Return a consistant boolean if this user is within the control group ratio provided
+ * @param {string} [userId]
+ * @param {number} controlGroupRatio - Ratio [0,1] of users expected to be in the control group
+ * @returns {boolean}
+ */
+export function isInControlGroup(userId, controlGroupRatio) {
+  if (!isNumber(controlGroupRatio) || controlGroupRatio < 0 || controlGroupRatio > 1) {
+    throw new Error('A/B Testing controlGroupRatio must be a number >= 0 and <= 1');
+  }
+  return abTestBucket(userId) < controlGroupRatio * ABTEST_RESOLUTION;
+}
+
+export default isInControlGroup;
