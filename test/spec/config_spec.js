@@ -133,7 +133,7 @@ describe('config API', function () {
       expect(getConfig().refreshInSeconds).to.be.equal(10);
     });
 
-    it('should update providedConfig and config with ID5.setConfig()', function () {
+    it('should update providedConfig and config with setConfig()', function () {
       setConfig({ partnerId: 44, debugBypassConsent: true });
       expect(getConfig().pd).to.be.equal('');
 

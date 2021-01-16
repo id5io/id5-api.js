@@ -28,9 +28,7 @@ ID5.init = function (options) {
   try {
     utils.logInfo('Invoking ID5.init', arguments);
     ID5.initialized = true;
-    ID5.getConfig = config.getConfig;
     ID5.getProvidedConfig = config.getProvidedConfig;
-    ID5.setConfig = config.setConfig;
     ID5.abTesting = new AbTesting(options.abTesting);
 
     this.getId(options, false);
@@ -68,7 +66,7 @@ ID5.refreshId = function (forceFetch = false, options = {}) {
 };
 
 ID5.getId = function(options, forceFetch = false) {
-  const cfg = ID5.setConfig(options);
+  const cfg = config.setConfig(options);
   ID5.callbackFired = false;
 
   const referer = getRefererInfo();
