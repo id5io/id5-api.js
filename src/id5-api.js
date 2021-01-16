@@ -28,7 +28,6 @@ ID5.init = function (options) {
   try {
     utils.logInfo('Invoking ID5.init', arguments);
     ID5.initialized = true;
-    ID5.getProvidedConfig = config.getProvidedConfig;
     ID5.abTesting = new AbTesting(options.abTesting);
 
     this.getId(options, false);
