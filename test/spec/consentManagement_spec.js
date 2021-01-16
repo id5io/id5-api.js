@@ -118,7 +118,7 @@ describe('Consent Management TCFv1', function () {
         expect(isLocalStorageAllowed()).to.be.true;
       });
 
-      it('throws an error when requestConsent check failed while config had allowID5WithoutConsentApi set to false', function () {
+      it('throws an error when requestConsent check failed', function () {
         config.setConfig({ cmpApi: 'static', consentData: { getConsentData: {}, getVendorConsents: {} } });
         requestConsent(function (consentData) { callbackCalled = true; });
 
@@ -128,8 +128,18 @@ describe('Consent Management TCFv1', function () {
         expect(isLocalStorageAllowed()).to.be.undefined;
       });
 
-      it('throws an error + calls callback when processCmpData check failed while config had allowID5WithoutConsentApi set to true', function () {
-        config.setConfig({ cmpApi: 'static', allowID5WithoutConsentApi: true, consentData: { getConsentData: {}, getVendorConsents: {} } });
+      it('throws an error when requestConsent check failed, even with allowLocalStorageWithoutConsentApi set to true', function () {
+        config.setConfig({ allowLocalStorageWithoutConsentApi: true, cmpApi: 'static', consentData: { getConsentData: {}, getVendorConsents: {} } });
+        requestConsent(function (consentData) { callbackCalled = true; });
+
+        sinon.assert.calledOnce(utils.logError);
+        expect(callbackCalled).to.be.true;
+        expect(consentData).to.be.undefined;
+        expect(isLocalStorageAllowed()).to.be.true;
+      });
+
+      it('throws an error + calls callback when processCmpData check failed while config had debugBypassConsent set to true', function () {
+        config.setConfig({ debugBypassConsent: true, cmpApi: 'static', consentData: { getConsentData: {}, getVendorConsents: {} } });
         requestConsent(function (consentData) { callbackCalled = true; });
 
         sinon.assert.calledOnce(utils.logError);
@@ -187,7 +197,7 @@ describe('Consent Management TCFv1', function () {
         expect(isLocalStorageAllowed()).to.be.true;
       });
 
-      it('throws an error when requestConsent check failed while config had allowID5WithoutConsentApi=false', function () {
+      it('throws an error when requestConsent check failed', function () {
         config.setConfig({ cmpApi: 'iab' });
         cmpStub = sinon.stub(window, '__cmp').callsFake((...args) => { args[2]({}); });
         requestConsent(function (consentData) { callbackCalled = true; });
@@ -198,8 +208,8 @@ describe('Consent Management TCFv1', function () {
         expect(isLocalStorageAllowed()).to.be.undefined;
       });
 
-      it('throws an error + calls callback when processCmpData check failed while config had allowID5WithoutConsentApi=true', function () {
-        config.setConfig({ cmpApi: 'iab', allowID5WithoutConsentApi: true });
+      it('throws an error + calls callback when processCmpData check failed while config had debugBypassConsent=true', function () {
+        config.setConfig({ cmpApi: 'iab', debugBypassConsent: true });
         cmpStub = sinon.stub(window, '__cmp').callsFake((...args) => { args[2]({}); });
         requestConsent(function (consentData) { callbackCalled = true; });
 
@@ -350,7 +360,7 @@ describe('Consent Management TCFv2', function () {
         expect(isLocalStorageAllowed()).to.be.true;
       });
 
-      it('throws an error when requestConsent check failed while config had allowID5WithoutConsentApi set to false', function () {
+      it('throws an error when requestConsent check failed', function () {
         config.setConfig({ cmpApi: 'static', consentData: { getConsentData: {}, getVendorConsents: {} } });
         requestConsent(function (consentData) { callbackCalled = true; });
 
@@ -360,8 +370,8 @@ describe('Consent Management TCFv2', function () {
         expect(isLocalStorageAllowed()).to.be.undefined;
       });
 
-      it('throws an error + calls callback when processCmpData check failed while config had allowID5WithoutConsentApi set to true', function () {
-        config.setConfig({ cmpApi: 'static', allowID5WithoutConsentApi: true, consentData: { getConsentData: {}, getVendorConsents: {} } });
+      it('throws an error + calls callback when processCmpData check failed while config had debugBypassConsent set to true', function () {
+        config.setConfig({ cmpApi: 'static', debugBypassConsent: true, consentData: { getConsentData: {}, getVendorConsents: {} } });
         requestConsent(function (consentData) { callbackCalled = true; });
 
         sinon.assert.calledOnce(utils.logError);
@@ -418,7 +428,7 @@ describe('Consent Management TCFv2', function () {
         expect(isLocalStorageAllowed()).to.be.true;
       });
 
-      it('throws an error when requestConsent check failed while config had allowID5WithoutConsentApi=false', function () {
+      it('throws an error when requestConsent check failed', function () {
         config.setConfig({ cmpApi: 'iab' });
         cmpStub = sinon.stub(window, '__tcfapi').callsFake((...args) => { args[2]({}, false); });
         requestConsent(function (consentData) { callbackCalled = true; });
@@ -429,8 +439,8 @@ describe('Consent Management TCFv2', function () {
         expect(isLocalStorageAllowed()).to.be.undefined;
       });
 
-      it('throws an error + calls callback when processCmpData check failed while config had allowID5WithoutConsentApi=true', function () {
-        config.setConfig({ cmpApi: 'iab', allowID5WithoutConsentApi: true });
+      it('throws an error + calls callback when processCmpData check failed while config had debugBypassConsent=true', function () {
+        config.setConfig({ cmpApi: 'iab', debugBypassConsent: true });
         cmpStub = sinon.stub(window, '__tcfapi').callsFake((...args) => { args[2]({}, true); });
         requestConsent(function (consentData) { callbackCalled = true; });
 

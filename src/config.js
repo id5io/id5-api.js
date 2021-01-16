@@ -8,7 +8,9 @@ const utils = require('./utils');
  * @typedef {Object} Id5Config
  * @property {number} partnerId - ID5 Publisher ID, mandatory
  * @property {boolean|false} [debug] - enable verbose debug mode (defaulting to id5_debug query string param if present, or false)
- * @property {boolean|false} [allowID5WithoutConsentApi] - Allow ID5 to fetch user id even if no consent API
+ * @property {boolean|false} [debugBypassConsent] - Bypass consent API et local storage consent for testing purpose only
+ * @property {boolean|false} [allowLocalStorageWithoutConsentApi] - Tell ID5 that consent has been given to read local storage
+ * => and allowLocalStorageWithoutConsent (if enabled, then for everyone in the page), platform should not set
  * @property {number} [refreshInSeconds] - Refresh period of first-party cookie (defaulting to 7200s)
  * @property {string} [partnerUserId] - User ID for the platform deploying the API, to be stored by ID5 for further cookie matching if provided
  * @property {string} [cmpApi] - API to use CMP. As of today, either 'iab' or 'static'
@@ -29,7 +31,8 @@ export function newConfig() {
 
   const configTypes = {
     debug: 'Boolean',
-    allowID5WithoutConsentApi: 'Boolean',
+    debugBypassConsent: 'Boolean',
+    allowLocalStorageWithoutConsentApi: 'Boolean',
     cmpApi: 'String',
     consentData: 'Object',
     refreshInSeconds: 'Number',
@@ -45,7 +48,8 @@ export function newConfig() {
   function resetConfig() {
     config = {
       debug: utils.getParameterByName('id5_debug').toUpperCase() === 'TRUE',
-      allowID5WithoutConsentApi: false,
+      debugBypassConsent: false,
+      allowLocalStorageWithoutConsentApi: false,
       cmpApi: 'iab',
       consentData: {
         getConsentData: {

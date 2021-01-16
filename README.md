@@ -175,7 +175,8 @@ There are a few cases in which `ID5.userId` may not be ready or have a value:
 | Option Name | Scope | Type | Default Value | Description |
 | --- | --- | --- | --- | --- |
 | partnerId | Required | integer | | ID5 Partner ID, received after registration with ID5 |
-| allowID5WithoutConsentApi | Optional | boolean | `false` | Allow ID5 to fetch user id even if no consent API |
+| debugBypassConsent | Optional | boolean | `false` | Bypass consent API and Local Storage access for debugging purpose only |
+| allowLocalStorageWithoutConsentApi | Optional | boolean | `false` | Tell ID5 that consent has been given to read local storage |
 | cmpApi | Optional | string | `iab` | API to use CMP. As of today, either 'iab' or 'static' |
 | consentData | Optional, Required if `cmpApi` is `'static'` | object | | Consent data if `cmpApi` is `'static'`. Object should contain the following:`{ getConsentData: { consentData: <consent_data>, gdprApplies: <true\|false> }}`
 | debug | Optional | boolean | `false` | Enable verbose debug mode (defaulting to `id5_debug` query string param if present, or `false`) |

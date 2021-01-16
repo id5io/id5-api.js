@@ -139,7 +139,7 @@ function lookupIabConsent(cmpSuccess, finalCallback) {
  */
 export function requestConsent(finalCallback) {
   const cfg = config.getConfig();
-  if (cfg.allowID5WithoutConsentApi) {
+  if (cfg.debugBypassConsent) {
     utils.logError('ID5 is operating in forced consent mode');
     finalCallback(consentData);
   } else if (!cmpCallMap[cfg.cmpApi]) {
@@ -253,8 +253,8 @@ function storeConsentData(cmpConsentObject) {
  * @returns {boolean}
  */
 export function isLocalStorageAllowed() {
-  if (config.getConfig().allowID5WithoutConsentApi === true) {
-    // allowID5WithoutConsentApi:true forces local storage access
+  if (config.getConfig().allowLocalStorageWithoutConsentApi === true ||
+    config.getConfig().debugBypassConsent === true) {
     return true;
   } else if (!consentData) {
     // no cmp on page, so check if provisional access is allowed
