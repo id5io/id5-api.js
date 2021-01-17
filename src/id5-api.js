@@ -1,6 +1,5 @@
 /** @module id5-api */
 
-import { getGlobal } from './id5-apiGlobal';
 import Config from './config';
 import * as utils from './utils';
 import * as consent from './consentManagement';
@@ -8,15 +7,18 @@ import { getRefererInfo } from './refererDetection';
 import isInControlGroup from 'src/abTesting';
 import * as clientStore from './clientStore';
 
-export const ID5 = getGlobal();
+// This syntax allows multiple injection of id5-api.js while resetting only the attributes we need
+window.ID5 = (window.ID5 || {
+  loaded: true,
+  debug: false,
+  versions: {},
+  localStorageAllowed: undefined,
+  initialized: false,
+  callbackFired: false
+});
+export const ID5 = window.ID5;
 
-// TODO: Check for different version in the same page at init
-
-ID5.loaded = true;
-ID5.debug = false;
-ID5.initialized = false;
-ID5.callbackFired = false;
-ID5.localStorageAllowed = undefined;
+// TODO: Check for different versions in the same page at init
 
 /**
  * This function will initialize ID5, wait for consent then try to fetch or refresh ID5 user id if required
@@ -33,7 +35,7 @@ ID5.init = function (options) {
     utils.logInfo('Invoking ID5.init', arguments);
     ID5.initialized = true;
     ID5.config = new Config(options);
-    ID5.debug = ID5.config.getConfig().debug;
+    ID5.debug = ID5.debug || ID5.config.getConfig().debug;
     this.getId(ID5.config.getConfig(), false);
   } catch (e) {
     utils.logError('Exception caught from ID5.init', e);

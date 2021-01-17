@@ -1,4 +1,3 @@
-let id5Api = require('./package.json');
 let path = require('path');
 let webpack = require('webpack');
 
@@ -11,7 +10,6 @@ module.exports = {
     ],
   },
   output: {
-    jsonpFunction: id5Api.globalVarName + "Chunk",
     filename: 'id5-api.js'
   },
   module: {
