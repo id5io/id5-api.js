@@ -2,9 +2,9 @@
  * Module for managing storage of information in browser Local Storage and/or cookies
  */
 
-import * as consent from './consentManagement';
 import * as utils from './utils';
 import CONSTANTS from './constants.json';
+import ID5 from './id5-api';
 
 /**
  * Get stored data from local storage, if any, after checking if local storage is allowed
@@ -13,8 +13,10 @@ import CONSTANTS from './constants.json';
  */
 function get(cacheConfig) {
   try {
-    if (consent.isLocalStorageAllowed() === true) {
+    if (ID5.localStorageAllowed === true) {
       return utils.getFromLocalStorage(cacheConfig);
+    } else {
+      utils.logError('clientStore.get() has been called without localStorageAllowed')
     }
   } catch (e) {
     utils.logError(e);
@@ -40,8 +42,10 @@ function clear(cacheConfig) {
  */
 function put(cacheConfig, data) {
   try {
-    if (consent.isLocalStorageAllowed() === true) {
+    if (ID5.localStorageAllowed === true) {
       utils.setInLocalStorage(cacheConfig, data);
+    } else {
+      utils.logError('clientStore.get() has been called without localStorageAllowed')
     }
   } catch (e) {
     utils.logError(e);

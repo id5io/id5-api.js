@@ -6,7 +6,7 @@ const utils = require('./utils');
 
 /**
  * @typedef {Object} Id5Config
- * @property {number} partnerId - ID5 Publisher ID, mandatory
+ * @property {number} [partnerId] - ID5 Publisher ID, mandatory
  * @property {boolean|false} [debug] - enable verbose debug mode (defaulting to id5_debug query string param if present, or false)
  * @property {boolean|false} [debugBypassConsent] - Bypass consent API et local storage consent for testing purpose only
  * @property {boolean|false} [allowLocalStorageWithoutConsentApi] - Tell ID5 that consent has been given to read local storage
@@ -40,14 +40,14 @@ const utils = require('./utils');
  * @property {number} [controlGroupPct] - Ratio of users in control group [0,1]
  */
 
-export function newConfig() {
+export class Config {
   /** @type {Id5Config} */
-  let config;
+  config;
 
   /** @type {Id5Config} */
-  let providedConfig;
+  providedConfig;
 
-  const configTypes = {
+  static configTypes = {
     debug: 'Boolean',
     debugBypassConsent: 'Boolean',
     allowLocalStorageWithoutConsentApi: 'Boolean',
@@ -63,8 +63,12 @@ export function newConfig() {
     abTesting: 'Object'
   };
 
-  function resetConfig() {
-    config = {
+  /**
+   * Create configuration instance from an object containing key-value pairs
+   * @param {Id5Config} options
+   */
+  constructor(options) {
+    this.config = {
       debug: utils.getParameterByName('id5_debug').toUpperCase() === 'TRUE',
       debugBypassConsent: false,
       allowLocalStorageWithoutConsentApi: false,
@@ -88,55 +92,44 @@ export function newConfig() {
         controlGroupPct: 0
       }
     };
-    providedConfig = {};
+    this.providedConfig = {};
+    this.updConfig(options);
   }
 
   /**
    * Return current configuration
    * @returns {Id5Config} options
    */
-  function getConfig() {
-    return config;
+  getConfig() {
+    return this.config;
   }
 
   /**
    * Return configuration set by user
    * @returns {Id5Config} options
    */
-  function getProvidedConfig() {
-    return providedConfig;
+  getProvidedConfig() {
+    return this.providedConfig;
   }
 
   /**
-   * Sets configuration given an object containing key-value pairs
+   * Override the configuration with an object containing key-value pairs
    * @param {Id5Config} options
-   * @returns {Id5Config} config
    */
-  function setConfig(options) {
+  updConfig(options) {
     if (typeof options !== 'object') {
-      utils.logError('setConfig options must be an object');
-      return undefined;
+      utils.logError('Config options must be an object');
     }
 
     Object.keys(options).forEach(topic => {
-      if (utils.isA(options[topic], configTypes[topic])) {
-        config[topic] = options[topic];
-        providedConfig[topic] = options[topic];
+      if (utils.isA(options[topic], Config.configTypes[topic])) {
+        this.config[topic] = options[topic];
+        this.providedConfig[topic] = options[topic];
       } else {
-        utils.logError(`setConfig options ${topic} must be of type ${configTypes[topic]} but was ${toString.call(options[topic])}`);
+        utils.logError(`setConfig options ${topic} must be of type ${Config.configTypes[topic]} but was ${toString.call(options[topic])}`);
       }
     });
-    return config
   }
-
-  resetConfig();
-
-  return {
-    getConfig,
-    getProvidedConfig,
-    setConfig,
-    resetConfig
-  };
 }
 
-export const config = newConfig();
+export default Config;

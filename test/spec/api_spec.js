@@ -1,5 +1,4 @@
 import sinon from 'sinon';
-import { config } from 'src/config';
 import CONSTANTS from 'src/constants.json';
 import * as utils from 'src/utils';
 import { resetConsentData } from 'src/consentManagement';
@@ -106,15 +105,10 @@ describe('ID5 JS API', function () {
     ID5.userId = undefined;
     ID5.linkType = undefined;
     ID5.fromCache = undefined;
-    config.resetConfig();
     resetConsentData();
   }
 
   describe('Core API Availability', function () {
-    afterEach(function () {
-      config.resetConfig();
-    });
-
     it('should have a global variable ID5', function () {
       expect(ID5).to.be.a('object');
     });
@@ -148,17 +142,12 @@ describe('ID5 JS API', function () {
       });
     });
     afterEach(function () {
-      config.resetConfig();
       ajaxStub.restore();
       ID5.userId = undefined;
       ID5.linkType = undefined;
     });
 
     describe('Required Parameters', function () {
-      afterEach(function () {
-        config.resetConfig();
-      });
-
       it('should fail if partnerId not set in config', function () {
         try {
           ID5.init({ debugBypassConsent: true });
@@ -1137,7 +1126,6 @@ describe('ID5 JS API', function () {
       });
     });
     afterEach(function () {
-      config.resetConfig();
       ajaxStub.restore();
       utils.removeFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG);
       utils.removeFromLocalStorage(TEST_LAST_STORAGE_CONFIG);
@@ -1151,20 +1139,6 @@ describe('ID5 JS API', function () {
     describe('Parameters and Config', function () {
       it('should throw exception if refreshId is called before init', function () {
         expect(function () { ID5.refreshId() }).throw();
-      });
-
-      it('should error if first parameter is not a boolean', function () {
-        ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true });
-        let logErrorSpy = sinon.spy(utils, 'logError');
-        let getIdSpy = sinon.spy(ID5, 'getId');
-
-        ID5.refreshId({ a: 1 });
-
-        sinon.assert.calledOnce(logErrorSpy);
-        sinon.assert.notCalled(getIdSpy);
-
-        utils.logError.restore();
-        ID5.getId.restore();
       });
     });
 
@@ -2118,7 +2092,6 @@ describe('ID5 JS API', function () {
       });
     });
     afterEach(function () {
-      config.resetConfig();
       ajaxStub.restore();
       syncStub.restore();
       utils.removeFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG);
@@ -2365,7 +2338,6 @@ describe('ID5 JS API', function () {
       });
     });
     afterEach(function () {
-      config.resetConfig();
       ajaxStub.restore();
       utils.removeFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG);
       utils.removeFromLocalStorage(TEST_LAST_STORAGE_CONFIG);

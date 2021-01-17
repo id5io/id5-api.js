@@ -1,7 +1,7 @@
 /** @module id5-api */
 
 import { getGlobal } from './id5-apiGlobal';
-import { config } from './config';
+import Config from './config';
 import * as utils from './utils';
 import * as consent from './consentManagement';
 import { getRefererInfo } from './refererDetection';
@@ -10,9 +10,13 @@ import * as clientStore from './clientStore';
 
 export const ID5 = getGlobal();
 
+// TODO: Check for different version in the same page at init
+
 ID5.loaded = true;
+ID5.debug = false;
 ID5.initialized = false;
 ID5.callbackFired = false;
+ID5.localStorageAllowed = undefined;
 
 /**
  * This function will initialize ID5, wait for consent then try to fetch or refresh ID5 user id if required
@@ -28,17 +32,24 @@ ID5.init = function (options) {
   try {
     utils.logInfo('Invoking ID5.init', arguments);
     ID5.initialized = true;
-    this.getId(options, false);
+    ID5.config = new Config(options);
+    ID5.debug = ID5.config.getConfig().debug;
+    this.getId(ID5.config.getConfig(), false);
   } catch (e) {
     utils.logError('Exception caught from ID5.init', e);
   }
 };
 
+ID5.updateLocalStorageAllowed = function() {
+  const cfg = ID5.config.getConfig();
+  ID5.localStorageAllowed = consent.isLocalStorageAllowed(cfg.allowLocalStorageWithoutConsentApi, cfg.debugBypassConsent)
+}
+
 ID5.exposeId = function() {
   if (ID5.initialized !== true) {
     throw new Error('ID5.exposeId() cannot be called before ID5.init()!');
   }
-  const cfg = config.getConfig();
+  const cfg = ID5.config.getConfig();
   if (cfg.abTesting.enabled === true) {
     return !isInControlGroup(ID5.userId, cfg.abTesting.controlGroupPct);
   } else {
@@ -51,24 +62,30 @@ ID5.refreshId = function (forceFetch = false, options = {}) {
     throw new Error('ID5.refreshID() cannot be called before ID5.init()!');
   }
 
+  if (!utils.isBoolean(forceFetch)) {
+    throw new Error('Invalid signature for ID5.refreshId: first parameter must be a boolean');
+  }
+
   try {
     utils.logInfo('Invoking ID5.refreshId', arguments);
-
-    if (!utils.isBoolean(forceFetch)) {
-      throw new Error('Invalid signature for ID5.refreshID: first parameter must be a boolean');
-    }
+    ID5.config.updConfig(options);
 
     // consent may have changed, so we need to check it again
     consent.resetConsentData();
 
-    this.getId(options, forceFetch);
+    this.getId(ID5.config.getConfig(), forceFetch);
   } catch (e) {
     utils.logError('Exception caught from ID5.refreshId', e);
   }
 };
 
-ID5.getId = function(options, forceFetch = false) {
-  const cfg = config.setConfig(options);
+/**
+ * This function get the user ID for the given config
+ * @param {Id5Config} cfg
+ * @param {boolean} forceFetch - Force a call to server
+ */
+
+ID5.getId = function(cfg, forceFetch = false) {
   ID5.callbackFired = false;
 
   const referer = getRefererInfo();
@@ -84,7 +101,8 @@ ID5.getId = function(options, forceFetch = false) {
   let refreshInSecondsHasElapsed = false;
   let pdHasChanged = false;
 
-  if (consent.isLocalStorageAllowed()) {
+  ID5.updateLocalStorageAllowed();
+  if (ID5.localStorageAllowed) {
     storedResponse = clientStore.getResponse();
     storedDateTime = clientStore.getDateTime();
     refreshInSecondsHasElapsed = storedDateTime <= 0 || ((Date.now() - storedDateTime) > (cfg.refreshInSeconds * 1000));
@@ -133,9 +151,11 @@ ID5.getId = function(options, forceFetch = false) {
     utils.logInfo('No ID5 User ID available from cache');
   }
 
-  consent.requestConsent((consentData) => {
-    if (consent.isLocalStorageAllowed() !== false) {
-      utils.logInfo('Consent to access local storage is given: ', consent.isLocalStorageAllowed());
+  consent.requestConsent(cfg.debugBypassConsent, cfg.cmpApi, cfg.consentData, (consentData) => {
+    // re-evaluate local storage access as consent is now available
+    ID5.updateLocalStorageAllowed();
+    if (ID5.localStorageAllowed !== false) {
+      utils.logInfo('Consent to access local storage is given: ', ID5.localStorageAllowed);
 
       storedResponse = clientStore.getResponse() || clientStore.getResponseFromLegacyCookie();
 
@@ -202,10 +222,12 @@ ID5.getId = function(options, forceFetch = false) {
 
                   // privacy has to be stored first so we can use it when storing other values
                   consent.setStoredPrivacy(responseObj.privacy);
+                  // re-evaluate local storage access as geo is now available
+                  ID5.updateLocalStorageAllowed();
 
                   // @TODO: typeof responseObj.privacy === 'undefined' is only needed until fetch endpoint is updated and always returns a privacy object
                   // once it does, I don't see a reason to keep that part of the if clause
-                  if (consent.isLocalStorageAllowed() === true || typeof responseObj.privacy === 'undefined') {
+                  if (ID5.localStorageAllowed === true || typeof responseObj.privacy === 'undefined') {
                     clientStore.putResponse(response);
                     clientStore.setDateTime(Date.now());
                     clientStore.setNb(cfg.partnerId, (ID5.fromCache ? 0 : 1));
@@ -219,7 +241,7 @@ ID5.getId = function(options, forceFetch = false) {
                   // this must come after storing Nb or it will store the wrong value
                   ID5.fromCache = false;
 
-                  if (responseObj.cascade_needed === true && consent.isLocalStorageAllowed() === true) {
+                  if (responseObj.cascade_needed === true && ID5.localStorageAllowed === true) {
                     const isSync = cfg.partnerUserId && cfg.partnerUserId.length > 0;
                     const syncUrl = `https://id5-sync.com/${isSync ? 's' : 'i'}/${cfg.partnerId}/8.gif?id5id=${ID5.userId}&fs=${clientStore.forceSync()}&o=api&${isSync ? 'puid=' + cfg.partnerUserId + '&' : ''}gdpr_consent=${gdprConsentString}&gdpr=${gdprApplies}`;
                     utils.logInfo('Opportunities to cascade available:', syncUrl);

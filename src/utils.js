@@ -1,6 +1,4 @@
 
-import { config } from './config';
-
 const tArr = 'Array';
 const tStr = 'String';
 const tFn = 'Function';
@@ -82,8 +80,8 @@ function decorateLog(args, prefix) {
   return args;
 }
 
-export function debugTurnedOn() {
-  return config.getConfig().debug;
+function debugTurnedOn() {
+  return ID5.debug === true;
 }
 
 /*

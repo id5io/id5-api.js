@@ -1,5 +1,4 @@
 import * as utils from './utils';
-import {config} from './config';
 import CONSTANTS from 'src/constants.json';
 
 export let consentData;
@@ -19,7 +18,13 @@ const cmpCallMap = {
  * @param {function(object)} finalCallback acts as an error callback while interacting with the config string; pass along an error message (string)
  */
 function lookupStaticConsentData(cmpSuccess, finalCallback) {
-  cmpSuccess(staticConsentData, finalCallback);
+  cmpVersion = (staticConsentData.getConsentData) ? 1 : (staticConsentData.getTCData) ? 2 : 0;
+  // remove extra layer in static v2 data object so it matches normal v2 CMP object for processing step
+  if (cmpVersion === 2) {
+    cmpSuccess(staticConsentData.getTCData, finalCallback);
+  } else {
+    cmpSuccess(staticConsentData, finalCallback);
+  }
 }
 
 /**
@@ -135,26 +140,28 @@ function lookupIabConsent(cmpSuccess, finalCallback) {
 
 /**
  * Try to fetch consent from CMP
+ * @param {boolean} debugBypassConsent
+ * @param {string} cmpApi - CMP Api to use
+ * @param {object} [providedConsentData] - static consent data provided to ID5 API
  * @param {function(object)} finalCallback required; final callback
  */
-export function requestConsent(finalCallback) {
-  const cfg = config.getConfig();
-  if (cfg.debugBypassConsent) {
+export function requestConsent(debugBypassConsent, cmpApi, providedConsentData, finalCallback) {
+  if (debugBypassConsent) {
     utils.logError('ID5 is operating in forced consent mode');
     finalCallback(consentData);
-  } else if (!cmpCallMap[cfg.cmpApi]) {
-    utils.logError(`Unknown consent API: ${cfg.cmpApi}`);
+  } else if (!cmpCallMap[cmpApi]) {
+    utils.logError(`Unknown consent API: ${cmpApi}`);
     resetConsentData();
     finalCallback(consentData);
   } else if (!consentData) {
-    if (cfg.cmpApi === 'static') {
-      if (utils.isPlainObject(cfg.consentData)) {
-        staticConsentData = cfg.consentData;
+    if (cmpApi === 'static') {
+      if (utils.isPlainObject(providedConsentData)) {
+        staticConsentData = providedConsentData;
       } else {
         utils.logError(`cmpApi: 'static' did not specify consentData.`);
       }
     }
-    cmpCallMap[cfg.cmpApi].call(this, cmpSuccess, finalCallback);
+    cmpCallMap[cmpApi].call(this, cmpSuccess, finalCallback);
   } else {
     finalCallback(consentData);
   }
@@ -166,8 +173,6 @@ export function requestConsent(finalCallback) {
  * @param {function(ConsentData)} finalCallback required; final callback receiving the consent
  */
 function cmpSuccess(consentObject, finalCallback) {
-  const cfg = config.getConfig();
-
   function checkV1Data(consentObject) {
     let gdprApplies = consentObject && consentObject.getConsentData && consentObject.getConsentData.gdprApplies;
     return !!(
@@ -190,15 +195,6 @@ function cmpSuccess(consentObject, finalCallback) {
     );
   }
 
-  // do extra things for static config
-  if (cfg.cmpApi === 'static') {
-    cmpVersion = (consentObject.getConsentData) ? 1 : (consentObject.getTCData) ? 2 : 0;
-    // remove extra layer in static v2 data object so it matches normal v2 CMP object for processing step
-    if (cmpVersion === 2) {
-      consentObject = consentObject.getTCData;
-    }
-  }
-
   // determine which set of checks to run based on cmpVersion
   let checkFn = (cmpVersion === 1) ? checkV1Data : (cmpVersion === 2) ? checkV2Data : null;
   utils.logInfo('CMP Success callback for version', cmpVersion, checkFn);
@@ -209,6 +205,8 @@ function cmpSuccess(consentObject, finalCallback) {
     } else {
       storeConsentData(consentObject);
     }
+  } else {
+    // TODO: Log unhandled CMP version
   }
 
   finalCallback(consentData);
@@ -250,11 +248,12 @@ function storeConsentData(cmpConsentObject) {
 
 /**
  * test if consent module is present, applies, and is valid for local storage or cookies (purpose 1)
+ * @param {boolean} allowLocalStorageWithoutConsentApi
+ * @param {boolean} debugBypassConsent
  * @returns {boolean}
  */
-export function isLocalStorageAllowed() {
-  if (config.getConfig().allowLocalStorageWithoutConsentApi === true ||
-    config.getConfig().debugBypassConsent === true) {
+export function isLocalStorageAllowed(allowLocalStorageWithoutConsentApi, debugBypassConsent) {
+  if (allowLocalStorageWithoutConsentApi === true || debugBypassConsent === true) {
     return true;
   } else if (!consentData) {
     // no cmp on page, so check if provisional access is allowed
