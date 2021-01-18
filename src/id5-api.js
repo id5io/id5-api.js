@@ -2,10 +2,10 @@
 
 import Config from './config';
 import * as utils from './utils';
-import * as consent from './consentManagement';
 import { getRefererInfo } from './refererDetection';
 import isInControlGroup from 'src/abTesting';
 import * as clientStore from './clientStore';
+import ConsentManagement from './consentManagement';
 
 // This syntax allows multiple injection of id5-api.js while resetting only the attributes we need
 window.ID5 = (window.ID5 || {
@@ -35,7 +35,8 @@ ID5.init = function (options) {
     utils.logInfo('Invoking ID5.init', arguments);
     ID5.initialized = true;
     ID5.config = new Config(options);
-    ID5.debug = ID5.debug || ID5.config.getConfig().debug;
+    ID5.debug = /* ID5.debug || */ ID5.config.getConfig().debug;
+    ID5.consent = new ConsentManagement();
     this.getId(ID5.config.getConfig(), false);
   } catch (e) {
     utils.logError('Exception caught from ID5.init', e);
@@ -44,7 +45,7 @@ ID5.init = function (options) {
 
 ID5.updateLocalStorageAllowed = function() {
   const cfg = ID5.config.getConfig();
-  ID5.localStorageAllowed = consent.isLocalStorageAllowed(cfg.allowLocalStorageWithoutConsentApi, cfg.debugBypassConsent)
+  ID5.localStorageAllowed = ID5.consent.isLocalStorageAllowed(cfg.allowLocalStorageWithoutConsentApi, cfg.debugBypassConsent)
 }
 
 ID5.exposeId = function() {
@@ -73,7 +74,7 @@ ID5.refreshId = function (forceFetch = false, options = {}) {
     ID5.config.updConfig(options);
 
     // consent may have changed, so we need to check it again
-    consent.resetConsentData();
+    ID5.consent.resetConsentData();
 
     this.getId(ID5.config.getConfig(), forceFetch);
   } catch (e) {
@@ -153,7 +154,7 @@ ID5.getId = function(cfg, forceFetch = false) {
     utils.logInfo('No ID5 User ID available from cache');
   }
 
-  consent.requestConsent(cfg.debugBypassConsent, cfg.cmpApi, cfg.consentData, (consentData) => {
+  ID5.consent.requestConsent(cfg.debugBypassConsent, cfg.cmpApi, cfg.consentData, (consentData) => {
     // re-evaluate local storage access as consent is now available
     ID5.updateLocalStorageAllowed();
     if (ID5.localStorageAllowed !== false) {
@@ -223,7 +224,7 @@ ID5.getId = function(cfg, forceFetch = false) {
                   }
 
                   // privacy has to be stored first so we can use it when storing other values
-                  consent.setStoredPrivacy(responseObj.privacy);
+                  ID5.consent.setStoredPrivacy(responseObj.privacy);
                   // re-evaluate local storage access as geo is now available
                   ID5.updateLocalStorageAllowed();
 

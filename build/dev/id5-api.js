@@ -662,10 +662,10 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "ID5", function() { return ID5; });
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__config__ = __webpack_require__(3);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__utils__ = __webpack_require__(0);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__consentManagement__ = __webpack_require__(4);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__refererDetection__ = __webpack_require__(5);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4_src_abTesting__ = __webpack_require__(6);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_5__clientStore__ = __webpack_require__(7);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__refererDetection__ = __webpack_require__(4);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3_src_abTesting__ = __webpack_require__(5);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__clientStore__ = __webpack_require__(6);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_5__consentManagement__ = __webpack_require__(7);
 /** @module id5-api */
 
 
@@ -699,7 +699,10 @@ ID5.init = function (options) {
     __WEBPACK_IMPORTED_MODULE_1__utils__["logInfo"]('Invoking ID5.init', arguments);
     ID5.initialized = true;
     ID5.config = new __WEBPACK_IMPORTED_MODULE_0__config__["a" /* default */](options);
-    ID5.debug = ID5.debug || ID5.config.getConfig().debug;
+    ID5.debug =
+    /* ID5.debug || */
+    ID5.config.getConfig().debug;
+    ID5.consent = new __WEBPACK_IMPORTED_MODULE_5__consentManagement__["a" /* default */]();
     this.getId(ID5.config.getConfig(), false);
   } catch (e) {
     __WEBPACK_IMPORTED_MODULE_1__utils__["logError"]('Exception caught from ID5.init', e);
@@ -708,7 +711,7 @@ ID5.init = function (options) {
 
 ID5.updateLocalStorageAllowed = function () {
   var cfg = ID5.config.getConfig();
-  ID5.localStorageAllowed = __WEBPACK_IMPORTED_MODULE_2__consentManagement__["a" /* isLocalStorageAllowed */](cfg.allowLocalStorageWithoutConsentApi, cfg.debugBypassConsent);
+  ID5.localStorageAllowed = ID5.consent.isLocalStorageAllowed(cfg.allowLocalStorageWithoutConsentApi, cfg.debugBypassConsent);
 };
 
 ID5.exposeId = function () {
@@ -719,7 +722,7 @@ ID5.exposeId = function () {
   var cfg = ID5.config.getConfig();
 
   if (cfg.abTesting.enabled === true) {
-    return !Object(__WEBPACK_IMPORTED_MODULE_4_src_abTesting__["a" /* default */])(ID5.userId, cfg.abTesting.controlGroupPct);
+    return !Object(__WEBPACK_IMPORTED_MODULE_3_src_abTesting__["a" /* default */])(ID5.userId, cfg.abTesting.controlGroupPct);
   } else {
     return true;
   }
@@ -741,7 +744,7 @@ ID5.refreshId = function () {
     __WEBPACK_IMPORTED_MODULE_1__utils__["logInfo"]('Invoking ID5.refreshId', arguments);
     ID5.config.updConfig(options); // consent may have changed, so we need to check it again
 
-    __WEBPACK_IMPORTED_MODULE_2__consentManagement__["c" /* resetConsentData */]();
+    ID5.consent.resetConsentData();
     this.getId(ID5.config.getConfig(), forceFetch);
   } catch (e) {
     __WEBPACK_IMPORTED_MODULE_1__utils__["logError"]('Exception caught from ID5.refreshId', e);
@@ -759,7 +762,7 @@ ID5.getId = function (cfg) {
 
   var forceFetch = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : false;
   ID5.callbackFired = false;
-  var referer = Object(__WEBPACK_IMPORTED_MODULE_3__refererDetection__["a" /* getRefererInfo */])();
+  var referer = Object(__WEBPACK_IMPORTED_MODULE_2__refererDetection__["a" /* getRefererInfo */])();
   __WEBPACK_IMPORTED_MODULE_1__utils__["logInfo"]("ID5 detected referer is ".concat(referer.referer));
 
   if (!cfg.partnerId || typeof cfg.partnerId !== 'number') {
@@ -774,15 +777,15 @@ ID5.getId = function (cfg) {
   ID5.updateLocalStorageAllowed();
 
   if (ID5.localStorageAllowed) {
-    storedResponse = __WEBPACK_IMPORTED_MODULE_5__clientStore__["e" /* getResponse */]();
-    storedDateTime = __WEBPACK_IMPORTED_MODULE_5__clientStore__["c" /* getDateTime */]();
+    storedResponse = __WEBPACK_IMPORTED_MODULE_4__clientStore__["e" /* getResponse */]();
+    storedDateTime = __WEBPACK_IMPORTED_MODULE_4__clientStore__["c" /* getDateTime */]();
     refreshInSecondsHasElapsed = storedDateTime <= 0 || Date.now() - storedDateTime > cfg.refreshInSeconds * 1000;
-    nb = __WEBPACK_IMPORTED_MODULE_5__clientStore__["d" /* getNb */](cfg.partnerId);
-    pdHasChanged = !__WEBPACK_IMPORTED_MODULE_5__clientStore__["o" /* storedPdMatchesPd */](cfg.partnerId, cfg.pd);
+    nb = __WEBPACK_IMPORTED_MODULE_4__clientStore__["d" /* getNb */](cfg.partnerId);
+    pdHasChanged = !__WEBPACK_IMPORTED_MODULE_4__clientStore__["o" /* storedPdMatchesPd */](cfg.partnerId, cfg.pd);
   }
 
   if (!storedResponse) {
-    storedResponse = __WEBPACK_IMPORTED_MODULE_5__clientStore__["f" /* getResponseFromLegacyCookie */]();
+    storedResponse = __WEBPACK_IMPORTED_MODULE_4__clientStore__["f" /* getResponseFromLegacyCookie */]();
     refreshInSecondsHasElapsed = true; // Force a refresh if we have legacy cookie
   } // @FIXME: on a refresh call, we should not reset, as partner may have passed pd on refresh
 
@@ -809,7 +812,7 @@ ID5.getId = function (cfg) {
       __WEBPACK_IMPORTED_MODULE_1__utils__["logError"]('Invalid stored response: ', JSON.stringify(storedResponse));
     }
 
-    nb = __WEBPACK_IMPORTED_MODULE_5__clientStore__["g" /* incNb */](cfg.partnerId, nb);
+    nb = __WEBPACK_IMPORTED_MODULE_4__clientStore__["g" /* incNb */](cfg.partnerId, nb);
     ID5.fromCache = true;
 
     if (typeof ID5.userId !== 'undefined') {
@@ -827,17 +830,17 @@ ID5.getId = function (cfg) {
     __WEBPACK_IMPORTED_MODULE_1__utils__["logInfo"]('No ID5 User ID available from cache');
   }
 
-  __WEBPACK_IMPORTED_MODULE_2__consentManagement__["b" /* requestConsent */](cfg.debugBypassConsent, cfg.cmpApi, cfg.consentData, function (consentData) {
+  ID5.consent.requestConsent(cfg.debugBypassConsent, cfg.cmpApi, cfg.consentData, function (consentData) {
     // re-evaluate local storage access as consent is now available
     ID5.updateLocalStorageAllowed();
 
     if (ID5.localStorageAllowed !== false) {
       __WEBPACK_IMPORTED_MODULE_1__utils__["logInfo"]('Consent to access local storage is given: ', ID5.localStorageAllowed);
-      storedResponse = __WEBPACK_IMPORTED_MODULE_5__clientStore__["e" /* getResponse */]() || __WEBPACK_IMPORTED_MODULE_5__clientStore__["f" /* getResponseFromLegacyCookie */](); // store hashed consent data and pd for future page loads
+      storedResponse = __WEBPACK_IMPORTED_MODULE_4__clientStore__["e" /* getResponse */]() || __WEBPACK_IMPORTED_MODULE_4__clientStore__["f" /* getResponseFromLegacyCookie */](); // store hashed consent data and pd for future page loads
 
-      var consentHasChanged = !__WEBPACK_IMPORTED_MODULE_5__clientStore__["n" /* storedConsentDataMatchesConsentData */](consentData);
-      __WEBPACK_IMPORTED_MODULE_5__clientStore__["h" /* putHashedConsentData */](consentData);
-      __WEBPACK_IMPORTED_MODULE_5__clientStore__["i" /* putHashedPd */](cfg.partnerId, cfg.pd); // make a call to fetch a new ID5 ID if:
+      var consentHasChanged = !__WEBPACK_IMPORTED_MODULE_4__clientStore__["n" /* storedConsentDataMatchesConsentData */](consentData);
+      __WEBPACK_IMPORTED_MODULE_4__clientStore__["h" /* putHashedConsentData */](consentData);
+      __WEBPACK_IMPORTED_MODULE_4__clientStore__["i" /* putHashedPd */](cfg.partnerId, cfg.pd); // make a call to fetch a new ID5 ID if:
       // - there is no valid universal_uid or no signature in cache
       // - the last refresh was longer than refreshInSeconds ago
       // - consent has changed since the last ID was fetched
@@ -894,30 +897,30 @@ ID5.getId = function (cfg) {
                   } // privacy has to be stored first so we can use it when storing other values
 
 
-                  __WEBPACK_IMPORTED_MODULE_2__consentManagement__["d" /* setStoredPrivacy */](responseObj.privacy); // re-evaluate local storage access as geo is now available
+                  ID5.consent.setStoredPrivacy(responseObj.privacy); // re-evaluate local storage access as geo is now available
 
                   ID5.updateLocalStorageAllowed(); // @TODO: typeof responseObj.privacy === 'undefined' is only needed until fetch endpoint is updated and always returns a privacy object
                   // once it does, I don't see a reason to keep that part of the if clause
 
                   if (ID5.localStorageAllowed === true || typeof responseObj.privacy === 'undefined') {
-                    __WEBPACK_IMPORTED_MODULE_5__clientStore__["j" /* putResponse */](response);
-                    __WEBPACK_IMPORTED_MODULE_5__clientStore__["l" /* setDateTime */](Date.now());
-                    __WEBPACK_IMPORTED_MODULE_5__clientStore__["m" /* setNb */](cfg.partnerId, ID5.fromCache ? 0 : 1);
+                    __WEBPACK_IMPORTED_MODULE_4__clientStore__["j" /* putResponse */](response);
+                    __WEBPACK_IMPORTED_MODULE_4__clientStore__["l" /* setDateTime */](Date.now());
+                    __WEBPACK_IMPORTED_MODULE_4__clientStore__["m" /* setNb */](cfg.partnerId, ID5.fromCache ? 0 : 1);
                   } else {
-                    __WEBPACK_IMPORTED_MODULE_5__clientStore__["a" /* clearAll */](cfg.partnerId);
+                    __WEBPACK_IMPORTED_MODULE_4__clientStore__["a" /* clearAll */](cfg.partnerId);
                   } // TEMPORARY until all clients have upgraded past v1.0.0
                   // remove cookies that were previously set
 
 
-                  __WEBPACK_IMPORTED_MODULE_5__clientStore__["k" /* removeLegacyCookies */](cfg.partnerId); // this must come after storing Nb or it will store the wrong value
+                  __WEBPACK_IMPORTED_MODULE_4__clientStore__["k" /* removeLegacyCookies */](cfg.partnerId); // this must come after storing Nb or it will store the wrong value
 
                   ID5.fromCache = false;
 
                   if (responseObj.cascade_needed === true && ID5.localStorageAllowed === true) {
                     var isSync = cfg.partnerUserId && cfg.partnerUserId.length > 0;
-                    var syncUrl = "https://id5-sync.com/".concat(isSync ? 's' : 'i', "/").concat(cfg.partnerId, "/8.gif?id5id=").concat(ID5.userId, "&fs=").concat(__WEBPACK_IMPORTED_MODULE_5__clientStore__["b" /* forceSync */](), "&o=api&").concat(isSync ? 'puid=' + cfg.partnerUserId + '&' : '', "gdpr_consent=").concat(gdprConsentString, "&gdpr=").concat(gdprApplies);
+                    var syncUrl = "https://id5-sync.com/".concat(isSync ? 's' : 'i', "/").concat(cfg.partnerId, "/8.gif?id5id=").concat(ID5.userId, "&fs=").concat(__WEBPACK_IMPORTED_MODULE_4__clientStore__["b" /* forceSync */](), "&o=api&").concat(isSync ? 'puid=' + cfg.partnerUserId + '&' : '', "gdpr_consent=").concat(gdprConsentString, "&gdpr=").concat(gdprApplies);
                     __WEBPACK_IMPORTED_MODULE_1__utils__["logInfo"]('Opportunities to cascade available:', syncUrl);
-                    __WEBPACK_IMPORTED_MODULE_1__utils__["deferPixelFire"](syncUrl, undefined, __WEBPACK_IMPORTED_MODULE_5__clientStore__["p" /* syncCallback */]);
+                    __WEBPACK_IMPORTED_MODULE_1__utils__["deferPixelFire"](syncUrl, undefined, __WEBPACK_IMPORTED_MODULE_4__clientStore__["p" /* syncCallback */]);
                   }
 
                   _this.fireCallBack(cfg);
@@ -1140,336 +1143,6 @@ _defineProperty(Config, "configTypes", {
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-/* unused harmony export consentData */
-/* unused harmony export staticConsentData */
-/* unused harmony export storedPrivacyData */
-/* harmony export (immutable) */ __webpack_exports__["b"] = requestConsent;
-/* harmony export (immutable) */ __webpack_exports__["c"] = resetConsentData;
-/* harmony export (immutable) */ __webpack_exports__["a"] = isLocalStorageAllowed;
-/* unused harmony export isProvisionalLocalStorageAllowed */
-/* harmony export (immutable) */ __webpack_exports__["d"] = setStoredPrivacy;
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__utils__ = __webpack_require__(0);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1_src_constants_json__ = __webpack_require__(2);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1_src_constants_json___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_1_src_constants_json__);
-
-
-var consentData;
-var staticConsentData;
-var storedPrivacyData;
-var cmpVersion = 0;
-var cmpCallMap = {
-  'iab': lookupIabConsent,
-  'static': lookupStaticConsentData
-};
-/**
- * This function reads the consent string from the config to obtain the consent information of the user.
- * @param {function(string, function(object))} cmpSuccess acts as a success callback when the value is read from config; pass along consentObject (string) from CMP
- * @param {function(object)} finalCallback acts as an error callback while interacting with the config string; pass along an error message (string)
- */
-
-function lookupStaticConsentData(cmpSuccess, finalCallback) {
-  cmpVersion = staticConsentData.getConsentData ? 1 : staticConsentData.getTCData ? 2 : 0; // remove extra layer in static v2 data object so it matches normal v2 CMP object for processing step
-
-  if (cmpVersion === 2) {
-    cmpSuccess(staticConsentData.getTCData, finalCallback);
-  } else {
-    cmpSuccess(staticConsentData, finalCallback);
-  }
-}
-/**
- * This function handles async interacting with an IAB compliant CMP to obtain the consent information of the user.
- * @param {function(string, function(object))} cmpSuccess acts as a success callback when CMP returns a value; pass along consentObject (string) from CMP
- * @param {function(object)} finalCallback required;
- */
-
-
-function lookupIabConsent(cmpSuccess, finalCallback) {
-  function findCMP() {
-    cmpVersion = 0;
-    var f = window;
-    var cmpFrame;
-    var cmpFunction;
-
-    while (!cmpFrame) {
-      try {
-        if (typeof f.__tcfapi === 'function' || typeof f.__cmp === 'function') {
-          if (typeof f.__tcfapi === 'function') {
-            cmpVersion = 2;
-            cmpFunction = f.__tcfapi;
-          } else {
-            cmpVersion = 1;
-            cmpFunction = f.__cmp;
-          }
-
-          cmpFrame = f;
-          break;
-        }
-      } catch (e) {} // need separate try/catch blocks due to the exception errors thrown when trying to check for a frame that doesn't exist in 3rd party env
-
-
-      try {
-        if (f.frames['__tcfapiLocator']) {
-          cmpVersion = 2;
-          cmpFrame = f;
-          break;
-        }
-      } catch (e) {}
-
-      try {
-        if (f.frames['__cmpLocator']) {
-          cmpVersion = 1;
-          cmpFrame = f;
-          break;
-        }
-      } catch (e) {}
-
-      if (f === window.top) break;
-      f = f.parent;
-    }
-
-    return {
-      cmpFrame: cmpFrame,
-      cmpFunction: cmpFunction
-    };
-  }
-
-  function v2CmpResponseCallback(tcfData, success) {
-    __WEBPACK_IMPORTED_MODULE_0__utils__["logInfo"]('Received a response from CMP', tcfData);
-
-    if (success) {
-      if (tcfData.gdprApplies === false || tcfData.eventStatus === 'tcloaded' || tcfData.eventStatus === 'useractioncomplete') {
-        cmpSuccess(tcfData, finalCallback);
-      }
-    } else {
-      __WEBPACK_IMPORTED_MODULE_0__utils__["logError"]("CMP unable to register callback function.  Please check CMP setup.");
-      cmpSuccess(undefined, finalCallback); // TODO cmpError('CMP unable to register callback function.  Please check CMP setup.', hookConfig);
-    }
-  }
-
-  function handleV1CmpResponseCallbacks() {
-    var cmpResponse = {};
-
-    function afterEach() {
-      if (cmpResponse.getConsentData && cmpResponse.getVendorConsents) {
-        cmpSuccess(cmpResponse, finalCallback);
-      }
-    }
-
-    return {
-      consentDataCallback: function consentDataCallback(consentResponse) {
-        __WEBPACK_IMPORTED_MODULE_0__utils__["logInfo"]("cmpApi: consentDataCallback");
-        cmpResponse.getConsentData = consentResponse;
-        afterEach();
-      },
-      vendorConsentsCallback: function vendorConsentsCallback(consentResponse) {
-        __WEBPACK_IMPORTED_MODULE_0__utils__["logInfo"]("cmpApi: vendorConsentsCallback");
-        cmpResponse.getVendorConsents = consentResponse;
-        afterEach();
-      }
-    };
-  }
-
-  var v1CallbackHandler = handleV1CmpResponseCallbacks();
-
-  var _findCMP = findCMP(),
-      cmpFrame = _findCMP.cmpFrame,
-      cmpFunction = _findCMP.cmpFunction;
-
-  if (!cmpFrame) {
-    // TODO implement cmpError
-    // return cmpError('CMP not found.', hookConfig);
-    __WEBPACK_IMPORTED_MODULE_0__utils__["logError"]("CMP not found");
-    return cmpSuccess(undefined, finalCallback);
-  }
-
-  if (__WEBPACK_IMPORTED_MODULE_0__utils__["isFn"](cmpFunction)) {
-    __WEBPACK_IMPORTED_MODULE_0__utils__["logInfo"]("cmpApi: calling getConsentData & getVendorConsents");
-
-    if (cmpVersion === 1) {
-      cmpFunction('getConsentData', null, v1CallbackHandler.consentDataCallback);
-      cmpFunction('getVendorConsents', null, v1CallbackHandler.vendorConsentsCallback);
-    } else if (cmpVersion === 2) {
-      cmpFunction('addEventListener', cmpVersion, v2CmpResponseCallback);
-    }
-  } else {
-    cmpSuccess(undefined, finalCallback);
-  }
-}
-/**
- * Try to fetch consent from CMP
- * @param {boolean} debugBypassConsent
- * @param {string} cmpApi - CMP Api to use
- * @param {object} [providedConsentData] - static consent data provided to ID5 API
- * @param {function(object)} finalCallback required; final callback
- */
-
-
-function requestConsent(debugBypassConsent, cmpApi, providedConsentData, finalCallback) {
-  if (debugBypassConsent) {
-    __WEBPACK_IMPORTED_MODULE_0__utils__["logError"]('ID5 is operating in forced consent mode');
-    finalCallback(consentData);
-  } else if (!cmpCallMap[cmpApi]) {
-    __WEBPACK_IMPORTED_MODULE_0__utils__["logError"]("Unknown consent API: ".concat(cmpApi));
-    resetConsentData();
-    finalCallback(consentData);
-  } else if (!consentData) {
-    if (cmpApi === 'static') {
-      if (__WEBPACK_IMPORTED_MODULE_0__utils__["isPlainObject"](providedConsentData)) {
-        staticConsentData = providedConsentData;
-      } else {
-        __WEBPACK_IMPORTED_MODULE_0__utils__["logError"]("cmpApi: 'static' did not specify consentData.");
-      }
-    }
-
-    cmpCallMap[cmpApi].call(this, cmpSuccess, finalCallback);
-  } else {
-    finalCallback(consentData);
-  }
-}
-/**
- * This function checks the consent data provided by CMP to ensure it's in an expected state.
- * @param {object} consentObject required; object returned by CMP that contains user's consent choices
- * @param {function(ConsentData)} finalCallback required; final callback receiving the consent
- */
-
-function cmpSuccess(consentObject, finalCallback) {
-  function checkV1Data(consentObject) {
-    var gdprApplies = consentObject && consentObject.getConsentData && consentObject.getConsentData.gdprApplies;
-    return !!(typeof gdprApplies !== 'boolean' || gdprApplies === true && !(__WEBPACK_IMPORTED_MODULE_0__utils__["isStr"](consentObject.getConsentData.consentData) && __WEBPACK_IMPORTED_MODULE_0__utils__["isPlainObject"](consentObject.getVendorConsents) && Object.keys(consentObject.getVendorConsents).length > 1));
-  }
-
-  function checkV2Data() {
-    var gdprApplies = consentObject && typeof consentObject.gdprApplies === 'boolean' ? consentObject.gdprApplies : undefined;
-    var tcString = consentObject && consentObject.tcString;
-    return !!(typeof gdprApplies !== 'boolean' || gdprApplies === true && !__WEBPACK_IMPORTED_MODULE_0__utils__["isStr"](tcString));
-  } // determine which set of checks to run based on cmpVersion
-
-
-  var checkFn = cmpVersion === 1 ? checkV1Data : cmpVersion === 2 ? checkV2Data : null;
-  __WEBPACK_IMPORTED_MODULE_0__utils__["logInfo"]('CMP Success callback for version', cmpVersion, checkFn);
-
-  if (__WEBPACK_IMPORTED_MODULE_0__utils__["isFn"](checkFn)) {
-    if (checkFn(consentObject)) {
-      resetConsentData();
-      __WEBPACK_IMPORTED_MODULE_0__utils__["logError"]("CMP returned unexpected value during lookup process.", consentObject);
-    } else {
-      storeConsentData(consentObject);
-    }
-  } else {// TODO: Log unhandled CMP version
-  }
-
-  finalCallback(consentData);
-}
-/**
- * Simply resets the module's consentData variable back to undefined, mainly for testing purposes
- */
-
-
-function resetConsentData() {
-  consentData = undefined;
-  storedPrivacyData = undefined;
-}
-/**
- * Stores CMP data locally in module
- * @param {object} cmpConsentObject required; an object representing user's consent choices (can be undefined in certain use-cases for this function only)
- */
-
-function storeConsentData(cmpConsentObject) {
-  if (cmpVersion === 1) {
-    consentData = {
-      consentString: cmpConsentObject ? cmpConsentObject.getConsentData.consentData : undefined,
-      vendorData: cmpConsentObject ? cmpConsentObject.getVendorConsents : undefined,
-      gdprApplies: cmpConsentObject ? cmpConsentObject.getConsentData.gdprApplies : undefined,
-      apiVersion: 1
-    };
-  } else if (cmpVersion === 2) {
-    consentData = {
-      consentString: cmpConsentObject ? cmpConsentObject.tcString : undefined,
-      vendorData: cmpConsentObject || undefined,
-      gdprApplies: cmpConsentObject && typeof cmpConsentObject.gdprApplies === 'boolean' ? cmpConsentObject.gdprApplies : undefined,
-      apiVersion: 2
-    };
-  } else {
-    consentData = {
-      apiVersion: 0
-    };
-  }
-}
-/**
- * test if consent module is present, applies, and is valid for local storage or cookies (purpose 1)
- * @param {boolean} allowLocalStorageWithoutConsentApi
- * @param {boolean} debugBypassConsent
- * @returns {boolean}
- */
-
-
-function isLocalStorageAllowed(allowLocalStorageWithoutConsentApi, debugBypassConsent) {
-  if (allowLocalStorageWithoutConsentApi === true || debugBypassConsent === true) {
-    return true;
-  } else if (!consentData) {
-    // no cmp on page, so check if provisional access is allowed
-    return isProvisionalLocalStorageAllowed();
-  } else if (typeof consentData.gdprApplies === 'boolean' && consentData.gdprApplies) {
-    // gdpr applies
-    if (!consentData.consentString || consentData.apiVersion === 0) {
-      return false;
-    } else if (consentData.apiVersion === 1 && consentData.vendorData && consentData.vendorData.purposeConsents && consentData.vendorData.purposeConsents['1'] === false) {
-      return false;
-    } else if (consentData.apiVersion === 2 && consentData.vendorData && consentData.vendorData.purpose && consentData.vendorData.purpose.consents && consentData.vendorData.purpose.consents['1'] === false) {
-      return false;
-    } else {
-      return true;
-    }
-  } else {
-    // we have consent data and it tells us gdpr doesn't apply
-    return true;
-  }
-}
-/**
- * if there is no CMP on page, consentData will be undefined, so we will check if we had stored
- * privacy data from a previous request to determine if we are allowed to access local storage.
- * if so, we use the previous authorization as a legal basis before calling our servers to confirm.
- * if we do not have any stored privacy data, we will need to call our servers to know if we
- * are in a jurisdiction that requires consent or not before accessing local storage.
- *
- * if there is no stored privacy data or jurisdiction wasn't set, will return undefined so the
- * caller can decide what to do with in that case
- *
- * @return boolean|undefined
- */
-
-function isProvisionalLocalStorageAllowed() {
-  if (!__WEBPACK_IMPORTED_MODULE_0__utils__["isPlainObject"](storedPrivacyData)) {
-    storedPrivacyData = JSON.parse(__WEBPACK_IMPORTED_MODULE_0__utils__["getFromLocalStorage"](__WEBPACK_IMPORTED_MODULE_1_src_constants_json___default.a.STORAGE_CONFIG.PRIVACY));
-  }
-
-  if (storedPrivacyData && storedPrivacyData.id5_consent === true) {
-    return true;
-  } else if (!storedPrivacyData || typeof storedPrivacyData.jurisdiction === 'undefined') {
-    return undefined;
-  } else {
-    var jurisdictionRequiresConsent = typeof __WEBPACK_IMPORTED_MODULE_1_src_constants_json___default.a.PRIVACY.JURISDICTIONS[storedPrivacyData.jurisdiction] !== 'undefined' ? __WEBPACK_IMPORTED_MODULE_1_src_constants_json___default.a.PRIVACY.JURISDICTIONS[storedPrivacyData.jurisdiction] : false;
-    return jurisdictionRequiresConsent === false || storedPrivacyData.id5_consent === true;
-  }
-}
-function setStoredPrivacy(privacy) {
-  try {
-    if (__WEBPACK_IMPORTED_MODULE_0__utils__["isPlainObject"](privacy)) {
-      storedPrivacyData = privacy;
-      __WEBPACK_IMPORTED_MODULE_0__utils__["setInLocalStorage"](__WEBPACK_IMPORTED_MODULE_1_src_constants_json___default.a.STORAGE_CONFIG.PRIVACY, JSON.stringify(privacy));
-    } else {
-      __WEBPACK_IMPORTED_MODULE_0__utils__["logInfo"]('Cannot store privacy if it is not an object: ', privacy);
-    }
-  } catch (e) {
-    __WEBPACK_IMPORTED_MODULE_0__utils__["logError"](e);
-  }
-}
-
-/***/ }),
-/* 5 */
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
 /* unused harmony export detectReferer */
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return getRefererInfo; });
 function _extends() { _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends.apply(this, arguments); }
@@ -1688,7 +1361,7 @@ function detectReferer(win) {
 var getRefererInfo = detectReferer(window);
 
 /***/ }),
-/* 6 */
+/* 5 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -1731,7 +1404,7 @@ function isInControlGroup(userId, controlGroupRatio) {
 /* harmony default export */ __webpack_exports__["a"] = (isInControlGroup);
 
 /***/ }),
-/* 7 */
+/* 6 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -2011,6 +1684,387 @@ function makeStoredConsentDataHash(consentData) {
 
   return __WEBPACK_IMPORTED_MODULE_0__utils__["cyrb53Hash"](JSON.stringify(storedConsentData));
 }
+
+/***/ }),
+/* 7 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return ConsentManagement; });
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__utils__ = __webpack_require__(0);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1_src_constants_json__ = __webpack_require__(2);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1_src_constants_json___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_1_src_constants_json__);
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+function _defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
+
+function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _defineProperties(Constructor.prototype, protoProps); if (staticProps) _defineProperties(Constructor, staticProps); return Constructor; }
+
+function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
+
+
+
+
+var ConsentManagement = /*#__PURE__*/function () {
+  function ConsentManagement() {
+    _classCallCheck(this, ConsentManagement);
+
+    _defineProperty(this, "consentData", void 0);
+
+    _defineProperty(this, "staticConsentData", void 0);
+
+    _defineProperty(this, "storedPrivacyData", void 0);
+
+    _defineProperty(this, "cmpVersion", 0);
+
+    _defineProperty(this, "cmpCallMap", {
+      'iab': this.lookupIabConsent,
+      'static': this.lookupStaticConsentData
+    });
+  }
+
+  _createClass(ConsentManagement, [{
+    key: "lookupStaticConsentData",
+
+    /**
+     * This function reads the consent string from the config to obtain the consent information of the user.
+     * @param {function(ConsentManagement, string, function(object))} cmpSuccess acts as a success callback when the value is read from config; pass along consentObject (string) from CMP
+     * @param {function(object)} finalCallback acts as an error callback while interacting with the config string; pass along an error message (string)
+     */
+    value: function lookupStaticConsentData(cmpSuccess, finalCallback) {
+      this.cmpVersion = this.staticConsentData.getConsentData ? 1 : this.staticConsentData.getTCData ? 2 : 0; // remove extra layer in static v2 data object so it matches normal v2 CMP object for processing step
+
+      if (this.cmpVersion === 2) {
+        cmpSuccess(this, this.staticConsentData.getTCData, finalCallback);
+      } else {
+        cmpSuccess(this, this.staticConsentData, finalCallback);
+      }
+    }
+    /**
+     * @typedef {Object} CMPDetails
+     * @property {number} cmpVersion - Version of CMP Found, 0 if not found
+     * @property {function} [cmpFrame] -
+     * @property {function} [cmpFunction] -
+     *
+     * This function tries to find the CMP in page.
+     * @return {CMPDetails}
+     */
+
+  }, {
+    key: "lookupIabConsent",
+
+    /**
+     * This function handles async interacting with an IAB compliant CMP to obtain the consent information of the user.
+     * @param {function(ConsentManagement, string, function(object))} cmpSuccess acts as a success callback when CMP returns a value; pass along consentObject (string) from CMP
+     * @param {function(object)} finalCallback required;
+     */
+    value: function lookupIabConsent(cmpSuccess, finalCallback) {
+      var consentThis = this;
+
+      function v2CmpResponseCallback(tcfData, success) {
+        __WEBPACK_IMPORTED_MODULE_0__utils__["logInfo"]('Received a response from CMP', tcfData);
+
+        if (success) {
+          if (tcfData.gdprApplies === false || tcfData.eventStatus === 'tcloaded' || tcfData.eventStatus === 'useractioncomplete') {
+            cmpSuccess(consentThis, tcfData, finalCallback);
+          }
+        } else {
+          __WEBPACK_IMPORTED_MODULE_0__utils__["logError"]("CMP unable to register callback function.  Please check CMP setup.");
+          cmpSuccess(consentThis, undefined, finalCallback); // TODO cmpError('CMP unable to register callback function.  Please check CMP setup.', hookConfig);
+        }
+      }
+
+      function handleV1CmpResponseCallbacks() {
+        var cmpResponse = {};
+
+        function afterEach() {
+          if (cmpResponse.getConsentData && cmpResponse.getVendorConsents) {
+            cmpSuccess(consentThis, cmpResponse, finalCallback);
+          }
+        }
+
+        return {
+          consentDataCallback: function consentDataCallback(consentResponse) {
+            __WEBPACK_IMPORTED_MODULE_0__utils__["logInfo"]("cmpApi: consentDataCallback");
+            cmpResponse.getConsentData = consentResponse;
+            afterEach();
+          },
+          vendorConsentsCallback: function vendorConsentsCallback(consentResponse) {
+            __WEBPACK_IMPORTED_MODULE_0__utils__["logInfo"]("cmpApi: vendorConsentsCallback");
+            cmpResponse.getVendorConsents = consentResponse;
+            afterEach();
+          }
+        };
+      }
+
+      var v1CallbackHandler = handleV1CmpResponseCallbacks();
+
+      var _ConsentManagement$fi = ConsentManagement.findCMP(),
+          cmpVersion = _ConsentManagement$fi.cmpVersion,
+          cmpFrame = _ConsentManagement$fi.cmpFrame,
+          cmpFunction = _ConsentManagement$fi.cmpFunction;
+
+      this.cmpVersion = cmpVersion;
+
+      if (!cmpFrame) {
+        // TODO implement cmpError
+        // return cmpError('CMP not found.', hookConfig);
+        __WEBPACK_IMPORTED_MODULE_0__utils__["logError"]("CMP not found");
+        cmpSuccess(consentThis, undefined, finalCallback);
+        return;
+      }
+
+      if (__WEBPACK_IMPORTED_MODULE_0__utils__["isFn"](cmpFunction)) {
+        __WEBPACK_IMPORTED_MODULE_0__utils__["logInfo"]("cmpApi: calling getConsentData & getVendorConsents");
+
+        if (cmpVersion === 1) {
+          cmpFunction('getConsentData', null, v1CallbackHandler.consentDataCallback);
+          cmpFunction('getVendorConsents', null, v1CallbackHandler.vendorConsentsCallback);
+        } else if (cmpVersion === 2) {
+          cmpFunction('addEventListener', cmpVersion, v2CmpResponseCallback);
+        }
+      } else {
+        cmpSuccess(consentThis, undefined, finalCallback);
+      }
+    }
+    /**
+     * Try to fetch consent from CMP
+     * @param {boolean} debugBypassConsent
+     * @param {string} cmpApi - CMP Api to use
+     * @param {object} [providedConsentData] - static consent data provided to ID5 API
+     * @param {function(object)} finalCallback required; final callback
+     */
+
+  }, {
+    key: "requestConsent",
+    value: function requestConsent(debugBypassConsent, cmpApi, providedConsentData, finalCallback) {
+      if (debugBypassConsent) {
+        __WEBPACK_IMPORTED_MODULE_0__utils__["logError"]('ID5 is operating in forced consent mode');
+        finalCallback(this.consentData);
+      } else if (!this.cmpCallMap[cmpApi]) {
+        __WEBPACK_IMPORTED_MODULE_0__utils__["logError"]("Unknown consent API: ".concat(cmpApi));
+        this.resetConsentData();
+        finalCallback(this.consentData);
+      } else if (!this.consentData) {
+        if (cmpApi === 'static') {
+          if (__WEBPACK_IMPORTED_MODULE_0__utils__["isPlainObject"](providedConsentData)) {
+            this.staticConsentData = providedConsentData;
+          } else {
+            __WEBPACK_IMPORTED_MODULE_0__utils__["logError"]("cmpApi: 'static' did not specify consentData.");
+          }
+        }
+
+        this.cmpCallMap[cmpApi].call(this, ConsentManagement.cmpSuccess, finalCallback);
+      } else {
+        finalCallback(this.consentData);
+      }
+    }
+    /**
+     * This function checks the consent data provided by CMP to ensure it's in an expected state.
+     * @param {ConsentManagement} consentThis
+     * @param {object} consentObject required; object returned by CMP that contains user's consent choices
+     * @param {function(object)} finalCallback required; final callback receiving the consent
+     */
+
+  }, {
+    key: "resetConsentData",
+
+    /**
+     * Simply resets the module's consentData variable back to undefined, mainly for testing purposes
+     */
+    value: function resetConsentData() {
+      this.consentData = undefined;
+      this.storedPrivacyData = undefined;
+    }
+    /**
+     * Stores CMP data locally in module
+     * @param {object} cmpConsentObject required; an object representing user's consent choices (can be undefined in certain use-cases for this function only)
+     */
+
+  }, {
+    key: "storeConsentData",
+    value: function storeConsentData(cmpConsentObject) {
+      if (this.cmpVersion === 1) {
+        this.consentData = {
+          consentString: cmpConsentObject ? cmpConsentObject.getConsentData.consentData : undefined,
+          vendorData: cmpConsentObject ? cmpConsentObject.getVendorConsents : undefined,
+          gdprApplies: cmpConsentObject ? cmpConsentObject.getConsentData.gdprApplies : undefined,
+          apiVersion: 1
+        };
+      } else if (this.cmpVersion === 2) {
+        this.consentData = {
+          consentString: cmpConsentObject ? cmpConsentObject.tcString : undefined,
+          vendorData: cmpConsentObject || undefined,
+          gdprApplies: cmpConsentObject && typeof cmpConsentObject.gdprApplies === 'boolean' ? cmpConsentObject.gdprApplies : undefined,
+          apiVersion: 2
+        };
+      } else {
+        this.consentData = {
+          apiVersion: 0
+        };
+      }
+    }
+    /**
+     * test if consent module is present, applies, and is valid for local storage or cookies (purpose 1)
+     * @param {boolean} allowLocalStorageWithoutConsentApi
+     * @param {boolean} debugBypassConsent
+     * @returns {boolean}
+     */
+
+  }, {
+    key: "isLocalStorageAllowed",
+    value: function isLocalStorageAllowed(allowLocalStorageWithoutConsentApi, debugBypassConsent) {
+      if (allowLocalStorageWithoutConsentApi === true || debugBypassConsent === true) {
+        return true;
+      } else if (!this.consentData) {
+        // no cmp on page, so check if provisional access is allowed
+        return this.isProvisionalLocalStorageAllowed();
+      } else if (typeof this.consentData.gdprApplies === 'boolean' && this.consentData.gdprApplies) {
+        // gdpr applies
+        if (!this.consentData.consentString || this.consentData.apiVersion === 0) {
+          return false;
+        } else if (this.consentData.apiVersion === 1 && this.consentData.vendorData && this.consentData.vendorData.purposeConsents && this.consentData.vendorData.purposeConsents['1'] === false) {
+          return false;
+        } else if (this.consentData.apiVersion === 2 && this.consentData.vendorData && this.consentData.vendorData.purpose && this.consentData.vendorData.purpose.consents && this.consentData.vendorData.purpose.consents['1'] === false) {
+          return false;
+        } else {
+          return true;
+        }
+      } else {
+        // we have consent data and it tells us gdpr doesn't apply
+        return true;
+      }
+    }
+    /**
+     * if there is no CMP on page, consentData will be undefined, so we will check if we had stored
+     * privacy data from a previous request to determine if we are allowed to access local storage.
+     * if so, we use the previous authorization as a legal basis before calling our servers to confirm.
+     * if we do not have any stored privacy data, we will need to call our servers to know if we
+     * are in a jurisdiction that requires consent or not before accessing local storage.
+     *
+     * if there is no stored privacy data or jurisdiction wasn't set, will return undefined so the
+     * caller can decide what to do with in that case
+     *
+     * @return boolean|undefined
+     */
+
+  }, {
+    key: "isProvisionalLocalStorageAllowed",
+    value: function isProvisionalLocalStorageAllowed() {
+      if (!__WEBPACK_IMPORTED_MODULE_0__utils__["isPlainObject"](this.storedPrivacyData)) {
+        this.storedPrivacyData = JSON.parse(__WEBPACK_IMPORTED_MODULE_0__utils__["getFromLocalStorage"](__WEBPACK_IMPORTED_MODULE_1_src_constants_json___default.a.STORAGE_CONFIG.PRIVACY));
+      }
+
+      if (this.storedPrivacyData && this.storedPrivacyData.id5_consent === true) {
+        return true;
+      } else if (!this.storedPrivacyData || typeof this.storedPrivacyData.jurisdiction === 'undefined') {
+        return undefined;
+      } else {
+        var jurisdictionRequiresConsent = typeof __WEBPACK_IMPORTED_MODULE_1_src_constants_json___default.a.PRIVACY.JURISDICTIONS[this.storedPrivacyData.jurisdiction] !== 'undefined' ? __WEBPACK_IMPORTED_MODULE_1_src_constants_json___default.a.PRIVACY.JURISDICTIONS[this.storedPrivacyData.jurisdiction] : false;
+        return jurisdictionRequiresConsent === false || this.storedPrivacyData.id5_consent === true;
+      }
+    }
+  }, {
+    key: "setStoredPrivacy",
+    value: function setStoredPrivacy(privacy) {
+      try {
+        if (__WEBPACK_IMPORTED_MODULE_0__utils__["isPlainObject"](privacy)) {
+          this.storedPrivacyData = privacy;
+          __WEBPACK_IMPORTED_MODULE_0__utils__["setInLocalStorage"](__WEBPACK_IMPORTED_MODULE_1_src_constants_json___default.a.STORAGE_CONFIG.PRIVACY, JSON.stringify(privacy));
+        } else {
+          __WEBPACK_IMPORTED_MODULE_0__utils__["logInfo"]('Cannot store privacy if it is not an object: ', privacy);
+        }
+      } catch (e) {
+        __WEBPACK_IMPORTED_MODULE_0__utils__["logError"](e);
+      }
+    }
+  }], [{
+    key: "findCMP",
+    value: function findCMP() {
+      var cmpVersion = 0;
+      var f = window;
+      var cmpFrame;
+      var cmpFunction;
+
+      while (!cmpFrame) {
+        try {
+          if (typeof f.__tcfapi === 'function' || typeof f.__cmp === 'function') {
+            if (typeof f.__tcfapi === 'function') {
+              cmpVersion = 2;
+              cmpFunction = f.__tcfapi;
+            } else {
+              cmpVersion = 1;
+              cmpFunction = f.__cmp;
+            }
+
+            cmpFrame = f;
+            break;
+          }
+        } catch (e) {} // need separate try/catch blocks due to the exception errors thrown when trying to check for a frame that doesn't exist in 3rd party env
+
+
+        try {
+          if (f.frames['__tcfapiLocator']) {
+            cmpVersion = 2;
+            cmpFrame = f;
+            break;
+          }
+        } catch (e) {}
+
+        try {
+          if (f.frames['__cmpLocator']) {
+            cmpVersion = 1;
+            cmpFrame = f;
+            break;
+          }
+        } catch (e) {}
+
+        if (f === window.top) break;
+        f = f.parent;
+      }
+
+      return {
+        cmpVersion: cmpVersion,
+        cmpFrame: cmpFrame,
+        cmpFunction: cmpFunction
+      };
+    }
+  }, {
+    key: "cmpSuccess",
+    value: function cmpSuccess(consentThis, consentObject, finalCallback) {
+      function checkV1Data(consentObject) {
+        var gdprApplies = consentObject && consentObject.getConsentData && consentObject.getConsentData.gdprApplies;
+        return !!(typeof gdprApplies !== 'boolean' || gdprApplies === true && !(__WEBPACK_IMPORTED_MODULE_0__utils__["isStr"](consentObject.getConsentData.consentData) && __WEBPACK_IMPORTED_MODULE_0__utils__["isPlainObject"](consentObject.getVendorConsents) && Object.keys(consentObject.getVendorConsents).length > 1));
+      }
+
+      function checkV2Data() {
+        var gdprApplies = consentObject && typeof consentObject.gdprApplies === 'boolean' ? consentObject.gdprApplies : undefined;
+        var tcString = consentObject && consentObject.tcString;
+        return !!(typeof gdprApplies !== 'boolean' || gdprApplies === true && !__WEBPACK_IMPORTED_MODULE_0__utils__["isStr"](tcString));
+      } // determine which set of checks to run based on cmpVersion
+
+
+      var checkFn = consentThis.cmpVersion === 1 ? checkV1Data : consentThis.cmpVersion === 2 ? checkV2Data : null;
+      __WEBPACK_IMPORTED_MODULE_0__utils__["logInfo"]('CMP Success callback for version', consentThis.cmpVersion, checkFn);
+
+      if (__WEBPACK_IMPORTED_MODULE_0__utils__["isFn"](checkFn)) {
+        if (checkFn(consentObject)) {
+          consentThis.resetConsentData();
+          __WEBPACK_IMPORTED_MODULE_0__utils__["logError"]("CMP returned unexpected value during lookup process.", consentObject);
+        } else {
+          consentThis.storeConsentData(consentObject);
+        }
+      } else {// TODO: Log unhandled CMP version
+      }
+
+      finalCallback(consentThis.consentData);
+    }
+  }]);
+
+  return ConsentManagement;
+}();
+
+
 
 /***/ })
 /******/ ]);

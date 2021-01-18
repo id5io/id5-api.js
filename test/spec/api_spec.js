@@ -1,7 +1,6 @@
 import sinon from 'sinon';
 import CONSTANTS from 'src/constants.json';
 import * as utils from 'src/utils';
-import { resetConsentData } from 'src/consentManagement';
 import * as clientStore from 'src/clientStore';
 
 require('src/id5-api.js');
@@ -105,7 +104,6 @@ describe('ID5 JS API', function () {
     ID5.userId = undefined;
     ID5.linkType = undefined;
     ID5.fromCache = undefined;
-    resetConsentData();
   }
 
   describe('Core API Availability', function () {
@@ -413,7 +411,6 @@ describe('ID5 JS API', function () {
             afterEach(function () {
               cmpStub.restore();
               delete window.__cmp;
-              resetConsentData();
             });
 
             it('should call id5 servers if empty stored consent data', function () {
@@ -470,7 +467,6 @@ describe('ID5 JS API', function () {
             afterEach(function () {
               cmpStub.restore();
               delete window.__tcfapi;
-              resetConsentData();
             });
 
             it('should call id5 servers if empty stored consent data', function () {
@@ -871,7 +867,6 @@ describe('ID5 JS API', function () {
             afterEach(function () {
               cmpStub.restore();
               delete window.__cmp;
-              resetConsentData();
             });
 
             it('should call id5 servers if empty stored consent data', function () {
@@ -928,7 +923,6 @@ describe('ID5 JS API', function () {
             afterEach(function () {
               cmpStub.restore();
               delete window.__tcfapi;
-              resetConsentData();
             });
 
             it('should call id5 servers if empty stored consent data', function () {
@@ -1233,7 +1227,6 @@ describe('ID5 JS API', function () {
           cmpStub.restore();
           delete window.__tcfapi;
           utils.removeFromLocalStorage(TEST_CONSENT_DATA_STORAGE_CONFIG);
-          resetConsentData();
         });
 
         it('should not call ID5 with no consent changes', function () {
