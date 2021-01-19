@@ -2132,7 +2132,7 @@ describe('ID5 JS API', function () {
 
         sinon.assert.calledOnce(ajaxStub);
         sinon.assert.calledOnce(syncStub);
-        expect(ajaxStub.args[0][3].puid).to.be.equal('abc123');
+        expect(JSON.parse(ajaxStub.args[0][2]).puid).to.be.equal('abc123');
         expect(syncStub.args[0][0]).to.contain(ID5_SYNC_ENDPOINT);
         expect(syncStub.args[0][0]).to.contain('puid=abc123');
       });
@@ -2182,7 +2182,7 @@ describe('ID5 JS API', function () {
         ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true, partnerUserId: 'abc123' });
 
         sinon.assert.calledOnce(ajaxStub);
-        expect(ajaxStub.args[0][3].puid).to.be.equal('abc123');
+        expect(JSON.parse(ajaxStub.args[0][2]).puid).to.be.equal('abc123');
         setTimeout(() => {
           sinon.assert.calledOnce(syncStub);
           expect(syncStub.args[0][0]).to.contain(ID5_SYNC_ENDPOINT);
