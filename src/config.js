@@ -5,7 +5,7 @@
 const utils = require('./utils');
 
 /**
- * @typedef {Object} Id5Config
+ * @typedef {Object} Id5Options
  * @property {number} [partnerId] - ID5 Publisher ID, mandatory
  * @property {boolean|false} [debug] - enable verbose debug mode (defaulting to id5_debug query string param if present, or false)
  * @property {boolean|false} [debugBypassConsent] - Bypass consent API et local storage consent for testing purpose only
@@ -40,10 +40,10 @@ const utils = require('./utils');
  */
 
 export class Config {
-  /** @type {Id5Config} */
-  config;
+  /** @type {Id5Options} */
+  options;
 
-  /** @type {Id5Config} */
+  /** @type {Id5Options} */
   providedConfig;
 
   static configTypes = {
@@ -64,10 +64,10 @@ export class Config {
 
   /**
    * Create configuration instance from an object containing key-value pairs
-   * @param {Id5Config} options
+   * @param {Id5Options} options
    */
   constructor(options) {
-    this.config = {
+    this.options = {
       debug: utils.getParameterByName('id5_debug').toUpperCase() === 'TRUE',
       debugBypassConsent: false,
       allowLocalStorageWithoutConsentApi: false,
@@ -92,37 +92,37 @@ export class Config {
       }
     };
     this.providedConfig = {};
-    this.updConfig(options);
+    this.updOptions(options);
   }
 
   /**
    * Return current configuration
-   * @returns {Id5Config} options
+   * @returns {Id5Options} options
    */
-  getConfig() {
-    return this.config;
+  getOptions() {
+    return this.options;
   }
 
   /**
    * Return configuration set by user
-   * @returns {Id5Config} options
+   * @returns {Id5Options} options
    */
-  getProvidedConfig() {
+  getProvidedOptions() {
     return this.providedConfig;
   }
 
   /**
    * Override the configuration with an object containing key-value pairs
-   * @param {Id5Config} options
+   * @param {Id5Options} options
    */
-  updConfig(options) {
+  updOptions(options) {
     if (typeof options !== 'object') {
       utils.logError('Config options must be an object');
     }
 
     Object.keys(options).forEach(topic => {
       if (utils.isA(options[topic], Config.configTypes[topic])) {
-        this.config[topic] = options[topic];
+        this.options[topic] = options[topic];
         this.providedConfig[topic] = options[topic];
       } else {
         utils.logError(`setConfig options ${topic} must be of type ${Config.configTypes[topic]} but was ${toString.call(options[topic])}`);

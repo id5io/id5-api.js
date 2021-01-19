@@ -22,7 +22,7 @@ export const ID5 = window.ID5;
 
 /**
  * This function will initialize ID5, wait for consent then try to fetch or refresh ID5 user id if required
- * @param {Id5Config} options
+ * @param {Id5Options} options
  * @alias module:ID5.init
  */
 
@@ -35,16 +35,16 @@ ID5.init = function (options) {
     utils.logInfo('Invoking ID5.init', arguments);
     ID5.initialized = true;
     ID5.config = new Config(options);
-    ID5.debug = /* ID5.debug || */ ID5.config.getConfig().debug;
+    ID5.debug = /* ID5.debug || */ ID5.config.getOptions().debug;
     ID5.consent = new ConsentManagement();
-    this.getId(ID5.config.getConfig(), false);
+    this.getId(ID5.config.getOptions(), false);
   } catch (e) {
     utils.logError('Exception caught from ID5.init', e);
   }
 };
 
 ID5.updateLocalStorageAllowed = function() {
-  const cfg = ID5.config.getConfig();
+  const cfg = ID5.config.getOptions();
   ID5.localStorageAllowed = ID5.consent.isLocalStorageAllowed(cfg.allowLocalStorageWithoutConsentApi, cfg.debugBypassConsent)
 }
 
@@ -52,7 +52,7 @@ ID5.exposeId = function() {
   if (ID5.initialized !== true) {
     throw new Error('ID5.exposeId() cannot be called before ID5.init()!');
   }
-  const cfg = ID5.config.getConfig();
+  const cfg = ID5.config.getOptions();
   if (cfg.abTesting.enabled === true) {
     return !isInControlGroup(ID5.userId, cfg.abTesting.controlGroupPct);
   } else {
@@ -71,12 +71,12 @@ ID5.refreshId = function (forceFetch = false, options = {}) {
 
   try {
     utils.logInfo('Invoking ID5.refreshId', arguments);
-    ID5.config.updConfig(options);
+    ID5.config.updOptions(options);
 
     // consent may have changed, so we need to check it again
     ID5.consent.resetConsentData();
 
-    this.getId(ID5.config.getConfig(), forceFetch);
+    this.getId(ID5.config.getOptions(), forceFetch);
   } catch (e) {
     utils.logError('Exception caught from ID5.refreshId', e);
   }
@@ -84,7 +84,7 @@ ID5.refreshId = function (forceFetch = false, options = {}) {
 
 /**
  * This function get the user ID for the given config
- * @param {Id5Config} cfg
+ * @param {Id5Options} cfg
  * @param {boolean} forceFetch - Force a call to server
  */
 
@@ -275,7 +275,7 @@ ID5.getId = function(cfg, forceFetch = false) {
 
 /**
  * This function fire the callback of the provided config
- * @param {Id5Config} options
+ * @param {Id5Options} options
  */
 ID5.fireCallBack = function (options) {
   if (!this.callbackFired && utils.isFn(options.callback)) {
