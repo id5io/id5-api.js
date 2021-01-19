@@ -195,6 +195,7 @@ ID5.getId = function(cfg, forceFetch = false) {
           'top': referer.reachedTop ? 1 : 0,
           's': signature,
           'pd': cfg.pd,
+          'puid': cfg.partnerUserId,
           'nbPage': nb,
           'id5cdn': (document.currentScript && document.currentScript.src && document.currentScript.src.indexOf('https://cdn.id5-sync.com') === 0)
         };

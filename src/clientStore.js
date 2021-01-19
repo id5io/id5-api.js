@@ -109,7 +109,7 @@ function getHashedPd(partnerId) {
  * @param {string} pd
  */
 export function storedPdMatchesPd(partnerId, pd) {
-  return storedDataMatchesCurrentData(getHashedPd(partnerId), makeStoredPdHash(pd));
+  return storedDataMatchesCurrentData(getHashedPd(partnerId), makeStoredHash(pd));
 }
 
 /**
@@ -126,7 +126,7 @@ export function clearHashedPd(partnerId) {
  * @param {string} [pd]
  */
 export function putHashedPd(partnerId, pd) {
-  put(pdCacheConfig(partnerId), makeStoredPdHash(pd));
+  put(pdCacheConfig(partnerId), makeStoredHash(pd));
 }
 
 /**
@@ -142,12 +142,12 @@ function pdCacheConfig(partnerId) {
 }
 
 /**
- * creates a hash of pd for storage
- * @param {string} pd
+ * creates a hash of a user identifier for storage
+ * @param {string} userId
  * @returns {string}
  */
-function makeStoredPdHash(pd) {
-  return utils.cyrb53Hash(typeof pd === 'string' ? pd : '');
+function makeStoredHash(userId) {
+  return utils.cyrb53Hash(typeof userId === 'string' ? userId : '');
 }
 
 export function getDateTime() {

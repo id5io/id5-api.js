@@ -14,7 +14,6 @@ const utils = require('./utils');
  * @property {number} [refreshInSeconds] - Refresh period of first-party cookie (defaulting to 7200s)
  * => Keep the lowest until now, platform should not set
  * @property {string} [partnerUserId] - User ID for the platform deploying the API, to be stored by ID5 for further cookie matching if provided
- * => per partner /!\ do sync even if no fetch
  * @property {string} [cmpApi] - API to use CMP. As of today, either 'iab' or 'static'
  * => use cached consentData, supposed to be one per page
  * @property {object} [consentData] - Consent data if cmpApi is 'static'
