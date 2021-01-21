@@ -1,3 +1,4 @@
+import ID5 from './id5-api';
 
 const tArr = 'Array';
 const tStr = 'String';
@@ -81,7 +82,7 @@ function decorateLog(args, prefix) {
 }
 
 function debugTurnedOn() {
-  return ID5.debug === true;
+  return ID5 && ID5.debug === true;
 }
 
 /*

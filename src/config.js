@@ -17,20 +17,15 @@ const utils = require('./utils');
  * @property {string} [cmpApi] - API to use CMP. As of today, either 'iab' or 'static'
  * => use cached consentData, supposed to be one per page
  * @property {object} [consentData] - Consent data if cmpApi is 'static'
- * @property {function} [callback] - Function to call back when User ID is available. if callbackTimeoutInMs is not provided, will be fired only if a User ID is available.
- * => Documentation => use the provided parameter and not ID5.xxxxx
- * => setting for multiple callback ?
- * @property {number} [callbackTimeoutInMs] - Delay in ms after which the callback is guaranteed to be fired. A User ID may not yet be available at this time.
+ * @property {function} [callbackOnAvailable] - Function to call back when User ID is available. if callbackTimeoutInMs is not provided, will be fired only if a User ID is available.
+ * @property {function} [callbackOnUpdates] - Function to call back on further updates of User ID by changes in the page (consent, pd, refresh). Cannot be provided if `callbackOnAvailable` is not provided
+ * @property {number} [callbackTimeoutInMs] - Delay in ms after which the callbackOnAvailable is guaranteed to be fired. A User ID may not yet be available at this time.
  * @property {string} [pd] - Publisher data that can be passed to help with cross-domain reconciliation of the ID5 ID, more details here: https://wiki.id5.io/x/BIAZ
  * @property {array} [tpids] - An array of third party IDs that can be passed to usersync with ID5. Contact your ID5 representative to enable this
  * @property {AbTestConfig} [abTesting] - An object defining if and how A/B testing should be enabled
  * => per partner
  *
  * => multiple instance with same partner and different PD ?
- * => multiple callback
- *
- * myID5 = ID5.init(*config);
- * myID5.refresh(consent, pd, callback, callbackTimeoutInMs);
  */
 
 /**
@@ -44,7 +39,7 @@ export class Config {
   options;
 
   /** @type {Id5Options} */
-  providedConfig;
+  providedOptions;
 
   static configTypes = {
     debug: 'Boolean',
@@ -55,7 +50,8 @@ export class Config {
     refreshInSeconds: 'Number',
     partnerId: 'Number',
     partnerUserId: 'String',
-    callback: 'Function',
+    callbackOnAvailable: 'Function',
+    callbackOnUpdates: 'Function',
     callbackTimeoutInMs: 'Number',
     pd: 'String',
     tpids: 'Array',
@@ -82,7 +78,8 @@ export class Config {
       refreshInSeconds: 7200,
       partnerId: undefined,
       partnerUserId: undefined,
-      callback: undefined,
+      callbackOnAvailable: undefined,
+      callbackOnUpdates: undefined,
       callbackTimeoutInMs: undefined,
       pd: '',
       tpids: undefined,
@@ -91,7 +88,12 @@ export class Config {
         controlGroupPct: 0
       }
     };
-    this.providedConfig = {};
+    this.providedOptions = {};
+
+    if (!options.partnerId || typeof options.partnerId !== 'number') {
+      throw new Error('partnerId is required and must be a number');
+    }
+
     this.updOptions(options);
   }
 
@@ -108,7 +110,7 @@ export class Config {
    * @returns {Id5Options} options
    */
   getProvidedOptions() {
-    return this.providedConfig;
+    return this.providedOptions;
   }
 
   /**
@@ -120,10 +122,16 @@ export class Config {
       utils.logError('Config options must be an object');
     }
 
+    if (typeof this.options.partnerId === 'number' &&
+      typeof options.partnerId === 'number' &&
+      options.partnerId !== this.options.partnerId) {
+      throw new Error('Cannot update config with a different partentId');
+    }
+
     Object.keys(options).forEach(topic => {
       if (utils.isA(options[topic], Config.configTypes[topic])) {
         this.options[topic] = options[topic];
-        this.providedConfig[topic] = options[topic];
+        this.providedOptions[topic] = options[topic];
       } else {
         utils.logError(`setConfig options ${topic} must be of type ${Config.configTypes[topic]} but was ${toString.call(options[topic])}`);
       }

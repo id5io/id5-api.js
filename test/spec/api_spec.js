@@ -2,6 +2,7 @@ import sinon from 'sinon';
 import CONSTANTS from 'src/constants.json';
 import * as utils from 'src/utils';
 import * as clientStore from 'src/clientStore';
+import * as abTesting from '../../src/abTesting';
 
 require('src/id5-api.js');
 
@@ -57,7 +58,8 @@ describe('ID5 JS API', function () {
     'id5_consent': false
   });
 
-  const TEST_CONTROL_GROUP_VALUE = 0;
+  const TEST_CONTROL_GROUP_USERID = '0';
+  const TEST_CONTROL_GROUP_LINKTYPE = 0;
   const TEST_STORED_ID5ID = 'teststoredid5id';
   const TEST_STORED_SIGNATURE = 'abcdef';
   const TEST_STORED_LINK_TYPE = 0;
@@ -94,6 +96,12 @@ describe('ID5 JS API', function () {
     'privacy': JSON.parse(TEST_PRIVACY_DISALLOWED)
   });
 
+  beforeEach(function () {
+    ID5.debug = false;
+    ID5.debugBypassConsent = false;
+    ID5.allowLocalStorageWithoutConsentApi = false;
+  });
+
   function resetAll() {
     utils.removeFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG);
     utils.removeFromLocalStorage(TEST_LAST_STORAGE_CONFIG);
@@ -101,9 +109,6 @@ describe('ID5 JS API', function () {
     utils.removeFromLocalStorage(TEST_PD_STORAGE_CONFIG);
     utils.removeFromLocalStorage(TEST_CONSENT_DATA_STORAGE_CONFIG);
     utils.removeFromLocalStorage(TEST_NB_STORAGE_CONFIG);
-    ID5.userId = undefined;
-    ID5.linkType = undefined;
-    ID5.fromCache = undefined;
   }
 
   describe('Core API Availability', function () {
@@ -113,27 +118,22 @@ describe('ID5 JS API', function () {
     it('should have function ID5.init', function () {
       expect(ID5.init).to.be.a('function');
     });
+    it('should have function ID5.refreshId', function () {
+      expect(ID5.refreshId).to.be.a('function');
+    });
     it('should be loaded', function () {
       expect(ID5.loaded).to.be.a('boolean');
       expect(ID5.loaded).to.be.true;
-      expect(ID5.initialized).to.be.a('boolean');
-      expect(ID5.initialized).to.be.false;
-      expect(ID5.callbackFired).to.be.a('boolean');
-      expect(ID5.callbackFired).to.be.false;
     });
     it('should be initialized', function () {
-      ID5.init({ partnerId: TEST_ID5_PARTNER_ID });
-      expect(ID5.initialized).to.be.true;
+      const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID });
+      expect(id5Status).to.exist;
     });
   });
 
   describe('Configuration and Parameters', function () {
     let ajaxStub;
 
-    before(function () {
-      ID5.userId = undefined;
-      ID5.linkType = undefined;
-    });
     beforeEach(function () {
       ajaxStub = sinon.stub(utils, 'ajax').callsFake(function(url, callbacks, data, options) {
         callbacks.success(JSON_RESPONSE_ID5_CONSENT);
@@ -141,43 +141,31 @@ describe('ID5 JS API', function () {
     });
     afterEach(function () {
       ajaxStub.restore();
-      ID5.userId = undefined;
-      ID5.linkType = undefined;
     });
 
     describe('Required Parameters', function () {
       it('should fail if partnerId not set in config', function () {
+        let id5Status;
         try {
-          ID5.init({ debugBypassConsent: true });
+          id5Status = ID5.init({ debugBypassConsent: true });
         } catch (e) { }
 
         sinon.assert.notCalled(ajaxStub);
-        expect(ID5.userId).to.be.undefined;
-        expect(ID5.linkType).to.be.undefined;
+        expect(id5Status).to.be.undefined;
       });
 
       it('should fail if ID5.version is not set', function () {
         let version;
+        let id5Status;
         try {
           version = ID5.version;
           ID5.version = undefined;
 
-          ID5.init({ partnerId: TEST_ID5_PARTNER_ID });
+          id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID });
         } catch (e) { }
 
         sinon.assert.notCalled(ajaxStub);
-        expect(ID5.userId).to.be.undefined;
-        expect(ID5.linkType).to.be.undefined;
-        ID5.version = version;
-      });
-
-      it('should throw exception if ID5.version is not set', function () {
-        let version;
-        version = ID5.version;
-        ID5.version = undefined;
-
-        expect(function () { ID5.init({ partnerId: TEST_ID5_PARTNER_ID }) }).throw();
-
+        expect(id5Status).to.be.undefined;
         ID5.version = version;
       });
     });
@@ -207,13 +195,13 @@ describe('ID5 JS API', function () {
       });
 
       it('should call server and handle response without privacy data', function () {
-        ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true, allowLocalStorageWithoutConsentApi: true });
+        const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true, allowLocalStorageWithoutConsentApi: true });
 
         sinon.assert.calledOnce(ajaxStub);
         expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
-        expect(ID5.userId).to.be.equal(TEST_RESPONSE_ID5ID);
-        expect(ID5.linkType).to.be.equal(TEST_RESPONSE_LINK_TYPE);
-        expect(ID5.fromCache).to.be.false;
+        expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
+        expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
+        expect(id5Status.isFromCache()).to.be.false;
         expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(response);
         expect(utils.getFromLocalStorage(TEST_PRIVACY_STORAGE_CONFIG)).to.be.null;
       });
@@ -233,7 +221,7 @@ describe('ID5 JS API', function () {
 
       describe('No Stored Value', function () {
         it('should request new value with default parameters with consent override', function () {
-          ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true });
+          const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true });
 
           sinon.assert.calledOnce(ajaxStub);
           expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
@@ -251,9 +239,9 @@ describe('ID5 JS API', function () {
           expect(requestData.gdpr).to.exist;
           expect(requestData.gdpr_consent).to.exist;
 
-          expect(ID5.userId).to.be.equal(TEST_RESPONSE_ID5ID);
-          expect(ID5.linkType).to.be.equal(TEST_RESPONSE_LINK_TYPE);
-          expect(ID5.fromCache).to.be.false;
+          expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
+          expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
+          expect(id5Status.isFromCache()).to.be.false;
           expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(JSON_RESPONSE_ID5_CONSENT);
           expect(utils.getFromLocalStorage(TEST_PRIVACY_STORAGE_CONFIG)).to.be.eq(TEST_PRIVACY_ALLOWED);
           expect(utils.getFromLocalStorage(TEST_PD_STORAGE_CONFIG)).to.be.equal(utils.cyrb53Hash(''));
@@ -278,23 +266,23 @@ describe('ID5 JS API', function () {
         });
 
         it('should use stored value with consent override', function () {
-          ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true, refreshInSeconds: 1000 });
+          const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true, refreshInSeconds: 1000 });
 
           sinon.assert.notCalled(ajaxStub);
-          expect(ID5.userId).to.be.equal(TEST_STORED_ID5ID);
-          expect(ID5.linkType).to.be.equal(TEST_STORED_LINK_TYPE);
-          expect(ID5.fromCache).to.be.true;
+          expect(id5Status.getUserId()).to.be.equal(TEST_STORED_ID5ID);
+          expect(id5Status.getLinkType()).to.be.equal(TEST_STORED_LINK_TYPE);
+          expect(id5Status.isFromCache()).to.be.true;
         });
 
         it('should use stored value with consent from privacy storage', function () {
           utils.setInLocalStorage(TEST_PRIVACY_STORAGE_CONFIG, TEST_PRIVACY_ALLOWED);
 
-          ID5.init({ partnerId: TEST_ID5_PARTNER_ID, refreshInSeconds: 1000 });
+          const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID, refreshInSeconds: 1000 });
 
           sinon.assert.notCalled(ajaxStub);
-          expect(ID5.userId).to.be.equal(TEST_STORED_ID5ID);
-          expect(ID5.linkType).to.be.equal(TEST_STORED_LINK_TYPE);
-          expect(ID5.fromCache).to.be.true;
+          expect(id5Status.getUserId()).to.be.equal(TEST_STORED_ID5ID);
+          expect(id5Status.getLinkType()).to.be.equal(TEST_STORED_LINK_TYPE);
+          expect(id5Status.isFromCache()).to.be.true;
         });
       });
 
@@ -305,23 +293,23 @@ describe('ID5 JS API', function () {
         });
 
         it('should request new value with consent override', function () {
-          ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true, refreshInSeconds: 10 });
+          const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true, refreshInSeconds: 10 });
 
           sinon.assert.calledOnce(ajaxStub);
           expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
-          expect(ID5.userId).to.be.equal(TEST_RESPONSE_ID5ID);
-          expect(ID5.linkType).to.be.equal(TEST_RESPONSE_LINK_TYPE);
+          expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
+          expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
         });
 
         it('should request new value with consent from privacy storage', function () {
           utils.setInLocalStorage(TEST_PRIVACY_STORAGE_CONFIG, TEST_PRIVACY_ALLOWED);
 
-          ID5.init({ partnerId: TEST_ID5_PARTNER_ID, refreshInSeconds: 1000 });
+          const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID, refreshInSeconds: 1000 });
 
           sinon.assert.calledOnce(ajaxStub);
           expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
-          expect(ID5.userId).to.be.equal(TEST_RESPONSE_ID5ID);
-          expect(ID5.linkType).to.be.equal(TEST_RESPONSE_LINK_TYPE);
+          expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
+          expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
         });
       });
 
@@ -331,23 +319,23 @@ describe('ID5 JS API', function () {
         });
 
         it('should request new value with consent override', function () {
-          ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true, refreshInSeconds: 10 });
+          const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true, refreshInSeconds: 10 });
 
           sinon.assert.calledOnce(ajaxStub);
           expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
-          expect(ID5.userId).to.be.equal(TEST_RESPONSE_ID5ID);
-          expect(ID5.linkType).to.be.equal(TEST_RESPONSE_LINK_TYPE);
+          expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
+          expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
         });
 
         it('should request new value with consent from privacy storage', function () {
           utils.setInLocalStorage(TEST_PRIVACY_STORAGE_CONFIG, TEST_PRIVACY_ALLOWED);
 
-          ID5.init({ partnerId: TEST_ID5_PARTNER_ID, refreshInSeconds: 1000 });
+          const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID, refreshInSeconds: 1000 });
 
           sinon.assert.calledOnce(ajaxStub);
           expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
-          expect(ID5.userId).to.be.equal(TEST_RESPONSE_ID5ID);
-          expect(ID5.linkType).to.be.equal(TEST_RESPONSE_LINK_TYPE);
+          expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
+          expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
         });
       });
 
@@ -358,23 +346,23 @@ describe('ID5 JS API', function () {
         });
 
         it('should request new value with consent override', function () {
-          ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true, refreshInSeconds: 10 });
+          const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true, refreshInSeconds: 10 });
 
           sinon.assert.calledOnce(ajaxStub);
           expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
-          expect(ID5.userId).to.be.equal(TEST_RESPONSE_ID5ID);
-          expect(ID5.linkType).to.be.equal(TEST_RESPONSE_LINK_TYPE);
+          expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
+          expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
         });
 
         it('should request new value and not use stored value with consent from privacy storage', function () {
           utils.setInLocalStorage(TEST_PRIVACY_STORAGE_CONFIG, TEST_PRIVACY_ALLOWED);
 
-          ID5.init({ partnerId: TEST_ID5_PARTNER_ID, refreshInSeconds: 1000 });
+          const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID, refreshInSeconds: 1000 });
 
           sinon.assert.calledOnce(ajaxStub);
           expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
-          expect(ID5.userId).to.be.equal(TEST_RESPONSE_ID5ID);
-          expect(ID5.linkType).to.be.equal(TEST_RESPONSE_LINK_TYPE);
+          expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
+          expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
         });
       });
 
@@ -578,7 +566,7 @@ describe('ID5 JS API', function () {
         it('should call id5 servers without existing legacy value in 1puid params via Ajax', function () {
           utils.setCookie('id5id.1st', JSON.stringify({'ID5ID': 'legacyid5id'}), expStrFuture);
 
-          ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true });
+          const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true });
 
           sinon.assert.calledOnce(ajaxStub);
 
@@ -586,8 +574,8 @@ describe('ID5 JS API', function () {
           expect(requestData.s).to.be.equal('');
           expect(requestData['1puid']).to.be.undefined;
 
-          expect(ID5.userId).to.be.equal(TEST_RESPONSE_ID5ID);
-          expect(ID5.linkType).to.be.equal(TEST_RESPONSE_LINK_TYPE);
+          expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
+          expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
           expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(JSON_RESPONSE_ID5_CONSENT);
 
           utils.setCookie('id5id.1st', '', expStrExpired);
@@ -596,14 +584,14 @@ describe('ID5 JS API', function () {
         it('should call id5 servers with existing signature value from legacy cookie id5.1st storage if local storage is empty', function () {
           utils.setCookie('id5.1st', JSON.stringify({'universal_uid': 'legacycookieuid', 'signature': 'legacycookiesignature'}), expStrFuture);
 
-          ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true });
+          const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true });
 
           sinon.assert.calledOnce(ajaxStub);
           const requestData = JSON.parse(ajaxStub.firstCall.args[2]);
           expect(requestData.s).to.be.equal('legacycookiesignature');
 
-          expect(ID5.userId).to.be.equal(TEST_RESPONSE_ID5ID);
-          expect(ID5.linkType).to.be.equal(TEST_RESPONSE_LINK_TYPE);
+          expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
+          expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
 
           utils.setCookie('id5id.1st', '', expStrExpired);
         });
@@ -611,14 +599,14 @@ describe('ID5 JS API', function () {
         it('should call id5 servers with existing signature value from legacy cookie id5id.1st storage if local storage is empty', function () {
           utils.setCookie('id5id.1st', JSON.stringify({'universal_uid': 'legacycookieuid', 'signature': 'legacycookiesignature'}), expStrFuture);
 
-          ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true });
+          const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true });
 
           sinon.assert.calledOnce(ajaxStub);
           const requestData = JSON.parse(ajaxStub.firstCall.args[2]);
           expect(requestData.s).to.be.equal('legacycookiesignature');
 
-          expect(ID5.userId).to.be.equal(TEST_RESPONSE_ID5ID);
-          expect(ID5.linkType).to.be.equal(TEST_RESPONSE_LINK_TYPE);
+          expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
+          expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
 
           utils.setCookie('id5id.1st', '', expStrExpired);
         });
@@ -627,14 +615,14 @@ describe('ID5 JS API', function () {
           utils.setCookie('id5.1st', JSON.stringify({'universal_uid': 'legacycookieuid-id5.1st', 'signature': 'legacycookiessignature-id5.1st'}), expStrFuture);
           utils.setCookie('id5id.1st', JSON.stringify({'universal_uid': 'legacycookieuid-id5id.1st', 'signature': 'legacycookiesignature-id5id.1st'}), expStrFuture);
 
-          ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true });
+          const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true });
 
           sinon.assert.calledOnce(ajaxStub);
           const requestData = JSON.parse(ajaxStub.firstCall.args[2]);
           expect(requestData.s).to.be.equal('legacycookiesignature-id5id.1st');
 
-          expect(ID5.userId).to.be.equal(TEST_RESPONSE_ID5ID);
-          expect(ID5.linkType).to.be.equal(TEST_RESPONSE_LINK_TYPE);
+          expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
+          expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
 
           utils.setCookie('id5.1st', '', expStrExpired);
           utils.setCookie('id5id.1st', '', expStrExpired);
@@ -743,7 +731,7 @@ describe('ID5 JS API', function () {
 
       describe('No Stored Value', function () {
         it('should request new value with default parameters', function () {
-          ID5.init({ partnerId: TEST_ID5_PARTNER_ID });
+          const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID });
 
           sinon.assert.calledOnce(ajaxStub);
           expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
@@ -761,23 +749,23 @@ describe('ID5 JS API', function () {
           expect(requestData.gdpr).to.exist;
           expect(requestData.gdpr_consent).to.exist;
 
-          expect(ID5.userId).to.be.equal(TEST_RESPONSE_ID5ID);
-          expect(ID5.linkType).to.be.equal(TEST_RESPONSE_LINK_TYPE);
-          expect(ID5.fromCache).to.be.false;
+          expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
+          expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
+          expect(id5Status.isFromCache()).to.be.false;
           expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(JSON_RESPONSE_ID5_CONSENT);
           expect(utils.getFromLocalStorage(TEST_PRIVACY_STORAGE_CONFIG)).to.be.eq(TEST_PRIVACY_ALLOWED);
           expect(utils.getFromLocalStorage(TEST_PD_STORAGE_CONFIG)).to.be.null;
         });
 
         it('should not store consent data nor pd on first request, but should after refresh', function () {
-          ID5.init({ partnerId: TEST_ID5_PARTNER_ID, pd: 'pubdata' });
+          const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID, pd: 'pubdata' });
 
           sinon.assert.calledOnce(ajaxStub);
           expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
           expect(utils.getFromLocalStorage(TEST_PD_STORAGE_CONFIG)).to.be.null;
           expect(utils.getFromLocalStorage(TEST_CONSENT_DATA_STORAGE_CONFIG)).to.be.null;
 
-          ID5.refreshId();
+          ID5.refreshId(id5Status);
 
           sinon.assert.calledOnce(ajaxStub);
           expect(utils.getFromLocalStorage(TEST_PD_STORAGE_CONFIG)).to.be.equal(utils.cyrb53Hash('pubdata'));
@@ -793,45 +781,45 @@ describe('ID5 JS API', function () {
         it('should request new value with no refresh needed', function () {
           utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, Date.now());
 
-          ID5.init({ partnerId: TEST_ID5_PARTNER_ID, refreshInSeconds: 1000 });
+          const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID, refreshInSeconds: 1000 });
 
           sinon.assert.calledOnce(ajaxStub);
           expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
-          expect(ID5.userId).to.be.equal(TEST_RESPONSE_ID5ID);
-          expect(ID5.linkType).to.be.equal(TEST_RESPONSE_LINK_TYPE);
-          expect(ID5.fromCache).to.be.false;
+          expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
+          expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
+          expect(id5Status.isFromCache()).to.be.false;
         });
 
         it('should request new value with refresh needed', function () {
           utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, Date.now() - (8000 * 1000));
 
-          ID5.init({ partnerId: TEST_ID5_PARTNER_ID, refreshInSeconds: 10 });
+          const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID, refreshInSeconds: 10 });
 
           sinon.assert.calledOnce(ajaxStub);
           expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
-          expect(ID5.userId).to.be.equal(TEST_RESPONSE_ID5ID);
-          expect(ID5.linkType).to.be.equal(TEST_RESPONSE_LINK_TYPE);
+          expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
+          expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
         });
 
         it('should request new value with missing last stored value', function () {
-          ID5.init({ partnerId: TEST_ID5_PARTNER_ID, refreshInSeconds: 1000 });
+          const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID, refreshInSeconds: 1000 });
 
           sinon.assert.calledOnce(ajaxStub);
           expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
-          expect(ID5.userId).to.be.equal(TEST_RESPONSE_ID5ID);
-          expect(ID5.linkType).to.be.equal(TEST_RESPONSE_LINK_TYPE);
+          expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
+          expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
         });
 
         it('should request new value with expired stored value with no refresh needed', function () {
           utils.setInLocalStorage(TEST_ID5ID_STORAGE_CONFIG_EXPIRED, STORED_JSON);
           utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, Date.now());
 
-          ID5.init({ partnerId: TEST_ID5_PARTNER_ID, refreshInSeconds: 1000 });
+          const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID, refreshInSeconds: 1000 });
 
           sinon.assert.calledOnce(ajaxStub);
           expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
-          expect(ID5.userId).to.be.equal(TEST_RESPONSE_ID5ID);
-          expect(ID5.linkType).to.be.equal(TEST_RESPONSE_LINK_TYPE);
+          expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
+          expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
         });
       });
 
@@ -1009,27 +997,27 @@ describe('ID5 JS API', function () {
       });
 
       it('should request new value but not store response', function () {
-        ID5.init({ partnerId: TEST_ID5_PARTNER_ID });
+        const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID });
 
         sinon.assert.calledOnce(ajaxStub);
         expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
 
-        expect(ID5.userId).to.be.equal(TEST_RESPONSE_ID5ID);
-        expect(ID5.linkType).to.be.equal(TEST_RESPONSE_LINK_TYPE);
-        expect(ID5.fromCache).to.be.false;
+        expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
+        expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
+        expect(id5Status.isFromCache()).to.be.false;
         expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.null;
         expect(utils.getFromLocalStorage(TEST_PRIVACY_STORAGE_CONFIG)).to.be.eq(TEST_PRIVACY_DISALLOWED);
       });
 
       it('should not store consent data nor pd on first request, nor after refresh', function () {
-        ID5.init({ partnerId: TEST_ID5_PARTNER_ID, pd: 'pubdata' });
+        const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID, pd: 'pubdata' });
 
         sinon.assert.calledOnce(ajaxStub);
         expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
         expect(utils.getFromLocalStorage(TEST_PD_STORAGE_CONFIG)).to.be.null;
         expect(utils.getFromLocalStorage(TEST_CONSENT_DATA_STORAGE_CONFIG)).to.be.null;
 
-        ID5.refreshId();
+        ID5.refreshId(id5Status);
 
         sinon.assert.calledOnce(ajaxStub);
         expect(utils.getFromLocalStorage(TEST_PD_STORAGE_CONFIG)).to.be.null;
@@ -1043,11 +1031,11 @@ describe('ID5 JS API', function () {
         utils.setInLocalStorage(TEST_PD_STORAGE_CONFIG, 'pd');
         utils.setInLocalStorage(TEST_CONSENT_DATA_STORAGE_CONFIG, 'consent_data');
 
-        ID5.init({ partnerId: TEST_ID5_PARTNER_ID });
+        const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID });
 
         sinon.assert.calledOnce(ajaxStub);
-        expect(ID5.userId).to.be.equal(TEST_RESPONSE_ID5ID);
-        expect(ID5.linkType).to.be.equal(TEST_RESPONSE_LINK_TYPE);
+        expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
+        expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
         expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.null;
         expect(utils.getFromLocalStorage(TEST_LAST_STORAGE_CONFIG)).to.be.null;
         expect(utils.getFromLocalStorage(TEST_NB_STORAGE_CONFIG)).to.be.null;
@@ -1072,11 +1060,11 @@ describe('ID5 JS API', function () {
       });
 
       it('should not request new id with previous no-consent privacy data', function() {
-        ID5.init({ partnerId: TEST_ID5_PARTNER_ID });
+        const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID });
 
         sinon.assert.notCalled(ajaxStub);
-        expect(ID5.userId).to.be.undefined;
-        expect(ID5.linkType).to.be.undefined;
+        expect(id5Status.getUserId()).to.be.undefined;
+        expect(id5Status.getLinkType()).to.be.undefined;
         expect(utils.getFromLocalStorage(TEST_PD_STORAGE_CONFIG)).to.be.null;
         expect(utils.getFromLocalStorage(TEST_CONSENT_DATA_STORAGE_CONFIG)).to.be.null;
       });
@@ -1084,11 +1072,11 @@ describe('ID5 JS API', function () {
       it('should not use stored response for ID with previous no-consent privacy data', function() {
         utils.setInLocalStorage(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON);
 
-        ID5.init({ partnerId: TEST_ID5_PARTNER_ID });
+        const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID });
 
         sinon.assert.notCalled(ajaxStub);
-        expect(ID5.userId).to.be.undefined;
-        expect(ID5.linkType).to.be.undefined;
+        expect(id5Status.getUserId()).to.be.undefined;
+        expect(id5Status.getLinkType()).to.be.undefined;
       });
     });
   });
@@ -1110,9 +1098,6 @@ describe('ID5 JS API', function () {
       utils.removeFromLocalStorage(TEST_LAST_STORAGE_CONFIG);
       utils.removeFromLocalStorage(TEST_CONSENT_DATA_STORAGE_CONFIG);
       utils.removeFromLocalStorage(TEST_PD_STORAGE_CONFIG);
-      ID5.userId = undefined;
-      ID5.linkType = undefined;
-      ID5.initialized = false;
     });
     beforeEach(function () {
       ajaxStub = sinon.stub(utils, 'ajax').callsFake(function(url, callbacks, data, options) {
@@ -1125,15 +1110,6 @@ describe('ID5 JS API', function () {
       utils.removeFromLocalStorage(TEST_LAST_STORAGE_CONFIG);
       utils.removeFromLocalStorage(TEST_CONSENT_DATA_STORAGE_CONFIG);
       utils.removeFromLocalStorage(TEST_PD_STORAGE_CONFIG);
-      ID5.userId = undefined;
-      ID5.linkType = undefined;
-      ID5.initialized = false;
-    });
-
-    describe('Parameters and Config', function () {
-      it('should throw exception if refreshId is called before init', function () {
-        expect(function () { ID5.refreshId() }).throw();
-      });
     });
 
     describe('No Force Fetch', function () {
@@ -1147,7 +1123,7 @@ describe('ID5 JS API', function () {
       });
 
       it('should not call ID5 with no config changes', function () {
-        ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true });
+        const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true });
         sinon.assert.calledOnce(ajaxStub);
 
         ajaxStub.restore();
@@ -1155,17 +1131,17 @@ describe('ID5 JS API', function () {
           callbacks.success(REFRESH_JSON_RESPONSE);
         });
 
-        ID5.refreshId();
+        ID5.refreshId(id5Status);
         sinon.assert.notCalled(ajaxStub);
         sinon.assert.calledTwice(getIdSpy);
 
-        expect(ID5.userId).to.be.equal(TEST_RESPONSE_ID5ID);
-        expect(ID5.linkType).to.be.equal(TEST_RESPONSE_LINK_TYPE);
+        expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
+        expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
         expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(JSON_RESPONSE_ID5_CONSENT);
       });
 
       it('should not call ID5 with config changes that do not require a refresh', function () {
-        ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true, refreshInSeconds: 50 });
+        const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true, refreshInSeconds: 50 });
         sinon.assert.calledOnce(ajaxStub);
 
         ajaxStub.restore();
@@ -1173,17 +1149,17 @@ describe('ID5 JS API', function () {
           callbacks.success(REFRESH_JSON_RESPONSE);
         });
 
-        ID5.refreshId(false, { refreshInSeconds: 100 });
+        ID5.refreshId(id5Status, false, { refreshInSeconds: 100 });
         sinon.assert.notCalled(ajaxStub);
         sinon.assert.calledTwice(getIdSpy);
 
-        expect(ID5.userId).to.be.equal(TEST_RESPONSE_ID5ID);
-        expect(ID5.linkType).to.be.equal(TEST_RESPONSE_LINK_TYPE);
+        expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
+        expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
         expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(JSON_RESPONSE_ID5_CONSENT);
       });
 
       it('should call ID5 with config changes that require a refresh', function () {
-        ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true });
+        const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true });
         sinon.assert.calledOnce(ajaxStub);
 
         ajaxStub.restore();
@@ -1191,15 +1167,15 @@ describe('ID5 JS API', function () {
           callbacks.success(REFRESH_JSON_RESPONSE);
         });
 
-        ID5.refreshId(false, { pd: 'abcdefg' });
+        ID5.refreshId(id5Status, false, { pd: 'abcdefg' });
         sinon.assert.calledOnce(ajaxStub);
         sinon.assert.calledTwice(getIdSpy);
 
         const requestData = JSON.parse(ajaxStub.firstCall.args[2]);
         expect(requestData.pd).to.be.equal('abcdefg');
 
-        expect(ID5.userId).to.be.equal(TEST_REFRESH_RESPONSE_ID5ID);
-        expect(ID5.linkType).to.be.equal(TEST_REFRESH_RESPONSE_LINK_TYPE);
+        expect(id5Status.getUserId()).to.be.equal(TEST_REFRESH_RESPONSE_ID5ID);
+        expect(id5Status.getLinkType()).to.be.equal(TEST_REFRESH_RESPONSE_LINK_TYPE);
         expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(REFRESH_JSON_RESPONSE);
       });
 
@@ -1230,7 +1206,7 @@ describe('ID5 JS API', function () {
         });
 
         it('should not call ID5 with no consent changes', function () {
-          ID5.init({ partnerId: TEST_ID5_PARTNER_ID });
+          const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID });
           sinon.assert.calledOnce(ajaxStub);
 
           ajaxStub.restore();
@@ -1238,17 +1214,17 @@ describe('ID5 JS API', function () {
             callbacks.success(REFRESH_JSON_RESPONSE);
           });
 
-          ID5.refreshId();
+          ID5.refreshId(id5Status);
           sinon.assert.notCalled(ajaxStub);
           sinon.assert.calledTwice(getIdSpy);
 
-          expect(ID5.userId).to.be.equal(TEST_RESPONSE_ID5ID);
-          expect(ID5.linkType).to.be.equal(TEST_RESPONSE_LINK_TYPE);
+          expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
+          expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
           expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(JSON_RESPONSE_ID5_CONSENT);
         });
 
         it('should call ID5 when consent changes after init', function () {
-          ID5.init({ partnerId: TEST_ID5_PARTNER_ID });
+          const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID });
           sinon.assert.calledOnce(ajaxStub);
 
           ajaxStub.restore();
@@ -1268,12 +1244,12 @@ describe('ID5 JS API', function () {
             }, true);
           });
 
-          ID5.refreshId();
+          ID5.refreshId(id5Status);
           sinon.assert.calledOnce(ajaxStub);
           sinon.assert.calledTwice(getIdSpy);
 
-          expect(ID5.userId).to.be.equal(TEST_REFRESH_RESPONSE_ID5ID);
-          expect(ID5.linkType).to.be.equal(TEST_REFRESH_RESPONSE_LINK_TYPE);
+          expect(id5Status.getUserId()).to.be.equal(TEST_REFRESH_RESPONSE_ID5ID);
+          expect(id5Status.getLinkType()).to.be.equal(TEST_REFRESH_RESPONSE_LINK_TYPE);
           expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(REFRESH_JSON_RESPONSE);
         });
       });
@@ -1290,7 +1266,7 @@ describe('ID5 JS API', function () {
       });
 
       it('should call ID5 with no other reason to refresh', function () {
-        ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true });
+        const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true });
         sinon.assert.calledOnce(ajaxStub);
 
         ajaxStub.restore();
@@ -1298,12 +1274,12 @@ describe('ID5 JS API', function () {
           callbacks.success(REFRESH_JSON_RESPONSE);
         });
 
-        ID5.refreshId(true);
+        ID5.refreshId(id5Status, true);
         sinon.assert.calledOnce(ajaxStub);
         sinon.assert.calledTwice(getIdSpy);
 
-        expect(ID5.userId).to.be.equal(TEST_REFRESH_RESPONSE_ID5ID);
-        expect(ID5.linkType).to.be.equal(TEST_REFRESH_RESPONSE_LINK_TYPE);
+        expect(id5Status.getUserId()).to.be.equal(TEST_REFRESH_RESPONSE_ID5ID);
+        expect(id5Status.getLinkType()).to.be.equal(TEST_REFRESH_RESPONSE_LINK_TYPE);
         expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(REFRESH_JSON_RESPONSE);
       });
     });
@@ -1331,6 +1307,7 @@ describe('ID5 JS API', function () {
       beforeEach(function () {
         callbackSpy = sinon.spy();
         ajaxStub = sinon.stub(utils, 'ajax').callsFake(function(url, callbacks, data, options) {
+          utils.logError('in ajaxStub')
           setTimeout(() => { callbacks.success(JSON_RESPONSE_ID5_CONSENT) }, AJAX_RESPONSE_MS);
         });
       });
@@ -1341,31 +1318,13 @@ describe('ID5 JS API', function () {
       });
 
       describe('Check callbackFired', function () {
-        it('should have callbackFired:false if no callback', function (done) {
-          ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true });
-
-          expect(ID5.callbackFired).to.be.false;
-          sinon.assert.calledOnce(ajaxStub);
-
-          setTimeout(() => {
-            setTimeout(() => {
-              expect(ID5.callbackFired).to.be.false;
-              sinon.assert.notCalled(callbackSpy);
-              done();
-            }, 0);
-          }, AJAX_RESPONSE_MS);
-        });
-
-        it('should have callbackFired:true if callback', function (done) {
-          ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true, callback: callbackSpy });
+        it('should call back callbackOnAvailable with consent bypass', function (done) {
+          ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true, callbackOnAvailable: callbackSpy });
 
           sinon.assert.notCalled(callbackSpy);
-          expect(ID5.callbackFired).to.be.false;
           sinon.assert.calledOnce(ajaxStub);
 
           setTimeout(() => {
-            // callbackFired value is set before the callback is called
-            expect(ID5.callbackFired).to.be.true;
             sinon.assert.notCalled(callbackSpy);
             setTimeout(() => {
               sinon.assert.calledOnce(callbackSpy);
@@ -1377,19 +1336,19 @@ describe('ID5 JS API', function () {
 
       describe('No Stored Value, No Consent Override', function () {
         describe('Empty Stored Privacy', function() {
-          it('should call callback at timeout with callback timeout set', function (done) {
-            ID5.init({ partnerId: TEST_ID5_PARTNER_ID, callback: callbackSpy, callbackTimeoutInMs: CALLBACK_TIMEOUT_MS });
+          it('should call callbackOnAvailable at timeout with callbackTimeoutInMs set', function (done) {
+            const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID, callbackOnAvailable: callbackSpy, callbackTimeoutInMs: CALLBACK_TIMEOUT_MS });
 
             sinon.assert.calledOnce(ajaxStub);
-            expect(ID5.userId).to.be.undefined;
-            expect(ID5.linkType).to.be.undefined;
+            expect(id5Status.getUserId()).to.be.undefined;
+            expect(id5Status.getLinkType()).to.be.undefined;
 
             setTimeout(() => {
               sinon.assert.notCalled(callbackSpy);
               setTimeout(() => {
                 sinon.assert.calledOnce(callbackSpy);
-                expect(ID5.userId).to.be.equal(TEST_RESPONSE_ID5ID);
-                expect(ID5.linkType).to.be.equal(TEST_RESPONSE_LINK_TYPE);
+                expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
+                expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
 
                 // make sure the watchdog timeout is cleared before moving on
                 setTimeout(() => {
@@ -1400,19 +1359,19 @@ describe('ID5 JS API', function () {
             }, 0);
           });
 
-          it('should not call callback without callback timeout set', function (done) {
-            ID5.init({ partnerId: TEST_ID5_PARTNER_ID, callback: callbackSpy });
+          it('should not call callbackOnAvailable without callbackTimeoutInMs set', function (done) {
+            const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID, callbackOnAvailable: callbackSpy });
 
             sinon.assert.calledOnce(ajaxStub);
-            expect(ID5.userId).to.be.undefined;
-            expect(ID5.linkType).to.be.undefined;
+            expect(id5Status.getUserId()).to.be.undefined;
+            expect(id5Status.getLinkType()).to.be.undefined;
 
             setTimeout(() => {
               sinon.assert.notCalled(callbackSpy);
               setTimeout(() => {
                 sinon.assert.calledOnce(callbackSpy);
-                expect(ID5.userId).to.be.equal(TEST_RESPONSE_ID5ID);
-                expect(ID5.linkType).to.be.equal(TEST_RESPONSE_LINK_TYPE);
+                expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
+                expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
                 done();
               }, LONG_TIMEOUT);
             }, AJAX_RESPONSE_MS + 1);
@@ -1424,19 +1383,19 @@ describe('ID5 JS API', function () {
             utils.setInLocalStorage(TEST_PRIVACY_STORAGE_CONFIG, TEST_PRIVACY_DISALLOWED);
           });
 
-          it('should call callback at timeout with callback timeout set', function (done) {
-            ID5.init({ partnerId: TEST_ID5_PARTNER_ID, callback: callbackSpy, callbackTimeoutInMs: CALLBACK_TIMEOUT_MS });
+          it('should call callbackOnAvailable at timeout with callbackTimeoutInMs set', function (done) {
+            const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID, callbackOnAvailable: callbackSpy, callbackTimeoutInMs: CALLBACK_TIMEOUT_MS });
 
             sinon.assert.notCalled(ajaxStub);
-            expect(ID5.userId).to.be.undefined;
-            expect(ID5.linkType).to.be.undefined;
+            expect(id5Status.getUserId()).to.be.undefined;
+            expect(id5Status.getLinkType()).to.be.undefined;
 
             setTimeout(() => {
               sinon.assert.notCalled(callbackSpy);
               setTimeout(() => {
                 sinon.assert.calledOnce(callbackSpy);
-                expect(ID5.userId).to.be.undefined;
-                expect(ID5.linkType).to.be.undefined;
+                expect(id5Status.getUserId()).to.be.undefined;
+                expect(id5Status.getLinkType()).to.be.undefined;
 
                 // make sure the watchdog timeout is cleared before moving on
                 setTimeout(() => {
@@ -1447,19 +1406,19 @@ describe('ID5 JS API', function () {
             }, 0);
           });
 
-          it('should not call callback without callback timeout set', function (done) {
-            ID5.init({ partnerId: TEST_ID5_PARTNER_ID, callback: callbackSpy });
+          it('should not call callbackOnAvailable without callbackTimeoutInMs set', function (done) {
+            const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID, callbackOnAvailable: callbackSpy });
 
             sinon.assert.notCalled(ajaxStub);
-            expect(ID5.userId).to.be.undefined;
-            expect(ID5.linkType).to.be.undefined;
+            expect(id5Status.getUserId()).to.be.undefined;
+            expect(id5Status.getLinkType()).to.be.undefined;
 
             setTimeout(() => {
               sinon.assert.notCalled(callbackSpy);
               setTimeout(() => {
                 sinon.assert.notCalled(ajaxStub);
-                expect(ID5.userId).to.be.undefined;
-                expect(ID5.linkType).to.be.undefined;
+                expect(id5Status.getUserId()).to.be.undefined;
+                expect(id5Status.getLinkType()).to.be.undefined;
                 done();
               }, LONG_TIMEOUT);
             }, AJAX_RESPONSE_MS);
@@ -1474,8 +1433,8 @@ describe('ID5 JS API', function () {
           utils.setInLocalStorage(TEST_PRIVACY_STORAGE_CONFIG, TEST_PRIVACY_ALLOWED);
         });
 
-        it('should call callback immediately with callback timeout set', function (done) {
-          ID5.init({ partnerId: TEST_ID5_PARTNER_ID, callback: callbackSpy, callbackTimeoutInMs: CALLBACK_TIMEOUT_MS });
+        it('should call callbackOnAvailable immediately with callbackTimeoutInMs set', function (done) {
+          ID5.init({ partnerId: TEST_ID5_PARTNER_ID, callbackOnAvailable: callbackSpy, callbackTimeoutInMs: CALLBACK_TIMEOUT_MS });
 
           sinon.assert.notCalled(ajaxStub);
           setTimeout(() => {
@@ -1489,8 +1448,8 @@ describe('ID5 JS API', function () {
           }, 0);
         });
 
-        it('should call callback immediately without callback timeout set', function (done) {
-          ID5.init({ partnerId: TEST_ID5_PARTNER_ID, callback: callbackSpy });
+        it('should call callbackOnAvailable immediately without callbackTimeoutInMs set', function (done) {
+          ID5.init({ partnerId: TEST_ID5_PARTNER_ID, callbackOnAvailable: callbackSpy });
 
           sinon.assert.notCalled(ajaxStub);
           setTimeout(() => {
@@ -1506,8 +1465,8 @@ describe('ID5 JS API', function () {
           utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, Date.now());
         });
 
-        it('should call callback immediately with callback timeout set', function (done) {
-          ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true, callback: callbackSpy, callbackTimeoutInMs: CALLBACK_TIMEOUT_MS });
+        it('should call callbackOnAvailable immediately with callbackTimeoutInMs set', function (done) {
+          ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true, callbackOnAvailable: callbackSpy, callbackTimeoutInMs: CALLBACK_TIMEOUT_MS });
 
           sinon.assert.notCalled(ajaxStub);
           setTimeout(() => {
@@ -1521,8 +1480,8 @@ describe('ID5 JS API', function () {
           }, 0);
         });
 
-        it('should call callback immediately without callback timeout set', function (done) {
-          ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true, callback: callbackSpy });
+        it('should call callbackOnAvailable immediately without callbackTimeoutInMs set', function (done) {
+          ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true, callbackOnAvailable: callbackSpy });
 
           sinon.assert.notCalled(ajaxStub);
           setTimeout(() => {
@@ -1533,19 +1492,19 @@ describe('ID5 JS API', function () {
       });
 
       describe('No Stored Value, With Consent Override', function () {
-        it('should call callback after server response with callback timeout set', function (done) {
-          ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true, callback: callbackSpy, callbackTimeoutInMs: CALLBACK_TIMEOUT_MS });
+        it('should call callbackOnAvailable after server response with callbackTimeoutInMs set', function (done) {
+          const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true, callbackOnAvailable: callbackSpy, callbackTimeoutInMs: CALLBACK_TIMEOUT_MS });
 
           sinon.assert.calledOnce(ajaxStub);
-          expect(ID5.userId).to.be.undefined;
-          expect(ID5.linkType).to.be.undefined;
+          expect(id5Status.getUserId()).to.be.undefined;
+          expect(id5Status.getLinkType()).to.be.undefined;
 
           setTimeout(() => {
             sinon.assert.notCalled(callbackSpy);
             setTimeout(() => {
               sinon.assert.calledOnce(callbackSpy);
-              expect(ID5.userId).to.be.equal(TEST_RESPONSE_ID5ID);
-              expect(ID5.linkType).to.be.equal(TEST_RESPONSE_LINK_TYPE);
+              expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
+              expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
 
               // make sure the watchdog timeout is cleared before moving on
               setTimeout(() => {
@@ -1556,43 +1515,49 @@ describe('ID5 JS API', function () {
           }, AJAX_RESPONSE_MS);
         });
 
-        it('should call callback after timeout with callback timeout set if server response takes too long', function (done) {
-          ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true, callback: callbackSpy, callbackTimeoutInMs: SHORT_CALLBACK_TIMEOUT_MS });
+        it('should call callbackOnAvailable after timeout with callbackTimeoutInMs set if server response takes too long', function (done) {
+          const id5Status = ID5.init({
+            partnerId: TEST_ID5_PARTNER_ID,
+            debugBypassConsent: true,
+            callbackOnAvailable: callbackSpy,
+            callbackTimeoutInMs: SHORT_CALLBACK_TIMEOUT_MS
+          });
 
           sinon.assert.calledOnce(ajaxStub);
-          expect(ID5.userId).to.be.undefined;
-          expect(ID5.linkType).to.be.undefined;
+          expect(id5Status.getUserId()).to.be.undefined;
+          expect(id5Status.getLinkType()).to.be.undefined;
 
           setTimeout(() => {
-            // TODO this test is flaky and fails 1 out of 5 times when running local tests with error on this line for "expected callback to not have been called but was called once"
+            // Ajax not answered, watchdog not triggered
             sinon.assert.notCalled(callbackSpy);
             setTimeout(() => {
+              // Ajax not answered, watchdog triggered
               sinon.assert.calledOnce(callbackSpy);
-              expect(ID5.userId).to.be.undefined;
-              expect(ID5.linkType).to.be.undefined;
+              expect(id5Status.getUserId()).to.be.undefined;
+              expect(id5Status.getLinkType()).to.be.undefined;
 
-              // make sure the watchdog timeout is cleared before moving on
               setTimeout(() => {
+                // Ajax answered, but watchdog already triggered
                 sinon.assert.calledOnce(callbackSpy);
                 done();
               }, LONG_TIMEOUT);
-            }, 0);
-          }, SHORT_CALLBACK_TIMEOUT_MS);
+            }, 4);
+          }, SHORT_CALLBACK_TIMEOUT_MS - 2);
         });
 
-        it('should call callback after server response without callback timeout set', function (done) {
-          ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true, callback: callbackSpy });
+        it('should call callbackOnAvailable after server response without callbackTimeoutInMs set', function (done) {
+          const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true, callbackOnAvailable: callbackSpy });
 
           sinon.assert.calledOnce(ajaxStub);
-          expect(ID5.userId).to.be.undefined;
-          expect(ID5.linkType).to.be.undefined;
+          expect(id5Status.getUserId()).to.be.undefined;
+          expect(id5Status.getLinkType()).to.be.undefined;
 
           setTimeout(() => {
             sinon.assert.notCalled(callbackSpy);
             setTimeout(() => {
               sinon.assert.calledOnce(callbackSpy);
-              expect(ID5.userId).to.be.equal(TEST_RESPONSE_ID5ID);
-              expect(ID5.linkType).to.be.equal(TEST_RESPONSE_LINK_TYPE);
+              expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
+              expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
               done();
             }, 0);
           }, AJAX_RESPONSE_MS);
@@ -1605,12 +1570,12 @@ describe('ID5 JS API', function () {
           utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, Date.now() - (8000 * 1000));
         });
 
-        it('should call callback immediately and only once with callback timeout set', function (done) {
-          ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true, callback: callbackSpy, callbackTimeoutInMs: CALLBACK_TIMEOUT_MS, refreshInSeconds: 10 });
+        it('should call callbackOnAvailable immediately and only once with callbackTimeoutInMs set', function (done) {
+          const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true, callbackOnAvailable: callbackSpy, callbackTimeoutInMs: CALLBACK_TIMEOUT_MS, refreshInSeconds: 10 });
 
           sinon.assert.calledOnce(ajaxStub);
-          expect(ID5.userId).to.be.equal(TEST_STORED_ID5ID);
-          expect(ID5.linkType).to.be.equal(TEST_STORED_LINK_TYPE);
+          expect(id5Status.getUserId()).to.be.equal(TEST_STORED_ID5ID);
+          expect(id5Status.getLinkType()).to.be.equal(TEST_STORED_LINK_TYPE);
           setTimeout(() => {
             sinon.assert.calledOnce(callbackSpy);
           }, 0);
@@ -1618,8 +1583,8 @@ describe('ID5 JS API', function () {
           setTimeout(() => {
             setTimeout(() => {
               sinon.assert.calledOnce(callbackSpy);
-              expect(ID5.userId).to.be.equal(TEST_RESPONSE_ID5ID);
-              expect(ID5.linkType).to.be.equal(TEST_RESPONSE_LINK_TYPE);
+              expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
+              expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
 
               // make sure the watchdog timeout is cleared before moving on
               setTimeout(() => {
@@ -1630,12 +1595,12 @@ describe('ID5 JS API', function () {
           }, AJAX_RESPONSE_MS);
         });
 
-        it('should call callback immediately and only once without callback timeout set', function (done) {
-          ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true, callback: callbackSpy, refreshInSeconds: 10 });
+        it('should call callbackOnAvailable immediately and only once without callbackTimeoutInMs set', function (done) {
+          const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true, callbackOnAvailable: callbackSpy, refreshInSeconds: 10 });
 
           sinon.assert.calledOnce(ajaxStub);
-          expect(ID5.userId).to.be.equal(TEST_STORED_ID5ID);
-          expect(ID5.linkType).to.be.equal(TEST_STORED_LINK_TYPE);
+          expect(id5Status.getUserId()).to.be.equal(TEST_STORED_ID5ID);
+          expect(id5Status.getLinkType()).to.be.equal(TEST_STORED_LINK_TYPE);
           setTimeout(() => {
             sinon.assert.calledOnce(callbackSpy);
           }, 0);
@@ -1643,8 +1608,8 @@ describe('ID5 JS API', function () {
           setTimeout(() => {
             setTimeout(() => {
               sinon.assert.calledOnce(callbackSpy);
-              expect(ID5.userId).to.be.equal(TEST_RESPONSE_ID5ID);
-              expect(ID5.linkType).to.be.equal(TEST_RESPONSE_LINK_TYPE);
+              expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
+              expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
               done();
             }, 0);
           }, AJAX_RESPONSE_MS);
@@ -1658,8 +1623,8 @@ describe('ID5 JS API', function () {
         });
 
         describe('No Fetch Required on Refresh', function () {
-          it('should call callback from refresh immediately with callback timeout set', function (done) {
-            ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true, callback: callbackSpy, callbackTimeoutInMs: CALLBACK_TIMEOUT_MS });
+          it('should call callbackOnAvailable from refresh immediately with callbackTimeoutInMs set', function (done) {
+            const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true, callbackOnAvailable: callbackSpy, callbackTimeoutInMs: CALLBACK_TIMEOUT_MS });
 
             sinon.assert.notCalled(ajaxStub);
             setTimeout(() => {
@@ -1668,22 +1633,22 @@ describe('ID5 JS API', function () {
               // make sure the watchdog timeout from init is cleared before moving on
               setTimeout(() => {
                 sinon.assert.calledOnce(callbackSpy);
-                expect(ID5.userId).to.be.equal(TEST_STORED_ID5ID);
-                expect(ID5.linkType).to.be.equal(TEST_STORED_LINK_TYPE);
+                expect(id5Status.getUserId()).to.be.equal(TEST_STORED_ID5ID);
+                expect(id5Status.getLinkType()).to.be.equal(TEST_STORED_LINK_TYPE);
 
-                ID5.refreshId();
+                ID5.refreshId(id5Status);
 
                 sinon.assert.notCalled(ajaxStub);
                 setTimeout(() => {
                   sinon.assert.calledTwice(callbackSpy);
-                  expect(ID5.userId).to.be.equal(TEST_STORED_ID5ID);
-                  expect(ID5.linkType).to.be.equal(TEST_STORED_LINK_TYPE);
+                  expect(id5Status.getUserId()).to.be.equal(TEST_STORED_ID5ID);
+                  expect(id5Status.getLinkType()).to.be.equal(TEST_STORED_LINK_TYPE);
 
                   // make sure the watchdog timeout from refresh is cleared before moving on
                   setTimeout(() => {
                     sinon.assert.calledTwice(callbackSpy);
-                    expect(ID5.userId).to.be.equal(TEST_STORED_ID5ID);
-                    expect(ID5.linkType).to.be.equal(TEST_STORED_LINK_TYPE);
+                    expect(id5Status.getUserId()).to.be.equal(TEST_STORED_ID5ID);
+                    expect(id5Status.getLinkType()).to.be.equal(TEST_STORED_LINK_TYPE);
                     done();
                   }, LONG_TIMEOUT);
                 }, 0);
@@ -1691,22 +1656,22 @@ describe('ID5 JS API', function () {
             }, 0);
           });
 
-          it('should call callback from refresh immediately without callback timeout set', function (done) {
-            ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true, callback: callbackSpy });
+          it('should call callbackOnAvailable from refresh immediately without callbackTimeoutInMs set', function (done) {
+            const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true, callbackOnAvailable: callbackSpy });
 
             sinon.assert.notCalled(ajaxStub);
             setTimeout(() => {
               sinon.assert.calledOnce(callbackSpy);
-              expect(ID5.userId).to.be.equal(TEST_STORED_ID5ID);
-              expect(ID5.linkType).to.be.equal(TEST_STORED_LINK_TYPE);
+              expect(id5Status.getUserId()).to.be.equal(TEST_STORED_ID5ID);
+              expect(id5Status.getLinkType()).to.be.equal(TEST_STORED_LINK_TYPE);
 
-              ID5.refreshId();
+              ID5.refreshId(id5Status);
 
               sinon.assert.notCalled(ajaxStub);
               setTimeout(() => {
                 sinon.assert.calledTwice(callbackSpy);
-                expect(ID5.userId).to.be.equal(TEST_STORED_ID5ID);
-                expect(ID5.linkType).to.be.equal(TEST_STORED_LINK_TYPE);
+                expect(id5Status.getUserId()).to.be.equal(TEST_STORED_ID5ID);
+                expect(id5Status.getLinkType()).to.be.equal(TEST_STORED_LINK_TYPE);
                 done();
               }, 0);
             }, 0);
@@ -1714,8 +1679,8 @@ describe('ID5 JS API', function () {
         });
 
         describe('Fetch Required on Refresh', function () {
-          it('should call callback from refresh after server response with callback timeout set', function (done) {
-            ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true, callback: callbackSpy, callbackTimeoutInMs: CALLBACK_TIMEOUT_MS });
+          it('should call callbackOnAvailable from refresh after server response with callbackTimeoutInMs set', function (done) {
+            const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true, callbackOnAvailable: callbackSpy, callbackTimeoutInMs: CALLBACK_TIMEOUT_MS });
 
             sinon.assert.notCalled(ajaxStub);
             setTimeout(() => {
@@ -1724,23 +1689,23 @@ describe('ID5 JS API', function () {
               // make sure the watchdog timeout from init is cleared before moving on
               setTimeout(() => {
                 sinon.assert.calledOnce(callbackSpy);
-                expect(ID5.userId).to.be.equal(TEST_STORED_ID5ID);
-                expect(ID5.linkType).to.be.equal(TEST_STORED_LINK_TYPE);
+                expect(id5Status.getUserId()).to.be.equal(TEST_STORED_ID5ID);
+                expect(id5Status.getLinkType()).to.be.equal(TEST_STORED_LINK_TYPE);
 
-                ID5.refreshId(true);
+                ID5.refreshId(id5Status, true);
 
                 sinon.assert.calledOnce(ajaxStub);
                 setTimeout(() => {
                   setTimeout(() => {
                     sinon.assert.calledTwice(callbackSpy);
-                    expect(ID5.userId).to.be.equal(TEST_RESPONSE_ID5ID);
-                    expect(ID5.linkType).to.be.equal(TEST_RESPONSE_LINK_TYPE);
+                    expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
+                    expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
 
                     // make sure the watchdog timeout from refresh is cleared before moving on
                     setTimeout(() => {
                       sinon.assert.calledTwice(callbackSpy);
-                      expect(ID5.userId).to.be.equal(TEST_RESPONSE_ID5ID);
-                      expect(ID5.linkType).to.be.equal(TEST_RESPONSE_LINK_TYPE);
+                      expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
+                      expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
                       done();
                     }, LONG_TIMEOUT);
                   }, 0);
@@ -1749,27 +1714,27 @@ describe('ID5 JS API', function () {
             }, 0);
           });
 
-          it('should call callback from refresh after timeout with callback timeout set if server response takes too long', function (done) {
-            ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true, callback: callbackSpy, callbackTimeoutInMs: SHORT_CALLBACK_TIMEOUT_MS });
+          it('should call callbackOnAvailable from refresh after timeout with callbackTimeoutInMs set if server response takes too long', function (done) {
+            const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true, callbackOnAvailable: callbackSpy, callbackTimeoutInMs: SHORT_CALLBACK_TIMEOUT_MS });
 
             sinon.assert.notCalled(ajaxStub);
             setTimeout(() => {
               sinon.assert.calledOnce(callbackSpy);
-              expect(ID5.userId).to.be.equal(TEST_STORED_ID5ID);
-              expect(ID5.linkType).to.be.equal(TEST_STORED_LINK_TYPE);
+              expect(id5Status.getUserId()).to.be.equal(TEST_STORED_ID5ID);
+              expect(id5Status.getLinkType()).to.be.equal(TEST_STORED_LINK_TYPE);
 
               // make sure the watchdog timeout from init is cleared before moving on
               setTimeout(() => {
                 sinon.assert.calledOnce(callbackSpy);
 
-                ID5.refreshId(true);
+                ID5.refreshId(id5Status, true);
 
                 sinon.assert.calledOnce(ajaxStub);
                 setTimeout(() => {
                   setTimeout(() => {
                     sinon.assert.calledTwice(callbackSpy);
-                    expect(ID5.userId).to.be.equal(TEST_STORED_ID5ID);
-                    expect(ID5.linkType).to.be.equal(TEST_STORED_LINK_TYPE);
+                    expect(id5Status.getUserId()).to.be.equal(TEST_STORED_ID5ID);
+                    expect(id5Status.getLinkType()).to.be.equal(TEST_STORED_LINK_TYPE);
 
                     // make sure the watchdog timeout from refresh is cleared before moving on
                     setTimeout(() => {
@@ -1782,23 +1747,23 @@ describe('ID5 JS API', function () {
             }, 0);
           });
 
-          it('should call callback from refresh after server response without callback timeout set', function (done) {
-            ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true, callback: callbackSpy });
+          it('should call callbackOnAvailable from refresh after server response without callbackTimeoutInMs set', function (done) {
+            const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true, callbackOnAvailable: callbackSpy });
 
             sinon.assert.notCalled(ajaxStub);
             setTimeout(() => {
               sinon.assert.calledOnce(callbackSpy);
-              expect(ID5.userId).to.be.equal(TEST_STORED_ID5ID);
-              expect(ID5.linkType).to.be.equal(TEST_STORED_LINK_TYPE);
+              expect(id5Status.getUserId()).to.be.equal(TEST_STORED_ID5ID);
+              expect(id5Status.getLinkType()).to.be.equal(TEST_STORED_LINK_TYPE);
 
-              ID5.refreshId(true);
+              ID5.refreshId(id5Status, true);
 
               sinon.assert.calledOnce(ajaxStub);
               setTimeout(() => {
                 setTimeout(() => {
                   sinon.assert.calledTwice(callbackSpy);
-                  expect(ID5.userId).to.be.equal(TEST_RESPONSE_ID5ID);
-                  expect(ID5.linkType).to.be.equal(TEST_RESPONSE_LINK_TYPE);
+                  expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
+                  expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
                   done();
                 }, 0);
               }, AJAX_RESPONSE_MS);
@@ -1824,15 +1789,15 @@ describe('ID5 JS API', function () {
         it('should never set userId with no stored value, no consent override, no-consent in privacy data', function (done) {
           utils.setInLocalStorage(TEST_PRIVACY_STORAGE_CONFIG, TEST_PRIVACY_DISALLOWED);
 
-          ID5.init({ partnerId: TEST_ID5_PARTNER_ID });
+          const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID });
 
           sinon.assert.notCalled(ajaxStub);
-          expect(ID5.userId).to.be.undefined;
-          expect(ID5.linkType).to.be.undefined;
+          expect(id5Status.getUserId()).to.be.undefined;
+          expect(id5Status.getLinkType()).to.be.undefined;
 
           setTimeout(() => {
-            expect(ID5.userId).to.be.undefined;
-            expect(ID5.linkType).to.be.undefined;
+            expect(id5Status.getUserId()).to.be.undefined;
+            expect(id5Status.getLinkType()).to.be.undefined;
             done();
           }, LONG_TIMEOUT);
         });
@@ -1842,15 +1807,15 @@ describe('ID5 JS API', function () {
           utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, Date.now());
           utils.setInLocalStorage(TEST_PRIVACY_STORAGE_CONFIG, TEST_PRIVACY_ALLOWED);
 
-          ID5.init({ partnerId: TEST_ID5_PARTNER_ID });
+          const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID });
 
           sinon.assert.notCalled(ajaxStub);
-          expect(ID5.userId).to.be.equal(TEST_STORED_ID5ID);
-          expect(ID5.linkType).to.be.equal(TEST_STORED_LINK_TYPE);
+          expect(id5Status.getUserId()).to.be.equal(TEST_STORED_ID5ID);
+          expect(id5Status.getLinkType()).to.be.equal(TEST_STORED_LINK_TYPE);
 
           setTimeout(() => {
-            expect(ID5.userId).to.be.equal(TEST_STORED_ID5ID);
-            expect(ID5.linkType).to.be.equal(TEST_STORED_LINK_TYPE);
+            expect(id5Status.getUserId()).to.be.equal(TEST_STORED_ID5ID);
+            expect(id5Status.getLinkType()).to.be.equal(TEST_STORED_LINK_TYPE);
             done();
           }, LONG_TIMEOUT);
         });
@@ -1859,29 +1824,29 @@ describe('ID5 JS API', function () {
           utils.setInLocalStorage(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON);
           utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, Date.now());
 
-          ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true });
+          const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true });
 
           sinon.assert.notCalled(ajaxStub);
-          expect(ID5.userId).to.be.equal(TEST_STORED_ID5ID);
-          expect(ID5.linkType).to.be.equal(TEST_STORED_LINK_TYPE);
+          expect(id5Status.getUserId()).to.be.equal(TEST_STORED_ID5ID);
+          expect(id5Status.getLinkType()).to.be.equal(TEST_STORED_LINK_TYPE);
 
           setTimeout(() => {
-            expect(ID5.userId).to.be.equal(TEST_STORED_ID5ID);
-            expect(ID5.linkType).to.be.equal(TEST_STORED_LINK_TYPE);
+            expect(id5Status.getUserId()).to.be.equal(TEST_STORED_ID5ID);
+            expect(id5Status.getLinkType()).to.be.equal(TEST_STORED_LINK_TYPE);
             done();
           }, LONG_TIMEOUT);
         });
 
         it('should set userId after the response with no stored value, consent override', function (done) {
-          ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true });
+          const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true });
 
           sinon.assert.calledOnce(ajaxStub);
-          expect(ID5.userId).to.be.undefined;
-          expect(ID5.linkType).to.be.undefined;
+          expect(id5Status.getUserId()).to.be.undefined;
+          expect(id5Status.getLinkType()).to.be.undefined;
 
           setTimeout(() => {
-            expect(ID5.userId).to.be.equal(TEST_RESPONSE_ID5ID);
-            expect(ID5.linkType).to.be.equal(TEST_RESPONSE_LINK_TYPE);
+            expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
+            expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
             expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(JSON_RESPONSE_ID5_CONSENT);
             expect(utils.getFromLocalStorage(TEST_PRIVACY_STORAGE_CONFIG)).to.be.eq(TEST_PRIVACY_ALLOWED);
             done();
@@ -1891,15 +1856,15 @@ describe('ID5 JS API', function () {
         it('should set userId after the response with no stored value, consent in privacy data', function (done) {
           utils.setInLocalStorage(TEST_PRIVACY_STORAGE_CONFIG, TEST_PRIVACY_ALLOWED);
 
-          ID5.init({ partnerId: TEST_ID5_PARTNER_ID });
+          const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID });
 
           sinon.assert.calledOnce(ajaxStub);
-          expect(ID5.userId).to.be.undefined;
-          expect(ID5.linkType).to.be.undefined;
+          expect(id5Status.getUserId()).to.be.undefined;
+          expect(id5Status.getLinkType()).to.be.undefined;
 
           setTimeout(() => {
-            expect(ID5.userId).to.be.equal(TEST_RESPONSE_ID5ID);
-            expect(ID5.linkType).to.be.equal(TEST_RESPONSE_LINK_TYPE);
+            expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
+            expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
             expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(JSON_RESPONSE_ID5_CONSENT);
             expect(utils.getFromLocalStorage(TEST_PRIVACY_STORAGE_CONFIG)).to.be.eq(TEST_PRIVACY_ALLOWED);
             done();
@@ -1909,15 +1874,15 @@ describe('ID5 JS API', function () {
         it('should set userId immediately and update it after response received with stored value, consent override', function (done) {
           utils.setInLocalStorage(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON);
           utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, Date.now() - (8000 * 1000));
-          ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true, refreshInSeconds: 10 });
+          const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true, refreshInSeconds: 10 });
 
           sinon.assert.calledOnce(ajaxStub);
-          expect(ID5.userId).to.be.equal(TEST_STORED_ID5ID);
-          expect(ID5.linkType).to.be.equal(TEST_STORED_LINK_TYPE);
+          expect(id5Status.getUserId()).to.be.equal(TEST_STORED_ID5ID);
+          expect(id5Status.getLinkType()).to.be.equal(TEST_STORED_LINK_TYPE);
 
           setTimeout(() => {
-            expect(ID5.userId).to.be.equal(TEST_RESPONSE_ID5ID);
-            expect(ID5.linkType).to.be.equal(TEST_RESPONSE_LINK_TYPE);
+            expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
+            expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
             expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(JSON_RESPONSE_ID5_CONSENT);
             expect(utils.getFromLocalStorage(TEST_PRIVACY_STORAGE_CONFIG)).to.be.eq(TEST_PRIVACY_ALLOWED);
             done();
@@ -1929,15 +1894,15 @@ describe('ID5 JS API', function () {
           utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, Date.now() - (8000 * 1000));
           utils.setInLocalStorage(TEST_PRIVACY_STORAGE_CONFIG, TEST_PRIVACY_ALLOWED);
 
-          ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true, refreshInSeconds: 10 });
+          const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true, refreshInSeconds: 10 });
 
           sinon.assert.calledOnce(ajaxStub);
-          expect(ID5.userId).to.be.equal(TEST_STORED_ID5ID);
-          expect(ID5.linkType).to.be.equal(TEST_STORED_LINK_TYPE);
+          expect(id5Status.getUserId()).to.be.equal(TEST_STORED_ID5ID);
+          expect(id5Status.getLinkType()).to.be.equal(TEST_STORED_LINK_TYPE);
 
           setTimeout(() => {
-            expect(ID5.userId).to.be.equal(TEST_RESPONSE_ID5ID);
-            expect(ID5.linkType).to.be.equal(TEST_RESPONSE_LINK_TYPE);
+            expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
+            expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
             expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(JSON_RESPONSE_ID5_CONSENT);
             expect(utils.getFromLocalStorage(TEST_PRIVACY_STORAGE_CONFIG)).to.be.eq(TEST_PRIVACY_ALLOWED);
             done();
@@ -1956,15 +1921,15 @@ describe('ID5 JS API', function () {
         })
 
         it('should set userId after the response with no stored value, consent override', function (done) {
-          ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true });
+          const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true });
 
           sinon.assert.calledOnce(ajaxStub);
-          expect(ID5.userId).to.be.undefined;
-          expect(ID5.linkType).to.be.undefined;
+          expect(id5Status.getUserId()).to.be.undefined;
+          expect(id5Status.getLinkType()).to.be.undefined;
 
           setTimeout(() => {
-            expect(ID5.userId).to.be.equal(TEST_RESPONSE_ID5ID);
-            expect(ID5.linkType).to.be.equal(TEST_RESPONSE_LINK_TYPE);
+            expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
+            expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
             expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(JSON_RESPONSE_NO_ID5_CONSENT);
             expect(utils.getFromLocalStorage(TEST_PRIVACY_STORAGE_CONFIG)).to.be.eq(TEST_PRIVACY_DISALLOWED);
             done();
@@ -1974,15 +1939,15 @@ describe('ID5 JS API', function () {
         it('should set userId after the response with no stored value, consent in privacy data', function (done) {
           utils.setInLocalStorage(TEST_PRIVACY_STORAGE_CONFIG, TEST_PRIVACY_ALLOWED);
 
-          ID5.init({ partnerId: TEST_ID5_PARTNER_ID });
+          const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID });
 
           sinon.assert.calledOnce(ajaxStub);
-          expect(ID5.userId).to.be.undefined;
-          expect(ID5.linkType).to.be.undefined;
+          expect(id5Status.getUserId()).to.be.undefined;
+          expect(id5Status.getLinkType()).to.be.undefined;
 
           setTimeout(() => {
-            expect(ID5.userId).to.be.equal(TEST_RESPONSE_ID5ID);
-            expect(ID5.linkType).to.be.equal(TEST_RESPONSE_LINK_TYPE);
+            expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
+            expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
             expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.null;
             expect(utils.getFromLocalStorage(TEST_PRIVACY_STORAGE_CONFIG)).to.be.eq(TEST_PRIVACY_DISALLOWED);
             done();
@@ -1992,15 +1957,15 @@ describe('ID5 JS API', function () {
         it('should set userId immediately and update it after response received with stored value, consent override', function (done) {
           utils.setInLocalStorage(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON);
           utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, Date.now() - (8000 * 1000));
-          ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true, refreshInSeconds: 10 });
+          const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true, refreshInSeconds: 10 });
 
           sinon.assert.calledOnce(ajaxStub);
-          expect(ID5.userId).to.be.equal(TEST_STORED_ID5ID);
-          expect(ID5.linkType).to.be.equal(TEST_STORED_LINK_TYPE);
+          expect(id5Status.getUserId()).to.be.equal(TEST_STORED_ID5ID);
+          expect(id5Status.getLinkType()).to.be.equal(TEST_STORED_LINK_TYPE);
 
           setTimeout(() => {
-            expect(ID5.userId).to.be.equal(TEST_RESPONSE_ID5ID);
-            expect(ID5.linkType).to.be.equal(TEST_RESPONSE_LINK_TYPE);
+            expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
+            expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
             expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(JSON_RESPONSE_NO_ID5_CONSENT);
             expect(utils.getFromLocalStorage(TEST_PRIVACY_STORAGE_CONFIG)).to.be.eq(TEST_PRIVACY_DISALLOWED);
             done();
@@ -2012,15 +1977,15 @@ describe('ID5 JS API', function () {
           utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, Date.now() - (8000 * 1000));
           utils.setInLocalStorage(TEST_PRIVACY_STORAGE_CONFIG, TEST_PRIVACY_ALLOWED);
 
-          ID5.init({ partnerId: TEST_ID5_PARTNER_ID, refreshInSeconds: 10 });
+          const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID, refreshInSeconds: 10 });
 
           sinon.assert.calledOnce(ajaxStub);
-          expect(ID5.userId).to.be.equal(TEST_STORED_ID5ID);
-          expect(ID5.linkType).to.be.equal(TEST_STORED_LINK_TYPE);
+          expect(id5Status.getUserId()).to.be.equal(TEST_STORED_ID5ID);
+          expect(id5Status.getLinkType()).to.be.equal(TEST_STORED_LINK_TYPE);
 
           setTimeout(() => {
-            expect(ID5.userId).to.be.equal(TEST_RESPONSE_ID5ID);
-            expect(ID5.linkType).to.be.equal(TEST_RESPONSE_LINK_TYPE);
+            expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
+            expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
             expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.null;
             expect(utils.getFromLocalStorage(TEST_PRIVACY_STORAGE_CONFIG)).to.be.eq(TEST_PRIVACY_DISALLOWED);
             done();
@@ -2035,11 +2000,11 @@ describe('ID5 JS API', function () {
           utils.setInLocalStorage(TEST_CONSENT_DATA_STORAGE_CONFIG, 'consent_data');
           utils.setInLocalStorage(TEST_PRIVACY_STORAGE_CONFIG, TEST_PRIVACY_ALLOWED);
 
-          ID5.init({ partnerId: TEST_ID5_PARTNER_ID, pd: 'pd', refreshInSeconds: 10 });
+          const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID, pd: 'pd', refreshInSeconds: 10 });
 
           sinon.assert.calledOnce(ajaxStub);
-          expect(ID5.userId).to.be.equal(TEST_STORED_ID5ID);
-          expect(ID5.linkType).to.be.equal(TEST_STORED_LINK_TYPE);
+          expect(id5Status.getUserId()).to.be.equal(TEST_STORED_ID5ID);
+          expect(id5Status.getLinkType()).to.be.equal(TEST_STORED_LINK_TYPE);
           expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(STORED_JSON);
           expect(utils.getFromLocalStorage(TEST_LAST_STORAGE_CONFIG)).to.not.be.null;
           expect(utils.getFromLocalStorage(TEST_NB_STORAGE_CONFIG)).to.not.be.null;
@@ -2048,8 +2013,8 @@ describe('ID5 JS API', function () {
           expect(utils.getFromLocalStorage(TEST_PRIVACY_STORAGE_CONFIG)).to.be.eq(TEST_PRIVACY_ALLOWED);
 
           setTimeout(() => {
-            expect(ID5.userId).to.be.equal(TEST_RESPONSE_ID5ID);
-            expect(ID5.linkType).to.be.equal(TEST_RESPONSE_LINK_TYPE);
+            expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
+            expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
             expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.null;
             expect(utils.getFromLocalStorage(TEST_LAST_STORAGE_CONFIG)).to.be.null;
             expect(utils.getFromLocalStorage(TEST_NB_STORAGE_CONFIG)).to.be.null;
@@ -2071,8 +2036,6 @@ describe('ID5 JS API', function () {
       utils.removeFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG);
       utils.removeFromLocalStorage(TEST_LAST_STORAGE_CONFIG);
       utils.removeFromLocalStorage(TEST_FS_STORAGE_CONFIG);
-      ID5.userId = undefined;
-      ID5.linkType = undefined;
     });
     beforeEach(function () {
       syncStub = sinon.stub(utils, 'deferPixelFire').callsFake(function(url, initCallback, callback) {
@@ -2090,8 +2053,6 @@ describe('ID5 JS API', function () {
       utils.removeFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG);
       utils.removeFromLocalStorage(TEST_LAST_STORAGE_CONFIG);
       utils.removeFromLocalStorage(TEST_FS_STORAGE_CONFIG);
-      ID5.userId = undefined;
-      ID5.linkType = undefined;
     });
 
     describe('Without Calling ID5', function () {
@@ -2320,7 +2281,7 @@ describe('ID5 JS API', function () {
 
   describe('A/B Testing', function () {
     let ajaxStub;
-    let exposeIdStub;
+    let isInControlGroupStub;
 
     before(function () {
       utils.removeFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG);
@@ -2340,12 +2301,9 @@ describe('ID5 JS API', function () {
     });
 
     describe('Function Availability', function() {
-      it('should have function ID5.exposeId', function() {
-        expect(ID5.exposeId).to.be.a('function');
-      });
-
-      it('should set exposeId to true without any config', function() {
-        expect(ID5.exposeId()).to.be.true;
+      it('should set exposeUserId to true without any config', function() {
+        const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID });
+        expect(id5Status.exposeUserId()).to.be.true;
       });
     });
 
@@ -2357,34 +2315,34 @@ describe('ID5 JS API', function () {
       };
 
       beforeEach(function () {
-        exposeIdStub = sinon.stub(ID5, 'exposeId').callsFake(function() {
-          return true;
+        isInControlGroupStub = sinon.stub(abTesting, 'isInControlGroup').callsFake(() => {
+          return false;
         });
       });
       afterEach(function () {
-        exposeIdStub.restore();
+        isInControlGroupStub.restore();
       });
 
       it('should expose ID5.userId from a server response', function () {
-        ID5.init(apiConfig);
+        const id5Status = ID5.init(apiConfig);
 
         sinon.assert.calledOnce(ajaxStub);
-        expect(ID5.userId).to.be.equal(TEST_RESPONSE_ID5ID);
-        expect(ID5.linkType).to.be.equal(TEST_RESPONSE_LINK_TYPE);
+        expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
+        expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
         expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(JSON_RESPONSE_ID5_CONSENT);
-        expect(ID5.exposeId()).to.be.true;
+        expect(id5Status.exposeUserId()).to.be.true;
       });
 
       it('should expose ID5.userId from a stored response', function () {
         utils.setInLocalStorage(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON);
         utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, Date.now());
 
-        ID5.init(apiConfig);
+        const id5Status = ID5.init(apiConfig);
 
         sinon.assert.notCalled(ajaxStub);
-        expect(ID5.userId).to.be.equal(TEST_STORED_ID5ID);
-        expect(ID5.linkType).to.be.equal(TEST_STORED_LINK_TYPE);
-        expect(ID5.exposeId()).to.be.true;
+        expect(id5Status.getUserId()).to.be.equal(TEST_STORED_ID5ID);
+        expect(id5Status.getLinkType()).to.be.equal(TEST_STORED_LINK_TYPE);
+        expect(id5Status.exposeUserId()).to.be.true;
       });
     });
 
@@ -2396,34 +2354,34 @@ describe('ID5 JS API', function () {
       };
 
       beforeEach(function () {
-        exposeIdStub = sinon.stub(ID5, 'exposeId').callsFake(function() {
-          return false;
+        isInControlGroupStub = sinon.stub(abTesting, 'isInControlGroup').callsFake(() => {
+          return true;
         });
       });
       afterEach(function () {
-        exposeIdStub.restore();
+        isInControlGroupStub.restore();
       });
 
       it('should not expose ID5.userId from a server response', function () {
-        ID5.init(apiConfig);
+        const id5Status = ID5.init(apiConfig);
 
         sinon.assert.calledOnce(ajaxStub);
-        expect(ID5.userId).to.be.equal(TEST_CONTROL_GROUP_VALUE);
-        expect(ID5.linkType).to.be.equal(TEST_CONTROL_GROUP_VALUE);
+        expect(id5Status.getUserId()).to.be.equal(TEST_CONTROL_GROUP_USERID);
+        expect(id5Status.getLinkType()).to.be.equal(TEST_CONTROL_GROUP_LINKTYPE);
         expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(JSON_RESPONSE_ID5_CONSENT);
-        expect(ID5.exposeId()).to.be.false;
+        expect(id5Status.exposeUserId()).to.be.false;
       });
 
       it('should not expose ID5.userId from a stored response', function () {
         utils.setInLocalStorage(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON);
         utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, Date.now());
 
-        ID5.init(apiConfig);
+        const id5Status = ID5.init(apiConfig);
 
         sinon.assert.notCalled(ajaxStub);
-        expect(ID5.userId).to.be.equal(TEST_CONTROL_GROUP_VALUE);
-        expect(ID5.linkType).to.be.equal(TEST_CONTROL_GROUP_VALUE);
-        expect(ID5.exposeId()).to.be.false;
+        expect(id5Status.getUserId()).to.be.equal(TEST_CONTROL_GROUP_USERID);
+        expect(id5Status.getLinkType()).to.be.equal(TEST_CONTROL_GROUP_LINKTYPE);
+        expect(id5Status.exposeUserId()).to.be.false;
       });
     });
   });

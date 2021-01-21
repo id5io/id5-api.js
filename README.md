@@ -56,7 +56,7 @@ Install the ID5 API after your CMP (if applicable), but as high in the `HEAD` as
 ```html
 <script src="/path/to/js/id5-api.js"></script>
 <script>
-  ID5.init({partnerId: 173}); // modify with your own partnerId
+  var id5Status = ID5.init({partnerId: 173}); // modify with your own partnerId, beware of scope of id5Status
 </script>
 ```
 -->
@@ -67,7 +67,9 @@ Install the ID5 API after your CMP (if applicable), but as high in the `HEAD` as
 
 <script src="https://cdn.id5-sync.com/api/0.9/id5-api.js"></script>
 <script>
-  ID5.init({partnerId: 173}); // modify with your own partnerId
+  (function() {
+    var id5Status = ID5.init({partnerId: 173}); // modify with your own partnerId, beware of scope of id5Status
+  })();
 </script>
 ```
 
@@ -75,7 +77,7 @@ Retrieve the ID5 ID anywhere on your page
 
 ```html
 <script>
-  var id5Id = ID5.userId;
+  var id5Id = id5Status.getUserId();
 </script>
 ```
 
@@ -146,25 +148,25 @@ After loading the script, you must initialize the API with the `ID5.init()` meth
 
 ```html
 <script>
-  ID5.init({partnerId: 173}); // modify with your own partnerId
+  var id5Status = ID5.init({partnerId: 173}); // modify with your own partnerId, beware to scope the variable status to avoid collisions
   ...
 </script>
 ```
 
 ### Access the ID5 Universal ID
 
-Once the API has been loaded and initialized, the ID5 Universal ID can be accessed by any javascript on the page, including Prebid.js, your ad tags, or pixels and scripts from third party vendors, with the ID5.userId variable.
+Once the API has been loaded and initialized, the ID5 Universal ID can be accessed by any javascript on the page, including Prebid.js, your ad tags, or pixels and scripts from third party vendors, with the `id5Status.getUserId()` method.
 
 ```html
 <script>
   ...
-  var id5Id = ID5.userId;
+  var id5Id = id5Status.getUserId();
 </script>
 ```
 
-The `ID5.userId` variable always exists (once the API is loaded) and will return immediately with a value. If there is no ID available yet, the `ID5.userId` will return a value of `undefined`.
+The `id5Status.getUserId()` variable always answers (once the API is loaded) and will return immediately with a value. If there is no ID available yet, the `status.getUserId()` will return a value of `undefined`.
 
-There are a few cases in which `ID5.userId` may not be ready or have a value:
+There are a few cases in which `id5Status.getUserId()` may not be ready or have a value:
 
 * There is no locally cached version of the ID and no response has been received yet from the ID5 servers (where the ID is generated)
 * The CMP has not finished loading or gathering consent from the user, so no ID can be retrieved
@@ -183,8 +185,9 @@ There are a few cases in which `ID5.userId` may not be ready or have a value:
 | partnerUserId | Optional | string | | User ID of the platform if they are deploying this API on behalf of a publisher, to be used for cookie syncing with ID5 |
 | pd | Optional | string | | Publisher-supplied data used for linking ID5 IDs across domains. See [Generating Publisher Data String](#generating-publisher-data-string) below for details on generating the string |
 | refreshInSeconds | Optional | integer | `7200`<br>(2 hours) | Refresh period of first-party cookie |
-| callback | Optional | function | | Function to call back when `ID5.userId` is available. If `callbackTimeoutInMs` is not provided, `callback` will be fired only if and when `ID5.userId` is available. The callback does not take any parameters |
-| callbackTimeoutInMs | Optional | integer | | Delay in ms after which the `callback` is guaranteed to be fired. `ID5.userId` may not be available at this time. |
+| callbackOnAvailable | Optional | function | | Function to call back when `userId` is available. If `callbackTimeoutInMs` is not provided, `callbackOnAvailable` will be fired only if and once when `userId` is available. The function receive the id5Status as parameter. |
+| callbackOnUpdates | Optional | function | | Function to call back on further updates of `userId` by changes in the page (consent, pd, refresh). The function receive the id5Status as parameter. Cannot be provided if `callbackOnAvailable` is not provided. |
+| callbackTimeoutInMs | Optional | integer | | Delay in ms after which the `callbackOnAvailable` is guaranteed to be fired. `userId` may not be available at this time. |
 | tpids | Optional | array | | An array of third party IDs that can be passed to usersync with ID5. Contact your ID5 representative to enable this. |
 | abTesting | Optional | object | `{ enabled: false, controlGroupPct: 0 }` | Enables A/B testing of the ID5 ID. See [A/B Testing](#ab-testing) below for more details |
 
@@ -223,7 +226,7 @@ MT1iNTBjYTA4MjcxNzk1YThlN2U0MDEyODEzZjIzZDUwNTE5M2Q3NWMwZjJlMmJiOTliYWE2M2FhODIy
 This is the value you will add to the config when you initialize the API:
 
 ```javascript
-ID5.init({
+var id5Status = ID5.init({
   partnerId: 173, // modify with your own partnerId
   pd: "MT1iNTBjYTA4MjcxNzk1YThlN2U0MDEyODEzZjIzZDUwNTE5M2Q3NWMwZjJlMmJiOTliYWE2M2FhODIyZjY2ZWQzJjU9QUJDMTIz"
 });
@@ -233,7 +236,7 @@ ID5.init({
 
 Publishers may want to test the value of the ID5 ID with their downstream partners. While there are various ways to do this, A/B testing is a standard approach. Instead of publishers manually enabling or disabling the ID5 API based on their control group settings (which leads to fewer calls to ID5, reducing our ability to recognize the user), we have baked this in to the API itself.
 
-To turn on A/B Testing, simply edit the configuration (see below) to enable it and set what percentage of requests you would like to set for the control group. The control group is the set of requests where an ID5 ID will not be exposed in the `ID5.userId` variable - this variable will be set to `0` for the control group. It's important to note that the control group is request based, and not user based. In other words, from one page view to another, a user may be in or out of the control group.
+To turn on A/B Testing, simply edit the configuration (see below) to enable it and set what percentage of requests you would like to set for the control group. The control group is the set of requests where an ID5 ID will not be exposed in `id5Status.getUserId()` - this method will return `0` for the control group. It's important to note that the control group is request based, and not user based. In other words, from one page view to another, a user may be in or out of the control group.
 
 The configuration object for `abTesting` contains two variables:
 
@@ -247,15 +250,13 @@ The configuration object for `abTesting` contains two variables:
 
 | Name | Type | Return Type | Description |
 | --- | --- | --- | --- |
-| ID5.userId | variable | string | The ID5 Universal ID value. If not set yet, returns `undefined` |
-| ID5.linkType | variable | integer | Indicates the type of connection ID5 has made with this ID across domains. Possible values are: `0` = ID5 has not linked this user across domains (i.e. `original_uid` == `universal_uid`); `1` = ID5 has made a probabilistic link to another UID; `2` = ID5 has made a deterministic link to another UID. If `ID5.userId` is not set yet, returns `undefined` |
-| ID5.fromCache| variable | boolean | Indicates whether the `ID5.userId` value is from cache (when set to `true`) or from a server response (when set to `false`). If `ID5.userId` is not set yet, returns `undefined` |
+| ID5.init({}) | method | n/a | Takes a config object as the only parameter and initializes the API with these configuration options, returns a `Id5Status` object|
+| ID5.refreshId(id5Status, boolean, {}) | method | n/a | A method to refresh the ID without reloading the page. Must come _after_ the `init()` method is called. First parameter is a boolean, set to `true` to force a fetch call to ID5, set to `false` to only call ID5 if necessary. The second parameter is a config object to add/change options prior to refreshing the ID. If a `callbackOnUpdates` method is defined in the configuration, it will be called at least for every `refreshId` call that is made. |
 | ID5.loaded | variable | boolean | This variable will be set to `true` once the API is loaded and ready for use |
-| ID5.initialized | variable | boolean | This variable will be set to `true` once the `init()` method has been called; `false` before |
-| ID5.callbackFired | variable | boolean | This variable will be set to `true` once the `callback` function has been scheduled, if applicable; `false` before and if no `callback` is defined |
-| ID5.init({}) | method | n/a | Takes a config object as the only parameter and initializes the API with these configuration options |
-| ID5.refreshId(boolean, {}) | method | n/a | A method to refresh the ID without reloading the page. Must come _after_ the `init()` method is called. First parameter is a boolean, set to `true` to force a fetch call to ID5, set to `false` to only call ID5 if necessary. The second parameter is a config object to add/change options prior to refreshing the ID. If a callback method is defined in the configuration, it will be called once for `init` and once for every `refreshId` call that is made. |
-| ID5.exposeId() | method | boolean | Applicable when [A/B Testing](#ab-testing) is turned on; when this method returns `true`, the request was not in the control group and `ID5.userId` is populated with the ID5 ID; when `false`, the request was considered as part of the control group and `ID5.userId` will be `0`. This method can be used to inform your reporting systems that an ID was available or not, instead of relying on the value of `ID5.userId` directly. |
+| id5Status.getUserId() | method | string | The ID5 Universal ID value. If not set yet, returns `undefined` |
+| id5Status.getLinkType() | method | number | Indicates the type of connection ID5 has made with this ID across domains. Possible values are: `0` = ID5 has not linked this user across domains (i.e. `original_uid` == `universal_uid`); `1` = ID5 has made a probabilistic link to another UID; `2` = ID5 has made a deterministic link to another UID. If `userId` is not set yet, returns `undefined` |
+| id5Status.isFromCache() | method | boolean | Indicates whether the `userId` value is from cache (when set to `true`) or from a server response (when set to `false`). If `userId` is not set yet, returns `undefined` |
+| id5Status.exposeUserId() | method | boolean | Applicable when [A/B Testing](#ab-testing) is turned on; when this method returns `true`, the request was not in the control group and `id5Status.getUserId()` is populated with the ID5 ID; when `false`, the request was considered as part of the control group and `id5Status.getUserId()` will be `0`. This method can be used to inform your reporting systems that an ID was available or not, instead of relying on the value of `id5Status.getUserId()` directly. |
 
 ### Examples
 
@@ -264,9 +265,9 @@ Default configuration options
 ```html
 <script src="/path/to/js/id5-api.js"></script>
 <script>
-  ID5.init({partnerId: 173}); // modify with your own partnerId
+  var id5Status = ID5.init({partnerId: 173}); // modify with your own partnerId
 
-  var id5Id = ID5.userId;
+  var id5Id = id5Status.getUserId();
 </script>
 ```
 
@@ -275,22 +276,22 @@ Setting some configuration options at initialization
 ```html
 <script src="/path/to/js/id5-api.js"></script>
 <script>
-  ID5.init({
+  var id5Status = ID5.init({
     partnerId: 173, // modify with your own partnerId
     refreshInSeconds: 3600,
   });
 
-  var id5Id = ID5.userId;
+  var id5Id = id5Status.getUserId();
 </script>
 ```
 
-Using a `callback` method to retrieve the ID5 ID
+Using a `callbackOnAvailable` method to retrieve the ID5 ID
 
 ```html
 <script src="/path/to/js/id5-api.js"></script>
 <script>
-  var id5Callback = function () {
-    var id5Id = ID5.userId;
+  var id5Callback = function (id5Status) {
+    var id5Id = id5Status.getUserId();
 
     // do something with the ID5 ID
     fireMyPixel(`https://pixel.url.com?id5id=${id5Id}`);
@@ -298,7 +299,7 @@ Using a `callback` method to retrieve the ID5 ID
 
   ID5.init({
     partnerId: 173, // modify with your own partnerId
-    callback: id5Callback
+    callbackOnAvailable: id5Callback
   });
 </script>
 ```
@@ -309,7 +310,7 @@ _(this setting must be enabled by ID5 before we will use the `tpids` array when 
 ```html
 <script src="/path/to/js/id5-api.js"></script>
 <script>
-  ID5.init({
+  var id5Status = ID5.init({
     partnerId: 173,   // modify with your own partnerId
     tpids: [
       {
@@ -319,7 +320,7 @@ _(this setting must be enabled by ID5 before we will use the `tpids` array when 
     ]
   });
 
-  var id5Id = ID5.userId;
+  var id5Id = id5Status.getUserId();
 </script>
 ```
 

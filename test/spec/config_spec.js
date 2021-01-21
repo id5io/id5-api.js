@@ -16,38 +16,42 @@ describe('config API', function () {
   });
 
   it('member functions', function () {
-    const config = new Config({});
+    const config = new Config({ partnerId: 44 });
     expect(config.updOptions).to.be.a('function');
     expect(config.getOptions).to.be.a('function');
     expect(config.getProvidedOptions).to.be.a('function');
-  });
-
-  it('getProvidedConfig returns an object', function () {
-    const config = new Config({});
+    expect(config.getOptions()).to.be.a('object');
     expect(config.getProvidedOptions()).to.be.a('object');
   });
 
+  it('Should throw if no partnerId', function () {
+    // eslint-disable-next-line no-unused-vars
+    expect(function() { const cfg = new Config({ debug: true }) }).to.throw();
+  });
+
   it('sets and gets a valid configuration property', function () {
-    const config = new Config({ refreshInSeconds: -1 });
+    const config = new Config({ partnerId: 44, refreshInSeconds: -1 });
     expect(config.getOptions().refreshInSeconds).to.equal(-1);
     expect(config.getProvidedOptions().refreshInSeconds).to.equal(-1);
   });
 
   it('sets and gets another valid configuration property', function () {
     const config = new Config({ partnerId: 999 });
+    expect(config.getOptions()).to.be.a('object');
+    expect(config.getProvidedOptions()).to.be.a('object');
     expect(config.getOptions().partnerId).to.equal(999);
     expect(config.getProvidedOptions().partnerId).to.equal(999);
   });
 
   it('sets and gets a invalid configuration property', function () {
-    const config = new Config({ foo: -1 });
+    const config = new Config({ partnerId: 44, foo: -1 });
     expect(config.getOptions().foo).to.not.equal(-1);
     expect(config.getProvidedOptions().foo).to.be.undefined;
   });
 
   it('only accepts objects', function () {
-    const config = new Config('invalid');
-    expect(config.getOptions()[0]).to.not.equal('i');
+    // eslint-disable-next-line no-new
+    expect(() => { new Config('invalid') }).to.throw();
   });
 
   it('sets multiple config properties in sequence', function () {
@@ -72,31 +76,31 @@ describe('config API', function () {
   });
 
   it('sets and gets a valid configuration property with invalid type', function () {
-    const config = new Config({ refreshInSeconds: -1 });
+    const config = new Config({ partnerId: 44, refreshInSeconds: -1 });
     config.updOptions({ refreshInSeconds: true });
-    config.updOptions({ callback: function() {} });
-    config.updOptions({ callback: -1 });
+    config.updOptions({ callbackOnAvailable: function() {} });
+    config.updOptions({ callbackOnAvailable: -1 });
     expect(config.getOptions().refreshInSeconds).to.equal(-1);
-    expect(config.getOptions().callback).to.be.a('function');
+    expect(config.getOptions().callbackOnAvailable).to.be.a('function');
     expect(config.getProvidedOptions().refreshInSeconds).to.equal(-1);
-    expect(config.getProvidedOptions().callback).to.be.a('function');
+    expect(config.getProvidedOptions().callbackOnAvailable).to.be.a('function');
   });
 
   it('overwrites existing config properties', function () {
-    const config = new Config({ refreshInSeconds: -1 });
+    const config = new Config({ partnerId: 44, refreshInSeconds: -1 });
     config.updOptions({ refreshInSeconds: 1 });
     expect(config.getOptions().refreshInSeconds).to.equal(1);
     expect(config.getProvidedOptions().refreshInSeconds).to.equal(1);
   });
 
   it('sets debugging', function () {
-    const config = new Config({ debug: true });
+    const config = new Config({ partnerId: 44, debug: true });
     expect(config.getOptions().debug).to.be.true;
     expect(config.getProvidedOptions().debug).to.be.true;
   });
 
   it('does not set providedConfig with default properties', function() {
-    const config = new Config({});
+    const config = new Config({ partnerId: 44 });
     expect(config.getProvidedOptions().refreshInSeconds).to.be.undefined;
   });
 
