@@ -134,7 +134,7 @@ export default class Config {
         this.options[topic] = options[topic];
         this.providedOptions[topic] = options[topic];
       } else {
-        utils.logError(`setConfig options ${topic} must be of type ${Config.configTypes[topic]} but was ${toString.call(options[topic])}`);
+        utils.logError(`updOptions options ${topic} must be of type ${Config.configTypes[topic]} but was ${toString.call(options[topic])}`);
       }
     });
   }
