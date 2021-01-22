@@ -34,7 +34,7 @@ const utils = require('./utils');
  * @property {number} [controlGroupPct] - Ratio of users in control group [0,1]
  */
 
-export class Config {
+export default class Config {
   /** @type {Id5Options} */
   options;
 
@@ -138,5 +138,3 @@ export class Config {
     });
   }
 }
-
-export default Config;

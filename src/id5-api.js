@@ -2,7 +2,7 @@
 
 import * as utils from './utils';
 import { getRefererInfo } from './refererDetection';
-import * as clientStore from './clientStore';
+import ClientStore from './clientStore';
 import ConsentManagement from './consentManagement';
 import Id5Status from './id5Status';
 
@@ -27,6 +27,8 @@ export class Id5Api {
   constructor() {
     this.loaded = true;
     this.referer = getRefererInfo();
+    const currentThis = this; // preserve this in callback
+    this.clientStore = new ClientStore(() => { return currentThis.localStorageAllowed });
   }
 
   /**
@@ -95,15 +97,15 @@ export class Id5Api {
 
     this.updateLocalStorageAllowed();
     if (this.localStorageAllowed) {
-      storedResponse = clientStore.getResponse();
-      storedDateTime = clientStore.getDateTime();
+      storedResponse = this.clientStore.getResponse();
+      storedDateTime = this.clientStore.getDateTime();
       refreshInSecondsHasElapsed = storedDateTime <= 0 || ((Date.now() - storedDateTime) > (options.refreshInSeconds * 1000));
-      nb = clientStore.getNb(options.partnerId);
-      pdHasChanged = !clientStore.storedPdMatchesPd(options.partnerId, options.pd);
+      nb = this.clientStore.getNb(options.partnerId);
+      pdHasChanged = !this.clientStore.storedPdMatchesPd(options.partnerId, options.pd);
     }
 
     if (!storedResponse) {
-      storedResponse = clientStore.getResponseFromLegacyCookie();
+      storedResponse = this.clientStore.getResponseFromLegacyCookie();
       refreshInSecondsHasElapsed = true; // Force a refresh if we have legacy cookie
     }
 
@@ -114,7 +116,7 @@ export class Id5Api {
       // use the stored response to make the ID available right away
 
       id5Status.setUserId(storedResponse.universal_uid, storedResponse.link_type || 0, true)
-      nb = clientStore.incNb(options.partnerId, nb);
+      nb = this.clientStore.incNb(options.partnerId, nb);
       cachedResponseUsed = true;
 
       utils.logInfo('ID5 User ID available from cache:', {
@@ -136,12 +138,12 @@ export class Id5Api {
       if (this.localStorageAllowed !== false) {
         utils.logInfo('Consent to access local storage is given: ', this.localStorageAllowed);
 
-        storedResponse = clientStore.getResponse() || clientStore.getResponseFromLegacyCookie();
+        storedResponse = this.clientStore.getResponse() || this.clientStore.getResponseFromLegacyCookie();
 
         // store hashed consent data and pd for future page loads
-        const consentHasChanged = !clientStore.storedConsentDataMatchesConsentData(consentData);
-        clientStore.putHashedConsentData(consentData);
-        clientStore.putHashedPd(options.partnerId, options.pd);
+        const consentHasChanged = !this.clientStore.storedConsentDataMatchesConsentData(consentData);
+        this.clientStore.putHashedConsentData(consentData);
+        this.clientStore.putHashedPd(options.partnerId, options.pd);
 
         // make a call to fetch a new ID5 ID if:
         // - there is no valid universal_uid or no signature in cache
@@ -202,21 +204,22 @@ export class Id5Api {
                     // @TODO: typeof responseObj.privacy === 'undefined' is only needed until fetch endpoint is updated and always returns a privacy object
                     // once it does, I don't see a reason to keep that part of the if clause
                     if (this.localStorageAllowed === true || typeof responseObj.privacy === 'undefined') {
-                      clientStore.putResponse(response);
-                      clientStore.setDateTime(Date.now());
-                      clientStore.setNb(options.partnerId, (cachedResponseUsed ? 0 : 1));
+                      this.clientStore.putResponse(response);
+                      this.clientStore.setDateTime(Date.now());
+                      this.clientStore.setNb(options.partnerId, (cachedResponseUsed ? 0 : 1));
                     } else {
-                      clientStore.clearAll(options.partnerId);
+                      this.clientStore.clearAll(options.partnerId);
                     }
                     // TEMPORARY until all clients have upgraded past v1.0.0
                     // remove cookies that were previously set
-                    clientStore.removeLegacyCookies(options.partnerId);
+                    this.clientStore.removeLegacyCookies(options.partnerId);
 
                     if (responseObj.cascade_needed === true && this.localStorageAllowed === true) {
                       const isSync = options.partnerUserId && options.partnerUserId.length > 0;
-                      const syncUrl = `https://id5-sync.com/${isSync ? 's' : 'i'}/${options.partnerId}/8.gif?id5id=${id5Status._userId}&fs=${clientStore.forceSync()}&o=api&${isSync ? 'puid=' + options.partnerUserId + '&' : ''}gdpr_consent=${gdprConsentString}&gdpr=${gdprApplies}`;
+                      const syncUrl = `https://id5-sync.com/${isSync ? 's' : 'i'}/${options.partnerId}/8.gif?id5id=${id5Status._userId}&fs=${this.clientStore.forceSync()}&o=api&${isSync ? 'puid=' + options.partnerUserId + '&' : ''}gdpr_consent=${gdprConsentString}&gdpr=${gdprApplies}`;
                       utils.logInfo('Opportunities to cascade available:', syncUrl);
-                      utils.deferPixelFire(syncUrl, undefined, clientStore.syncCallback);
+                      const thisClientStore = this.clientStore; // preserve this in callback
+                      utils.deferPixelFire(syncUrl, undefined, () => { thisClientStore.syncCallback() });
                     }
                   } else {
                     utils.logError('Invalid response from ID5 servers:', response);

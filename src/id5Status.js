@@ -6,7 +6,7 @@ import Config from './config';
 import * as abTesting from './abTesting';
 import * as utils from './utils';
 
-export class Id5Status {
+export default class Id5Status {
   timerId;
   /** @type boolean */
   _callbackFired = false;
@@ -158,5 +158,3 @@ export class Id5Status {
     }
   }
 }
-
-export default Id5Status;

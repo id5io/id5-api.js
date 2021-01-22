@@ -1,7 +1,7 @@
 import sinon from 'sinon';
 import CONSTANTS from 'src/constants.json';
 import * as utils from 'src/utils';
-import * as clientStore from 'src/clientStore';
+import ClientStore from '../../src/clientStore';
 import * as abTesting from '../../src/abTesting';
 
 require('src/id5-api.js');
@@ -96,10 +96,13 @@ describe('ID5 JS API', function () {
     'privacy': JSON.parse(TEST_PRIVACY_DISALLOWED)
   });
 
+  const testClientStore = new ClientStore(() => true);
+
   beforeEach(function () {
     ID5.debug = false;
     ID5.debugBypassConsent = false;
     ID5.allowLocalStorageWithoutConsentApi = false;
+    ID5.localStorageAllowed = false;
   });
 
   function resetAll() {
@@ -402,7 +405,7 @@ describe('ID5 JS API', function () {
             });
 
             it('should call id5 servers if empty stored consent data', function () {
-              clientStore.putHashedConsentData();
+              testClientStore.putHashedConsentData();
 
               ID5.init({ partnerId: TEST_ID5_PARTNER_ID, refreshInSeconds: 1000 });
 
@@ -410,7 +413,7 @@ describe('ID5 JS API', function () {
             });
 
             it('should call id5 servers if stored consent data does not match current consent', function () {
-              clientStore.putHashedConsentData({
+              testClientStore.putHashedConsentData({
                 gdprApplies: true,
                 consentString: 'storedconsentstring',
                 apiVersion: 1
@@ -422,7 +425,7 @@ describe('ID5 JS API', function () {
             });
 
             it('should not call id5 servers if stored consent data matches current consent', function () {
-              clientStore.putHashedConsentData({
+              testClientStore.putHashedConsentData({
                 gdprApplies: true,
                 consentString: 'cmpconsentstring',
                 apiVersion: 1
@@ -458,7 +461,7 @@ describe('ID5 JS API', function () {
             });
 
             it('should call id5 servers if empty stored consent data', function () {
-              clientStore.putHashedConsentData();
+              testClientStore.putHashedConsentData();
 
               ID5.init({ partnerId: TEST_ID5_PARTNER_ID, refreshInSeconds: 1000 });
 
@@ -466,7 +469,7 @@ describe('ID5 JS API', function () {
             });
 
             it('should call id5 servers if stored consent data does not match current consent', function () {
-              clientStore.putHashedConsentData({
+              testClientStore.putHashedConsentData({
                 gdprApplies: true,
                 consentString: 'storedconsentstring',
                 apiVersion: 2
@@ -478,7 +481,7 @@ describe('ID5 JS API', function () {
             });
 
             it('should not call id5 servers if stored consent data matches current consent', function () {
-              clientStore.putHashedConsentData({
+              testClientStore.putHashedConsentData({
                 gdprApplies: true,
                 consentString: 'cmpconsentstring',
                 apiVersion: 2
@@ -493,10 +496,10 @@ describe('ID5 JS API', function () {
 
         describe('Stored PD Changes', function () {
           before(function () {
-            clientStore.clearHashedPd(TEST_ID5_PARTNER_ID);
+            testClientStore.clearHashedPd(TEST_ID5_PARTNER_ID);
           });
           afterEach(function () {
-            clientStore.clearHashedPd(TEST_ID5_PARTNER_ID);
+            testClientStore.clearHashedPd(TEST_ID5_PARTNER_ID);
           });
 
           describe('With Consent Override', function() {
@@ -507,7 +510,7 @@ describe('ID5 JS API', function () {
             });
 
             it('should call id5 servers if empty stored pd data with consent override', function () {
-              clientStore.putHashedPd(TEST_ID5_PARTNER_ID, '');
+              testClientStore.putHashedPd(TEST_ID5_PARTNER_ID, '');
 
               ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true, refreshInSeconds: 1000, pd: 'requestpd' });
 
@@ -515,7 +518,7 @@ describe('ID5 JS API', function () {
             });
 
             it('should call id5 servers if stored pd data does not match current pd with consent override', function () {
-              clientStore.putHashedPd(TEST_ID5_PARTNER_ID, 'storedpd');
+              testClientStore.putHashedPd(TEST_ID5_PARTNER_ID, 'storedpd');
 
               ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true, refreshInSeconds: 1000, pd: 'requestpd' });
 
@@ -523,7 +526,7 @@ describe('ID5 JS API', function () {
             });
 
             it('should not call id5 servers if stored pd data matches current pd with consent override', function () {
-              clientStore.putHashedPd(TEST_ID5_PARTNER_ID, 'storedpd');
+              testClientStore.putHashedPd(TEST_ID5_PARTNER_ID, 'storedpd');
 
               ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true, refreshInSeconds: 1000, pd: 'storedpd' });
 
@@ -533,7 +536,7 @@ describe('ID5 JS API', function () {
 
           describe('With Consent From Privacy Storage', function() {
             it('should call id5 servers if empty stored pd data with consent from privacy storage', function () {
-              clientStore.putHashedPd(TEST_ID5_PARTNER_ID);
+              testClientStore.putHashedPd(TEST_ID5_PARTNER_ID);
 
               ID5.init({ partnerId: TEST_ID5_PARTNER_ID, refreshInSeconds: 1000, pd: 'requestpd' });
 
@@ -541,7 +544,7 @@ describe('ID5 JS API', function () {
             });
 
             it('should call id5 servers if stored pd data does not match current pd with consent from privacy storage', function () {
-              clientStore.putHashedPd(TEST_ID5_PARTNER_ID, 'storedpd');
+              testClientStore.putHashedPd(TEST_ID5_PARTNER_ID, 'storedpd');
 
               ID5.init({ partnerId: TEST_ID5_PARTNER_ID, refreshInSeconds: 1000, pd: 'requestpd' });
 
@@ -549,7 +552,7 @@ describe('ID5 JS API', function () {
             });
 
             it('should not call id5 servers if stored pd data matches current pd with consent from privacy storage', function () {
-              clientStore.putHashedPd(TEST_ID5_PARTNER_ID, 'storedpd');
+              testClientStore.putHashedPd(TEST_ID5_PARTNER_ID, 'storedpd');
 
               ID5.init({ partnerId: TEST_ID5_PARTNER_ID, refreshInSeconds: 1000, pd: 'storedpd' });
 
@@ -858,7 +861,7 @@ describe('ID5 JS API', function () {
             });
 
             it('should call id5 servers if empty stored consent data', function () {
-              clientStore.putHashedConsentData();
+              testClientStore.putHashedConsentData();
 
               ID5.init({ partnerId: TEST_ID5_PARTNER_ID, refreshInSeconds: 1000 });
 
@@ -866,7 +869,7 @@ describe('ID5 JS API', function () {
             });
 
             it('should call id5 servers if stored consent data does not match current consent', function () {
-              clientStore.putHashedConsentData({
+              testClientStore.putHashedConsentData({
                 gdprApplies: true,
                 consentString: 'storedconsentstring',
                 apiVersion: 1
@@ -878,7 +881,7 @@ describe('ID5 JS API', function () {
             });
 
             it('should call id5 servers even if stored consent data matches current consent', function () {
-              clientStore.putHashedConsentData({
+              testClientStore.putHashedConsentData({
                 gdprApplies: true,
                 consentString: 'cmpconsentstring',
                 apiVersion: 1
@@ -914,7 +917,7 @@ describe('ID5 JS API', function () {
             });
 
             it('should call id5 servers if empty stored consent data', function () {
-              clientStore.putHashedConsentData();
+              testClientStore.putHashedConsentData();
 
               ID5.init({ partnerId: TEST_ID5_PARTNER_ID, refreshInSeconds: 1000 });
 
@@ -922,7 +925,7 @@ describe('ID5 JS API', function () {
             });
 
             it('should call id5 servers if stored consent data does not match current consent', function () {
-              clientStore.putHashedConsentData({
+              testClientStore.putHashedConsentData({
                 gdprApplies: true,
                 consentString: 'storedconsentstring',
                 apiVersion: 2
@@ -934,7 +937,7 @@ describe('ID5 JS API', function () {
             });
 
             it('should call id5 servers even if stored consent data matches current consent', function () {
-              clientStore.putHashedConsentData({
+              testClientStore.putHashedConsentData({
                 gdprApplies: true,
                 consentString: 'cmpconsentstring',
                 apiVersion: 2
@@ -956,7 +959,7 @@ describe('ID5 JS API', function () {
           });
 
           it('should call id5 servers if empty stored pd data', function () {
-            clientStore.putHashedPd(TEST_ID5_PARTNER_ID);
+            testClientStore.putHashedPd(TEST_ID5_PARTNER_ID);
 
             ID5.init({ partnerId: TEST_ID5_PARTNER_ID, refreshInSeconds: 1000, pd: 'requestpd' });
 
@@ -964,7 +967,7 @@ describe('ID5 JS API', function () {
           });
 
           it('should call id5 servers if stored pd data does not match current pd', function () {
-            clientStore.putHashedPd(TEST_ID5_PARTNER_ID, 'storedpd');
+            testClientStore.putHashedPd(TEST_ID5_PARTNER_ID, 'storedpd');
 
             ID5.init({ partnerId: TEST_ID5_PARTNER_ID, refreshInSeconds: 1000, pd: 'requestpd' });
 
@@ -972,7 +975,7 @@ describe('ID5 JS API', function () {
           });
 
           it('should call id5 servers even if stored pd data matches current pd', function () {
-            clientStore.putHashedPd(TEST_ID5_PARTNER_ID, 'storedpd');
+            testClientStore.putHashedPd(TEST_ID5_PARTNER_ID, 'storedpd');
 
             ID5.init({ partnerId: TEST_ID5_PARTNER_ID, refreshInSeconds: 1000, pd: 'storedpd' });
 
@@ -1996,7 +1999,7 @@ describe('ID5 JS API', function () {
           utils.setInLocalStorage(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON);
           utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, Date.now() - (8000 * 1000));
           utils.setInLocalStorage(TEST_NB_STORAGE_CONFIG, 1);
-          clientStore.putHashedPd(TEST_ID5_PARTNER_ID, 'pd');
+          testClientStore.putHashedPd(TEST_ID5_PARTNER_ID, 'pd');
           utils.setInLocalStorage(TEST_CONSENT_DATA_STORAGE_CONFIG, 'consent_data');
           utils.setInLocalStorage(TEST_PRIVACY_STORAGE_CONFIG, TEST_PRIVACY_ALLOWED);
 
