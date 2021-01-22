@@ -120,6 +120,7 @@ export default class Config {
   updOptions(options) {
     if (typeof options !== 'object') {
       utils.logError('Config options must be an object');
+      return;
     }
 
     if (typeof this.options.partnerId === 'number' &&
