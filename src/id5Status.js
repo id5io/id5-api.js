@@ -32,7 +32,7 @@ export default class Id5Status {
   }
 
   /** @param {Id5Options} options */
-  updOptions(options) {
+  updateOptions(options) {
     return this.config.updOptions(options);
   }
 

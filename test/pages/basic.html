@@ -38,7 +38,7 @@
         crossorigin="anonymous"></script>
 
 <!-- ID5 API -->
-<script type="text/javascript" src="../../build/dev/id5-api-debug.js"></script>
+<script type="text/javascript" src="../../build/dev/id5-api.js"></script>
 <script>
     ID5.debug = true;
     var id5Callback = function (id5Status) {
@@ -46,7 +46,7 @@
         i.src = "https://dummyimage.com/600x200?text=" + id5Status.getUserId();
         $('#placeholder').html(id5Status.getUserId() + '<br>').append(i);
     };
-    ID5.init({version: '2.0', partnerId: 173, callbackOnAvailable: id5Callback, callbackOnUpdate: id5Callback, refreshInSeconds: 15});
+    ID5.init({partnerId: 173, callbackOnAvailable: id5Callback, callbackOnUpdate: id5Callback, refreshInSeconds: 15});
 </script>
 <!-- /ID5 API -->
 

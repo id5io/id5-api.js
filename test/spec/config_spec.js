@@ -26,7 +26,7 @@ describe('config API', function () {
 
   it('Should throw if no partnerId', function () {
     // eslint-disable-next-line no-unused-vars
-    expect(function() { const cfg = new Config({ debug: true }) }).to.throw();
+    expect(function() { const cfg = new Config({ }) }).to.throw();
   });
 
   it('sets and gets a valid configuration property', function () {
@@ -91,12 +91,6 @@ describe('config API', function () {
     config.updOptions({ refreshInSeconds: 1 });
     expect(config.getOptions().refreshInSeconds).to.equal(1);
     expect(config.getProvidedOptions().refreshInSeconds).to.equal(1);
-  });
-
-  it('sets debugging', function () {
-    const config = new Config({ partnerId: 44, debug: true });
-    expect(config.getOptions().debug).to.be.true;
-    expect(config.getProvidedOptions().debug).to.be.true;
   });
 
   it('does not set providedConfig with default properties', function() {

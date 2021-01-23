@@ -181,7 +181,6 @@ There are a few cases in which `id5Status.getUserId()` may not be ready or have 
 | allowLocalStorageWithoutConsentApi | Optional | boolean | `false` | Tell ID5 that consent has been given to read local storage |
 | cmpApi | Optional | string | `iab` | API to use CMP. As of today, either 'iab' or 'static' |
 | consentData | Optional, Required if `cmpApi` is `'static'` | object | | Consent data if `cmpApi` is `'static'`. Object should contain the following:`{ getConsentData: { consentData: <consent_data>, gdprApplies: <true\|false> }}`
-| debug | Optional | boolean | `false` | Enable verbose debug mode (defaulting to `id5_debug` query string param if present, or `false`) |
 | partnerUserId | Optional | string | | User ID of the platform if they are deploying this API on behalf of a publisher, to be used for cookie syncing with ID5 |
 | pd | Optional | string | | Publisher-supplied data used for linking ID5 IDs across domains. See [Generating Publisher Data String](#generating-publisher-data-string) below for details on generating the string |
 | refreshInSeconds | Optional | integer | `7200`<br>(2 hours) | Refresh period of first-party cookie |
@@ -322,6 +321,13 @@ _(this setting must be enabled by ID5 before we will use the `tpids` array when 
 
   var id5Id = id5Status.getUserId();
 </script>
+```
+
+#### Enabling trace
+To enable trace, set ID5.debug to true before any call, or add a `id5_debug=true` query string param
+```javascript
+ID5.debug = true;
+var id5Status = ID5.init({ ... });
 ```
 
 ### Test locally

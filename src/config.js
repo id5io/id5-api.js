@@ -7,7 +7,6 @@ const utils = require('./utils');
 /**
  * @typedef {Object} Id5Options
  * @property {number} [partnerId] - ID5 Publisher ID, mandatory
- * @property {boolean|false} [debug] - enable verbose debug mode (defaulting to id5_debug query string param if present, or false)
  * @property {boolean|false} [debugBypassConsent] - Bypass consent API et local storage consent for testing purpose only
  * @property {boolean|false} [allowLocalStorageWithoutConsentApi] - Tell ID5 that consent has been given to read local storage
  * => and allowLocalStorageWithoutConsent (if enabled, then for everyone in the page), platform should not set
@@ -42,7 +41,6 @@ export default class Config {
   providedOptions;
 
   static configTypes = {
-    debug: 'Boolean',
     debugBypassConsent: 'Boolean',
     allowLocalStorageWithoutConsentApi: 'Boolean',
     cmpApi: 'String',
@@ -64,7 +62,6 @@ export default class Config {
    */
   constructor(options) {
     this.options = {
-      debug: utils.getParameterByName('id5_debug').toUpperCase() === 'TRUE',
       debugBypassConsent: false,
       allowLocalStorageWithoutConsentApi: false,
       cmpApi: 'iab',
@@ -123,10 +120,10 @@ export default class Config {
       return;
     }
 
-    if (typeof this.options.partnerId === 'number' &&
+    if (typeof this.options.partnerId === 'number' && // Might be undefined
       typeof options.partnerId === 'number' &&
       options.partnerId !== this.options.partnerId) {
-      throw new Error('Cannot update config with a different partentId');
+      throw new Error('Cannot update config with a different partnerId');
     }
 
     Object.keys(options).forEach(topic => {

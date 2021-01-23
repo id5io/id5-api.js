@@ -26,6 +26,7 @@ export class Id5Api {
 
   constructor() {
     this.loaded = true;
+    this.debug = this.debug || utils.getParameterByName('id5_debug').toUpperCase() === 'TRUE';
     this.referer = getRefererInfo();
     const currentThis = this; // preserve this in callback
     this.clientStore = new ClientStore(() => { return currentThis.localStorageAllowed });
@@ -42,13 +43,12 @@ export class Id5Api {
 
     try {
       utils.logInfo('Invoking Id5Api.init', arguments);
-      this.debug = this.debug || options.debug;
       const partnerStatus = new Id5Status(options);
       this.debugBypassConsent = this.debugBypassConsent || partnerStatus.getOptions().debugBypassConsent;
       this.allowLocalStorageWithoutConsentApi = this.allowLocalStorageWithoutConsentApi || partnerStatus.getOptions().allowLocalStorageWithoutConsentApi;
       this.consent = new ConsentManagement();
       this.getId(partnerStatus, false);
-      utils.logInfo(`ID5 initialized for partner ${partnerStatus.getOptions().partnerId} referer is ${this.referer.referer}`);
+      utils.logInfo(`ID5 initialized for partner ${partnerStatus.getOptions().partnerId} with referer ${this.referer.referer} and options`, options);
       return partnerStatus;
     } catch (e) {
       utils.logError('Exception caught from Id5Api.init', e);
@@ -69,7 +69,7 @@ export class Id5Api {
     try {
       utils.logInfo('Invoking Id5Api.refreshId', arguments);
       id5Status.cancelCallback();
-      id5Status.updOptions(options);
+      id5Status.updateOptions(options);
       this.consent.resetConsentData();
       this.getId(id5Status, forceFetch);
     } catch (e) {
@@ -127,7 +127,7 @@ export class Id5Api {
     } else if (storedResponse && storedResponse.universal_uid && pdHasChanged) {
       utils.logInfo('PD value has changed, so ignoring User ID from cache');
     } else if (storedResponse && !storedResponse.universal_uid) {
-      utils.logError('Invalid stored response: ', JSON.stringify(storedResponse));
+      utils.logError('Invalid stored response: ', storedResponse);
     } else {
       utils.logInfo('No ID5 User ID available from cache');
     }

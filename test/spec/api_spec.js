@@ -129,6 +129,7 @@ describe('ID5 JS API', function () {
       expect(ID5.loaded).to.be.true;
     });
     it('should be initialized', function () {
+      ID5.debug = true;
       const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID });
       expect(id5Status).to.exist;
     });

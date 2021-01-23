@@ -718,6 +718,7 @@ var Id5Api = /*#__PURE__*/function () {
     _defineProperty(this, "versions", {});
 
     this.loaded = true;
+    this.debug = this.debug || __WEBPACK_IMPORTED_MODULE_0__utils__["getParameterByName"]('id5_debug').toUpperCase() === 'TRUE';
     this.referer = Object(__WEBPACK_IMPORTED_MODULE_1__refererDetection__["a" /* getRefererInfo */])();
     var currentThis = this; // preserve this in callback
 
@@ -740,13 +741,12 @@ var Id5Api = /*#__PURE__*/function () {
 
       try {
         __WEBPACK_IMPORTED_MODULE_0__utils__["logInfo"]('Invoking Id5Api.init', arguments);
-        this.debug = this.debug || options.debug;
         var partnerStatus = new __WEBPACK_IMPORTED_MODULE_4__id5Status__["a" /* default */](options);
         this.debugBypassConsent = this.debugBypassConsent || partnerStatus.getOptions().debugBypassConsent;
         this.allowLocalStorageWithoutConsentApi = this.allowLocalStorageWithoutConsentApi || partnerStatus.getOptions().allowLocalStorageWithoutConsentApi;
         this.consent = new __WEBPACK_IMPORTED_MODULE_3__consentManagement__["a" /* default */]();
         this.getId(partnerStatus, false);
-        __WEBPACK_IMPORTED_MODULE_0__utils__["logInfo"]("ID5 initialized for partner ".concat(partnerStatus.getOptions().partnerId, " referer is ").concat(this.referer.referer));
+        __WEBPACK_IMPORTED_MODULE_0__utils__["logInfo"]("ID5 initialized for partner ".concat(partnerStatus.getOptions().partnerId, " with referer ").concat(this.referer.referer, " and options"), options);
         return partnerStatus;
       } catch (e) {
         __WEBPACK_IMPORTED_MODULE_0__utils__["logError"]('Exception caught from Id5Api.init', e);
@@ -773,7 +773,7 @@ var Id5Api = /*#__PURE__*/function () {
       try {
         __WEBPACK_IMPORTED_MODULE_0__utils__["logInfo"]('Invoking Id5Api.refreshId', arguments);
         id5Status.cancelCallback();
-        id5Status.updOptions(options);
+        id5Status.updateOptions(options);
         this.consent.resetConsentData();
         this.getId(id5Status, forceFetch);
       } catch (e) {
@@ -835,7 +835,7 @@ var Id5Api = /*#__PURE__*/function () {
       } else if (storedResponse && storedResponse.universal_uid && pdHasChanged) {
         __WEBPACK_IMPORTED_MODULE_0__utils__["logInfo"]('PD value has changed, so ignoring User ID from cache');
       } else if (storedResponse && !storedResponse.universal_uid) {
-        __WEBPACK_IMPORTED_MODULE_0__utils__["logError"]('Invalid stored response: ', JSON.stringify(storedResponse));
+        __WEBPACK_IMPORTED_MODULE_0__utils__["logError"]('Invalid stored response: ', storedResponse);
       } else {
         __WEBPACK_IMPORTED_MODULE_0__utils__["logInfo"]('No ID5 User ID available from cache');
       }
@@ -1280,7 +1280,7 @@ var ClientStore = /*#__PURE__*/function () {
         if (this.localStorageAllowedCallback() === true) {
           __WEBPACK_IMPORTED_MODULE_0__utils__["setInLocalStorage"](cacheConfig, data);
         } else {
-          __WEBPACK_IMPORTED_MODULE_0__utils__["logError"]('clientStore.get() has been called without localStorageAllowed');
+          __WEBPACK_IMPORTED_MODULE_0__utils__["logError"]('clientStore.put() has been called without localStorageAllowed');
         }
       } catch (e) {
         __WEBPACK_IMPORTED_MODULE_0__utils__["logError"](e);
@@ -1690,7 +1690,7 @@ var ConsentManagement = /*#__PURE__*/function () {
     key: "requestConsent",
     value: function requestConsent(debugBypassConsent, cmpApi, providedConsentData, finalCallback) {
       if (debugBypassConsent) {
-        __WEBPACK_IMPORTED_MODULE_0__utils__["logError"]('ID5 is operating in forced consent mode');
+        __WEBPACK_IMPORTED_MODULE_0__utils__["logError"]('ID5 is operating in forced consent mode and will not retrieve any consent signals from the CMP');
         finalCallback(this.consentData);
       } else if (!this.cmpCallMap[cmpApi]) {
         __WEBPACK_IMPORTED_MODULE_0__utils__["logError"]("Unknown consent API: ".concat(cmpApi));
@@ -1766,6 +1766,7 @@ var ConsentManagement = /*#__PURE__*/function () {
     key: "isLocalStorageAllowed",
     value: function isLocalStorageAllowed(allowLocalStorageWithoutConsentApi, debugBypassConsent) {
       if (allowLocalStorageWithoutConsentApi === true || debugBypassConsent === true) {
+        __WEBPACK_IMPORTED_MODULE_0__utils__["logError"]('Local storage access granted by configuration override, consent will not be checked');
         return true;
       } else if (!this.consentData) {
         // no cmp on page, so check if provisional access is allowed
@@ -1985,8 +1986,8 @@ var Id5Status = /*#__PURE__*/function () {
     /** @param {Id5Options} options */
 
   }, {
-    key: "updOptions",
-    value: function updOptions(options) {
+    key: "updateOptions",
+    value: function updateOptions(options) {
       return this.config.updOptions(options);
     }
     /**
@@ -2170,7 +2171,6 @@ var utils = __webpack_require__(0);
 /**
  * @typedef {Object} Id5Options
  * @property {number} [partnerId] - ID5 Publisher ID, mandatory
- * @property {boolean|false} [debug] - enable verbose debug mode (defaulting to id5_debug query string param if present, or false)
  * @property {boolean|false} [debugBypassConsent] - Bypass consent API et local storage consent for testing purpose only
  * @property {boolean|false} [allowLocalStorageWithoutConsentApi] - Tell ID5 that consent has been given to read local storage
  * => and allowLocalStorageWithoutConsent (if enabled, then for everyone in the page), platform should not set
@@ -2215,7 +2215,6 @@ var Config = /*#__PURE__*/function () {
     _defineProperty(this, "providedOptions", void 0);
 
     this.options = {
-      debug: utils.getParameterByName('id5_debug').toUpperCase() === 'TRUE',
       debugBypassConsent: false,
       allowLocalStorageWithoutConsentApi: false,
       cmpApi: 'iab',
@@ -2280,10 +2279,12 @@ var Config = /*#__PURE__*/function () {
 
       if (_typeof(options) !== 'object') {
         utils.logError('Config options must be an object');
+        return;
       }
 
-      if (typeof this.options.partnerId === 'number' && typeof options.partnerId === 'number' && options.partnerId !== this.options.partnerId) {
-        throw new Error('Cannot update config with a different partentId');
+      if (typeof this.options.partnerId === 'number' && // Might be undefined
+      typeof options.partnerId === 'number' && options.partnerId !== this.options.partnerId) {
+        throw new Error('Cannot update config with a different partnerId');
       }
 
       Object.keys(options).forEach(function (topic) {
@@ -2291,7 +2292,7 @@ var Config = /*#__PURE__*/function () {
           _this.options[topic] = options[topic];
           _this.providedOptions[topic] = options[topic];
         } else {
-          utils.logError("setConfig options ".concat(topic, " must be of type ").concat(Config.configTypes[topic], " but was ").concat(toString.call(options[topic])));
+          utils.logError("updOptions options ".concat(topic, " must be of type ").concat(Config.configTypes[topic], " but was ").concat(toString.call(options[topic])));
         }
       });
     }
@@ -2301,7 +2302,6 @@ var Config = /*#__PURE__*/function () {
 }();
 
 _defineProperty(Config, "configTypes", {
-  debug: 'Boolean',
   debugBypassConsent: 'Boolean',
   allowLocalStorageWithoutConsentApi: 'Boolean',
   cmpApi: 'String',

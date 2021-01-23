@@ -52,7 +52,7 @@ export default class ClientStore {
       if (this.localStorageAllowedCallback() === true) {
         utils.setInLocalStorage(cacheConfig, data);
       } else {
-        utils.logError('clientStore.get() has been called without localStorageAllowed')
+        utils.logError('clientStore.put() has been called without localStorageAllowed')
       }
     } catch (e) {
       utils.logError(e);
