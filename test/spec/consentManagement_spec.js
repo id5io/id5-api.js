@@ -20,7 +20,7 @@ describe('Consent Management TCFv1', function () {
   describe('requestConsent tests:', function () {
     let testConsentData = {
       getConsentData: {
-        gdprApplies: true,
+        'gdprApplies': true,
         'hasGlobalScope': false,
         'consentData': 'BOOgjO9OOgjO9APABAENAi-AAAAWd7_______9____7_9uz_Gv_r_ff_3nW0739P1A_r_Oz_rm_-zzV44_lpQQRCEA'
       },
