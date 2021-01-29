@@ -170,7 +170,7 @@ export default class ConsentManagement {
         if (utils.isPlainObject(providedConsentData)) {
           this.staticConsentData = providedConsentData;
         } else {
-          utils.logError(`cmpApi: 'static' did not specify consentData.`);
+          utils.logError(`cmpApi: 'static' did not specify consent data.`);
         }
       }
       this.cmpCallMap[cmpApi].call(this, ConsentManagement.cmpSuccess, finalCallback);
