@@ -177,9 +177,6 @@ export class Id5Api {
             'nbPage': nb,
             'id5cdn': (document.currentScript && document.currentScript.src && document.currentScript.src.indexOf('https://cdn.id5-sync.com') === 0)
           };
-          if (options.tpids && utils.isArray(options.tpids) && options.tpids.length > 0) {
-            data.tpids = options.tpids;
-          }
 
           utils.logInfo('Fetching ID5 user ID from:', url, data);
           if (forceFetch) {

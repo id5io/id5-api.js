@@ -164,11 +164,10 @@ There are a few cases in which `getUserId()` may not be ready or have a value ye
 | pd | Optional | string | | Partner-supplied data used for linking ID5 IDs across domains. See [Generating Partner Data String](#generating-partner-data-string) below for details on generating the string |
 | refreshInSeconds | Optional | integer | `7200`<br>(2 hours) | Refresh period of first-party local storage |
 | abTesting | Optional | object | `{ enabled: false, controlGroupPct: 0 }` | Enables A/B testing of the ID5 ID. See [A/B Testing](#ab-testing) below for more details |
-| tpids | Optional | array | | An array of third party IDs that can be passed to usersync with ID5. Contact your ID5 representative to enable this. |
 | callbackOnAvailable | Optional | function | | Function to call back when `userId` is available. If `callbackTimeoutInMs` is not provided, `callbackOnAvailable` will be fired only if and once when `userId` is available. The function receive the id5Status as parameter. |
 | callbackOnUpdates | Optional | function | | Function to call back on further updates of `userId` by changes in the page (consent, pd, refresh). The function receive the id5Status as parameter. Cannot be provided if `callbackOnAvailable` is not provided. |
 | callbackTimeoutInMs | Optional | integer | | Delay in ms after which the `callbackOnAvailable` is guaranteed to be fired. `userId` may not be available at this time. |
-<!-- TODO remove TPIDS and callback methods -->
+<!-- TODO remove callback methods -->
 
 #### Generating Partner Data String
 The `pd` field (short for Partner Data) is a base64 encoded string that contains any deterministic user data you have access to. The data will be used strictly to provide better linking of ID5 IDs across domains for improved user identification. If the user has not provided ID5 with a legal basis to process data, the information sent to ID5 will be ignored and neither used nor saved for future requests.
@@ -280,26 +279,6 @@ Using a `callbackOnAvailable` method to retrieve the ID5 ID
     partnerId: 173, // modify with your own partnerId
     callbackOnAvailable: id5Callback
   });
-</script>
-```
-
-Passing `tpids` to ID5
-_(this setting must be enabled by ID5 before we will use the `tpids` array when it's received server side)_
-
-```html
-<script src="/path/to/js/id5-api.js"></script>
-<script>
-  var id5Status = ID5.init({
-    partnerId: 173,   // modify with your own partnerId
-    tpids: [
-      {
-        partnerId: 2, // GVL ID of platform who's ID this is
-        uid: 'abc123' // platform's ID for this user
-      }
-    ]
-  });
-
-  var id5Id = id5Status.getUserId();
 </script>
 ```
 

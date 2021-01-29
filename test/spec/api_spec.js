@@ -239,7 +239,6 @@ describe('ID5 JS API', function () {
           expect(requestData.pd).to.be.equal('');
           expect(requestData.rf).to.include('http://localhost');
           expect(requestData.top).to.be.equal(1);
-          expect(requestData.tpids).to.be.undefined;
           expect(requestData.gdpr).to.exist;
           expect(requestData.gdpr_consent).to.exist;
 
@@ -664,61 +663,6 @@ describe('ID5 JS API', function () {
           });
         });
       });
-
-      describe('TPIDs with Consent Override', function () {
-        it('should include valid tpids', function () {
-          const testTpid = [
-            {
-              partnerId: 123,
-              uid: 'ABC'
-            }
-          ];
-
-          ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true, tpids: testTpid });
-
-          sinon.assert.calledOnce(ajaxStub);
-          const dataPrebid = JSON.parse(ajaxStub.firstCall.args[2]);
-          expect(dataPrebid.tpids).to.be.eql(testTpid);
-        });
-
-        it('should not include tpids if an object', function () {
-          const testTpid = { abc: 123 };
-
-          ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true, tpids: testTpid });
-
-          sinon.assert.calledOnce(ajaxStub);
-          const dataPrebid = JSON.parse(ajaxStub.firstCall.args[2]);
-          expect(dataPrebid.tpids).to.be.undefined;
-        });
-
-        it('should not include tpids if an empty array', function () {
-          const testTpid = [];
-
-          ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true, tpids: testTpid });
-
-          sinon.assert.calledOnce(ajaxStub);
-          const dataPrebid = JSON.parse(ajaxStub.firstCall.args[2]);
-          expect(dataPrebid.tpids).to.be.undefined;
-        });
-
-        it('should not include tpids if a string', function () {
-          const testTpid = 'string';
-
-          ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true, tpids: testTpid });
-
-          sinon.assert.calledOnce(ajaxStub);
-          const dataPrebid = JSON.parse(ajaxStub.firstCall.args[2]);
-          expect(dataPrebid.tpids).to.be.undefined;
-        });
-
-        it('should not include tpids if not set', function () {
-          ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true });
-
-          sinon.assert.calledOnce(ajaxStub);
-          const dataPrebid = JSON.parse(ajaxStub.firstCall.args[2]);
-          expect(dataPrebid.tpids).to.be.undefined;
-        });
-      });
     });
 
     describe('No CMP nor Stored Privacy nor Consent Override on Request, Consent on Response', function () {
@@ -749,7 +693,6 @@ describe('ID5 JS API', function () {
           expect(requestData.pd).to.be.equal('');
           expect(requestData.rf).to.include('http://localhost');
           expect(requestData.top).to.be.equal(1);
-          expect(requestData.tpids).to.be.undefined;
           expect(requestData.gdpr).to.exist;
           expect(requestData.gdpr_consent).to.exist;
 
