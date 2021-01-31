@@ -35,6 +35,7 @@ export class Id5Api {
   /**
    * This function will initialize ID5, wait for consent then try to fetch or refresh ID5 user id if required
    * @param {Id5Options} options
+   * @return {Id5Status} Status of the ID5 API for this caller, for further interactions
    */
   init(options) {
     if (typeof this.version === 'undefined') {
@@ -57,7 +58,9 @@ export class Id5Api {
 
   /** @param {Id5Status} id5Status - Initializes id5Status returned by `init()`
    * @param {boolean} forceFetch
-   * @param {Id5Options} [options] - Options to update */
+   * @param {Id5Options} [options] - Options to update
+   * @return {Id5Status} provided id5Status for chaining
+   */
   refreshId(id5Status, forceFetch = false, options = {}) {
     if (typeof this.version === 'undefined') {
       throw new Error('ID5.version variable is missing! Make sure you build from source with "gulp build" from this project. Contact support@id5.io for help.');
@@ -68,13 +71,14 @@ export class Id5Api {
 
     try {
       utils.logInfo('Invoking Id5Api.refreshId', arguments);
-      id5Status.cancelCallback();
+      id5Status.startRefresh(forceFetch);
       id5Status.updateOptions(options);
       this.consent.resetConsentData();
       this.getId(id5Status, forceFetch);
     } catch (e) {
       utils.logError('Exception caught from Id5Api.refreshId', e);
     }
+    return id5Status;
   };
 
   updateLocalStorageAllowed() {
@@ -108,8 +112,6 @@ export class Id5Api {
       storedResponse = this.clientStore.getResponseFromLegacyCookie();
       refreshInSecondsHasElapsed = true; // Force a refresh if we have legacy cookie
     }
-
-    id5Status.scheduleWatchDog();
 
     if (storedResponse && storedResponse.universal_uid && !pdHasChanged) {
       // we have a valid stored response and pd is not different, so

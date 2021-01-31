@@ -198,9 +198,15 @@ function logError() {
 
 function decorateLog(args, prefix) {
   args = [].slice.call(args);
-  prefix && args.unshift(prefix);
-  args.unshift('display: inline-block; color: #fff; background: #1c307e; padding: 1px 4px; border-radius: 3px;');
-  args.unshift('%cID5');
+
+  if (__WEBPACK_IMPORTED_MODULE_0__id5_api__["default"].version !== 'TESTING') {
+    prefix && args.unshift(prefix);
+    args.unshift('display: inline-block; color: #fff; background: #1c307e; padding: 1px 4px; border-radius: 3px;');
+    args.unshift('%cID5');
+  } else {
+    args.unshift(new Date().getTime());
+  }
+
   return args;
 }
 
@@ -729,6 +735,7 @@ var Id5Api = /*#__PURE__*/function () {
   /**
    * This function will initialize ID5, wait for consent then try to fetch or refresh ID5 user id if required
    * @param {Id5Options} options
+   * @return {Id5Status} Status of the ID5 API for this caller, for further interactions
    */
 
 
@@ -757,7 +764,9 @@ var Id5Api = /*#__PURE__*/function () {
 
     /** @param {Id5Status} id5Status - Initializes id5Status returned by `init()`
      * @param {boolean} forceFetch
-     * @param {Id5Options} [options] - Options to update */
+     * @param {Id5Options} [options] - Options to update
+     * @return {Id5Status} provided id5Status for chaining
+     */
     value: function refreshId(id5Status) {
       var forceFetch = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : false;
       var options = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
@@ -772,13 +781,15 @@ var Id5Api = /*#__PURE__*/function () {
 
       try {
         __WEBPACK_IMPORTED_MODULE_0__utils__["logInfo"]('Invoking Id5Api.refreshId', arguments);
-        id5Status.cancelCallback();
+        id5Status.startRefresh(forceFetch);
         id5Status.updateOptions(options);
         this.consent.resetConsentData();
         this.getId(id5Status, forceFetch);
       } catch (e) {
         __WEBPACK_IMPORTED_MODULE_0__utils__["logError"]('Exception caught from Id5Api.refreshId', e);
       }
+
+      return id5Status;
     }
   }, {
     key: "updateLocalStorageAllowed",
@@ -818,8 +829,6 @@ var Id5Api = /*#__PURE__*/function () {
         storedResponse = this.clientStore.getResponseFromLegacyCookie();
         refreshInSecondsHasElapsed = true; // Force a refresh if we have legacy cookie
       }
-
-      id5Status.scheduleWatchDog();
 
       if (storedResponse && storedResponse.universal_uid && !pdHasChanged) {
         // we have a valid stored response and pd is not different, so
@@ -880,11 +889,6 @@ var Id5Api = /*#__PURE__*/function () {
               'nbPage': nb,
               'id5cdn': document.currentScript && document.currentScript.src && document.currentScript.src.indexOf('https://cdn.id5-sync.com') === 0
             };
-
-            if (options.tpids && __WEBPACK_IMPORTED_MODULE_0__utils__["isArray"](options.tpids) && options.tpids.length > 0) {
-              data.tpids = options.tpids;
-            }
-
             __WEBPACK_IMPORTED_MODULE_0__utils__["logInfo"]('Fetching ID5 user ID from:', url, data);
 
             if (forceFetch) {
@@ -1159,11 +1163,11 @@ function detectReferer(win) {
   /**
    * Referer info
    * @typedef {Object} refererInfo
-   * @property {string} referer detected top url
-   * @property {boolean} reachedTop whether it was possible to walk upto top window or not
-   * @property {number} numIframes number of iframes
-   * @property {string} stack comma separated urls of all origins
-   * @property {string} canonicalUrl canonical URL refers to an HTML link element, with the attribute of rel="canonical", found in the <head> element of your webpage
+   * @property {string} referer - detected top url
+   * @property {boolean} reachedTop - whether it was possible to walk upto top window or not
+   * @property {number} numIframes - number of iframes
+   * @property {string} stack - comma separated urls of all origins
+   * @property {string} canonicalUrl - canonical URL refers to an HTML link element, with the attribute of rel="canonical", found in the <head> element of your webpage
    */
 
   /**
@@ -1701,7 +1705,7 @@ var ConsentManagement = /*#__PURE__*/function () {
           if (__WEBPACK_IMPORTED_MODULE_0__utils__["isPlainObject"](providedConsentData)) {
             this.staticConsentData = providedConsentData;
           } else {
-            __WEBPACK_IMPORTED_MODULE_0__utils__["logError"]("cmpApi: 'static' did not specify consentData.");
+            __WEBPACK_IMPORTED_MODULE_0__utils__["logError"]("cmpApi: 'static' did not specify consent data.");
           }
         }
 
@@ -1943,6 +1947,22 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
 
 
 var Id5Status = /*#__PURE__*/function () {
+  /** timerId of the onAvailable watchdog */
+
+  /** @type boolean */
+
+  /** @type function */
+
+  /** @type function */
+
+  /** timerId of the onRefresh watchdog */
+
+  /** @type boolean */
+
+  /** @type function */
+
+  /** @type boolean */
+
   /** @type boolean */
 
   /** @type boolean */
@@ -1959,13 +1979,27 @@ var Id5Status = /*#__PURE__*/function () {
   function Id5Status(options) {
     _classCallCheck(this, Id5Status);
 
-    _defineProperty(this, "timerId", void 0);
+    _defineProperty(this, "_availableCallbackTimerId", void 0);
 
-    _defineProperty(this, "_callbackFired", false);
+    _defineProperty(this, "_availableCallbackFired", false);
+
+    _defineProperty(this, "_availableCallback", void 0);
+
+    _defineProperty(this, "_updateCallback", void 0);
+
+    _defineProperty(this, "_refreshCallbackTimerId", void 0);
+
+    _defineProperty(this, "_refreshCallbackFired", false);
+
+    _defineProperty(this, "_refreshCallback", void 0);
 
     _defineProperty(this, "_isExposed", void 0);
 
     _defineProperty(this, "_fromCache", void 0);
+
+    _defineProperty(this, "_isRefreshing", false);
+
+    _defineProperty(this, "_isRefreshingWithFetch", false);
 
     _defineProperty(this, "_userId", void 0);
 
@@ -1991,21 +2025,32 @@ var Id5Status = /*#__PURE__*/function () {
       return this.config.updOptions(options);
     }
     /**
+     * Notify status that a refresh is in progress
+     * @param {boolean} forceFetch – server response required
+     */
+
+  }, {
+    key: "startRefresh",
+    value: function startRefresh(forceFetch) {
+      this._isRefreshing = true;
+      this._isRefreshingWithFetch = forceFetch;
+    }
+    /**
      * Set the user Id for this Id5Status
-     * @param {string} [userId]
-     * @param {number} [linkType]
-     * @param {boolean} [fromCache]
+     * @param {string} userId
+     * @param {number} linkType
+     * @param {boolean} fromCache
      */
 
   }, {
     key: "setUserId",
-    value: function setUserId(userId, linkType) {
-      var fromCache = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : false;
-
+    value: function setUserId(userId, linkType, fromCache) {
       if (userId) {
+        var hasChanged = this._userId !== userId || this._linkType !== linkType;
         this._userId = userId;
         this._linkType = linkType;
-        this._fromCache = fromCache; // Evaluate if should be exposed
+        this._fromCache = fromCache;
+        __WEBPACK_IMPORTED_MODULE_2__utils__["logInfo"]("Id5Status.setUserId: user id updated, hasChanged: ".concat(hasChanged)); // Evaluate if should be exposed
 
         var options = this.config.getOptions();
 
@@ -2017,7 +2062,46 @@ var Id5Status = /*#__PURE__*/function () {
 
 
         if (this._isExposed) {
-          this.fireCallBack();
+          var currentThis = this; // Preserve this within callback
+          // Fire onAvailable if not yet fired
+
+          if (__WEBPACK_IMPORTED_MODULE_2__utils__["isFn"](this._availableCallback) && this._availableCallbackFired === false) {
+            // Cancel pending watchdog
+            if (this._availableCallbackTimerId) {
+              __WEBPACK_IMPORTED_MODULE_2__utils__["logInfo"]("Cancelling pending onAvailableCallback watchdog");
+              clearTimeout(this._availableCallbackTimerId);
+              this._availableCallbackTimerId = undefined;
+            }
+
+            this._availableCallbackTimerId = setTimeout(function () {
+              return Id5Status.doFireOnAvailableCallBack(currentThis);
+            }, 0);
+          } // Fire onRefresh if not yet fired and not from cache
+
+
+          __WEBPACK_IMPORTED_MODULE_2__utils__["logInfo"]("_isRefreshing: ".concat(this._isRefreshing, ", _refreshCallbackFired: ").concat(this._refreshCallbackFired, ", fromCache: ").concat(fromCache, ", _isRefreshingWithFetch: ").concat(this._isRefreshingWithFetch));
+
+          if (this._isRefreshing && __WEBPACK_IMPORTED_MODULE_2__utils__["isFn"](this._refreshCallback) && this._refreshCallbackFired === false) {
+            if (fromCache === false || this._isRefreshingWithFetch === false) {
+              // Cancel pending watchdog
+              if (this._refreshCallbackTimerId) {
+                __WEBPACK_IMPORTED_MODULE_2__utils__["logInfo"]("Cancelling pending onRefreshCallback watchdog");
+                clearTimeout(this._refreshCallbackTimerId);
+                this._refreshCallbackTimerId = undefined;
+              }
+
+              this._refreshCallbackTimerId = setTimeout(function () {
+                return Id5Status.doFireOnRefreshCallBack(currentThis);
+              }, 0);
+            }
+          } // Always fire onUpdate if any change
+
+
+          if (hasChanged && __WEBPACK_IMPORTED_MODULE_2__utils__["isFn"](this._updateCallback)) {
+            setTimeout(function () {
+              return Id5Status.doFireOnUpdateCallBack(currentThis);
+            }, 0);
+          }
         }
       } else {
         this._userId = undefined;
@@ -2067,79 +2151,142 @@ var Id5Status = /*#__PURE__*/function () {
       return this._isExposed;
     }
     /**
-     * This function cancel any pending watchdog callback
+     * Fire the provided callback when (and exactly once) a user id is available
+     * if a timeout is provided, fire the callback at timeout even if user id is not yet available
+     * @param {function(Id5Status)} fn - callback function, receiving the current Id5Status as first param
+     * @param {number} [timeout] - watchdog timeout in ms
+     * @return {Id5Status} the current Id5Status for chaining
      */
 
   }, {
-    key: "cancelCallback",
-    value: function cancelCallback() {
-      if (this.timerId) {
-        clearTimeout(this.timerId);
-        this.timerId = undefined;
+    key: "onAvailable",
+    value: function onAvailable(fn, timeout) {
+      if (!__WEBPACK_IMPORTED_MODULE_2__utils__["isFn"](fn)) {
+        throw new Error('onAvailable expect a function');
       }
 
-      this._callbackFired = false;
-    }
-    /**
-     * This function schedule the watchdog of the callback if configured
-     */
-
-  }, {
-    key: "scheduleWatchDog",
-    value: function scheduleWatchDog() {
-      if (this._callbackFired === true) {
-        __WEBPACK_IMPORTED_MODULE_2__utils__["logInfo"]('scheduleWatchDog: Callback was already called, ignoring');
+      if (__WEBPACK_IMPORTED_MODULE_2__utils__["isFn"](this._availableCallback)) {
+        __WEBPACK_IMPORTED_MODULE_2__utils__["logInfo"]('onAvailable was already called, ignoring');
       } else {
-        if (this.timerId) {
-          __WEBPACK_IMPORTED_MODULE_2__utils__["logError"]('scheduleWatchDog: Watchdog timer already in progress, canceling and rescheduling');
-        }
-
-        this.cancelCallback();
+        this._availableCallback = fn;
         var currentThis = this; // Preserve this within callback
 
-        if (__WEBPACK_IMPORTED_MODULE_2__utils__["isFn"](this.getOptions().callbackOnAvailable) && this.getOptions().callbackTimeoutInMs >= 0) {
-          this.timerId = setTimeout(function () {
-            return Id5Status.doFireCallBack(currentThis);
-          }, this.getOptions().callbackTimeoutInMs);
+        if (this.getUserId()) {
+          __WEBPACK_IMPORTED_MODULE_2__utils__["logInfo"]('Id5Status.onAvailable: User id already available firing callback immediately');
+          this._availableCallbackTimerId = setTimeout(function () {
+            return Id5Status.doFireOnAvailableCallBack(currentThis);
+          }, 0);
+        } else if (timeout > 0) {
+          this._availableCallbackTimerId = setTimeout(function () {
+            return Id5Status.doFireOnAvailableCallBack(currentThis);
+          }, timeout);
         }
       }
+
+      return this;
     }
     /**
-     * This function fire the callbacks of the current Id5Status
+     * Fire the provided callback each time a user id is available or updated. Will be fired after onAvailable or onRefresh if both are provided
+     * @param {function(Id5Status)} fn - callback function, receiving the current Id5Status as first param
+     * @return {Id5Status} the current Id5Status for chaining
      */
 
   }, {
-    key: "fireCallBack",
-    value: function fireCallBack() {
-      if (this._callbackFired === true) {
-        __WEBPACK_IMPORTED_MODULE_2__utils__["logInfo"]('fireCallBack: callbackOnAvailable was already called, ignoring');
-      } else {
-        this.cancelCallback();
-        var currentThis = this; // Preserve this within callbacks
-
-        if (__WEBPACK_IMPORTED_MODULE_2__utils__["isFn"](this.getOptions().callbackOnAvailable)) {
-          this.timerId = setTimeout(function () {
-            return Id5Status.doFireCallBack(currentThis);
-          }, 0);
-        }
+    key: "onUpdate",
+    value: function onUpdate(fn) {
+      if (!__WEBPACK_IMPORTED_MODULE_2__utils__["isFn"](fn)) {
+        throw new Error('onUpdate expect a function');
       }
+
+      this._updateCallback = fn;
+      var currentThis = this; // Preserve this within callback
+
+      if (this.getUserId()) {
+        setTimeout(function () {
+          return Id5Status.doFireOnUpdateCallBack(currentThis);
+        }, 0);
+      }
+
+      return this;
     }
     /**
-     * This function fire the callback of the passed Id5Status
+     * Fire the provided callback when (and exactly once) a user id is returned by refreshId()
+     * if a timeout is provided, fire the callback at timeout even refersh is not done
+     * @param {function(Id5Status)} fn - callback function, receiving the current Id5Status as first param
+     * @param {number} [timeout] - watchdog timeout in ms
+     * @return {Id5Status} the current Id5Status for chaining
+     */
+
+  }, {
+    key: "onRefresh",
+    value: function onRefresh(fn, timeout) {
+      if (!__WEBPACK_IMPORTED_MODULE_2__utils__["isFn"](fn)) {
+        throw new Error('onRefresh expect a function');
+      } // We have a pending onRefresh, cancel it.
+
+
+      if (this._refreshCallbackTimerId) {
+        clearTimeout(this._refreshCallbackTimerId);
+        this._refreshCallbackTimerId = undefined;
+      }
+
+      this._refreshCallback = fn;
+      var currentThis = this; // Preserve this within callback
+      // If we are already after a non-forced refreshId and we already have a user id, then callback immediately
+
+      if (this._isRefreshing === true && this._isRefreshingWithFetch === false && this.getUserId()) {
+        this._refreshCallbackTimerId = setTimeout(function () {
+          return Id5Status.doFireOnRefreshCallBack(currentThis);
+        }, 0);
+      } else if (timeout > 0) {
+        this._refreshCallbackTimerId = setTimeout(function () {
+          return Id5Status.doFireOnRefreshCallBack(currentThis);
+        }, timeout);
+      }
+
+      return this;
+    }
+    /**
+     * This function fire the onAvailable callback of the passed Id5Status
      * @param {Id5Status} currentId5Status
      */
 
   }], [{
-    key: "doFireCallBack",
-    value: function doFireCallBack(currentId5Status) {
-      var callbackOnAvailable = currentId5Status.getOptions().callbackOnAvailable;
-      currentId5Status.timerId = undefined;
+    key: "doFireOnAvailableCallBack",
+    value: function doFireOnAvailableCallBack(currentId5Status) {
+      __WEBPACK_IMPORTED_MODULE_2__utils__["logInfo"]("Id5Status.doFireOnAvailableCallBack");
+      currentId5Status._availableCallbackFired = true;
+      currentId5Status._availableCallbackTimerId = undefined;
 
-      if (!currentId5Status._callbackFired && __WEBPACK_IMPORTED_MODULE_2__utils__["isFn"](callbackOnAvailable)) {
-        __WEBPACK_IMPORTED_MODULE_2__utils__["logInfo"]('Calling callbackOnAvailable');
-        currentId5Status._callbackFired = true;
-        callbackOnAvailable(currentId5Status);
-      }
+      currentId5Status._availableCallback(currentId5Status);
+    }
+    /**
+     * This function fire the onUpdate callback of the passed Id5Status
+     * @param {Id5Status} currentId5Status
+     */
+
+  }, {
+    key: "doFireOnUpdateCallBack",
+    value: function doFireOnUpdateCallBack(currentId5Status) {
+      __WEBPACK_IMPORTED_MODULE_2__utils__["logInfo"]("Id5Status.doFireOnUpdateCallBack");
+
+      currentId5Status._updateCallback(currentId5Status);
+    }
+    /**
+     * This function fire the onRefresh callback of the passed Id5Status
+     * @param {Id5Status} currentId5Status
+     */
+
+  }, {
+    key: "doFireOnRefreshCallBack",
+    value: function doFireOnRefreshCallBack(currentId5Status) {
+      __WEBPACK_IMPORTED_MODULE_2__utils__["logInfo"]("Id5Status.doFireOnRefreshCallBack");
+      currentId5Status._refreshCallbackFired = true;
+      currentId5Status._refreshCallbackTimerId = undefined;
+      currentId5Status._isRefreshing = false;
+      currentId5Status._isRefreshingWithFetch = false;
+
+      currentId5Status._refreshCallback(currentId5Status);
     }
   }]);
 
@@ -2173,22 +2320,15 @@ var utils = __webpack_require__(0);
  * @property {number} [partnerId] - ID5 Publisher ID, mandatory
  * @property {boolean|false} [debugBypassConsent] - Bypass consent API et local storage consent for testing purpose only
  * @property {boolean|false} [allowLocalStorageWithoutConsentApi] - Tell ID5 that consent has been given to read local storage
- * => and allowLocalStorageWithoutConsent (if enabled, then for everyone in the page), platform should not set
  * @property {number} [refreshInSeconds] - Refresh period of first-party cookie (defaulting to 7200s)
- * => Keep the lowest until now, platform should not set
  * @property {string} [partnerUserId] - User ID for the platform deploying the API, to be stored by ID5 for further cookie matching if provided
  * @property {string} [cmpApi] - API to use CMP. As of today, either 'iab' or 'static'
- * => use cached consentData, supposed to be one per page
  * @property {object} [consentData] - Consent data if cmpApi is 'static'
  * @property {function} [callbackOnAvailable] - Function to call back when User ID is available. if callbackTimeoutInMs is not provided, will be fired only if a User ID is available.
  * @property {function} [callbackOnUpdates] - Function to call back on further updates of User ID by changes in the page (consent, pd, refresh). Cannot be provided if `callbackOnAvailable` is not provided
  * @property {number} [callbackTimeoutInMs] - Delay in ms after which the callbackOnAvailable is guaranteed to be fired. A User ID may not yet be available at this time.
  * @property {string} [pd] - Publisher data that can be passed to help with cross-domain reconciliation of the ID5 ID, more details here: https://wiki.id5.io/x/BIAZ
- * @property {array} [tpids] - An array of third party IDs that can be passed to usersync with ID5. Contact your ID5 representative to enable this
  * @property {AbTestConfig} [abTesting] - An object defining if and how A/B testing should be enabled
- * => per partner
- *
- * => multiple instance with same partner and different PD ?
  */
 
 /**
@@ -2232,7 +2372,6 @@ var Config = /*#__PURE__*/function () {
       callbackOnUpdates: undefined,
       callbackTimeoutInMs: undefined,
       pd: '',
-      tpids: undefined,
       abTesting: {
         enabled: false,
         controlGroupPct: 0
@@ -2313,7 +2452,6 @@ _defineProperty(Config, "configTypes", {
   callbackOnUpdates: 'Function',
   callbackTimeoutInMs: 'Number',
   pd: 'String',
-  tpids: 'Array',
   abTesting: 'Object'
 });
 

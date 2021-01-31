@@ -164,9 +164,6 @@ There are a few cases in which `getUserId()` may not be ready or have a value ye
 | pd | Optional | string | | Partner-supplied data used for linking ID5 IDs across domains. See [Generating Partner Data String](#generating-partner-data-string) below for details on generating the string |
 | refreshInSeconds | Optional | integer | `7200`<br>(2 hours) | Refresh period of first-party local storage |
 | abTesting | Optional | object | `{ enabled: false, controlGroupPct: 0 }` | Enables A/B testing of the ID5 ID. See [A/B Testing](#ab-testing) below for more details |
-| callbackOnAvailable | Optional | function | | Function to call back when `userId` is available. If `callbackTimeoutInMs` is not provided, `callbackOnAvailable` will be fired only if and once when `userId` is available. The function receive the id5Status as parameter. |
-| callbackOnUpdates | Optional | function | | Function to call back on further updates of `userId` by changes in the page (consent, pd, refresh). The function receive the id5Status as parameter. Cannot be provided if `callbackOnAvailable` is not provided. |
-| callbackTimeoutInMs | Optional | integer | | Delay in ms after which the `callbackOnAvailable` is guaranteed to be fired. `userId` may not be available at this time. |
 <!-- TODO remove callback methods -->
 
 #### Generating Partner Data String
@@ -236,7 +233,7 @@ The configuration object for `abTesting` contains two variables:
 | id5Status.isFromCache() | method | boolean | Indicates whether the `userId` value is from cache (when set to `true`) or from a server response (when set to `false`). If `userId` is not set yet, returns `undefined` |
 | id5Status.exposeUserId() | method | boolean | Applicable when [A/B Testing](#ab-testing) is turned on; when this method returns `true`, the user is not in the control group and `id5Status.getUserId()` is populated with the ID5 ID; when `false`, the user is considered as part of the control group and `id5Status.getUserId()` will be `0`. This method can be used to inform your reporting systems that an ID was available or not, instead of relying on the value of `id5Status.getUserId()` directly. |
 | id5Status.onAvailable(fn, timeout) | method | id5Status | Set an event to be called when the ID5 ID is available. Will be called only once per `ID5.init()`. The first parameter is a function to call, which will receive as its only parameter the `id5Status` object. The second, optional, parameter, is a timeout in ms; if the `fn` has not been called when the timeout is hit, then it will force a call to `fn` even if the ID5 ID is not available yet. If not provided, then it will wait indefinitely until the ID5 ID is available to call `fn`. |
-| id5Status.onUpdate(fn) | method | id5Status | Set an event listener to be called any time the ID5 ID is updated. For example, if the ID was found in cache, then the `onAvailable` event would immediately fire; but there may be a need to call the ID5 servers for an updated ID. When the call to ID5 returns, the `onUpdate` event will fire. If `refreshId` is called, when the ID is refreshed, the `onUpdate` evenet will also fire. The first and only parameter is a function to call, which will receive as its only parameter the `id5Status` object. |
+| id5Status.onUpdate(fn) | method | id5Status | Set an event listener to be called any time the ID5 ID is updated. For example, if the ID was found in cache, then the `onAvailable` event would immediately fire; but there may be a need to call the ID5 servers for an updated ID. When the call to ID5 returns, the `onUpdate` event will fire. If `refreshId` is called, when the ID is refreshed, the `onUpdate` event will also fire. The first and only parameter is a function to call, which will receive as its only parameter the `id5Status` object. |
 | id5Status.onRefresh(fn, timeout) | method | id5Status | Set an event listener to be called any time the `refreshId` method has returned with an ID. The first parameter is a function to call, which will receive as its only parameter the `id5Status` object. The second, optional, parameter, is a timeout in ms; if the `fn` has not been called when the timeout is hit, then it will force a call to `fn` even if the `refreshId` has not returned with an ID. If not provided, then it will wait indefinitely until the ID5 ID is returned from `refreshId` to call `fn` |
 
 ### Examples
@@ -275,13 +272,14 @@ Setting an `onAvailable` event listener to retrieve the ID5 ID
     var id5Id = id5Status.getUserId();
 
     // do something with the ID5 ID
-    fireMyPixel(`https://pixel.url.com?id5id=${id5Id}`);
+    if(id5Id) {
+      fireMyPixel(`https://pixel.url.com?id5id=${id5Id}`);
+    }
   };
 
-  ID5.onAvailable(id5Callback);
   ID5.init({
     partnerId: 173 // modify with your own partnerId
-  });
+  }).onAvailable(id5Callback, 200); // fire after 200ms even if no user id available
 </script>
 ```
 
