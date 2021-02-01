@@ -199,9 +199,9 @@ export default class ClientStore {
     this.put(CONSTANTS.STORAGE_CONFIG.FS, '1');
   }
 
-  forceSync() {
+  firstSync() {
     const cachedFs = this.get(CONSTANTS.STORAGE_CONFIG.FS);
-    // Force cascade if we have access to Local Storage and we never cascaded
+    // Tell Fetch endpoint that this is the first time ever we saw this user on this domain
     return (typeof cachedFs === 'undefined' || cachedFs === '1') ? 0 : 1;
   }
 
