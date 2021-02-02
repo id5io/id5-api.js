@@ -889,6 +889,12 @@ var Id5Api = /*#__PURE__*/function () {
               'nbPage': nb,
               'id5cdn': document.currentScript && document.currentScript.src && document.currentScript.src.indexOf('https://cdn.id5-sync.com') === 0
             };
+
+            if (id5Status.getOptions().abTesting.enabled === true) {
+              data.features = data.features || {};
+              data.features.ab = 1;
+            }
+
             __WEBPACK_IMPORTED_MODULE_0__utils__["logInfo"]('Fetching ID5 user ID from:', url, data);
 
             if (forceFetch) {
