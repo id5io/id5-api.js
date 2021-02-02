@@ -931,7 +931,7 @@ var Id5Api = /*#__PURE__*/function () {
 
                       if (responseObj.cascade_needed === true && _this.localStorageAllowed === true) {
                         var isSync = options.partnerUserId && options.partnerUserId.length > 0;
-                        var syncUrl = "https://id5-sync.com/".concat(isSync ? 's' : 'i', "/").concat(options.partnerId, "/8.gif?id5id=").concat(id5Status._userId, "&fs=").concat(_this.clientStore.forceSync(), "&o=api&").concat(isSync ? 'puid=' + options.partnerUserId + '&' : '', "gdpr_consent=").concat(gdprConsentString, "&gdpr=").concat(gdprApplies);
+                        var syncUrl = "https://id5-sync.com/".concat(isSync ? 's' : 'i', "/").concat(options.partnerId, "/8.gif?id5id=").concat(id5Status._userId, "&fs=").concat(_this.clientStore.firstSync(), "&o=api&").concat(isSync ? 'puid=' + options.partnerUserId + '&' : '', "gdpr_consent=").concat(gdprConsentString, "&gdpr=").concat(gdprApplies);
                         __WEBPACK_IMPORTED_MODULE_0__utils__["logInfo"]('Opportunities to cascade available:', syncUrl);
                         var thisClientStore = _this.clientStore; // preserve this in callback
 
@@ -1434,9 +1434,9 @@ var ClientStore = /*#__PURE__*/function () {
       this.put(__WEBPACK_IMPORTED_MODULE_1__constants_json___default.a.STORAGE_CONFIG.FS, '1');
     }
   }, {
-    key: "forceSync",
-    value: function forceSync() {
-      var cachedFs = this.get(__WEBPACK_IMPORTED_MODULE_1__constants_json___default.a.STORAGE_CONFIG.FS); // Force cascade if we have access to Local Storage and we never cascaded
+    key: "firstSync",
+    value: function firstSync() {
+      var cachedFs = this.get(__WEBPACK_IMPORTED_MODULE_1__constants_json___default.a.STORAGE_CONFIG.FS); // Tell Fetch endpoint that this is the first time ever we saw this user on this domain
 
       return typeof cachedFs === 'undefined' || cachedFs === '1' ? 0 : 1;
     }
@@ -2078,8 +2078,6 @@ var Id5Status = /*#__PURE__*/function () {
             }, 0);
           } // Fire onRefresh if not yet fired and not from cache
 
-
-          __WEBPACK_IMPORTED_MODULE_2__utils__["logInfo"]("_isRefreshing: ".concat(this._isRefreshing, ", _refreshCallbackFired: ").concat(this._refreshCallbackFired, ", fromCache: ").concat(fromCache, ", _isRefreshingWithFetch: ").concat(this._isRefreshingWithFetch));
 
           if (this._isRefreshing && __WEBPACK_IMPORTED_MODULE_2__utils__["isFn"](this._refreshCallback) && this._refreshCallbackFired === false) {
             if (fromCache === false || this._isRefreshingWithFetch === false) {

@@ -13,6 +13,7 @@ let expect = require('chai').expect;
 
 describe('ID5 JS API', function () {
   const TEST_ID5_PARTNER_ID = 99;
+  const TEST_ID5_PARTNER_ID_ALT = 999;
   const ID5_FETCH_ENDPOINT = `https://id5-sync.com/g/v2/${TEST_ID5_PARTNER_ID}.json`;
   const ID5_CALL_ENDPOINT = `https://id5-sync.com/i/${TEST_ID5_PARTNER_ID}/8.gif`;
   const ID5_SYNC_ENDPOINT = `https://id5-sync.com/s/${TEST_ID5_PARTNER_ID}/8.gif`;
@@ -1246,7 +1247,7 @@ describe('ID5 JS API', function () {
       resetAll();
     });
 
-    describe('Callbacks', function () {
+    describe('Callbacks with Single Instance', function () {
       let onAvailableSpy, onUpdateSpy, onRefreshSpy;
       let ajaxStub;
 
@@ -1790,6 +1791,127 @@ describe('ID5 JS API', function () {
               }, LONG_TIMEOUT);
             }, 1);
           });
+        });
+      });
+    });
+
+    describe('Callbacks with Multiple Instances', function () {
+      let onAvailableSpyOne, onUpdateSpyOne, onRefreshSpyOne;
+      let onAvailableSpyTwo, onUpdateSpyTwo, onRefreshSpyTwo;
+      let ajaxStub;
+
+      beforeEach(function () {
+        onAvailableSpyOne = sinon.spy();
+        onUpdateSpyOne = sinon.spy();
+        onRefreshSpyOne = sinon.spy();
+        onAvailableSpyTwo = sinon.spy();
+        onUpdateSpyTwo = sinon.spy();
+        onRefreshSpyTwo = sinon.spy();
+        ajaxStub = sinon.stub(utils, 'ajax').callsFake(function(url, callbacks, data, options) {
+          setTimeout(() => { callbacks.success(JSON_RESPONSE_ID5_CONSENT) }, AJAX_RESPONSE_MS);
+        });
+      });
+
+      afterEach(function() {
+        onAvailableSpyOne.resetHistory();
+        onUpdateSpyOne.resetHistory();
+        onRefreshSpyOne.resetHistory();
+        onAvailableSpyTwo.resetHistory();
+        onUpdateSpyTwo.resetHistory();
+        onRefreshSpyTwo.resetHistory();
+        ajaxStub.restore();
+      });
+
+      describe('Check callback are fired with consent override', function () {
+        it('should call back onAvailable then onUpdate for each instance separately with consent bypass', function (done) {
+          const id5StatusOne = ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true });
+          const id5StatusTwo = ID5.init({ partnerId: TEST_ID5_PARTNER_ID_ALT, debugBypassConsent: true });
+          id5StatusOne.onAvailable(onAvailableSpyOne).onUpdate(onUpdateSpyOne).onRefresh(onRefreshSpyOne);
+          id5StatusTwo.onAvailable(onAvailableSpyTwo).onUpdate(onUpdateSpyTwo).onRefresh(onRefreshSpyTwo);
+
+          expect(id5StatusOne.getUserId()).to.be.undefined;
+          expect(id5StatusOne.getLinkType()).to.be.undefined;
+          expect(id5StatusTwo.getUserId()).to.be.undefined;
+          expect(id5StatusTwo.getLinkType()).to.be.undefined;
+
+          setTimeout(() => {
+            sinon.assert.notCalled(onAvailableSpyOne);
+            sinon.assert.notCalled(onRefreshSpyOne);
+            sinon.assert.notCalled(onUpdateSpyOne);
+            sinon.assert.notCalled(onAvailableSpyTwo);
+            sinon.assert.notCalled(onRefreshSpyTwo);
+            sinon.assert.notCalled(onUpdateSpyTwo);
+
+            setTimeout(() => {
+              sinon.assert.calledOnce(onAvailableSpyOne);
+              sinon.assert.notCalled(onRefreshSpyOne);
+              sinon.assert.calledOnce(onUpdateSpyOne);
+              sinon.assert.callOrder(onAvailableSpyOne, onUpdateSpyOne);
+              expect(id5StatusOne.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
+              expect(id5StatusOne.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
+              expect(onAvailableSpyOne.getCall(0).args[0].getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
+              expect(onAvailableSpyOne.getCall(0).args[0].getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
+              expect(onUpdateSpyOne.getCall(0).args[0].getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
+              expect(onUpdateSpyOne.getCall(0).args[0].getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
+
+              sinon.assert.calledOnce(onAvailableSpyTwo);
+              sinon.assert.notCalled(onRefreshSpyTwo);
+              sinon.assert.calledOnce(onUpdateSpyTwo);
+              sinon.assert.callOrder(onAvailableSpyTwo, onUpdateSpyTwo);
+              expect(id5StatusTwo.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
+              expect(id5StatusTwo.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
+              expect(onAvailableSpyTwo.getCall(0).args[0].getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
+              expect(onAvailableSpyTwo.getCall(0).args[0].getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
+              expect(onUpdateSpyTwo.getCall(0).args[0].getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
+              expect(onUpdateSpyTwo.getCall(0).args[0].getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
+
+              done();
+            }, 1);
+          }, AJAX_RESPONSE_MS);
+        });
+
+        it('should call back onRefresh for one instance only with consent bypass', function (done) {
+          const id5StatusOne = ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true });
+          const id5StatusTwo = ID5.init({ partnerId: TEST_ID5_PARTNER_ID_ALT, debugBypassConsent: true });
+          id5StatusOne.onAvailable(onAvailableSpyOne).onUpdate(onUpdateSpyOne).onRefresh(onRefreshSpyOne);
+          id5StatusTwo.onAvailable(onAvailableSpyTwo).onUpdate(onUpdateSpyTwo).onRefresh(onRefreshSpyTwo);
+
+          expect(id5StatusOne.getUserId()).to.be.undefined;
+          expect(id5StatusOne.getLinkType()).to.be.undefined;
+          expect(id5StatusTwo.getUserId()).to.be.undefined;
+          expect(id5StatusTwo.getLinkType()).to.be.undefined;
+
+          setTimeout(() => {
+            sinon.assert.notCalled(onAvailableSpyOne);
+            sinon.assert.notCalled(onRefreshSpyOne);
+            sinon.assert.notCalled(onUpdateSpyOne);
+            sinon.assert.notCalled(onAvailableSpyTwo);
+            sinon.assert.notCalled(onRefreshSpyTwo);
+            sinon.assert.notCalled(onUpdateSpyTwo);
+
+            setTimeout(() => {
+              sinon.assert.calledOnce(onAvailableSpyOne);
+              sinon.assert.notCalled(onRefreshSpyOne);
+              sinon.assert.calledOnce(onUpdateSpyOne);
+              sinon.assert.callOrder(onAvailableSpyOne, onUpdateSpyOne);
+
+              sinon.assert.calledOnce(onAvailableSpyTwo);
+              sinon.assert.notCalled(onRefreshSpyTwo);
+              sinon.assert.calledOnce(onUpdateSpyTwo);
+              sinon.assert.callOrder(onAvailableSpyTwo, onUpdateSpyTwo);
+
+              ID5.refreshId(id5StatusTwo, true);
+
+              setTimeout(() => {
+                setTimeout(() => {
+                  sinon.assert.notCalled(onRefreshSpyOne);
+                  sinon.assert.calledOnce(onRefreshSpyTwo);
+
+                  done();
+                }, 1);
+              }, AJAX_RESPONSE_MS);
+            }, 1);
+          }, AJAX_RESPONSE_MS);
         });
       });
     });
