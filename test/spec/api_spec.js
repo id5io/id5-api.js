@@ -241,6 +241,7 @@ describe('ID5 JS API', function () {
           expect(requestData.top).to.be.equal(1);
           expect(requestData.gdpr).to.exist;
           expect(requestData.gdpr_consent).to.exist;
+          expect(requestData.features).to.be.undefined;
 
           expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
           expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
@@ -259,6 +260,15 @@ describe('ID5 JS API', function () {
           const requestData = JSON.parse(ajaxStub.firstCall.args[2]);
           expect(requestData.pd).to.be.equal('pubdata');
           expect(utils.getFromLocalStorage(TEST_PD_STORAGE_CONFIG)).to.be.equal(utils.cyrb53Hash('pubdata'));
+        });
+
+        it('should not set ab features flag when abTesting is disabled', function () {
+          ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true, abTesting: { enabled: false } });
+
+          sinon.assert.calledOnce(ajaxStub);
+
+          const requestData = JSON.parse(ajaxStub.firstCall.args[2]);
+          expect(requestData.features).to.be.undefined;
         });
       });
 
@@ -2474,6 +2484,9 @@ describe('ID5 JS API', function () {
         expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
         expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(JSON_RESPONSE_ID5_CONSENT);
         expect(id5Status.exposeUserId()).to.be.true;
+
+        const requestData = JSON.parse(ajaxStub.firstCall.args[2]);
+        expect(requestData.features.ab).to.be.equal(1);
       });
 
       it('should expose ID5.userId from a stored response', function () {
@@ -2513,6 +2526,9 @@ describe('ID5 JS API', function () {
         expect(id5Status.getLinkType()).to.be.equal(TEST_CONTROL_GROUP_LINKTYPE);
         expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(JSON_RESPONSE_ID5_CONSENT);
         expect(id5Status.exposeUserId()).to.be.false;
+
+        const requestData = JSON.parse(ajaxStub.firstCall.args[2]);
+        expect(requestData.features.ab).to.be.equal(1);
       });
 
       it('should not expose ID5.userId from a stored response', function () {

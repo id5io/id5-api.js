@@ -180,6 +180,11 @@ export class Id5Api {
             'id5cdn': (document.currentScript && document.currentScript.src && document.currentScript.src.indexOf('https://cdn.id5-sync.com') === 0)
           };
 
+          if (id5Status.getOptions().abTesting.enabled === true) {
+            data.features = data.features || {};
+            data.features.ab = 1;
+          }
+
           utils.logInfo('Fetching ID5 user ID from:', url, data);
           if (forceFetch) {
             utils.logInfo('...with Force Fetch');
