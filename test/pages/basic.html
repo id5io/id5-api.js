@@ -38,14 +38,15 @@
         crossorigin="anonymous"></script>
 
 <!-- ID5 API -->
-<script type="text/javascript" src="/build/dev/id5-api.js"></script>
+<script type="text/javascript" src="../../build/dev/id5-api.js"></script>
 <script>
-    var id5Callback = function () {
+    ID5.debug = true;
+    var id5Callback = function (id5Status) {
         var i = new Image();
-        i.src = "https://dummyimage.com/600x200?text=" + ID5.userId;
-        $('#placeholder').html(ID5.userId + '<br>').append(i);
+        i.src = "https://dummyimage.com/600x200?text=" + id5Status.getUserId();
+        $('#placeholder').html(id5Status.getUserId() + '<br>').append(i);
     };
-    ID5.init({partnerId: 173, callback: id5Callback, refreshInSeconds: 15, debug: true});
+    ID5.init({partnerId: 173, callbackOnAvailable: id5Callback, callbackOnUpdate: id5Callback, refreshInSeconds: 15});
 </script>
 <!-- /ID5 API -->
 

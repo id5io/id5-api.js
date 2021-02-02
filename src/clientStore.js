@@ -2,217 +2,269 @@
  * Module for managing storage of information in browser Local Storage and/or cookies
  */
 
-import * as consent from './consentManagement';
 import * as utils from './utils';
 import CONSTANTS from './constants.json';
 
-/**
- * Get stored data from local storage, if any, after checking if local storage is allowed
- * @param {{name: string, expiresDays: number}} cacheConfig
- * @returns {string|null|undefined} the stored value, null if no value or expired were stored, undefined if no consent or no access to localStorage
- */
-function get(cacheConfig) {
-  try {
-    if (consent.isLocalStorageAllowed() === true) {
-      return utils.getFromLocalStorage(cacheConfig);
+export default class ClientStore {
+  /** @type {function} */
+  localStorageAllowedCallback
+
+  /* @param {function} localStorageAllowedCallback */
+  constructor(localStorageAllowedCallback) {
+    this.localStorageAllowedCallback = localStorageAllowedCallback;
+  }
+  /**
+   * Get stored data from local storage, if any, after checking if local storage is allowed
+   * @param {StoreItem} cacheConfig
+   * @returns {string|null|undefined} the stored value, null if no value or expired were stored, undefined if no consent or no access to localStorage
+   */
+  get(cacheConfig) {
+    try {
+      if (this.localStorageAllowedCallback() === true) {
+        return utils.getFromLocalStorage(cacheConfig);
+      } else {
+        utils.logError('clientStore.get() has been called without localStorageAllowed')
+      }
+    } catch (e) {
+      utils.logError(e);
     }
-  } catch (e) {
-    utils.logError(e);
   }
-}
 
-/**
- * clear stored data from local storage, if any
- * @param {StoreItem} cacheConfig
- */
-function clear(cacheConfig) {
-  try {
-    utils.removeFromLocalStorage(cacheConfig);
-  } catch (e) {
-    utils.logError(e);
-  }
-}
-
-/**
- * puts the current data into local storage, after checking for local storage access
- * @param {StoreItem} cacheConfig
- * @param {string} data
- */
-function put(cacheConfig, data) {
-  try {
-    if (consent.isLocalStorageAllowed() === true) {
-      utils.setInLocalStorage(cacheConfig, data);
+  /**
+   * clear stored data from local storage, if any
+   * @param {StoreItem} cacheConfig
+   */
+  clear(cacheConfig) {
+    try {
+      utils.removeFromLocalStorage(cacheConfig);
+    } catch (e) {
+      utils.logError(e);
     }
-  } catch (e) {
-    utils.logError(e);
   }
-}
 
-function getResponseFromLegacyCookie() {
-  let legacyStoredValue;
-  CONSTANTS.LEGACY_COOKIE_NAMES.forEach(function(cookie) {
-    if (utils.getCookie(cookie)) {
-      legacyStoredValue = utils.getCookie(cookie);
+  /**
+   * puts the current data into local storage, after checking for local storage access
+   * @param {StoreItem} cacheConfig
+   * @param {string} data
+   */
+  put(cacheConfig, data) {
+    try {
+      if (this.localStorageAllowedCallback() === true) {
+        utils.setInLocalStorage(cacheConfig, data);
+      } else {
+        utils.logError('clientStore.put() has been called without localStorageAllowed')
+      }
+    } catch (e) {
+      utils.logError(e);
     }
-  });
-  return legacyStoredValue || null;
-}
-
-export function getResponse() {
-  return JSON.parse(get(CONSTANTS.STORAGE_CONFIG.ID5) || getResponseFromLegacyCookie());
-}
-
-export function clearResponse() {
-  clear(CONSTANTS.STORAGE_CONFIG.ID5);
-}
-
-export function putResponse(response) {
-  put(CONSTANTS.STORAGE_CONFIG.ID5, response);
-}
-
-function getHashedConsentData() {
-  return get(CONSTANTS.STORAGE_CONFIG.CONSENT_DATA);
-}
-
-export function clearHashedConsentData() {
-  clear(CONSTANTS.STORAGE_CONFIG.CONSENT_DATA);
-}
-
-export function putHashedConsentData(consentData) {
-  put(CONSTANTS.STORAGE_CONFIG.CONSENT_DATA, makeStoredConsentDataHash(consentData));
-}
-
-function getHashedPd() {
-  return get(CONSTANTS.STORAGE_CONFIG.PD);
-}
-
-export function clearHashedPd() {
-  clear(CONSTANTS.STORAGE_CONFIG.PD);
-}
-
-export function putHashedPd(pd) {
-  // @FIXME: per partner storage
-  put(CONSTANTS.STORAGE_CONFIG.PD, makeStoredPdHash(pd));
-}
-
-export function getDateTime() {
-  return (new Date(+get(CONSTANTS.STORAGE_CONFIG.LAST))).getTime()
-}
-
-export function clearDateTime() {
-  clear(CONSTANTS.STORAGE_CONFIG.LAST);
-}
-
-export function setDateTime(timestamp) {
-  put(CONSTANTS.STORAGE_CONFIG.LAST, timestamp);
-}
-
-function nbCacheConfig(partnerId) {
-  return {
-    name: `${CONSTANTS.STORAGE_CONFIG.ID5.name}_${partnerId}_nb`,
-    expiresDays: CONSTANTS.STORAGE_CONFIG.ID5.expiresDays
-  }
-}
-
-export function getNb(partnerId) {
-  const cachedNb = get(nbCacheConfig(partnerId));
-  return (cachedNb) ? parseInt(cachedNb) : 0;
-}
-
-function clearNb(partnerId) {
-  clear(nbCacheConfig(partnerId));
-}
-
-export function setNb(partnerId, nb) {
-  put(nbCacheConfig(partnerId), nb);
-}
-
-export function incNb(partnerId, nb) {
-  nb++;
-  setNb(partnerId, nb);
-  return nb;
-}
-
-export function syncCallback() {
-  put(CONSTANTS.STORAGE_CONFIG.FS, '1');
-}
-
-export function forceSync() {
-  const cachedFs = get(CONSTANTS.STORAGE_CONFIG.FS);
-  // Force cascade if we have access to Local Storage and we never cascaded
-  return (typeof cachedFs === 'undefined' || cachedFs === '1') ? 0 : 1;
-}
-
-export function clearAll(partnerId) {
-  clearResponse();
-  clearDateTime();
-  clearNb(partnerId);
-  clearHashedPd();
-  clearHashedConsentData();
-}
-
-export function removeLegacyCookies(partnerId) {
-  const expired = (new Date(Date.now() - 1000)).toUTCString();
-  CONSTANTS.LEGACY_COOKIE_NAMES.forEach(function(cookie) {
-    utils.setCookie(`${cookie}`, '', expired);
-    utils.setCookie(`${cookie}_nb`, '', expired);
-    utils.setCookie(`${cookie}_${partnerId}_nb`, '', expired);
-    utils.setCookie(`${cookie}_last`, '', expired);
-    utils.setCookie(`${cookie}.cached_pd`, '', expired);
-    utils.setCookie(`${cookie}.cached_consent_data`, '', expired);
-  });
-}
-
-/**
- * test if the data stored locally matches the current data.
- * if there is nothing in storage, return true and we'll do an actual comparison next time.
- * this way, we don't force a refresh for every user when this code rolls out
- * @param storedData
- * @param currentData
- * @returns {boolean}
- */
-function storedDataMatchesCurrentData(storedData, currentData) {
-  return (
-    typeof storedData === 'undefined' ||
-    storedData === null ||
-    storedData === currentData
-  );
-}
-export function storedConsentDataMatchesConsentData(consentData) {
-  return storedDataMatchesCurrentData(getHashedConsentData(), makeStoredConsentDataHash(consentData));
-}
-export function storedPdMatchesPd(pd) {
-  return storedDataMatchesCurrentData(getHashedPd(), makeStoredPdHash(pd));
-}
-
-/**
- * makes an object that can be stored with only the keys we need to check.
- * excluding the vendorConsents object since the consentString is enough to know
- * if consent has changed without needing to have all the details in an object
- * @param consentData
- * @returns string
- */
-function makeStoredConsentDataHash(consentData) {
-  const storedConsentData = {
-    consentString: '',
-    gdprApplies: false,
-    apiVersion: 0
-  };
-
-  if (consentData) {
-    storedConsentData.consentString = consentData.consentString;
-    storedConsentData.gdprApplies = consentData.gdprApplies;
-    storedConsentData.apiVersion = consentData.apiVersion;
   }
 
-  return utils.cyrb53Hash(JSON.stringify(storedConsentData));
-}
+  getResponseFromLegacyCookie() {
+    let legacyStoredValue;
+    CONSTANTS.LEGACY_COOKIE_NAMES.forEach(function (cookie) {
+      if (utils.getCookie(cookie)) {
+        legacyStoredValue = utils.getCookie(cookie);
+      }
+    });
+    if (legacyStoredValue) {
+      return JSON.parse(legacyStoredValue);
+    } else {
+      return null;
+    }
+  }
 
-/**
- * creates a hash of pd for storage
- * @param pd
- * @returns string
- */
-function makeStoredPdHash(pd) {
-  return utils.cyrb53Hash(typeof pd === 'string' ? pd : '');
+  getResponse() {
+    let storedValue = this.get(CONSTANTS.STORAGE_CONFIG.ID5);
+    if (storedValue) {
+      return JSON.parse(storedValue);
+    } else {
+      return storedValue;
+    }
+  }
+
+  clearResponse() {
+    this.clear(CONSTANTS.STORAGE_CONFIG.ID5);
+  }
+
+  putResponse(response) {
+    this.put(CONSTANTS.STORAGE_CONFIG.ID5, response);
+  }
+
+  getHashedConsentData() {
+    return this.get(CONSTANTS.STORAGE_CONFIG.CONSENT_DATA);
+  }
+
+  clearHashedConsentData() {
+    this.clear(CONSTANTS.STORAGE_CONFIG.CONSENT_DATA);
+  }
+
+  putHashedConsentData(consentData) {
+    this.put(CONSTANTS.STORAGE_CONFIG.CONSENT_DATA, ClientStore.makeStoredConsentDataHash(consentData));
+  }
+
+  /**
+   * Get current hash PD for this partner
+   * @param {number} partnerId
+   */
+  getHashedPd(partnerId) {
+    return this.get(ClientStore.pdCacheConfig(partnerId));
+  }
+
+  /**
+   * Check current hash PD for this partner against the one in cache
+   * @param {number} partnerId
+   * @param {string} pd
+   */
+  storedPdMatchesPd(partnerId, pd) {
+    return ClientStore.storedDataMatchesCurrentData(this.getHashedPd(partnerId), ClientStore.makeStoredHash(pd));
+  }
+
+  /**
+   * Clear the hash PD for this partner
+   * @param {number} partnerId
+   */
+  clearHashedPd(partnerId) {
+    this.clear(ClientStore.pdCacheConfig(partnerId));
+  }
+
+  /**
+   * Hash and store the PD for this partner
+   * @param {number} partnerId
+   * @param {string} [pd]
+   */
+  putHashedPd(partnerId, pd) {
+    this.put(ClientStore.pdCacheConfig(partnerId), ClientStore.makeStoredHash(pd));
+  }
+
+  /**
+   * Generate local storage config for PD of a given partner
+   * @param {number} partnerId
+   * @return {StoreItem}
+   */
+  static pdCacheConfig(partnerId) {
+    return {
+      name: `${CONSTANTS.STORAGE_CONFIG.PD.name}_${partnerId}`,
+      expiresDays: CONSTANTS.STORAGE_CONFIG.PD.expiresDays
+    }
+  }
+
+  /**
+   * creates a hash of a user identifier for storage
+   * @param {string} userId
+   * @returns {string}
+   */
+  static makeStoredHash(userId) {
+    return utils.cyrb53Hash(typeof userId === 'string' ? userId : '');
+  }
+
+  getDateTime() {
+    return (new Date(+this.get(CONSTANTS.STORAGE_CONFIG.LAST))).getTime()
+  }
+
+  clearDateTime() {
+    this.clear(CONSTANTS.STORAGE_CONFIG.LAST);
+  }
+
+  setDateTime(timestamp) {
+    this.put(CONSTANTS.STORAGE_CONFIG.LAST, timestamp);
+  }
+
+  static nbCacheConfig(partnerId) {
+    return {
+      name: `${CONSTANTS.STORAGE_CONFIG.ID5.name}_${partnerId}_nb`,
+      expiresDays: CONSTANTS.STORAGE_CONFIG.ID5.expiresDays
+    }
+  }
+
+  getNb(partnerId) {
+    const cachedNb = this.get(ClientStore.nbCacheConfig(partnerId));
+    return (cachedNb) ? parseInt(cachedNb) : 0;
+  }
+
+  clearNb(partnerId) {
+    this.clear(ClientStore.nbCacheConfig(partnerId));
+  }
+
+  setNb(partnerId, nb) {
+    this.put(ClientStore.nbCacheConfig(partnerId), nb);
+  }
+
+  incNb(partnerId, nb) {
+    nb++;
+    this.setNb(partnerId, nb);
+    return nb;
+  }
+
+  syncCallback() {
+    this.put(CONSTANTS.STORAGE_CONFIG.FS, '1');
+  }
+
+  firstSync() {
+    const cachedFs = this.get(CONSTANTS.STORAGE_CONFIG.FS);
+    // Tell Fetch endpoint that this is the first time ever we saw this user on this domain
+    return (typeof cachedFs === 'undefined' || cachedFs === '1') ? 0 : 1;
+  }
+
+  clearAll(partnerId) {
+    this.clearResponse();
+    this.clearDateTime();
+    this.clearNb(partnerId);
+    this.clearHashedPd(partnerId);
+    this.clearHashedConsentData();
+  }
+
+  removeLegacyCookies(partnerId) {
+    const expired = (new Date(Date.now() - 1000)).toUTCString();
+    CONSTANTS.LEGACY_COOKIE_NAMES.forEach(function (cookie) {
+      utils.setCookie(`${cookie}`, '', expired);
+      utils.setCookie(`${cookie}_nb`, '', expired);
+      utils.setCookie(`${cookie}_${partnerId}_nb`, '', expired);
+      utils.setCookie(`${cookie}_last`, '', expired);
+      utils.setCookie(`${cookie}.cached_pd`, '', expired);
+      utils.setCookie(`${cookie}.cached_consent_data`, '', expired);
+    });
+  }
+
+  /**
+   * test if the data stored locally matches the current data.
+   * if there is nothing in storage, return true and we'll do an actual comparison next time.
+   * this way, we don't force a refresh for every user when this code rolls out
+   * @param storedData
+   * @param currentData
+   * @returns {boolean}
+   */
+  static storedDataMatchesCurrentData(storedData, currentData) {
+    return (
+      typeof storedData === 'undefined' ||
+      storedData === null ||
+      storedData === currentData
+    );
+  }
+
+  storedConsentDataMatchesConsentData(consentData) {
+    return ClientStore.storedDataMatchesCurrentData(this.getHashedConsentData(), ClientStore.makeStoredConsentDataHash(consentData));
+  }
+
+  /**
+   * makes an object that can be stored with only the keys we need to check.
+   * excluding the vendorConsents object since the consentString is enough to know
+   * if consent has changed without needing to have all the details in an object
+   * @param consentData
+   * @returns string
+   */
+  static makeStoredConsentDataHash(consentData) {
+    const storedConsentData = {
+      consentString: '',
+      gdprApplies: false,
+      apiVersion: 0
+    };
+
+    if (consentData) {
+      storedConsentData.consentString = consentData.consentString;
+      storedConsentData.gdprApplies = consentData.gdprApplies;
+      storedConsentData.apiVersion = consentData.apiVersion;
+    }
+
+    return utils.cyrb53Hash(JSON.stringify(storedConsentData));
+  }
 }

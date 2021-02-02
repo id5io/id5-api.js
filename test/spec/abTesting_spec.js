@@ -1,47 +1,18 @@
 import sinon from 'sinon';
 import { expect } from 'chai';
-import AbTesting from 'src/abTesting';
+import isInControlGroup from 'src/abTesting';
 
 describe('A/B Testing', function () {
   describe('Configuration Validation', function() {
-    let testInvalidConfigsWithException = [
-      { enabled: true },
-      { enabled: true, controlGroupPct: 2 },
-      { enabled: true, controlGroupPct: -1 },
-      { enabled: true, controlGroupPct: 'a' },
-      { enabled: true, controlGroupPct: true }
-    ];
-    testInvalidConfigsWithException.forEach((testConfig) => {
-      it('should throw error if config is invalid', function () {
-        // eslint-disable-next-line no-new
-        expect(function () { new AbTesting(testConfig) }).to.throw();
+    [ undefined, null, 2, -1, 'a', true ].forEach((controlGroupRatio) => {
+      it('should throw error if ratio is invalid', () => {
+        expect(() => { isInControlGroup('userId', controlGroupRatio) }).to.throw();
       });
     });
 
-    let testInvalidConfigsWithoutException = [
-      { enabled: false, controlGroupPct: -1 },
-      { enabled: false, controlGroupPct: 2 },
-      { enabled: false, controlGroupPct: 'a' },
-      { enabled: false, controlGroupPct: true }
-    ];
-    testInvalidConfigsWithoutException.forEach((testConfig) => {
-      it('should not throw error if config is invalid but A/B testing is off', function () {
-        // eslint-disable-next-line no-new
-        expect(function () { new AbTesting(testConfig) }).to.not.throw();
-      });
-    });
-
-    let testValidConfigs = [
-      { },
-      { enabled: false },
-      { enabled: true, controlGroupPct: 0 },
-      { enabled: true, controlGroupPct: 0.5 },
-      { enabled: true, controlGroupPct: 1 }
-    ];
-    testValidConfigs.forEach((testConfig) => {
-      it('should not throw error if config is valid', function () {
-        // eslint-disable-next-line no-new
-        expect(function () { new AbTesting(testConfig) }).to.not.throw();
+    [ 0, 0.5, 1 ].forEach((controlGroupRatio) => {
+      it('should not throw error if ratio is valid', () => {
+        expect(() => { isInControlGroup('userId', controlGroupRatio) }).to.not.throw();
       });
     });
   });
@@ -53,24 +24,6 @@ describe('A/B Testing', function () {
       randStub.restore();
     });
 
-    describe('A/B Testing is not Explicitly Enabled', function() {
-      beforeEach(function() {
-        randStub = sinon.stub(Math, 'random').callsFake(function() {
-          return 0;
-        });
-      });
-
-      it('should expose ID when A/B config is not set', function () {
-        const abTesting = new AbTesting();
-        expect(abTesting.exposeId()).to.be.true;
-      });
-
-      it('should expose ID when A/B config is empty', function () {
-        const abTesting = new AbTesting({});
-        expect(abTesting.exposeId()).to.be.true;
-      });
-    });
-
     describe('A/B Testing Config Set', function () {
       beforeEach(function() {
         randStub = sinon.stub(Math, 'random').callsFake(function() {
@@ -78,19 +31,35 @@ describe('A/B Testing', function () {
         });
       });
 
-      it('should expose ID when A/B testing is off', function () {
-        const abTesting = new AbTesting({ enabled: false, controlGroupPct: 0.5 });
-        expect(abTesting.exposeId()).to.be.true;
+      it('Nobody is in a 0% control group', function () {
+        expect(isInControlGroup('dsdndskhsdks', 0)).to.be.false;
+        expect(isInControlGroup('3erfghyuijkm', 0)).to.be.false;
+        expect(isInControlGroup('', 0)).to.be.false;
+        expect(isInControlGroup(undefined, 0)).to.be.false;
       });
 
-      it('should expose ID when not in control group', function () {
-        const abTesting = new AbTesting({ enabled: true, controlGroupPct: 0.1 });
-        expect(abTesting.exposeId()).to.be.true;
+      it('Everybody is in a 100% control group', function () {
+        expect(isInControlGroup('dsdndskhsdks', 1)).to.be.true;
+        expect(isInControlGroup('3erfghyuijkm', 1)).to.be.true;
+        expect(isInControlGroup('', 1)).to.be.true;
+        expect(isInControlGroup(undefined, 1)).to.be.true;
       });
 
-      it('should not expose ID when in control group', function () {
-        const abTesting = new AbTesting({ enabled: true, controlGroupPct: 0.5 });
-        expect(abTesting.exposeId()).to.be.false;
+      it('Being in the control group must be consistant', function () {
+        const inControlGroup = isInControlGroup('dsdndskhsdks', 0.5);
+        expect(inControlGroup === isInControlGroup('dsdndskhsdks', 0.5)).to.be.true;
+        expect(inControlGroup === isInControlGroup('dsdndskhsdks', 0.5)).to.be.true;
+        expect(inControlGroup === isInControlGroup('dsdndskhsdks', 0.5)).to.be.true;
+      });
+
+      it('Control group ratio must be within a 10% error on a large sample', function () {
+        let nbInControlGroup = 0;
+        const sampleSize = 100;
+        for (let i = 0; i < sampleSize; i++) {
+          nbInControlGroup = nbInControlGroup + (isInControlGroup('R$*df' + i, 0.5) ? 1 : 0);
+        }
+        expect(nbInControlGroup).to.be.greaterThan(sampleSize / 2 - sampleSize / 10);
+        expect(nbInControlGroup).to.be.lessThan(sampleSize / 2 + sampleSize / 10);
       });
     });
   });

@@ -1,5 +1,4 @@
-
-import { config } from './config';
+import ID5 from './id5-api';
 
 const tArr = 'Array';
 const tStr = 'String';
@@ -76,14 +75,18 @@ export function logError() {
 
 function decorateLog(args, prefix) {
   args = [].slice.call(args);
-  prefix && args.unshift(prefix);
-  args.unshift('display: inline-block; color: #fff; background: #1c307e; padding: 1px 4px; border-radius: 3px;');
-  args.unshift('%cID5');
+  if (ID5.version !== 'TESTING') {
+    prefix && args.unshift(prefix);
+    args.unshift('display: inline-block; color: #fff; background: #1c307e; padding: 1px 4px; border-radius: 3px;');
+    args.unshift('%cID5');
+  } else {
+    args.unshift(new Date().getTime());
+  }
   return args;
 }
 
-export function debugTurnedOn() {
-  return config.getConfig().debug;
+function debugTurnedOn() {
+  return ID5 && ID5.debug === true;
 }
 
 /*
@@ -491,8 +494,8 @@ export function deferPixelFire(syncUrl, initCallBack, loadedCallback) {
 /**
  * returns a hash of a string using a fast algorithm
  * source: https://stackoverflow.com/a/52171480/845390
- * @param str
- * @param seed (optional)
+ * @param {string} str
+ * @param {number} [seed] (optional)
  * @returns {string}
  */
 export function cyrb53Hash(str, seed = 0) {

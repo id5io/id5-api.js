@@ -159,11 +159,11 @@ export function detectReferer(win) {
   /**
    * Referer info
    * @typedef {Object} refererInfo
-   * @property {string} referer detected top url
-   * @property {boolean} reachedTop whether it was possible to walk upto top window or not
-   * @property {number} numIframes number of iframes
-   * @property {string} stack comma separated urls of all origins
-   * @property {string} canonicalUrl canonical URL refers to an HTML link element, with the attribute of rel="canonical", found in the <head> element of your webpage
+   * @property {string} referer - detected top url
+   * @property {boolean} reachedTop - whether it was possible to walk upto top window or not
+   * @property {number} numIframes - number of iframes
+   * @property {string} stack - comma separated urls of all origins
+   * @property {string} canonicalUrl - canonical URL refers to an HTML link element, with the attribute of rel="canonical", found in the <head> element of your webpage
    */
 
   /**

@@ -121,9 +121,10 @@ module.exports = function(codeCoverage, watchMode, file) {
     // enable / disable watching file and executing tests whenever any file changes
     autoWatch: true,
 
-    browserConsoleLogOptions: {
-      terminal: true,
-      level: ''
+    concurrency: 2,
+
+    client: {
+      captureConsole: true
     },
 
     reporters: ['mocha'],

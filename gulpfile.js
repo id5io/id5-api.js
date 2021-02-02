@@ -89,7 +89,7 @@ var banner = ['/**',
   ' */',
   ''].join('\n');
 
-var setId5VersionJs = '\n<%= id5Api.globalVarName %>.version = \'<%= id5Api.version %>\';\n';
+var setId5VersionJs = '\nID5.version=\'<%= id5Api.version %>\';\nID5.versions[ID5.version]=true;\n';
 
 function makeDevpackPkg() {
   var cloned = _.cloneDeep(webpackConfig);

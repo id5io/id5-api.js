@@ -5,47 +5,57 @@
 const utils = require('./utils');
 
 /**
- * @typedef {Object} Id5Config
- * @property {number} partnerId - ID5 Publisher ID, mandatory
- * @property {boolean|false} [debug] - enable verbose debug mode (defaulting to id5_debug query string param if present, or false)
- * @property {boolean|false} [allowID5WithoutConsentApi] - Allow ID5 to fetch user id even if no consent API
+ * @typedef {Object} Id5Options
+ * @property {number} [partnerId] - ID5 Publisher ID, mandatory
+ * @property {boolean|false} [debugBypassConsent] - Bypass consent API et local storage consent for testing purpose only
+ * @property {boolean|false} [allowLocalStorageWithoutConsentApi] - Tell ID5 that consent has been given to read local storage
  * @property {number} [refreshInSeconds] - Refresh period of first-party cookie (defaulting to 7200s)
  * @property {string} [partnerUserId] - User ID for the platform deploying the API, to be stored by ID5 for further cookie matching if provided
  * @property {string} [cmpApi] - API to use CMP. As of today, either 'iab' or 'static'
  * @property {object} [consentData] - Consent data if cmpApi is 'static'
- * @property {function} [callback] - Function to call back when User ID is available. if callbackTimeoutInMs is not provided, will be fired only if a User ID is available.
- * @property {number} [callbackTimeoutInMs] - Delay in ms after which the callback is guaranteed to be fired. A User ID may not yet be available at this time.
+ * @property {function} [callbackOnAvailable] - Function to call back when User ID is available. if callbackTimeoutInMs is not provided, will be fired only if a User ID is available.
+ * @property {function} [callbackOnUpdates] - Function to call back on further updates of User ID by changes in the page (consent, pd, refresh). Cannot be provided if `callbackOnAvailable` is not provided
+ * @property {number} [callbackTimeoutInMs] - Delay in ms after which the callbackOnAvailable is guaranteed to be fired. A User ID may not yet be available at this time.
  * @property {string} [pd] - Publisher data that can be passed to help with cross-domain reconciliation of the ID5 ID, more details here: https://wiki.id5.io/x/BIAZ
- * @property {array} [tpids] - An array of third party IDs that can be passed to usersync with ID5. Contact your ID5 representative to enable this
  * @property {AbTestConfig} [abTesting] - An object defining if and how A/B testing should be enabled
  */
 
-export function newConfig() {
-  /** @type {Id5Config} */
-  let config;
+/**
+ * @typedef {Object} AbTestConfig
+ * @property {boolean|false} [enabled] - Enable control group
+ * @property {number} [controlGroupPct] - Ratio of users in control group [0,1]
+ */
 
-  /** @type {Id5Config} */
-  let providedConfig;
+export default class Config {
+  /** @type {Id5Options} */
+  options;
 
-  const configTypes = {
-    debug: 'Boolean',
-    allowID5WithoutConsentApi: 'Boolean',
+  /** @type {Id5Options} */
+  providedOptions;
+
+  static configTypes = {
+    debugBypassConsent: 'Boolean',
+    allowLocalStorageWithoutConsentApi: 'Boolean',
     cmpApi: 'String',
     consentData: 'Object',
     refreshInSeconds: 'Number',
     partnerId: 'Number',
     partnerUserId: 'String',
-    callback: 'Function',
+    callbackOnAvailable: 'Function',
+    callbackOnUpdates: 'Function',
     callbackTimeoutInMs: 'Number',
     pd: 'String',
-    tpids: 'Array',
     abTesting: 'Object'
   };
 
-  function resetConfig() {
-    config = {
-      debug: utils.getParameterByName('id5_debug').toUpperCase() === 'TRUE',
-      allowID5WithoutConsentApi: false,
+  /**
+   * Create configuration instance from an object containing key-value pairs
+   * @param {Id5Options} options
+   */
+  constructor(options) {
+    this.options = {
+      debugBypassConsent: false,
+      allowLocalStorageWithoutConsentApi: false,
       cmpApi: 'iab',
       consentData: {
         getConsentData: {
@@ -57,64 +67,63 @@ export function newConfig() {
       refreshInSeconds: 7200,
       partnerId: undefined,
       partnerUserId: undefined,
-      callback: undefined,
+      callbackOnAvailable: undefined,
+      callbackOnUpdates: undefined,
       callbackTimeoutInMs: undefined,
       pd: '',
-      tpids: undefined,
       abTesting: {
         enabled: false,
         controlGroupPct: 0
       }
     };
-    providedConfig = {};
+    this.providedOptions = {};
+
+    if (!options.partnerId || typeof options.partnerId !== 'number') {
+      throw new Error('partnerId is required and must be a number');
+    }
+
+    this.updOptions(options);
   }
 
   /**
    * Return current configuration
-   * @returns {Id5Config} options
+   * @returns {Id5Options} options
    */
-  function getConfig() {
-    return config;
+  getOptions() {
+    return this.options;
   }
 
   /**
    * Return configuration set by user
-   * @returns {Id5Config} options
+   * @returns {Id5Options} options
    */
-  function getProvidedConfig() {
-    return providedConfig;
+  getProvidedOptions() {
+    return this.providedOptions;
   }
 
   /**
-   * Sets configuration given an object containing key-value pairs
-   * @param {Id5Config} options
-   * @returns {Id5Config} config
+   * Override the configuration with an object containing key-value pairs
+   * @param {Id5Options} options
    */
-  function setConfig(options) {
+  updOptions(options) {
     if (typeof options !== 'object') {
-      utils.logError('setConfig options must be an object');
-      return undefined;
+      utils.logError('Config options must be an object');
+      return;
+    }
+
+    if (typeof this.options.partnerId === 'number' && // Might be undefined
+      typeof options.partnerId === 'number' &&
+      options.partnerId !== this.options.partnerId) {
+      throw new Error('Cannot update config with a different partnerId');
     }
 
     Object.keys(options).forEach(topic => {
-      if (utils.isA(options[topic], configTypes[topic])) {
-        config[topic] = options[topic];
-        providedConfig[topic] = options[topic];
+      if (utils.isA(options[topic], Config.configTypes[topic])) {
+        this.options[topic] = options[topic];
+        this.providedOptions[topic] = options[topic];
       } else {
-        utils.logError(`setConfig options ${topic} must be of type ${configTypes[topic]} but was ${toString.call(options[topic])}`);
+        utils.logError(`updOptions options ${topic} must be of type ${Config.configTypes[topic]} but was ${toString.call(options[topic])}`);
       }
     });
-    return config
   }
-
-  resetConfig();
-
-  return {
-    getConfig,
-    getProvidedConfig,
-    setConfig,
-    resetConfig
-  };
 }
-
-export const config = newConfig();
