@@ -226,7 +226,7 @@ The configuration object for `abTesting` contains two variables:
 | Name | Type | Return Type | Description |
 | --- | --- | --- | --- |
 | ID5.init({}) | method | n/a | Takes a config object as the only parameter and initializes the API with these configuration options, returns an `Id5Status` object|
-| ID5.refreshId(id5Status, boolean) | method | n/a | A method to refresh the ID without reloading the page. Must come _after_ the `init()` method is called. First parameter is a boolean, set to `true` to force a fetch call to ID5, set to `false` to only call ID5 if necessary. The second parameter is a config object to add/change options prior to refreshing the ID. |
+| ID5.refreshId(id5Status, boolean, config) | method | n/a | A method to refresh the ID without reloading the page. Must come _after_ the `init()` method is called. First parameter is the `id5Status` returned from `init()`, the second (optional) param is a boolean, set to `true` to force a fetch call to ID5, set to `false` to only call ID5 if necessary. The third (optional) parameter is a valid config object to add/change options prior to refreshing the ID. |
 | ID5.loaded | variable | boolean | This variable will be set to `true` once the API is loaded and ready for use |
 | id5Status.getUserId() | method | string | The ID5 Universal ID value. If not set yet, returns `undefined` |
 | id5Status.getLinkType() | method | number | Indicates the type of connection ID5 has made with this ID across domains. Possible values are: `0` = ID5 has not linked this user across domains (i.e. `original_uid` == `universal_uid`); `1` = ID5 has made a probabilistic link to another UID; `2` = ID5 has made a deterministic link to another UID. If `userId` is not set yet, returns `undefined` |
