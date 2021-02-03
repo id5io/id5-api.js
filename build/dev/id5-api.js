@@ -1,6 +1,6 @@
 /**
- * id5-api.js - The ID5 API is designed to make accessing the ID5 Universal ID simple for publishers and their ad tech vendors. The ID5 Universal ID is a shared, neutral identifier that publishers and ad tech platforms can use to recognise users even in environments where 3rd party cookies are not available. For more information, visit https://id5.io/universal-id.
- * @version v0.9.7-pre
+ * id5-api.js - The ID5 API is designed to make accessing the ID5 Universal ID simple for publishers, advertisers, and their ad tech vendors. The ID5 Universal ID is a shared, neutral identifier that publishers, advertisers, and ad tech platforms can use to recognise users even in environments where 3rd party cookies are not available. For more information, visit https://id5.io/universal-id.
+ * @version v1.0.0
  * @link https://id5.io/
  * @license Apache-2.0
  */
@@ -2507,5 +2507,5 @@ function isInControlGroup(userId, controlGroupRatio) {
 /***/ })
 /******/ ]);
 //# sourceMappingURL=id5-api.js.map
-ID5.version='0.9.7-pre';
+ID5.version='1.0.0';
 ID5.versions[ID5.version]=true;
