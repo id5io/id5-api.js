@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en">
 <head>
-    <title>ID5 API Basic Test</title>
+    <title>ID5 API Static Consent Test</title>
 
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
@@ -11,18 +11,12 @@
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
           integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
 
-    <!-- Quantcast Choice. Consent Manager Tag -->
-    <!-- to properly test, you need to update /etc/hosts to point 127.0.0.1 to samples.id5.io and -->
-    <!-- update the url from localhost to samples.id5.io -->
-    <script type="text/javascript" src="quantcast-cmp.js"></script>
 </head>
 <body>
 <main role="main">
     <div class="container">
         <p>To see the calls the ID5 API makes, open Developer Tools in your browser and go to the Network tab. Filter
             for <code>id5-sync.com</code> and you will see the http requests it makes.</p>
-
-        <p>To properly test, you need to update <code>/etc/hosts</code> to point <code>localhost</code> to <code>samples.id5.io</code> and <a href="http://samples.id5.io:9998/test/pages/basic.html">update the url accordingly</a></p>
 
         <p>An image with the ID5 Universal ID will display in the box below when it is available:</p>
         <div id="placeholder" class="py-3 border border-primary text-center"></div>
@@ -48,7 +42,18 @@
         $('#placeholder').html(`<b>ID5 ID:</b> ${id5Status.getUserId()}<br><b>Link Type:</b> ${id5Status.getLinkType()}<br>`).append(i);
     };
     ID5.debug = true;
-    var id5Status = ID5.init({partnerId: 173, refreshInSeconds: 15}).onAvailable(id5Callback);
+    var id5Status = ID5.init({
+        partnerId: 415,
+        refreshInSeconds: 15,
+        cmpApi: 'static',
+        consentData: {
+            getTCData: {
+                gdprApplies: true,
+                tcString: "CPBZjR9PBZjR9AKAZAENBMCsAP_AAH_AAAqIHWtf_X_fb39j-_59_9t0eY1f9_7_v-0zjhfds-8Nyf_X_L8X42M7vF36pq4KuR4Eu3LBIQFlHOHUTUmw6okVrTPsak2Mr7NKJ7LEinMbe2dYGHtfn9VTuZKYr97s___z__-__v__79f_r-3_3_vp9X---_e_V3dgdYASYal8BFmJY4Ek0aVQogQhXEh0AoAKKEYWiawgJXBTsrgI9QQMAEBqAjAiBBiCjFgEAAAAASURASAHggEQBEAgABACpAQgAIkAQWAFgYBAAKAaFgBFAEIEhBkcFRymBARItFBPJWAJRd7GGEIZRYAUCj-iowEAAAAA.cAAAAAAAAAAA",
+            }
+        }
+    });
+    id5Status.onAvailable(id5Callback);
 </script>
 <!-- /ID5 API -->
 

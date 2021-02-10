@@ -19,8 +19,10 @@ export default class ConsentManagement {
    */
   lookupStaticConsentData(cmpSuccess, finalCallback) {
     this.cmpVersion = (this.staticConsentData.getConsentData) ? 1 : (this.staticConsentData.getTCData) ? 2 : 0;
-    // remove extra layer in static v2 data object so it matches normal v2 CMP object for processing step
+    utils.logInfo(`Using static consent data from config for TCF v${this.cmpVersion}`, this.staticConsentData);
+
     if (this.cmpVersion === 2) {
+      // remove extra layer in static v2 data object so it matches normal v2 CMP object for processing step
       cmpSuccess(this, this.staticConsentData.getTCData, finalCallback);
     } else {
       cmpSuccess(this, this.staticConsentData, finalCallback);
