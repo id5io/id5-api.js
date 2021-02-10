@@ -28,6 +28,7 @@ Stay up-to-date with all of our API releases by subscribing to our [release note
       - [Generating Partner Data String](#generating-partner-data-string)
       - [A/B Testing](#ab-testing)
     - [Available Methods and Variables](#available-methods-and-variables)
+      - [EIDs Object Output](#eids-object-output)
     - [Examples](#examples)
       - [Enabling Debug Output](#enabling-debug-output)
     - [Test locally](#test-locally)
@@ -232,9 +233,28 @@ The configuration object for `abTesting` contains two variables:
 | id5Status.getLinkType() | method | number | Indicates the type of connection ID5 has made with this ID across domains. Possible values are: `0` = ID5 has not linked this user across domains (i.e. `original_uid` == `universal_uid`); `1` = ID5 has made a probabilistic link to another UID; `2` = ID5 has made a deterministic link to another UID. If `userId` is not set yet, returns `undefined` |
 | id5Status.isFromCache() | method | boolean | Indicates whether the `userId` value is from cache (when set to `true`) or from a server response (when set to `false`). If `userId` is not set yet, returns `undefined` |
 | id5Status.exposeUserId() | method | boolean | Applicable when [A/B Testing](#ab-testing) is turned on; when this method returns `true`, the user is not in the control group and `id5Status.getUserId()` is populated with the ID5 ID; when `false`, the user is considered as part of the control group and `id5Status.getUserId()` will be `0`. This method can be used to inform your reporting systems that an ID was available or not, instead of relying on the value of `id5Status.getUserId()` directly. |
+| id5Status.getUserIdAsEid() | method | object | Retrieve the ID5 ID as an object that can be directly added to an `eids` array in an OpenRTB bid request. See [below](#eids-object-output) for a example output |
 | id5Status.onAvailable(fn, timeout) | method | id5Status | Set an event to be called when the ID5 ID is available. Will be called only once per `ID5.init()`. The first parameter is a function to call, which will receive as its only parameter the `id5Status` object. The second, optional, parameter, is a timeout in ms; if the `fn` has not been called when the timeout is hit, then it will force a call to `fn` even if the ID5 ID is not available yet. If not provided, then it will wait indefinitely until the ID5 ID is available to call `fn`. |
 | id5Status.onUpdate(fn) | method | id5Status | Set an event listener to be called any time the ID5 ID is updated. For example, if the ID was found in cache, then the `onAvailable` event would immediately fire; but there may be a need to call the ID5 servers for an updated ID. When the call to ID5 returns, the `onUpdate` event will fire. If `refreshId` is called, when the ID is refreshed, the `onUpdate` event will also fire. The first and only parameter is a function to call, which will receive as its only parameter the `id5Status` object. |
 | id5Status.onRefresh(fn, timeout) | method | id5Status | Set an event listener to be called any time the `refreshId` method has returned with an ID. The first parameter is a function to call, which will receive as its only parameter the `id5Status` object. The second, optional, parameter, is a timeout in ms; if the `fn` has not been called when the timeout is hit, then it will force a call to `fn` even if the `refreshId` has not returned with an ID. If not provided, then it will wait indefinitely until the ID5 ID is returned from `refreshId` to call `fn` |
+
+#### EIDs Object Output
+When passing the ID5 ID in a bid request, the common practice is to include it in the `user.ext.eids[]` array. To make it easy to retrieve the ID in a format that can be included in the `eids` array, the `id5Status.getUserIdAsEid()` method can be used. An example of the output of this object is below:
+
+```javascript
+{
+  "source": "id5-sync.com",
+  "uids": [
+    {
+      "id": "ID5-ABCDEFG12345",
+      "ext": {
+        "linkType": 2,
+        "abTestingControlGroup": false
+      }
+    }
+  ]
+}
+```
 
 ### Examples
 

@@ -3,6 +3,7 @@
  */
 
 import Config from './config';
+import CONSTANTS from './constants.json';
 import * as abTesting from './abTesting';
 import * as utils from './utils';
 
@@ -153,6 +154,24 @@ export default class Id5Status {
    */
   exposeUserId() {
     return this._isExposed;
+  }
+
+  /**
+   * Return the current userId in an object that can be added to the
+   * eids array of an OpenRTB bid request
+   * @return {object}
+   */
+  getUserIdAsEid() {
+    return {
+      source: CONSTANTS.ID5_EIDS_SOURCE,
+      uids: [{
+        id: this.getUserId(),
+        ext: {
+          linkType: this.getLinkType(),
+          abTestingControlGroup: !this.exposeUserId()
+        }
+      }]
+    };
   }
 
   /**
