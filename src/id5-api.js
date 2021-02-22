@@ -177,7 +177,7 @@ export class Id5Api {
             'pd': options.pd,
             'puid': options.partnerUserId,
             'nbPage': nb,
-            'id5cdn': (document.currentScript && document.currentScript.src && document.currentScript.src.indexOf('https://cdn.id5-sync.com') === 0)
+            'id5cdn': !!(document.currentScript && document.currentScript.src && document.currentScript.src.indexOf('https://cdn.id5-sync.com') === 0)
           };
 
           if (id5Status.getOptions().abTesting.enabled === true) {
