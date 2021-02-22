@@ -161,7 +161,7 @@ export default class ConsentManagement {
    */
   requestConsent(debugBypassConsent, cmpApi, providedConsentData, finalCallback) {
     if (debugBypassConsent) {
-      utils.logError('ID5 is operating in forced consent mode and will not retrieve any consent signals from the CMP');
+      utils.logWarn('ID5 is operating in forced consent mode and will not retrieve any consent signals from the CMP');
       finalCallback(this.consentData);
     } else if (!this.cmpCallMap[cmpApi]) {
       utils.logError(`Unknown consent API: ${cmpApi}`);
@@ -269,7 +269,7 @@ export default class ConsentManagement {
    */
   isLocalStorageAllowed(allowLocalStorageWithoutConsentApi, debugBypassConsent) {
     if (allowLocalStorageWithoutConsentApi === true || debugBypassConsent === true) {
-      utils.logError('Local storage access granted by configuration override, consent will not be checked');
+      utils.logWarn('Local storage access granted by configuration override, consent will not be checked');
       return true;
     } else if (!this.consentData) {
       // no cmp on page, so check if provisional access is allowed
