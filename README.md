@@ -165,7 +165,6 @@ There are a few cases in which `getUserId()` may not be ready or have a value ye
 | pd | Optional | string | | Partner-supplied data used for linking ID5 IDs across domains. See [Generating Partner Data String](#generating-partner-data-string) below for details on generating the string |
 | refreshInSeconds | Optional | integer | `7200`<br>(2 hours) | Refresh period of first-party local storage |
 | abTesting | Optional | object | `{ enabled: false, controlGroupPct: 0 }` | Enables A/B testing of the ID5 ID. See [A/B Testing](#ab-testing) below for more details |
-<!-- TODO remove callback methods -->
 
 #### Generating Partner Data String
 The `pd` field (short for Partner Data) is a base64 encoded string that contains any deterministic user data you have access to. The data will be used strictly to provide better linking of ID5 IDs across domains for improved user identification. If the user has not provided ID5 with a legal basis to process data, the information sent to ID5 will be ignored and neither used nor saved for future requests.
