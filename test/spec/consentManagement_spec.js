@@ -105,11 +105,11 @@ describe('Consent Management TCFv1', function () {
         expect(consent.isLocalStorageAllowed(true, false)).to.be.true;
       });
 
-      it('throws an error + calls callback when processCmpData check failed while config had debugBypassConsent set to true', function () {
+      it('throws a warning + calls callback when processCmpData check failed while config had debugBypassConsent set to true', function () {
         const consent = new ConsentManagement()
         consent.requestConsent(true, 'static', { getConsentData: {}, getVendorConsents: {} }, callbackSpy);
 
-        sinon.assert.calledOnce(utils.logError);
+        sinon.assert.calledOnce(utils.logWarn);
         sinon.assert.calledOnce(callbackSpy);
         expect(consent.consentData).to.be.undefined;
         expect(consent.isLocalStorageAllowed(false, true)).to.be.true;
@@ -168,12 +168,12 @@ describe('Consent Management TCFv1', function () {
         expect(consent.isLocalStorageAllowed(false, false)).to.be.undefined;
       });
 
-      it('throws an error + calls callback when processCmpData check failed while debugBypassConsent=true', function () {
+      it('throws a warning + calls callback when processCmpData check failed while debugBypassConsent=true', function () {
         cmpStub = sinon.stub(window, '__cmp').callsFake((...args) => { args[2]({}); });
         const consent = new ConsentManagement()
         consent.requestConsent(true, 'iab', undefined, callbackSpy);
 
-        sinon.assert.calledOnce(utils.logError);
+        sinon.assert.calledOnce(utils.logWarn);
         sinon.assert.calledOnce(callbackSpy);
         expect(consent.consentData).to.be.undefined;
         expect(consent.isLocalStorageAllowed(false, true)).to.be.true;
@@ -313,12 +313,12 @@ describe('Consent Management TCFv2', function () {
         expect(consent.isLocalStorageAllowed(false, false)).to.be.undefined;
       });
 
-      it('throws an error + calls callback when processCmpData check failed while config had debugBypassConsent set to true', function () {
+      it('throws a warning + calls callback when processCmpData check failed while config had debugBypassConsent set to true', function () {
         const consent = new ConsentManagement()
         consent.requestConsent(true, 'static', { getConsentData: {}, getVendorConsents: {} }, callbackSpy);
 
         sinon.assert.calledOnce(callbackSpy);
-        sinon.assert.calledOnce(utils.logError);
+        sinon.assert.calledOnce(utils.logWarn);
         expect(consent.consentData).to.be.undefined;
       });
     });
@@ -375,12 +375,12 @@ describe('Consent Management TCFv2', function () {
         expect(consent.isLocalStorageAllowed(false, false)).to.be.undefined;
       });
 
-      it('throws an error + calls callback when processCmpData check failed while config had debugBypassConsent=true', function () {
+      it('throws a warning + calls callback when processCmpData check failed while config had debugBypassConsent=true', function () {
         cmpStub = sinon.stub(window, '__tcfapi').callsFake((...args) => { args[2]({}, true); });
         const consent = new ConsentManagement()
         consent.requestConsent(true, 'iab', undefined, callbackSpy);
 
-        sinon.assert.calledOnce(utils.logError);
+        sinon.assert.calledOnce(utils.logWarn);
         sinon.assert.calledOnce(callbackSpy);
         expect(consent.consentData).to.be.undefined;
         expect(consent.isLocalStorageAllowed(false, true)).to.be.true;
