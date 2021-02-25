@@ -18,6 +18,7 @@ const utils = require('./utils');
  * @property {number} [callbackTimeoutInMs] - Delay in ms after which the callbackOnAvailable is guaranteed to be fired. A User ID may not yet be available at this time.
  * @property {string} [pd] - Publisher data that can be passed to help with cross-domain reconciliation of the ID5 ID, more details here: https://wiki.id5.io/x/BIAZ
  * @property {AbTestConfig} [abTesting] - An object defining if and how A/B testing should be enabled
+ * @property {string} [provider] - Defines who is deploying the API on behalf of the partner. A hard-coded value that will be provided by ID5 when applicable
  */
 
 /**
@@ -45,7 +46,8 @@ export default class Config {
     callbackOnUpdates: 'Function',
     callbackTimeoutInMs: 'Number',
     pd: 'String',
-    abTesting: 'Object'
+    abTesting: 'Object',
+    provider: 'String'
   };
 
   /**
@@ -74,7 +76,8 @@ export default class Config {
       abTesting: {
         enabled: false,
         controlGroupPct: 0
-      }
+      },
+      provider: undefined
     };
     this.providedOptions = {};
 

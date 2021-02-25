@@ -263,6 +263,7 @@ describe('ID5 JS API', function () {
           expect(requestData.gdpr).to.exist;
           expect(requestData.gdpr_consent).to.exist;
           expect(requestData.features).to.be.undefined;
+          expect(requestData.provider).to.be.equal('');
 
           expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
           expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
@@ -273,14 +274,15 @@ describe('ID5 JS API', function () {
           expect(utils.getFromLocalStorage(TEST_PD_STORAGE_CONFIG)).to.be.equal(utils.cyrb53Hash(''));
         });
 
-        it('should request new value with pd in request when pd config is set with consent override', function () {
-          ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true, pd: 'pubdata' });
+        it('should request new value with pd and provider in request when pd and provider config is set with consent override', function () {
+          ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true, pd: 'pubdata', provider: 'test-provider' });
 
           sinon.assert.calledOnce(ajaxStub);
           expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
 
           const requestData = JSON.parse(ajaxStub.firstCall.args[2]);
           expect(requestData.pd).to.be.equal('pubdata');
+          expect(requestData.provider).to.be.equal('test-provider');
           expect(utils.getFromLocalStorage(TEST_PD_STORAGE_CONFIG)).to.be.equal(utils.cyrb53Hash('pubdata'));
         });
 
