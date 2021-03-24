@@ -64,13 +64,6 @@ describe('ID5 JS API', function () {
   const TEST_STORED_ID5ID = 'teststoredid5id';
   const TEST_STORED_SIGNATURE = 'abcdef';
   const TEST_STORED_LINK_TYPE = 0;
-  const STORED_JSON = encodeURIComponent(JSON.stringify({
-    'universal_uid': TEST_STORED_ID5ID,
-    'cascade_needed': false,
-    'signature': TEST_STORED_SIGNATURE,
-    'link_type': TEST_STORED_LINK_TYPE,
-    'privacy': JSON.parse(TEST_PRIVACY_ALLOWED)
-  }));
   const STORED_JSON_LEGACY = JSON.stringify({
     'universal_uid': TEST_STORED_ID5ID,
     'cascade_needed': false,
@@ -78,6 +71,7 @@ describe('ID5 JS API', function () {
     'link_type': TEST_STORED_LINK_TYPE,
     'privacy': JSON.parse(TEST_PRIVACY_ALLOWED)
   });
+  const STORED_JSON = encodeURIComponent(STORED_JSON_LEGACY);
 
   const TEST_RESPONSE_ID5ID = 'testresponseid5id';
   const TEST_RESPONSE_SIGNATURE = 'uvwxyz';
