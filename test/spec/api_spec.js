@@ -74,8 +74,10 @@ describe('ID5 JS API', function () {
   const STORED_JSON = encodeURIComponent(STORED_JSON_LEGACY);
 
   const TEST_RESPONSE_ID5ID = 'testresponseid5id';
+  const TEST_RESPONSE_ID5ID_NO_CONSENT = '0';
   const TEST_RESPONSE_SIGNATURE = 'uvwxyz';
   const TEST_RESPONSE_LINK_TYPE = 1;
+  const TEST_RESPONSE_LINK_TYPE_NO_CONSENT = 0;
   const TEST_RESPONSE_EID = {
     source: CONSTANTS.ID5_EIDS_SOURCE,
     uids: [{
@@ -111,10 +113,10 @@ describe('ID5 JS API', function () {
     'privacy': JSON.parse(TEST_PRIVACY_ALLOWED)
   });
   const JSON_RESPONSE_NO_ID5_CONSENT = JSON.stringify({
-    'universal_uid': TEST_RESPONSE_ID5ID,
+    'universal_uid': TEST_RESPONSE_ID5ID_NO_CONSENT,
     'cascade_needed': false,
     'signature': TEST_RESPONSE_SIGNATURE,
-    'link_type': TEST_RESPONSE_LINK_TYPE,
+    'link_type': TEST_RESPONSE_LINK_TYPE_NO_CONSENT,
     'privacy': JSON.parse(TEST_PRIVACY_DISALLOWED)
   });
 
@@ -1018,8 +1020,8 @@ describe('ID5 JS API', function () {
         sinon.assert.calledOnce(ajaxStub);
         expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
 
-        expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
-        expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
+        expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID_NO_CONSENT);
+        expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE_NO_CONSENT);
         expect(id5Status.isFromCache()).to.be.false;
         expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.null;
         expect(utils.getFromLocalStorage(TEST_PRIVACY_STORAGE_CONFIG)).to.be.eq(TEST_PRIVACY_DISALLOWED);
@@ -1050,8 +1052,8 @@ describe('ID5 JS API', function () {
         const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID });
 
         sinon.assert.calledOnce(ajaxStub);
-        expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
-        expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
+        expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID_NO_CONSENT);
+        expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE_NO_CONSENT);
         expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.null;
         expect(utils.getFromLocalStorage(TEST_LAST_STORAGE_CONFIG)).to.be.null;
         expect(utils.getFromLocalStorage(TEST_NB_STORAGE_CONFIG)).to.be.null;
@@ -2140,8 +2142,8 @@ describe('ID5 JS API', function () {
           expect(id5Status.getLinkType()).to.be.undefined;
 
           setTimeout(() => {
-            expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
-            expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
+            expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID_NO_CONSENT);
+            expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE_NO_CONSENT);
             expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(encodeURIComponent(JSON_RESPONSE_NO_ID5_CONSENT));
             expect(utils.getFromLocalStorage(TEST_PRIVACY_STORAGE_CONFIG)).to.be.eq(TEST_PRIVACY_DISALLOWED);
             done();
@@ -2158,8 +2160,8 @@ describe('ID5 JS API', function () {
           expect(id5Status.getLinkType()).to.be.undefined;
 
           setTimeout(() => {
-            expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
-            expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
+            expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID_NO_CONSENT);
+            expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE_NO_CONSENT);
             expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.null;
             expect(utils.getFromLocalStorage(TEST_PRIVACY_STORAGE_CONFIG)).to.be.eq(TEST_PRIVACY_DISALLOWED);
             done();
@@ -2176,8 +2178,8 @@ describe('ID5 JS API', function () {
           expect(id5Status.getLinkType()).to.be.equal(TEST_STORED_LINK_TYPE);
 
           setTimeout(() => {
-            expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
-            expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
+            expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID_NO_CONSENT);
+            expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE_NO_CONSENT);
             expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(encodeURIComponent(JSON_RESPONSE_NO_ID5_CONSENT));
             expect(utils.getFromLocalStorage(TEST_PRIVACY_STORAGE_CONFIG)).to.be.eq(TEST_PRIVACY_DISALLOWED);
             done();
@@ -2196,8 +2198,8 @@ describe('ID5 JS API', function () {
           expect(id5Status.getLinkType()).to.be.equal(TEST_STORED_LINK_TYPE);
 
           setTimeout(() => {
-            expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
-            expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
+            expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID_NO_CONSENT);
+            expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE_NO_CONSENT);
             expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.null;
             expect(utils.getFromLocalStorage(TEST_PRIVACY_STORAGE_CONFIG)).to.be.eq(TEST_PRIVACY_DISALLOWED);
             done();
@@ -2225,8 +2227,8 @@ describe('ID5 JS API', function () {
           expect(utils.getFromLocalStorage(TEST_PRIVACY_STORAGE_CONFIG)).to.be.eq(TEST_PRIVACY_ALLOWED);
 
           setTimeout(() => {
-            expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
-            expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
+            expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID_NO_CONSENT);
+            expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE_NO_CONSENT);
             expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.null;
             expect(utils.getFromLocalStorage(TEST_LAST_STORAGE_CONFIG)).to.be.null;
             expect(utils.getFromLocalStorage(TEST_NB_STORAGE_CONFIG)).to.be.null;
