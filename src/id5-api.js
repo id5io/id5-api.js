@@ -210,7 +210,7 @@ export class Id5Api {
                     // once it does, I don't see a reason to keep that part of the if clause
                     if (this.localStorageAllowed === true || typeof responseObj.privacy === 'undefined') {
                       this.clientStore.putResponse(response);
-                      this.clientStore.setDateTime(Date.now());
+                      this.clientStore.setDateTime(new Date().toUTCString());
                       this.clientStore.setNb(options.partnerId, (cachedResponseUsed ? 0 : 1));
                     } else {
                       this.clientStore.clearAll(options.partnerId);

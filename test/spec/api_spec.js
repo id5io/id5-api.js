@@ -64,13 +64,14 @@ describe('ID5 JS API', function () {
   const TEST_STORED_ID5ID = 'teststoredid5id';
   const TEST_STORED_SIGNATURE = 'abcdef';
   const TEST_STORED_LINK_TYPE = 0;
-  const STORED_JSON = JSON.stringify({
+  const STORED_JSON_LEGACY = JSON.stringify({
     'universal_uid': TEST_STORED_ID5ID,
     'cascade_needed': false,
     'signature': TEST_STORED_SIGNATURE,
     'link_type': TEST_STORED_LINK_TYPE,
     'privacy': JSON.parse(TEST_PRIVACY_ALLOWED)
   });
+  const STORED_JSON = encodeURIComponent(STORED_JSON_LEGACY);
 
   const TEST_RESPONSE_ID5ID = 'testresponseid5id';
   const TEST_RESPONSE_SIGNATURE = 'uvwxyz';
@@ -227,7 +228,7 @@ describe('ID5 JS API', function () {
         expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
         expect(id5Status.isFromCache()).to.be.false;
         expect(id5Status.getUserIdAsEid()).to.be.eql(TEST_RESPONSE_EID);
-        expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(response);
+        expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(encodeURIComponent(response));
         expect(utils.getFromLocalStorage(TEST_PRIVACY_STORAGE_CONFIG)).to.be.null;
       });
     });
@@ -269,7 +270,7 @@ describe('ID5 JS API', function () {
           expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
           expect(id5Status.isFromCache()).to.be.false;
           expect(id5Status.getUserIdAsEid()).to.be.eql(TEST_RESPONSE_EID);
-          expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(JSON_RESPONSE_ID5_CONSENT);
+          expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(encodeURIComponent(JSON_RESPONSE_ID5_CONSENT));
           expect(utils.getFromLocalStorage(TEST_PRIVACY_STORAGE_CONFIG)).to.be.eq(TEST_PRIVACY_ALLOWED);
           expect(utils.getFromLocalStorage(TEST_PD_STORAGE_CONFIG)).to.be.equal(utils.cyrb53Hash(''));
         });
@@ -293,6 +294,23 @@ describe('ID5 JS API', function () {
 
           const requestData = JSON.parse(ajaxStub.firstCall.args[2]);
           expect(requestData.features).to.be.undefined;
+        });
+      });
+
+      describe('Legacy Stored Value with No Refresh Needed', function () {
+        beforeEach(function () {
+          utils.setInLocalStorage(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON_LEGACY);
+          utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, Date.now());
+        });
+
+        it('should use stored value with consent override', function () {
+          const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true, refreshInSeconds: 1000 });
+
+          sinon.assert.notCalled(ajaxStub);
+          expect(id5Status.getUserId()).to.be.equal(TEST_STORED_ID5ID);
+          expect(id5Status.getLinkType()).to.be.equal(TEST_STORED_LINK_TYPE);
+          expect(id5Status.isFromCache()).to.be.true;
+          expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(STORED_JSON_LEGACY); // without a refresh, the storage doesn't change
         });
       });
 
@@ -320,6 +338,23 @@ describe('ID5 JS API', function () {
           expect(id5Status.getUserId()).to.be.equal(TEST_STORED_ID5ID);
           expect(id5Status.getLinkType()).to.be.equal(TEST_STORED_LINK_TYPE);
           expect(id5Status.isFromCache()).to.be.true;
+        });
+      });
+
+      describe('Legacy Stored Value with Refresh Needed', function () {
+        beforeEach(function () {
+          utils.setInLocalStorage(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON_LEGACY);
+          utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, Date.now() - (8000 * 1000));
+        });
+
+        it('should request new value with consent override', function () {
+          const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true, refreshInSeconds: 10 });
+
+          sinon.assert.calledOnce(ajaxStub);
+          expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
+          expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
+          expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
+          expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(encodeURIComponent(JSON_RESPONSE_ID5_CONSENT));
         });
       });
 
@@ -613,7 +648,7 @@ describe('ID5 JS API', function () {
 
           expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
           expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
-          expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(JSON_RESPONSE_ID5_CONSENT);
+          expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(encodeURIComponent(JSON_RESPONSE_ID5_CONSENT));
 
           utils.setCookie('id5id.1st', '', expStrExpired);
         });
@@ -733,7 +768,7 @@ describe('ID5 JS API', function () {
           expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
           expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
           expect(id5Status.isFromCache()).to.be.false;
-          expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(JSON_RESPONSE_ID5_CONSENT);
+          expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(encodeURIComponent(JSON_RESPONSE_ID5_CONSENT));
           expect(utils.getFromLocalStorage(TEST_PRIVACY_STORAGE_CONFIG)).to.be.eq(TEST_PRIVACY_ALLOWED);
           expect(utils.getFromLocalStorage(TEST_PD_STORAGE_CONFIG)).to.be.null;
         });
@@ -1118,7 +1153,7 @@ describe('ID5 JS API', function () {
 
         expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
         expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
-        expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(JSON_RESPONSE_ID5_CONSENT);
+        expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(encodeURIComponent(JSON_RESPONSE_ID5_CONSENT));
       });
 
       it('should not call ID5 with config changes that do not require a refresh', function () {
@@ -1136,7 +1171,7 @@ describe('ID5 JS API', function () {
 
         expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
         expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
-        expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(JSON_RESPONSE_ID5_CONSENT);
+        expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(encodeURIComponent(JSON_RESPONSE_ID5_CONSENT));
       });
 
       it('should call ID5 with config changes that require a refresh', function () {
@@ -1157,7 +1192,7 @@ describe('ID5 JS API', function () {
 
         expect(id5Status.getUserId()).to.be.equal(TEST_REFRESH_RESPONSE_ID5ID);
         expect(id5Status.getLinkType()).to.be.equal(TEST_REFRESH_RESPONSE_LINK_TYPE);
-        expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(REFRESH_JSON_RESPONSE);
+        expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(encodeURIComponent(REFRESH_JSON_RESPONSE));
       });
 
       describe('Consent Checks TCF v2', function () {
@@ -1201,7 +1236,7 @@ describe('ID5 JS API', function () {
 
           expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
           expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
-          expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(JSON_RESPONSE_ID5_CONSENT);
+          expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(encodeURIComponent(JSON_RESPONSE_ID5_CONSENT));
         });
 
         it('should call ID5 when consent changes after init', function () {
@@ -1231,7 +1266,7 @@ describe('ID5 JS API', function () {
 
           expect(id5Status.getUserId()).to.be.equal(TEST_REFRESH_RESPONSE_ID5ID);
           expect(id5Status.getLinkType()).to.be.equal(TEST_REFRESH_RESPONSE_LINK_TYPE);
-          expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(REFRESH_JSON_RESPONSE);
+          expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(encodeURIComponent(REFRESH_JSON_RESPONSE));
         });
       });
     });
@@ -1261,7 +1296,7 @@ describe('ID5 JS API', function () {
 
         expect(id5Status.getUserId()).to.be.equal(TEST_REFRESH_RESPONSE_ID5ID);
         expect(id5Status.getLinkType()).to.be.equal(TEST_REFRESH_RESPONSE_LINK_TYPE);
-        expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(REFRESH_JSON_RESPONSE);
+        expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(encodeURIComponent(REFRESH_JSON_RESPONSE));
       });
     });
   });
@@ -2024,7 +2059,7 @@ describe('ID5 JS API', function () {
           setTimeout(() => {
             expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
             expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
-            expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(JSON_RESPONSE_ID5_CONSENT);
+            expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(encodeURIComponent(JSON_RESPONSE_ID5_CONSENT));
             expect(utils.getFromLocalStorage(TEST_PRIVACY_STORAGE_CONFIG)).to.be.eq(TEST_PRIVACY_ALLOWED);
             done();
           }, LONG_TIMEOUT);
@@ -2042,7 +2077,7 @@ describe('ID5 JS API', function () {
           setTimeout(() => {
             expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
             expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
-            expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(JSON_RESPONSE_ID5_CONSENT);
+            expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(encodeURIComponent(JSON_RESPONSE_ID5_CONSENT));
             expect(utils.getFromLocalStorage(TEST_PRIVACY_STORAGE_CONFIG)).to.be.eq(TEST_PRIVACY_ALLOWED);
             done();
           }, LONG_TIMEOUT);
@@ -2060,7 +2095,7 @@ describe('ID5 JS API', function () {
           setTimeout(() => {
             expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
             expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
-            expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(JSON_RESPONSE_ID5_CONSENT);
+            expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(encodeURIComponent(JSON_RESPONSE_ID5_CONSENT));
             expect(utils.getFromLocalStorage(TEST_PRIVACY_STORAGE_CONFIG)).to.be.eq(TEST_PRIVACY_ALLOWED);
             done();
           }, LONG_TIMEOUT);
@@ -2080,7 +2115,7 @@ describe('ID5 JS API', function () {
           setTimeout(() => {
             expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
             expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
-            expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(JSON_RESPONSE_ID5_CONSENT);
+            expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(encodeURIComponent(JSON_RESPONSE_ID5_CONSENT));
             expect(utils.getFromLocalStorage(TEST_PRIVACY_STORAGE_CONFIG)).to.be.eq(TEST_PRIVACY_ALLOWED);
             done();
           }, LONG_TIMEOUT);
@@ -2107,7 +2142,7 @@ describe('ID5 JS API', function () {
           setTimeout(() => {
             expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
             expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
-            expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(JSON_RESPONSE_NO_ID5_CONSENT);
+            expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(encodeURIComponent(JSON_RESPONSE_NO_ID5_CONSENT));
             expect(utils.getFromLocalStorage(TEST_PRIVACY_STORAGE_CONFIG)).to.be.eq(TEST_PRIVACY_DISALLOWED);
             done();
           }, LONG_TIMEOUT);
@@ -2143,7 +2178,7 @@ describe('ID5 JS API', function () {
           setTimeout(() => {
             expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
             expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
-            expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(JSON_RESPONSE_NO_ID5_CONSENT);
+            expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(encodeURIComponent(JSON_RESPONSE_NO_ID5_CONSENT));
             expect(utils.getFromLocalStorage(TEST_PRIVACY_STORAGE_CONFIG)).to.be.eq(TEST_PRIVACY_DISALLOWED);
             done();
           }, LONG_TIMEOUT);
@@ -2506,7 +2541,7 @@ describe('ID5 JS API', function () {
         sinon.assert.calledOnce(ajaxStub);
         expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
         expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
-        expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(JSON_RESPONSE_ID5_CONSENT);
+        expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(encodeURIComponent(JSON_RESPONSE_ID5_CONSENT));
         expect(id5Status.exposeUserId()).to.be.true;
         expect(id5Status.getUserIdAsEid()).to.be.eql(TEST_RESPONSE_EID);
 
@@ -2549,7 +2584,7 @@ describe('ID5 JS API', function () {
         sinon.assert.calledOnce(ajaxStub);
         expect(id5Status.getUserId()).to.be.equal(TEST_CONTROL_GROUP_USERID);
         expect(id5Status.getLinkType()).to.be.equal(TEST_CONTROL_GROUP_LINKTYPE);
-        expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(JSON_RESPONSE_ID5_CONSENT);
+        expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(encodeURIComponent(JSON_RESPONSE_ID5_CONSENT));
         expect(id5Status.exposeUserId()).to.be.false;
         expect(id5Status.getUserIdAsEid()).to.be.eql(TEST_RESPONSE_EID_AB_CONTROL_GROUP);
 

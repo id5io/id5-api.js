@@ -76,7 +76,7 @@ export default class ClientStore {
   getResponse() {
     let storedValue = this.get(CONSTANTS.STORAGE_CONFIG.ID5);
     if (storedValue) {
-      return JSON.parse(storedValue);
+      return JSON.parse(decodeURIComponent(storedValue));
     } else {
       return storedValue;
     }
@@ -87,7 +87,7 @@ export default class ClientStore {
   }
 
   putResponse(response) {
-    this.put(CONSTANTS.STORAGE_CONFIG.ID5, response);
+    this.put(CONSTANTS.STORAGE_CONFIG.ID5, encodeURIComponent(response));
   }
 
   getHashedConsentData() {
