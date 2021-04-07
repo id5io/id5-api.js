@@ -198,7 +198,7 @@ export class Id5Api {
                 try {
                   responseObj = JSON.parse(response);
                   utils.logInfo('Valid json response from ID5 received:', responseObj);
-                  if (responseObj.universal_uid) {
+                  if (utils.isStr(responseObj.universal_uid)) {
                     id5Status.setUserId(responseObj.universal_uid, responseObj.link_type || 0, false);
 
                     // privacy has to be stored first so we can use it when storing other values
