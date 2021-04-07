@@ -162,25 +162,38 @@ export class Id5Api {
         ) {
           const url = `https://id5-sync.com/g/v2/${options.partnerId}.json`;
           const gdprApplies = (consentData && consentData.gdprApplies) ? 1 : 0;
-          const gdprConsentString = (consentData && consentData.gdprApplies) ? consentData.consentString : '';
-          const signature = (storedResponse && storedResponse.signature) ? storedResponse.signature : '';
+          const gdprConsentString = (consentData && consentData.gdprApplies) ? consentData.consentString : undefined;
+          const signature = (storedResponse && storedResponse.signature) ? storedResponse.signature : undefined;
           const data = {
             'partner': options.partnerId,
             'v': this.version,
             'o': 'api',
             'gdpr': gdprApplies,
-            'gdpr_consent': gdprConsentString,
             'rf': this.referer.referer,
             'u': this.referer.stack[0] || window.location.href,
             'top': this.referer.reachedTop ? 1 : 0,
-            's': signature,
-            'pd': options.pd,
-            'puid': options.partnerUserId,
             'nbPage': nb,
-            'id5cdn': !!(document.currentScript && document.currentScript.src && document.currentScript.src.indexOf('https://cdn.id5-sync.com') === 0),
-            'provider': options.provider || ''
+            'id5cdn': !!(document.currentScript && document.currentScript.src && document.currentScript.src.indexOf('https://cdn.id5-sync.com') === 0)
           };
 
+          // pass in optional data, but only if populated
+          if (typeof gdprConsentString !== 'undefined') {
+            data.gdpr_consent = gdprConsentString;
+          }
+          if (typeof signature !== 'undefined') {
+            data.s = signature;
+          }
+          if (typeof options.pd !== 'undefined') {
+            data.pd = options.pd;
+          }
+          if (typeof options.partnerUserId !== 'undefined') {
+            data.puid = options.partnerUserId;
+          }
+          if (typeof options.provider !== 'undefined') {
+            data.provider = options.provider;
+          }
+
+          // pass in feature flags, if applicable
           if (id5Status.getOptions().abTesting.enabled === true) {
             data.features = data.features || {};
             data.features.ab = 1;

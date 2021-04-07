@@ -106,7 +106,7 @@ describe('config API', function () {
       expect(config.getOptions().partnerId).to.be.equal(44);
 
       expect(config.getProvidedOptions().pd).to.be.undefined;
-      expect(config.getOptions().pd).to.be.equal('');
+      expect(config.getOptions().pd).to.be.undefined;
 
       expect(config.getProvidedOptions().refreshInSeconds).to.be.equal(10);
       expect(config.getOptions().refreshInSeconds).to.be.equal(10);
@@ -114,7 +114,7 @@ describe('config API', function () {
 
     it('should update providedConfig and config with setConfig()', function () {
       const config = new Config({ partnerId: 44, debugBypassConsent: true });
-      expect(config.getOptions().pd).to.be.equal('');
+      expect(config.getOptions().pd).to.be.undefined;
 
       config.updOptions({ pd: 'newpd' });
 

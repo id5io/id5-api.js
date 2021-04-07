@@ -72,7 +72,7 @@ export default class Config {
       callbackOnAvailable: undefined,
       callbackOnUpdates: undefined,
       callbackTimeoutInMs: undefined,
-      pd: '',
+      pd: undefined,
       abTesting: {
         enabled: false,
         controlGroupPct: 0

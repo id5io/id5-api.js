@@ -257,16 +257,17 @@ describe('ID5 JS API', function () {
 
           const requestData = JSON.parse(ajaxStub.firstCall.args[2]);
           expect(requestData.partner).to.be.equal(TEST_ID5_PARTNER_ID);
-          expect(requestData.s).to.be.equal('');
+          expect(requestData.s).to.be.undefined;
           expect(requestData.o).to.be.equal('api');
           expect(requestData.v).to.be.equal('TESTING');
-          expect(requestData.pd).to.be.equal('');
+          expect(requestData.pd).to.be.undefined;
           expect(requestData.rf).to.include('http://localhost');
           expect(requestData.top).to.be.equal(1);
           expect(requestData.gdpr).to.exist;
-          expect(requestData.gdpr_consent).to.exist;
+          expect(requestData.gdpr_consent).to.be.undefined;
           expect(requestData.features).to.be.undefined;
-          expect(requestData.provider).to.be.equal('');
+          expect(requestData.provider).to.be.undefined;
+          expect(requestData.puid).to.be.undefined;
 
           expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
           expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
@@ -278,7 +279,7 @@ describe('ID5 JS API', function () {
         });
 
         it('should request new value with pd and provider in request when pd and provider config is set with consent override', function () {
-          ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true, pd: 'pubdata', provider: 'test-provider' });
+          ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true, pd: 'pubdata', provider: 'test-provider', partnerUserId: 'abc' });
 
           sinon.assert.calledOnce(ajaxStub);
           expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
@@ -286,6 +287,7 @@ describe('ID5 JS API', function () {
           const requestData = JSON.parse(ajaxStub.firstCall.args[2]);
           expect(requestData.pd).to.be.equal('pubdata');
           expect(requestData.provider).to.be.equal('test-provider');
+          expect(requestData.puid).to.be.equal('abc');
           expect(utils.getFromLocalStorage(TEST_PD_STORAGE_CONFIG)).to.be.equal(utils.cyrb53Hash('pubdata'));
         });
 
@@ -645,7 +647,7 @@ describe('ID5 JS API', function () {
           sinon.assert.calledOnce(ajaxStub);
 
           const requestData = JSON.parse(ajaxStub.firstCall.args[2]);
-          expect(requestData.s).to.be.equal('');
+          expect(requestData.s).to.be.undefined;
           expect(requestData['1puid']).to.be.undefined;
 
           expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
@@ -758,14 +760,14 @@ describe('ID5 JS API', function () {
 
           const requestData = JSON.parse(ajaxStub.firstCall.args[2]);
           expect(requestData.partner).to.be.equal(TEST_ID5_PARTNER_ID);
-          expect(requestData.s).to.be.equal('');
+          expect(requestData.s).to.be.undefined;
           expect(requestData.o).to.be.equal('api');
           expect(requestData.v).to.be.equal('TESTING');
-          expect(requestData.pd).to.be.equal('');
+          expect(requestData.pd).to.be.undefined;
           expect(requestData.rf).to.include('http://localhost');
           expect(requestData.top).to.be.equal(1);
           expect(requestData.gdpr).to.exist;
-          expect(requestData.gdpr_consent).to.exist;
+          expect(requestData.gdpr_consent).to.be.undefined;
 
           expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
           expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
