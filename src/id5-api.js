@@ -17,6 +17,8 @@ export class Id5Api {
   allowLocalStorageWithoutConsentApi = false
   /** @type {boolean} */
   localStorageAllowed = false
+  /** @type {boolean} */
+  isUsingCdn = false
   /** @type {object} */
   referer = false
   /** @type {string} */
@@ -27,6 +29,7 @@ export class Id5Api {
   constructor() {
     this.loaded = true;
     this.debug = this.debug || utils.getParameterByName('id5_debug').toUpperCase() === 'TRUE';
+    this.isUsingCdn = !!(document.currentScript && document.currentScript.src && document.currentScript.src.indexOf('https://cdn.id5-sync.com') === 0);
     this.referer = getRefererInfo();
     const currentThis = this; // preserve this in callback
     this.clientStore = new ClientStore(() => { return currentThis.localStorageAllowed });
@@ -173,7 +176,7 @@ export class Id5Api {
             'u': this.referer.stack[0] || window.location.href,
             'top': this.referer.reachedTop ? 1 : 0,
             'nbPage': nb,
-            'id5cdn': !!(document.currentScript && document.currentScript.src && document.currentScript.src.indexOf('https://cdn.id5-sync.com') === 0)
+            'id5cdn': this.isUsingCdn
           };
 
           // pass in optional data, but only if populated
