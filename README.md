@@ -25,7 +25,7 @@ Stay up-to-date with all of our API releases by subscribing to our [release note
     - [Initialize the API](#initialize-the-api)
     - [Access the ID5 Universal ID](#access-the-id5-universal-id)
     - [Available Configuration Options](#available-configuration-options)
-      - [Generating Partner Data String](#generating-partner-data-string)
+      - [PD Example](#pd-example)
       - [A/B Testing](#ab-testing)
     - [Available Methods and Variables](#available-methods-and-variables)
       - [EIDs Object Output](#eids-object-output)
@@ -162,49 +162,18 @@ There are a few cases in which `getUserId()` may not be ready or have a value ye
 | cmpApi | Optional | string | `iab` | API to use CMP. As of today, either `'iab'` or `'static'` |
 | consentData | Optional, Required if `cmpApi` is `'static'` | object | | Consent data if `cmpApi` is `'static'`. Object should be a valid TCF consent object.
 | partnerUserId | Optional | string | | User ID of the platform if they are deploying this API on behalf of a publisher/advertiser, to be used for user syncing with ID5 |
-| pd | Optional | string | | Partner-supplied data used for linking ID5 IDs across domains. See [Generating Partner Data String](#generating-partner-data-string) below for details on generating the string |
+| pd | Optional | string | | Partner-supplied data used for linking ID5 IDs across domains. See [Passing Partner Data to ID5](https://support.id5.io/portal/en/kb/articles/passing-partner-data-to-id5) for details on generating the string |
 | refreshInSeconds | Optional | integer | `7200`<br>(2 hours) | Refresh period of first-party local storage |
 | abTesting | Optional | object | `{ enabled: false, controlGroupPct: 0 }` | Enables A/B testing of the ID5 ID. See [A/B Testing](#ab-testing) below for more details |
 | provider | Optional | string | `pubmatic-identity-hub` | An identifier provided by ID5 to technology partners who manage API deployments on behalf of their clients. Reach out to [ID5](mailto:support@id5.io) if you have questions about this parameter |
 
-#### Generating Partner Data String
-The `pd` field (short for Partner Data) is a base64 encoded string that contains any deterministic user data you have access to. The data will be used strictly to provide better linking of ID5 IDs across domains for improved user identification. If the user has not provided ID5 with a legal basis to process data, the information sent to ID5 will be ignored and neither used nor saved for future requests.
-
-If you do not have any Partner Data to pass to ID5, the `pd` parameter can be omitted or left with an empty string value (`pd: ""`).
-
-The possible keys in the string are:
-
-| Key | Value |
-| --- | --- |
-| 0 | other |
-| 1 | sha256 hashed email |
-| 2 | sha256 hashed phone number |
-| 3 | cross-domain publisher user_id value |
-| 4 | cross-domain publisher user_id source (request the value from ID5) |
-| 5 | single-domain publisher user_id value |
-
-To illustrate how to generate the `pd` string, let's use an example. Suppose you have an email address for the user, in this example it is `myuser@domain.com`, and want to share it with ID5 to strengthen the value of the UID we respond with. You also have your own user id for this user that you can share: `ABC123`.
-
-First, perform a sha256 hash of the email, resulting in the string `b50ca08271795a8e7e4012813f23d505193d75c0f2e2bb99baa63aa822f66ed3`
-
-Next, create the raw `pd` string containing the keys `1` (for the hashed email) and `5` (for the single-domain publisher user id), separated by `&`’s (the order doesn't matter):
-
-```
-1=b50ca08271795a8e7e4012813f23d505193d75c0f2e2bb99baa63aa822f66ed3&5=ABC123
-```
-
-Finally, `base64` the entire raw pd string, resulting in the final `pd` value:
-
-```
-MT1iNTBjYTA4MjcxNzk1YThlN2U0MDEyODEzZjIzZDUwNTE5M2Q3NWMwZjJlMmJiOTliYWE2M2FhODIyZjY2ZWQzJjU9QUJDMTIz
-```
-
-This is the value you will add to the config when you initialize the API:
+#### PD Example
+Taking the example from [Passing Partner Data to ID5](https://support.id5.io/portal/en/kb/articles/passing-partner-data-to-id5), here's how your configuration could look when initializing the API:
 
 ```javascript
 var id5Status = ID5.init({
   partnerId: 173, // modify with your own partnerId
-  pd: "MT1iNTBjYTA4MjcxNzk1YThlN2U0MDEyODEzZjIzZDUwNTE5M2Q3NWMwZjJlMmJiOTliYWE2M2FhODIyZjY2ZWQzJjU9QUJDMTIz"
+  pd: "MT1iNTBjYTA4MjcxNzk1YThlN2U0MDEyODEzZjIzZDUwNTE5M2Q3NWMwZjJlMmJiOTliYWE2M2FhODIyZjY2ZWQzJjU9bSVDMyVCNmxsZXIlMjZmcmFuJUMzJUE3b2lz"
 });
 ```
 
