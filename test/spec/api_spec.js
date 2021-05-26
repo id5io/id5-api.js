@@ -304,7 +304,7 @@ describe('ID5 JS API', function () {
       describe('Legacy Stored Value with No Refresh Needed', function () {
         beforeEach(function () {
           utils.setInLocalStorage(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON_LEGACY);
-          utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, Date.now());
+          utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, new Date().toUTCString());
         });
 
         it('should use stored value with consent override', function () {
@@ -321,7 +321,7 @@ describe('ID5 JS API', function () {
       describe('Stored Value with No Refresh Needed', function () {
         beforeEach(function () {
           utils.setInLocalStorage(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON);
-          utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, Date.now());
+          utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, new Date().toUTCString());
         });
 
         it('should use stored value with consent override', function () {
@@ -348,7 +348,7 @@ describe('ID5 JS API', function () {
       describe('Legacy Stored Value with Refresh Needed', function () {
         beforeEach(function () {
           utils.setInLocalStorage(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON_LEGACY);
-          utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, Date.now() - (8000 * 1000));
+          utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, new Date(Date.now() - (8000 * 1000)).toUTCString());
         });
 
         it('should request new value with consent override', function () {
@@ -365,7 +365,7 @@ describe('ID5 JS API', function () {
       describe('Stored Value with Refresh Needed', function () {
         beforeEach(function () {
           utils.setInLocalStorage(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON);
-          utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, Date.now() - (8000 * 1000));
+          utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, new Date(Date.now() - (8000 * 1000)).toUTCString());
         });
 
         it('should request new value with consent override', function () {
@@ -418,7 +418,7 @@ describe('ID5 JS API', function () {
       describe('Expired Stored Value with Refresh Not Needed', function () {
         beforeEach(function () {
           utils.setInLocalStorage(TEST_ID5ID_STORAGE_CONFIG_EXPIRED, STORED_JSON);
-          utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, Date.now());
+          utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, new Date().toUTCString());
         });
 
         it('should request new value with consent override', function () {
@@ -445,7 +445,7 @@ describe('ID5 JS API', function () {
       describe('Stored Data Change Forces Refresh with Refresh Not Needed', function () {
         beforeEach(function () {
           utils.setInLocalStorage(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON);
-          utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, Date.now());
+          utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, new Date().toUTCString());
           utils.setInLocalStorage(TEST_PRIVACY_STORAGE_CONFIG, TEST_PRIVACY_ALLOWED);
         });
 
@@ -799,7 +799,7 @@ describe('ID5 JS API', function () {
         });
 
         it('should request new value with no refresh needed', function () {
-          utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, Date.now());
+          utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, new Date().toUTCString());
 
           const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID, refreshInSeconds: 1000 });
 
@@ -811,7 +811,7 @@ describe('ID5 JS API', function () {
         });
 
         it('should request new value with refresh needed', function () {
-          utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, Date.now() - (8000 * 1000));
+          utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, new Date(Date.now() - (8000 * 1000)).toUTCString());
 
           const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID, refreshInSeconds: 10 });
 
@@ -832,7 +832,7 @@ describe('ID5 JS API', function () {
 
         it('should request new value with expired stored value with no refresh needed', function () {
           utils.setInLocalStorage(TEST_ID5ID_STORAGE_CONFIG_EXPIRED, STORED_JSON);
-          utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, Date.now());
+          utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, new Date().toUTCString());
 
           const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID, refreshInSeconds: 1000 });
 
@@ -846,7 +846,7 @@ describe('ID5 JS API', function () {
       describe('Stored Data Change Forces Refresh with Refresh Not Needed', function () {
         beforeEach(function () {
           utils.setInLocalStorage(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON);
-          utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, Date.now());
+          utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, new Date().toUTCString());
         });
 
         describe('Stored Consent Changes', function () {
@@ -1492,7 +1492,7 @@ describe('ID5 JS API', function () {
       describe('Stored Value, No Consent Override, Consent in Stored Privacy', function () {
         beforeEach(function () {
           utils.setInLocalStorage(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON);
-          utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, Date.now());
+          utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, new Date().toUTCString());
           utils.setInLocalStorage(TEST_PRIVACY_STORAGE_CONFIG, TEST_PRIVACY_ALLOWED);
         });
 
@@ -1530,7 +1530,7 @@ describe('ID5 JS API', function () {
       describe('Stored Value, No Refresh, With Override', function () {
         beforeEach(function () {
           utils.setInLocalStorage(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON);
-          utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, Date.now());
+          utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, new Date().toUTCString());
         });
 
         it('should call onAvailable and onUpdate immediately even with time-out set', function (done) {
@@ -1629,7 +1629,7 @@ describe('ID5 JS API', function () {
       describe('Stored Value, Refresh Needed, With Consent Override', function () {
         beforeEach(function () {
           utils.setInLocalStorage(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON);
-          utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, Date.now() - (8000 * 1000));
+          utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, new Date(Date.now() - (8000 * 1000)).toUTCString());
         });
 
         it('should call onAvailable immediately and only once with time-out set', function (done) {
@@ -1689,7 +1689,7 @@ describe('ID5 JS API', function () {
       describe('Stored Value, No Refresh, With RefreshId', function () {
         beforeEach(function () {
           utils.setInLocalStorage(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON);
-          utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, Date.now());
+          utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, new Date().toUTCString());
         });
 
         describe('No Fetch Required on Refresh', function () {
@@ -2020,7 +2020,7 @@ describe('ID5 JS API', function () {
 
         it('should set userId immediately and not change, with stored value, no refresh, no consent override, consent in privacy data', function (done) {
           utils.setInLocalStorage(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON);
-          utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, Date.now());
+          utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, new Date().toUTCString());
           utils.setInLocalStorage(TEST_PRIVACY_STORAGE_CONFIG, TEST_PRIVACY_ALLOWED);
 
           const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID });
@@ -2038,7 +2038,7 @@ describe('ID5 JS API', function () {
 
         it('should set userId immediately and not change, with stored value, no refresh, consent override', function (done) {
           utils.setInLocalStorage(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON);
-          utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, Date.now());
+          utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, new Date().toUTCString());
 
           const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true });
 
@@ -2089,7 +2089,7 @@ describe('ID5 JS API', function () {
 
         it('should set userId immediately and update it after response received with stored value, consent override', function (done) {
           utils.setInLocalStorage(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON);
-          utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, Date.now() - (8000 * 1000));
+          utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, new Date(Date.now() - (8000 * 1000)).toUTCString());
           const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true, refreshInSeconds: 10 });
 
           sinon.assert.calledOnce(ajaxStub);
@@ -2107,7 +2107,7 @@ describe('ID5 JS API', function () {
 
         it('should set userId immediately and update it after response received with stored value, consent in privacy data', function (done) {
           utils.setInLocalStorage(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON);
-          utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, Date.now() - (8000 * 1000));
+          utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, new Date(Date.now() - (8000 * 1000)).toUTCString());
           utils.setInLocalStorage(TEST_PRIVACY_STORAGE_CONFIG, TEST_PRIVACY_ALLOWED);
 
           const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true, refreshInSeconds: 10 });
@@ -2172,7 +2172,7 @@ describe('ID5 JS API', function () {
 
         it('should set userId immediately and update it after response received with stored value, consent override', function (done) {
           utils.setInLocalStorage(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON);
-          utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, Date.now() - (8000 * 1000));
+          utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, new Date(Date.now() - (8000 * 1000)).toUTCString());
           const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true, refreshInSeconds: 10 });
 
           sinon.assert.calledOnce(ajaxStub);
@@ -2190,7 +2190,7 @@ describe('ID5 JS API', function () {
 
         it('should set userId immediately and update it after response received with stored value, consent in privacy data', function (done) {
           utils.setInLocalStorage(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON);
-          utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, Date.now() - (8000 * 1000));
+          utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, new Date(Date.now() - (8000 * 1000)).toUTCString());
           utils.setInLocalStorage(TEST_PRIVACY_STORAGE_CONFIG, TEST_PRIVACY_ALLOWED);
 
           const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID, refreshInSeconds: 10 });
@@ -2210,7 +2210,7 @@ describe('ID5 JS API', function () {
 
         it('should clear stored values after receiving no-consent response', function (done) {
           utils.setInLocalStorage(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON);
-          utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, Date.now() - (8000 * 1000));
+          utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, new Date(Date.now() - (8000 * 1000)).toUTCString());
           utils.setInLocalStorage(TEST_NB_STORAGE_CONFIG, 1);
           testClientStore.putHashedPd(TEST_ID5_PARTNER_ID, 'pd');
           utils.setInLocalStorage(TEST_CONSENT_DATA_STORAGE_CONFIG, 'consent_data');
@@ -2280,7 +2280,7 @@ describe('ID5 JS API', function () {
 
       it('should not fire sync pixel if ID5 is not called', function () {
         utils.setInLocalStorage(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON);
-        utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, Date.now());
+        utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, new Date().toUTCString());
 
         ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true });
 
@@ -2411,7 +2411,7 @@ describe('ID5 JS API', function () {
 
     it('should set counter to 1 if no existing counter cookie and not calling ID5 servers', function () {
       utils.setInLocalStorage(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON);
-      utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, Date.now());
+      utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, new Date().toUTCString());
       utils.setInLocalStorage(TEST_PRIVACY_STORAGE_CONFIG, TEST_PRIVACY_ALLOWED);
 
       ID5.init({ partnerId: TEST_ID5_PARTNER_ID });
@@ -2423,7 +2423,7 @@ describe('ID5 JS API', function () {
     });
     it('should increment counter when not calling ID5 servers if existing ID in cookie', function () {
       utils.setInLocalStorage(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON);
-      utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, Date.now());
+      utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, new Date().toUTCString());
       utils.setInLocalStorage(TEST_PRIVACY_STORAGE_CONFIG, TEST_PRIVACY_ALLOWED);
       utils.setInLocalStorage(TEST_NB_STORAGE_CONFIG, 5);
 
@@ -2555,7 +2555,7 @@ describe('ID5 JS API', function () {
 
       it('should expose ID5.userId from a stored response', function () {
         utils.setInLocalStorage(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON);
-        utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, Date.now());
+        utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, new Date().toUTCString());
 
         const id5Status = ID5.init(apiConfig);
 
@@ -2598,7 +2598,7 @@ describe('ID5 JS API', function () {
 
       it('should not expose ID5.userId from a stored response', function () {
         utils.setInLocalStorage(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON);
-        utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, Date.now());
+        utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, new Date().toUTCString());
 
         const id5Status = ID5.init(apiConfig);
 
