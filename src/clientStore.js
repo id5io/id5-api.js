@@ -158,7 +158,7 @@ export default class ClientStore {
   }
 
   getDateTime() {
-    return (new Date(+this.get(CONSTANTS.STORAGE_CONFIG.LAST))).getTime()
+    return (new Date(this.get(CONSTANTS.STORAGE_CONFIG.LAST))).getTime()
   }
 
   clearDateTime() {
