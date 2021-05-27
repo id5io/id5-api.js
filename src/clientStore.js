@@ -195,16 +195,6 @@ export default class ClientStore {
     return nb;
   }
 
-  syncCallback() {
-    this.put(CONSTANTS.STORAGE_CONFIG.FS, '1');
-  }
-
-  firstSync() {
-    const cachedFs = this.get(CONSTANTS.STORAGE_CONFIG.FS);
-    // Tell Fetch endpoint that this is the first time ever we saw this user on this domain
-    return (typeof cachedFs === 'undefined' || cachedFs === '1') ? 0 : 1;
-  }
-
   clearAll(partnerId) {
     this.clearResponse();
     this.clearDateTime();

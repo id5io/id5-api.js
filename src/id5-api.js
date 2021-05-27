@@ -237,10 +237,9 @@ export class Id5Api {
 
                     if (responseObj.cascade_needed === true && this.localStorageAllowed === true) {
                       const isSync = options.partnerUserId && options.partnerUserId.length > 0;
-                      const syncUrl = `https://id5-sync.com/${isSync ? 's' : 'i'}/${options.partnerId}/8.gif?id5id=${id5Status._userId}&fs=${this.clientStore.firstSync()}&o=api&${isSync ? 'puid=' + options.partnerUserId + '&' : ''}gdpr_consent=${gdprConsentString}&gdpr=${gdprApplies}`;
+                      const syncUrl = `https://id5-sync.com/${isSync ? 's' : 'i'}/${options.partnerId}/8.gif?id5id=${id5Status._userId}&o=api&${isSync ? 'puid=' + options.partnerUserId + '&' : ''}gdpr_consent=${gdprConsentString}&gdpr=${gdprApplies}`;
                       utils.logInfo('Opportunities to cascade available:', syncUrl);
-                      const thisClientStore = this.clientStore; // preserve this in callback
-                      utils.deferPixelFire(syncUrl, undefined, () => { thisClientStore.syncCallback() });
+                      utils.deferPixelFire(syncUrl);
                     }
                   } else {
                     utils.logError('Invalid response from ID5 servers:', response);
