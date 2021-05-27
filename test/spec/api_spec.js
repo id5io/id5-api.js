@@ -41,10 +41,6 @@ describe('ID5 JS API', function () {
     name: `id5id_${TEST_ID5_PARTNER_ID}_nb`,
     expiresDays: 90
   };
-  const TEST_FS_STORAGE_CONFIG = {
-    name: 'id5id_fs',
-    expiresDays: 7
-  };
   const TEST_PRIVACY_STORAGE_CONFIG = {
     name: 'id5id_privacy',
     expiresDays: 30
@@ -2251,7 +2247,6 @@ describe('ID5 JS API', function () {
     before(function () {
       utils.removeFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG);
       utils.removeFromLocalStorage(TEST_LAST_STORAGE_CONFIG);
-      utils.removeFromLocalStorage(TEST_FS_STORAGE_CONFIG);
     });
     beforeEach(function () {
       syncStub = sinon.stub(utils, 'deferPixelFire').callsFake(function(url, initCallback, callback) {
@@ -2268,7 +2263,6 @@ describe('ID5 JS API', function () {
       syncStub.restore();
       utils.removeFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG);
       utils.removeFromLocalStorage(TEST_LAST_STORAGE_CONFIG);
-      utils.removeFromLocalStorage(TEST_FS_STORAGE_CONFIG);
     });
 
     describe('Without Calling ID5', function () {
@@ -2302,6 +2296,8 @@ describe('ID5 JS API', function () {
         sinon.assert.calledOnce(ajaxStub);
         sinon.assert.calledOnce(syncStub);
         expect(syncStub.args[0][0]).to.contain(ID5_CALL_ENDPOINT);
+        expect(syncStub.args[0][0]).to.not.contain('fs=');
+        expect(syncStub.args[0][0]).to.contain(`id5id=${TEST_RESPONSE_ID5ID}`);
       });
 
       it('should fire "sync" sync pixel if ID5 is called and cascades_needed is true and partnerUserId is provided', function () {
@@ -2312,6 +2308,8 @@ describe('ID5 JS API', function () {
         expect(JSON.parse(ajaxStub.args[0][2]).puid).to.be.equal('abc123');
         expect(syncStub.args[0][0]).to.contain(ID5_SYNC_ENDPOINT);
         expect(syncStub.args[0][0]).to.contain('puid=abc123');
+        expect(syncStub.args[0][0]).to.not.contain('fs=');
+        expect(syncStub.args[0][0]).to.contain(`id5id=${TEST_RESPONSE_ID5ID}`);
       });
     });
 
@@ -2327,69 +2325,6 @@ describe('ID5 JS API', function () {
 
         sinon.assert.calledOnce(ajaxStub);
         sinon.assert.notCalled(syncStub);
-      });
-    });
-
-    describe('Force Sync', function () {
-      const AJAX_RESPONSE_MS = 10;
-      beforeEach(function () {
-        ajaxStub = sinon.stub(utils, 'ajax').callsFake(function(url, callbacks, data, options) {
-          setTimeout(() => { callbacks.success(JSON_RESPONSE_CASCADE) }, AJAX_RESPONSE_MS);
-        });
-      });
-
-      it('sends fs=1 for new user without partnerUserId then sets fs storage to 1', function (done) {
-        ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true });
-
-        sinon.assert.calledOnce(ajaxStub);
-        setTimeout(() => {
-          sinon.assert.calledOnce(syncStub);
-          expect(syncStub.args[0][0]).to.contain(ID5_CALL_ENDPOINT);
-          expect(syncStub.args[0][0]).to.contain(`id5id=${TEST_RESPONSE_ID5ID}`);
-          expect(syncStub.args[0][0]).to.contain('fs=1');
-          expect(syncStub.args[0][0]).to.not.contain('puid=');
-
-          const fs = parseInt(utils.getFromLocalStorage(TEST_FS_STORAGE_CONFIG));
-          expect(fs).to.be.equal(1);
-
-          done();
-        }, AJAX_RESPONSE_MS);
-      });
-      it('sends fs=1 for new user with partnerUserId then sets fs storage to 1', function (done) {
-        ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true, partnerUserId: 'abc123' });
-
-        sinon.assert.calledOnce(ajaxStub);
-        expect(JSON.parse(ajaxStub.args[0][2]).puid).to.be.equal('abc123');
-        setTimeout(() => {
-          sinon.assert.calledOnce(syncStub);
-          expect(syncStub.args[0][0]).to.contain(ID5_SYNC_ENDPOINT);
-          expect(syncStub.args[0][0]).to.contain(`id5id=${TEST_RESPONSE_ID5ID}`);
-          expect(syncStub.args[0][0]).to.contain('fs=1');
-          expect(syncStub.args[0][0]).to.contain('puid=abc123');
-
-          const fs = parseInt(utils.getFromLocalStorage(TEST_FS_STORAGE_CONFIG));
-          expect(fs).to.be.equal(1);
-
-          done();
-        }, AJAX_RESPONSE_MS);
-      });
-      it('sends fs=0 for previously synced user', function (done) {
-        utils.setInLocalStorage(TEST_FS_STORAGE_CONFIG, '1');
-
-        ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true });
-
-        sinon.assert.calledOnce(ajaxStub);
-        setTimeout(() => {
-          sinon.assert.calledOnce(syncStub);
-          expect(syncStub.args[0][0]).to.contain(ID5_CALL_ENDPOINT);
-          expect(syncStub.args[0][0]).to.contain(`id5id=${TEST_RESPONSE_ID5ID}`);
-          expect(syncStub.args[0][0]).to.contain('fs=0');
-
-          const fs = parseInt(utils.getFromLocalStorage(TEST_FS_STORAGE_CONFIG));
-          expect(fs).to.be.equal(1);
-
-          done();
-        }, AJAX_RESPONSE_MS);
       });
     });
   });

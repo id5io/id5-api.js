@@ -16,10 +16,6 @@
       "name": "id5id_cached_pd",
       "expiresDays": 30
     },
-    "FS": {
-      "name": "id5id_fs",
-      "expiresDays": 7
-    },
     "PRIVACY": {
       "name": "id5id_privacy",
       "expiresDays": 30
