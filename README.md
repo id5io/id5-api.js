@@ -82,7 +82,7 @@ Using our CDN has the advantage of patch updates being automatically deployed wi
 
 You may also choose to download the latest release (and host on your own CDN) in a pre-built, minified version from Github:
 
-* [https://github.com/id5io/id5-api.js/releases/download/v1.0.1/id5-api.js](https://github.com/id5io/id5-api.js/releases/download/v1.0.1/id5-api.js)
+* [https://github.com/id5io/id5-api.js/releases/download/v1.0.2/id5-api.js](https://github.com/id5io/id5-api.js/releases/download/v1.0.2/id5-api.js)
 
 As a publisher or advertiser, the advantage to hosting the code in your website domain is that the API will have "1st party" privileges with the browser, improving the value of the Universal ID delivered.
 

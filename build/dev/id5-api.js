@@ -1,6 +1,6 @@
 /**
  * id5-api.js - The ID5 API is designed to make accessing the ID5 Universal ID simple for publishers, advertisers, and their ad tech vendors. The ID5 Universal ID is a shared, neutral identifier that publishers, advertisers, and ad tech platforms can use to recognise users even in environments where 3rd party cookies are not available. For more information, visit https://id5.io/universal-id.
- * @version v1.0.1
+ * @version v1.0.2
  * @link https://id5.io/
  * @license Apache-2.0
  */
@@ -124,7 +124,7 @@ function _unsupportedIterableToArray(o, minLen) { if (!o) return; if (typeof o =
 
 function _arrayLikeToArray(arr, len) { if (len == null || len > arr.length) len = arr.length; for (var i = 0, arr2 = new Array(len); i < len; i++) { arr2[i] = arr[i]; } return arr2; }
 
-function _iterableToArrayLimit(arr, i) { if (typeof Symbol === "undefined" || !(Symbol.iterator in Object(arr))) return; var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"] != null) _i["return"](); } finally { if (_d) throw _e; } } return _arr; }
+function _iterableToArrayLimit(arr, i) { var _i = arr && (typeof Symbol !== "undefined" && arr[Symbol.iterator] || arr["@@iterator"]); if (_i == null) return; var _arr = []; var _n = true; var _d = false; var _s, _e; try { for (_i = _i.call(arr); !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"] != null) _i["return"](); } finally { if (_d) throw _e; } } return _arr; }
 
 function _arrayWithHoles(arr) { if (Array.isArray(arr)) return arr; }
 
@@ -665,7 +665,7 @@ function cyrb53Hash(str) {
 /* 1 */
 /***/ (function(module, exports) {
 
-module.exports = {"STORAGE_CONFIG":{"ID5":{"name":"id5id","expiresDays":90},"LAST":{"name":"id5id_last","expiresDays":90},"CONSENT_DATA":{"name":"id5id_cached_consent_data","expiresDays":30},"PD":{"name":"id5id_cached_pd","expiresDays":30},"FS":{"name":"id5id_fs","expiresDays":7},"PRIVACY":{"name":"id5id_privacy","expiresDays":30}},"LEGACY_COOKIE_NAMES":["id5.1st","id5id.1st"],"PRIVACY":{"JURISDICTIONS":{"gdpr":true,"ccpa":false,"lgpd":true,"other":false}},"ID5_EIDS_SOURCE":"id5-sync.com"}
+module.exports = {"STORAGE_CONFIG":{"ID5":{"name":"id5id","expiresDays":90},"LAST":{"name":"id5id_last","expiresDays":90},"CONSENT_DATA":{"name":"id5id_cached_consent_data","expiresDays":30},"PD":{"name":"id5id_cached_pd","expiresDays":30},"PRIVACY":{"name":"id5id_privacy","expiresDays":30}},"LEGACY_COOKIE_NAMES":["id5.1st","id5id.1st"],"PRIVACY":{"JURISDICTIONS":{"gdpr":true,"ccpa":false,"lgpd":true,"other":false}},"ID5_EIDS_SOURCE":"id5-sync.com"}
 
 /***/ }),
 /* 2 */
@@ -705,6 +705,8 @@ var Id5Api = /*#__PURE__*/function () {
 
   /** @type {boolean} */
 
+  /** @type {boolean} */
+
   /** @type {object} */
 
   /** @type {string} */
@@ -723,6 +725,8 @@ var Id5Api = /*#__PURE__*/function () {
 
     _defineProperty(this, "localStorageAllowed", false);
 
+    _defineProperty(this, "isUsingCdn", false);
+
     _defineProperty(this, "referer", false);
 
     _defineProperty(this, "version", void 0);
@@ -731,6 +735,7 @@ var Id5Api = /*#__PURE__*/function () {
 
     this.loaded = true;
     this.debug = this.debug || __WEBPACK_IMPORTED_MODULE_0__utils__["getParameterByName"]('id5_debug').toUpperCase() === 'TRUE';
+    this.isUsingCdn = !!(document.currentScript && document.currentScript.src && document.currentScript.src.indexOf('https://cdn.id5-sync.com') === 0);
     this.referer = Object(__WEBPACK_IMPORTED_MODULE_1__refererDetection__["a" /* getRefererInfo */])();
     var currentThis = this; // preserve this in callback
 
@@ -767,13 +772,13 @@ var Id5Api = /*#__PURE__*/function () {
     }
   }, {
     key: "refreshId",
-
+    value:
     /** @param {Id5Status} id5Status - Initializes id5Status returned by `init()`
      * @param {boolean} forceFetch
      * @param {Id5Options} [options] - Options to update
      * @return {Id5Status} provided id5Status for chaining
      */
-    value: function refreshId(id5Status) {
+    function refreshId(id5Status) {
       var forceFetch = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : false;
       var options = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
 
@@ -889,7 +894,7 @@ var Id5Api = /*#__PURE__*/function () {
               'u': _this.referer.stack[0] || window.location.href,
               'top': _this.referer.reachedTop ? 1 : 0,
               'nbPage': nb,
-              'id5cdn': !!(document.currentScript && document.currentScript.src && document.currentScript.src.indexOf('https://cdn.id5-sync.com') === 0)
+              'id5cdn': _this.isUsingCdn
             }; // pass in optional data, but only if populated
 
             if (typeof gdprConsentString !== 'undefined') {
@@ -960,13 +965,9 @@ var Id5Api = /*#__PURE__*/function () {
 
                       if (responseObj.cascade_needed === true && _this.localStorageAllowed === true) {
                         var isSync = options.partnerUserId && options.partnerUserId.length > 0;
-                        var syncUrl = "https://id5-sync.com/".concat(isSync ? 's' : 'i', "/").concat(options.partnerId, "/8.gif?id5id=").concat(id5Status._userId, "&fs=").concat(_this.clientStore.firstSync(), "&o=api&").concat(isSync ? 'puid=' + options.partnerUserId + '&' : '', "gdpr_consent=").concat(gdprConsentString, "&gdpr=").concat(gdprApplies);
+                        var syncUrl = "https://id5-sync.com/".concat(isSync ? 's' : 'i', "/").concat(options.partnerId, "/8.gif?id5id=").concat(id5Status._userId, "&o=api&").concat(isSync ? 'puid=' + options.partnerUserId + '&' : '', "gdpr_consent=").concat(gdprConsentString, "&gdpr=").concat(gdprApplies);
                         __WEBPACK_IMPORTED_MODULE_0__utils__["logInfo"]('Opportunities to cascade available:', syncUrl);
-                        var thisClientStore = _this.clientStore; // preserve this in callback
-
-                        __WEBPACK_IMPORTED_MODULE_0__utils__["deferPixelFire"](syncUrl, undefined, function () {
-                          thisClientStore.syncCallback();
-                        });
+                        __WEBPACK_IMPORTED_MODULE_0__utils__["deferPixelFire"](syncUrl);
                       }
                     } else {
                       __WEBPACK_IMPORTED_MODULE_0__utils__["logError"]('Invalid response from ID5 servers:', response);
@@ -1416,7 +1417,7 @@ var ClientStore = /*#__PURE__*/function () {
   }, {
     key: "getDateTime",
     value: function getDateTime() {
-      return new Date(+this.get(__WEBPACK_IMPORTED_MODULE_1__constants_json___default.a.STORAGE_CONFIG.LAST)).getTime();
+      return new Date(this.get(__WEBPACK_IMPORTED_MODULE_1__constants_json___default.a.STORAGE_CONFIG.LAST)).getTime();
     }
   }, {
     key: "clearDateTime",
@@ -1450,18 +1451,6 @@ var ClientStore = /*#__PURE__*/function () {
       nb++;
       this.setNb(partnerId, nb);
       return nb;
-    }
-  }, {
-    key: "syncCallback",
-    value: function syncCallback() {
-      this.put(__WEBPACK_IMPORTED_MODULE_1__constants_json___default.a.STORAGE_CONFIG.FS, '1');
-    }
-  }, {
-    key: "firstSync",
-    value: function firstSync() {
-      var cachedFs = this.get(__WEBPACK_IMPORTED_MODULE_1__constants_json___default.a.STORAGE_CONFIG.FS); // Tell Fetch endpoint that this is the first time ever we saw this user on this domain
-
-      return typeof cachedFs === 'undefined' || cachedFs === '1' ? 0 : 1;
     }
   }, {
     key: "clearAll",
@@ -1603,13 +1592,13 @@ var ConsentManagement = /*#__PURE__*/function () {
 
   _createClass(ConsentManagement, [{
     key: "lookupStaticConsentData",
-
+    value:
     /**
      * This function reads the consent string from the config to obtain the consent information of the user.
      * @param {function(ConsentManagement, string, function(object))} cmpSuccess acts as a success callback when the value is read from config; pass along consentObject (string) from CMP
      * @param {function(object)} finalCallback acts as an error callback while interacting with the config string; pass along an error message (string)
      */
-    value: function lookupStaticConsentData(cmpSuccess, finalCallback) {
+    function lookupStaticConsentData(cmpSuccess, finalCallback) {
       this.cmpVersion = this.staticConsentData.getConsentData ? 1 : this.staticConsentData.getTCData ? 2 : 0;
       __WEBPACK_IMPORTED_MODULE_0__utils__["logInfo"]("Using static consent data from config for TCF v".concat(this.cmpVersion), this.staticConsentData);
 
@@ -1632,13 +1621,13 @@ var ConsentManagement = /*#__PURE__*/function () {
 
   }, {
     key: "lookupIabConsent",
-
+    value:
     /**
      * This function handles async interacting with an IAB compliant CMP to obtain the consent information of the user.
      * @param {function(ConsentManagement, string, function(object))} cmpSuccess acts as a success callback when CMP returns a value; pass along consentObject (string) from CMP
      * @param {function(object)} finalCallback required;
      */
-    value: function lookupIabConsent(cmpSuccess, finalCallback) {
+    function lookupIabConsent(cmpSuccess, finalCallback) {
       var consentThis = this;
 
       function v2CmpResponseCallback(tcfData, success) {
@@ -1748,11 +1737,11 @@ var ConsentManagement = /*#__PURE__*/function () {
 
   }, {
     key: "resetConsentData",
-
+    value:
     /**
      * Simply resets the module's consentData variable back to undefined, mainly for testing purposes
      */
-    value: function resetConsentData() {
+    function resetConsentData() {
       this.consentData = undefined;
       this.storedPrivacyData = undefined;
     }
@@ -2373,7 +2362,7 @@ var utils = __webpack_require__(0);
  * @property {function} [callbackOnAvailable] - Function to call back when User ID is available. if callbackTimeoutInMs is not provided, will be fired only if a User ID is available.
  * @property {function} [callbackOnUpdates] - Function to call back on further updates of User ID by changes in the page (consent, pd, refresh). Cannot be provided if `callbackOnAvailable` is not provided
  * @property {number} [callbackTimeoutInMs] - Delay in ms after which the callbackOnAvailable is guaranteed to be fired. A User ID may not yet be available at this time.
- * @property {string} [pd] - Publisher data that can be passed to help with cross-domain reconciliation of the ID5 ID, more details here: https://wiki.id5.io/x/BIAZ
+ * @property {string} [pd] - Partner Data that can be passed to help with cross-domain reconciliation of the ID5 ID, more details here: https://support.id5.io/portal/en/kb/articles/passing-partner-data-to-id5
  * @property {AbTestConfig} [abTesting] - An object defining if and how A/B testing should be enabled
  * @property {string} [provider] - Defines who is deploying the API on behalf of the partner. A hard-coded value that will be provided by ID5 when applicable
  */
@@ -2552,5 +2541,5 @@ function isInControlGroup(userId, controlGroupRatio) {
 /***/ })
 /******/ ]);
 //# sourceMappingURL=id5-api.js.map
-ID5.version='1.0.1';
+ID5.version='1.0.2';
 ID5.versions[ID5.version]=true;
