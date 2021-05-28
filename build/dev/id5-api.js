@@ -1,6 +1,6 @@
 /**
  * id5-api.js - The ID5 API is designed to make accessing the ID5 Universal ID simple for publishers, advertisers, and their ad tech vendors. The ID5 Universal ID is a shared, neutral identifier that publishers, advertisers, and ad tech platforms can use to recognise users even in environments where 3rd party cookies are not available. For more information, visit https://id5.io/universal-id.
- * @version v1.0.2
+ * @version v1.0.3
  * @link https://id5.io/
  * @license Apache-2.0
  */
@@ -963,9 +963,9 @@ var Id5Api = /*#__PURE__*/function () {
 
                       _this.clientStore.removeLegacyCookies(options.partnerId);
 
-                      if (responseObj.cascade_needed === true && _this.localStorageAllowed === true) {
+                      if (responseObj.cascade_needed === true && _this.localStorageAllowed === true && options.maxCascades >= 0) {
                         var isSync = options.partnerUserId && options.partnerUserId.length > 0;
-                        var syncUrl = "https://id5-sync.com/".concat(isSync ? 's' : 'i', "/").concat(options.partnerId, "/8.gif?id5id=").concat(id5Status._userId, "&o=api&").concat(isSync ? 'puid=' + options.partnerUserId + '&' : '', "gdpr_consent=").concat(gdprConsentString, "&gdpr=").concat(gdprApplies);
+                        var syncUrl = "https://id5-sync.com/".concat(isSync ? 's' : 'i', "/").concat(options.partnerId, "/").concat(options.maxCascades, ".gif?id5id=").concat(id5Status._userId, "&o=api&").concat(isSync ? 'puid=' + options.partnerUserId + '&' : '', "gdpr_consent=").concat(gdprConsentString, "&gdpr=").concat(gdprApplies);
                         __WEBPACK_IMPORTED_MODULE_0__utils__["logInfo"]('Opportunities to cascade available:', syncUrl);
                         __WEBPACK_IMPORTED_MODULE_0__utils__["deferPixelFire"](syncUrl);
                       }
@@ -2365,6 +2365,7 @@ var utils = __webpack_require__(0);
  * @property {string} [pd] - Partner Data that can be passed to help with cross-domain reconciliation of the ID5 ID, more details here: https://support.id5.io/portal/en/kb/articles/passing-partner-data-to-id5
  * @property {AbTestConfig} [abTesting] - An object defining if and how A/B testing should be enabled
  * @property {string} [provider] - Defines who is deploying the API on behalf of the partner. A hard-coded value that will be provided by ID5 when applicable
+ * @property {number} [maxCascades] - Defines the maximum number of cookie syncs that can occur when usersyncing for the user is required. A value of -1 will disable cookie syncing altogether. Defaults to 8
  */
 
 /**
@@ -2412,7 +2413,8 @@ var Config = /*#__PURE__*/function () {
         enabled: false,
         controlGroupPct: 0
       },
-      provider: undefined
+      provider: undefined,
+      maxCascades: 8
     };
     this.providedOptions = {};
 
@@ -2490,7 +2492,8 @@ _defineProperty(Config, "configTypes", {
   callbackTimeoutInMs: 'Number',
   pd: 'String',
   abTesting: 'Object',
-  provider: 'String'
+  provider: 'String',
+  maxCascades: 'Number'
 });
 
 
@@ -2541,5 +2544,5 @@ function isInControlGroup(userId, controlGroupRatio) {
 /***/ })
 /******/ ]);
 //# sourceMappingURL=id5-api.js.map
-ID5.version='1.0.2';
+ID5.version='1.0.3';
 ID5.versions[ID5.version]=true;
