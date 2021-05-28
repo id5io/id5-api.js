@@ -1,6 +1,6 @@
 /**
- * id5-api.js - The ID5 API is designed to make accessing the ID5 Universal ID simple for publishers, advertisers, and their ad tech vendors. The ID5 Universal ID is a shared, neutral identifier that publishers, advertisers, and ad tech platforms can use to recognise users even in environments where 3rd party cookies are not available. For more information, visit https://id5.io/universal-id.
- * @version v1.0.2
+ * @id5.io/id5-api.js - The ID5 API is designed to make accessing the ID5 Universal ID simple for publishers, advertisers, and their ad tech vendors. The ID5 Universal ID is a shared, neutral identifier that publishers, advertisers, and ad tech platforms can use to recognise users even in environments where 3rd party cookies are not available. For more information, visit https://id5.io/universal-id.
+ * @version v1.0.3-pre
  * @link https://id5.io/
  * @license Apache-2.0
  */
@@ -124,7 +124,7 @@ function _unsupportedIterableToArray(o, minLen) { if (!o) return; if (typeof o =
 
 function _arrayLikeToArray(arr, len) { if (len == null || len > arr.length) len = arr.length; for (var i = 0, arr2 = new Array(len); i < len; i++) { arr2[i] = arr[i]; } return arr2; }
 
-function _iterableToArrayLimit(arr, i) { var _i = arr && (typeof Symbol !== "undefined" && arr[Symbol.iterator] || arr["@@iterator"]); if (_i == null) return; var _arr = []; var _n = true; var _d = false; var _s, _e; try { for (_i = _i.call(arr); !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"] != null) _i["return"](); } finally { if (_d) throw _e; } } return _arr; }
+function _iterableToArrayLimit(arr, i) { if (typeof Symbol === "undefined" || !(Symbol.iterator in Object(arr))) return; var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"] != null) _i["return"](); } finally { if (_d) throw _e; } } return _arr; }
 
 function _arrayWithHoles(arr) { if (Array.isArray(arr)) return arr; }
 
@@ -772,13 +772,13 @@ var Id5Api = /*#__PURE__*/function () {
     }
   }, {
     key: "refreshId",
-    value:
+
     /** @param {Id5Status} id5Status - Initializes id5Status returned by `init()`
      * @param {boolean} forceFetch
      * @param {Id5Options} [options] - Options to update
      * @return {Id5Status} provided id5Status for chaining
      */
-    function refreshId(id5Status) {
+    value: function refreshId(id5Status) {
       var forceFetch = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : false;
       var options = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
 
@@ -1592,13 +1592,13 @@ var ConsentManagement = /*#__PURE__*/function () {
 
   _createClass(ConsentManagement, [{
     key: "lookupStaticConsentData",
-    value:
+
     /**
      * This function reads the consent string from the config to obtain the consent information of the user.
      * @param {function(ConsentManagement, string, function(object))} cmpSuccess acts as a success callback when the value is read from config; pass along consentObject (string) from CMP
      * @param {function(object)} finalCallback acts as an error callback while interacting with the config string; pass along an error message (string)
      */
-    function lookupStaticConsentData(cmpSuccess, finalCallback) {
+    value: function lookupStaticConsentData(cmpSuccess, finalCallback) {
       this.cmpVersion = this.staticConsentData.getConsentData ? 1 : this.staticConsentData.getTCData ? 2 : 0;
       __WEBPACK_IMPORTED_MODULE_0__utils__["logInfo"]("Using static consent data from config for TCF v".concat(this.cmpVersion), this.staticConsentData);
 
@@ -1621,13 +1621,13 @@ var ConsentManagement = /*#__PURE__*/function () {
 
   }, {
     key: "lookupIabConsent",
-    value:
+
     /**
      * This function handles async interacting with an IAB compliant CMP to obtain the consent information of the user.
      * @param {function(ConsentManagement, string, function(object))} cmpSuccess acts as a success callback when CMP returns a value; pass along consentObject (string) from CMP
      * @param {function(object)} finalCallback required;
      */
-    function lookupIabConsent(cmpSuccess, finalCallback) {
+    value: function lookupIabConsent(cmpSuccess, finalCallback) {
       var consentThis = this;
 
       function v2CmpResponseCallback(tcfData, success) {
@@ -1737,11 +1737,11 @@ var ConsentManagement = /*#__PURE__*/function () {
 
   }, {
     key: "resetConsentData",
-    value:
+
     /**
      * Simply resets the module's consentData variable back to undefined, mainly for testing purposes
      */
-    function resetConsentData() {
+    value: function resetConsentData() {
       this.consentData = undefined;
       this.storedPrivacyData = undefined;
     }
@@ -2541,5 +2541,5 @@ function isInControlGroup(userId, controlGroupRatio) {
 /***/ })
 /******/ ]);
 //# sourceMappingURL=id5-api.js.map
-ID5.version='1.0.2';
+ID5.version='1.0.3-pre';
 ID5.versions[ID5.version]=true;
