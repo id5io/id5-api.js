@@ -15,8 +15,8 @@ describe('ID5 JS API', function () {
   const TEST_ID5_PARTNER_ID = 99;
   const TEST_ID5_PARTNER_ID_ALT = 999;
   const ID5_FETCH_ENDPOINT = `https://id5-sync.com/g/v2/${TEST_ID5_PARTNER_ID}.json`;
-  const ID5_CALL_ENDPOINT = `https://id5-sync.com/i/${TEST_ID5_PARTNER_ID}/8.gif`;
-  const ID5_SYNC_ENDPOINT = `https://id5-sync.com/s/${TEST_ID5_PARTNER_ID}/8.gif`;
+  const ID5_CALL_ENDPOINT = `https://id5-sync.com/i/${TEST_ID5_PARTNER_ID}`;
+  const ID5_SYNC_ENDPOINT = `https://id5-sync.com/s/${TEST_ID5_PARTNER_ID}`;
   const TEST_ID5ID_STORAGE_CONFIG = {
     name: 'id5id',
     expiresDays: 90
@@ -2295,7 +2295,17 @@ describe('ID5 JS API', function () {
 
         sinon.assert.calledOnce(ajaxStub);
         sinon.assert.calledOnce(syncStub);
-        expect(syncStub.args[0][0]).to.contain(ID5_CALL_ENDPOINT);
+        expect(syncStub.args[0][0]).to.contain(`${ID5_CALL_ENDPOINT}/8.gif`);
+        expect(syncStub.args[0][0]).to.not.contain('fs=');
+        expect(syncStub.args[0][0]).to.contain(`id5id=${TEST_RESPONSE_ID5ID}`);
+      });
+
+      it('should fire "call" sync pixel with configured maxCascades', function () {
+        ID5.init({ partnerId: TEST_ID5_PARTNER_ID, maxCascades: 5, debugBypassConsent: true });
+
+        sinon.assert.calledOnce(ajaxStub);
+        sinon.assert.calledOnce(syncStub);
+        expect(syncStub.args[0][0]).to.contain(`${ID5_CALL_ENDPOINT}/5.gif`);
         expect(syncStub.args[0][0]).to.not.contain('fs=');
         expect(syncStub.args[0][0]).to.contain(`id5id=${TEST_RESPONSE_ID5ID}`);
       });
@@ -2306,10 +2316,17 @@ describe('ID5 JS API', function () {
         sinon.assert.calledOnce(ajaxStub);
         sinon.assert.calledOnce(syncStub);
         expect(JSON.parse(ajaxStub.args[0][2]).puid).to.be.equal('abc123');
-        expect(syncStub.args[0][0]).to.contain(ID5_SYNC_ENDPOINT);
+        expect(syncStub.args[0][0]).to.contain(`${ID5_SYNC_ENDPOINT}/8.gif`);
         expect(syncStub.args[0][0]).to.contain('puid=abc123');
         expect(syncStub.args[0][0]).to.not.contain('fs=');
         expect(syncStub.args[0][0]).to.contain(`id5id=${TEST_RESPONSE_ID5ID}`);
+      });
+
+      it('should not fire sync pixel if ID5 is maxCascade is set to -1', function () {
+        ID5.init({ partnerId: TEST_ID5_PARTNER_ID, maxCascades: -1, debugBypassConsent: true });
+
+        sinon.assert.calledOnce(ajaxStub);
+        sinon.assert.notCalled(syncStub);
       });
     });
 

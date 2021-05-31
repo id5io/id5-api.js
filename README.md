@@ -82,7 +82,7 @@ Using our CDN has the advantage of patch updates being automatically deployed wi
 
 You may also choose to download the latest release (and host on your own CDN) in a pre-built, minified version from Github:
 
-* [https://github.com/id5io/id5-api.js/releases/download/v1.0.2/id5-api.js](https://github.com/id5io/id5-api.js/releases/download/v1.0.2/id5-api.js)
+* [https://github.com/id5io/id5-api.js/releases/download/v1.0.3/id5-api.js](https://github.com/id5io/id5-api.js/releases/download/v1.0.3/id5-api.js)
 
 As a publisher or advertiser, the advantage to hosting the code in your website domain is that the API will have "1st party" privileges with the browser, improving the value of the Universal ID delivered.
 
@@ -190,6 +190,7 @@ There are a few cases in which `getUserId()` may not be ready or have a value ye
 | refreshInSeconds | Optional | integer | `7200`<br>(2 hours) | Refresh period of first-party local storage |
 | abTesting | Optional | object | `{ enabled: false, controlGroupPct: 0 }` | Enables A/B testing of the ID5 ID. See [A/B Testing](#ab-testing) below for more details |
 | provider | Optional | string | `pubmatic-identity-hub` | An identifier provided by ID5 to technology partners who manage API deployments on behalf of their clients. Reach out to [ID5](mailto:support@id5.io) if you have questions about this parameter |
+| maxCascades | Optional | number | `8` | Defines the maximum number of cookie syncs that can occur when usersyncing for the user is required. A value of `-1` will disable cookie syncing altogether. Defaults to `8` if not specified |
 
 #### PD Example
 Taking the example from [Passing Partner Data to ID5](https://support.id5.io/portal/en/kb/articles/passing-partner-data-to-id5), here's how your configuration could look when initializing the API:
