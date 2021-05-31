@@ -102,10 +102,13 @@ under your list of dependencies like this:
 }
 ```
 
-Then somewhere in your code you can import the module adn use it:
+Then somewhere in your code you can import the module and use it:
 ```javascript
-import 
+import ID5 from '../lib/id5-api'
+
+const id5Status = ID5.init({ partnerId: 173 });
 ```
+
 Please be aware that this module requires node version higher than 13.2 and needs access to the `window` and `document` objects so it needs to run 
 in a browser.
 
@@ -121,7 +124,7 @@ $ cd id5-api
 $ npm install
 ```
 
-*Note*: You need to have `NodeJS 8.9.x` or greater and `Gulp 4.0` or greater installed.
+*Note*: You need to have `NodeJS 14.x.x` or greater and `gulp-cli 2.3.x` or greater installed.
 
 Build for production with gulp
 
@@ -130,8 +133,6 @@ $ gulp build
 ```
 
 The resulting minified javascript file will be available in `./build/dist/id5-api.js`.
-
-*Note*: If you build from source, you must use our `gulp build` process as it appends required variables to the end of the built file. If `ID5.version` is missing, the API will fail to load.
 
 ## Usage
 

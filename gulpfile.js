@@ -1,33 +1,27 @@
 'use strict';
 
 const log = require('fancy-log');
-var _ = require('lodash');
-var argv = require('yargs').argv;
-var gulp = require('gulp');
-var connect = require('gulp-connect');
-var webpack = require('webpack');
-var webpackStream = require('webpack-stream');
-var uglify = require('gulp-uglify');
-var gulpClean = require('gulp-clean');
-var KarmaServer = require('karma').Server;
-var karmaConfMaker = require('./karma.conf.maker');
-var opens = require('opn');
-var webpackConfig = require('./webpack.conf');
-var footer = require('gulp-footer');
-var header = require('gulp-header');
-var shell = require('gulp-shell');
-var eslint = require('gulp-eslint');
-var gulpif = require('gulp-if');
+const _ = require('lodash');
+const argv = require('yargs').argv;
+const gulp = require('gulp');
+const del = require('del');
+const connect = require('gulp-connect');
+const webpack = require('webpack');
+const webpackStream = require('webpack-stream');
+const uglify = require('gulp-uglify');
+const KarmaServer = require('karma').Server;
+const karmaConfMaker = require('./karma.conf.maker');
+const opens = require('opn');
+const webpackConfig = require('./webpack.conf');
+const footer = require('gulp-footer');
+const header = require('gulp-header');
+const shell = require('gulp-shell');
+const eslint = require('gulp-eslint');
+const gulpif = require('gulp-if');
+const gv = require('genversion');
 
-var id5Api = require('./package.json');
-var port = 9998;
-
-function clean() {
-  return gulp.src(['build'], {
-    read: false,
-    allowEmpty: true
-  }).pipe(gulpClean());
-}
+const id5Api = require('./package.json');
+const port = 9998;
 
 function lint(done) {
   if (argv.nolint) {
@@ -78,7 +72,7 @@ function watch(done) {
     livereload: true
   });
 
-  mainWatcher.on('all', gulp.series(clean, gulp.parallel(lint, 'build-bundle-dev', test)));
+  mainWatcher.on('all', gulp.series('clean', gulp.parallel(lint, 'build-bundle-dev', test)));
   loaderWatcher.on('all', gulp.series(lint));
   done();
 }
@@ -91,8 +85,6 @@ var banner = ['/**',
   ' */',
   ''].join('\n');
 
-var setId5VersionJs = '\nID5.version=\'<%= id5Api.version %>\';\nID5.versions[ID5.version]=true;\n';
-
 function makeDevpackPkg() {
   var cloned = _.cloneDeep(webpackConfig);
   cloned.devtool = 'source-map';
@@ -103,7 +95,6 @@ function makeDevpackPkg() {
 
   return gulp.src(['src/index.js'])
     .pipe(webpackStream(cloned, webpack))
-    .pipe(gulpif(isNotMapFile, footer(setId5VersionJs, { id5Api: id5Api })))
     .pipe(gulpif(isNotMapFile, header(banner, { id5Api: id5Api })))
     .pipe(gulp.dest('build/dev'))
     .pipe(connect.reload());
@@ -115,7 +106,6 @@ function makeWebpackPkg() {
 
   return gulp.src(['src/index.js'])
     .pipe(webpackStream(cloned, webpack))
-    .pipe(footer(setId5VersionJs, { id5Api: id5Api }))
     .pipe(uglify())
     .pipe(header(banner, { id5Api: id5Api }))
     .pipe(gulp.dest('build/dist'));
@@ -158,25 +148,27 @@ function coveralls() { // 2nd arg is a dependency: 'test' must be finished
 // support tasks
 gulp.task(lint);
 gulp.task(watch);
-gulp.task(clean);
+gulp.task('clean', () => del(['build']));
 gulp.task('info', (done) => {
   log(`Running gulp on node ${process.version}`);
   log(`Building ID5 API version ${id5Api.version}`);
   done();
+});
+gulp.task('generate', (done) => {
+  gv.generate('generated/version.js', { useEs6Syntax: true }, done);
 });
 
 gulp.task('build-bundle-dev', makeDevpackPkg);
 gulp.task('build-bundle-prod', makeWebpackPkg);
 
 // public tasks (dependencies are needed for each task since they can be ran on their own)
-gulp.task('test', gulp.series(clean, lint, test));
+gulp.task('test', gulp.series('clean', 'generate', lint, test));
 
-gulp.task('test-coverage', gulp.series(clean, testCoverage));
+gulp.task('test-coverage', gulp.series('info', 'clean', 'generate', testCoverage));
 gulp.task(viewCoverage);
 
 gulp.task('coveralls', gulp.series('test-coverage', coveralls));
 
-gulp.task('build', gulp.series(clean, test, 'build-bundle-dev', 'build-bundle-prod'));
+gulp.task('build', gulp.series('info', 'clean', 'generate', test, 'build-bundle-dev', 'build-bundle-prod'));
 
-gulp.task('serve', gulp.series(clean, lint, gulp.parallel('build-bundle-dev', watch, test)));
-gulp.task('default', gulp.series(clean, makeWebpackPkg));
+gulp.task('serve', gulp.series('info', 'clean', 'generate', lint, gulp.parallel('build-bundle-dev', watch, test)));
