@@ -1,5 +1,6 @@
 'use strict';
 
+const log = require('fancy-log');
 var _ = require('lodash');
 var argv = require('yargs').argv;
 var gulp = require('gulp');
@@ -158,6 +159,11 @@ function coveralls() { // 2nd arg is a dependency: 'test' must be finished
 gulp.task(lint);
 gulp.task(watch);
 gulp.task(clean);
+gulp.task('info', (done) => {
+  log(`Running gulp on node ${process.version}`);
+  log(`Building ID5 API version ${id5Api.version}`);
+  done();
+});
 
 gulp.task('build-bundle-dev', makeDevpackPkg);
 gulp.task('build-bundle-prod', makeWebpackPkg);
