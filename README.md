@@ -66,7 +66,7 @@ Install the ID5 API after your CMP (if applicable), but as high in the `<head>` 
 </script>
 ```
 
-## API Source Code
+## Integration options
 
 ### ID5 CDN
 
@@ -86,7 +86,30 @@ You may also choose to download the latest release (and host on your own CDN) in
 
 As a publisher or advertiser, the advantage to hosting the code in your website domain is that the API will have "1st party" privileges with the browser, improving the value of the Universal ID delivered.
 
-### Build from Source (more advanced)
+### Embed into a larger bundle
+
+You have the option to embed the library as is into a larger bundle by either:
+- Concatenate the minified Javascript to some other javascript code into a larger file
+- Import the ECMAScript module into some other javascript file
+
+If you choose to import the module, you have to declare this library
+under your list of dependencies like this:
+```json
+{
+  "dependencies": {
+    "@id5io/id5-api.js": "^1.0.2"
+  }
+}
+```
+
+Then somewhere in your code you can import the module adn use it:
+```javascript
+import 
+```
+Please be aware that this module requires node version higher than 13.2 and needs access to the `window` and `document` objects so it needs to run 
+in a browser.
+
+## Building from Source
 
 To build a production-ready version of the API from source yourself, follow these steps:
 

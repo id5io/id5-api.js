@@ -1,9 +1,10 @@
 {
-  "name": "@id5.io/id5-api.js",
+  "name": "@id5io/id5-api.js",
   "version": "1.0.3-pre",
   "description": "The ID5 API is designed to make accessing the ID5 Universal ID simple for publishers, advertisers, and their ad tech vendors. The ID5 Universal ID is a shared, neutral identifier that publishers, advertisers, and ad tech platforms can use to recognise users even in environments where 3rd party cookies are not available. For more information, visit https://id5.io/universal-id.",
   "homepage": "https://id5.io/",
-  "main": "src/id5-api.js",
+  "module": "lib/id5-api.js",
+  "browser": "build/dist/id5-api.js",
   "scripts": {
     "test": "gulp test",
     "lint": "gulp lint"
@@ -19,7 +20,7 @@
   "author": "Pierre-Antoine Durgeat",
   "license": "Apache-2.0",
   "engines": {
-    "node": ">=9.0"
+    "node": ">13.2"
   },
   "devDependencies": {
     "@babel/core": "^7.12.10",
@@ -88,6 +89,7 @@
     "yargs": "^1.3.1"
   },
   "dependencies": {
+    "babel-cli": "^6.26.0",
     "babel-plugin-transform-object-assign": "^6.22.0",
     "core-js": ">=3.8",
     "dlv": "1.1.3",

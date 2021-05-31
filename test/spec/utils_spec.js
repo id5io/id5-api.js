@@ -1,5 +1,5 @@
 import sinon from 'sinon';
-import * as utils from 'src/utils';
+import * as utils from '../../lib/utils';
 
 let assert = require('assert');
 

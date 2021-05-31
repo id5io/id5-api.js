@@ -1,8 +1,8 @@
 import sinon from 'sinon';
 import { expect } from 'chai';
-import Config from 'src/config';
+import Config from '../../lib/config';
 
-const utils = require('src/utils');
+const utils = require('../../lib/utils');
 
 describe('config API', function () {
   beforeEach(function () {

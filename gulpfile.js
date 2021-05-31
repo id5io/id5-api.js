@@ -35,7 +35,7 @@ function lint(done) {
   const isFixed = function(file) {
     return file.eslint != null && file.eslint.fixed;
   };
-  return gulp.src(['src/**/*.js', 'test/**/*.js'], {base: './'})
+  return gulp.src(['src/**/*.js', 'lib/**/*.js', 'test/**/*.js'], {base: './'})
     .pipe(eslint())
     .pipe(eslint.format('stylish'))
     .pipe(eslint.failAfterError())
@@ -61,6 +61,7 @@ viewCoverage.displayName = 'view-coverage';
 function watch(done) {
   var mainWatcher = gulp.watch([
     'src/**/*.js',
+    'lib/**/*.js',
     'test/spec/**/*.js',
     '!test/spec/loaders/**/*.js'
   ]);
@@ -99,7 +100,7 @@ function makeDevpackPkg() {
     return file.extname !== '.map';
   };
 
-  return gulp.src(['src/id5-api.js'])
+  return gulp.src(['src/index.js'])
     .pipe(webpackStream(cloned, webpack))
     .pipe(gulpif(isNotMapFile, footer(setId5VersionJs, { id5Api: id5Api })))
     .pipe(gulpif(isNotMapFile, header(banner, { id5Api: id5Api })))
@@ -111,7 +112,7 @@ function makeWebpackPkg() {
   var cloned = _.cloneDeep(webpackConfig);
   delete cloned.devtool;
 
-  return gulp.src(['src/id5-api.js'])
+  return gulp.src(['src/index.js'])
     .pipe(webpackStream(cloned, webpack))
     .pipe(footer(setId5VersionJs, { id5Api: id5Api }))
     .pipe(uglify())

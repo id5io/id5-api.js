@@ -1,10 +1,10 @@
 import sinon from 'sinon';
-import CONSTANTS from 'src/constants.json';
-import * as utils from 'src/utils';
-import ClientStore from '../../src/clientStore';
-import * as abTesting from '../../src/abTesting';
+import CONSTANTS from '../../lib/constants.json';
+import * as utils from '../../lib/utils';
+import ClientStore from '../../lib/clientStore';
+import * as abTesting from '../../lib/abTesting';
 
-require('src/id5-api.js');
+require('../../src/index.js');
 
 // need to manually set version since the test process doesn't set it like gulp build does
 ID5.version = 'TESTING';

@@ -1,6 +1,6 @@
 import sinon from 'sinon';
 import { expect } from 'chai';
-import isInControlGroup from 'src/abTesting';
+import isInControlGroup from '../../lib/abTesting';
 
 describe('A/B Testing', function () {
   describe('Configuration Validation', function() {
