@@ -18,6 +18,7 @@ const shell = require('gulp-shell');
 const eslint = require('gulp-eslint');
 const gulpif = require('gulp-if');
 const gv = require('genversion');
+const mocha = require('gulp-mocha');
 
 const id5Api = require('./package.json');
 const port = 9998;
@@ -29,7 +30,12 @@ function lint(done) {
   const isFixed = function(file) {
     return file.eslint != null && file.eslint.fixed;
   };
-  return gulp.src(['src/**/*.js', 'lib/**/*.js', 'test/**/*.js'], {base: './'})
+  return gulp.src([
+      'src/**/*.js',
+      'lib/**/*.js',
+      'test/**/*.js',
+      'test/**/*.mjs'
+    ], {base: './'})
     .pipe(eslint())
     .pipe(eslint.format('stylish'))
     .pipe(eslint.failAfterError())
@@ -155,20 +161,47 @@ gulp.task('info', (done) => {
   done();
 });
 gulp.task('generate', (done) => {
-  gv.generate('generated/version.js', { useEs6Syntax: true }, done);
+  gv.generate('generated/version.mjs', { useEs6Syntax: true }, done);
 });
 
 gulp.task('build-bundle-dev', makeDevpackPkg);
 gulp.task('build-bundle-prod', makeWebpackPkg);
 
+gulp.task('inttest', () => (
+  gulp.src('test/integration/**/*_spec.mjs', {read: false})
+    // `gulp-mocha` needs filepaths so you can't have any plugins before it
+    .pipe(mocha({
+      reporter: 'nyan'
+    }))
+));
+
 // public tasks (dependencies are needed for each task since they can be ran on their own)
 gulp.task('test', gulp.series('clean', 'generate', lint, test));
 
-gulp.task('test-coverage', gulp.series('info', 'clean', 'generate', testCoverage));
+gulp.task('test-coverage', gulp.series(
+  'info',
+  'clean',
+  'generate',
+  testCoverage
+));
 gulp.task(viewCoverage);
 
 gulp.task('coveralls', gulp.series('test-coverage', coveralls));
 
-gulp.task('build', gulp.series('info', 'clean', 'generate', test, 'build-bundle-dev', 'build-bundle-prod'));
+gulp.task('build', gulp.series(
+  'info',
+  'clean',
+  'generate',
+  test,
+  gulp.parallel('build-bundle-dev', 'build-bundle-prod'),
+  'inttest'
+));
 
-gulp.task('serve', gulp.series('info', 'clean', 'generate', lint, gulp.parallel('build-bundle-dev', watch, test)));
+gulp.task('serve', gulp.series(
+  'info',
+  'clean',
+  'generate',
+  lint,
+  gulp.parallel('build-bundle-dev', watch, test)
+));
+

@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>ID5 API Integration</title>
+</head>
+<body>
+    <div id="placeholder"></div>
+    <!-- ID5 API -->
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
+            integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
+            crossorigin="anonymous"></script><script type="text/javascript" src="https://cdn.id5-sync.com/api/integration/id5-api.js"></script>
+    <script>
+        var id5Callback = function (id5Status) {
+            var i = new Image();
+            i.src = "https://dummyimage.com/600x200?text=" + id5Status.getUserId();
+            $('#placeholder')
+                .html(`<b>ID5 ID:</b> ${id5Status.getUserId()}<br><b>Link Type:</b> ${id5Status.getLinkType()}<br>`)
+                .append(i)
+                .append('<p id="done"></p>');
+        };
+        ID5.debug = true;
+        var id5Status = ID5.init({
+            partnerId: 415,
+            refreshInSeconds: 5,
+            cmpApi: 'static',
+            consentData: {
+                getTCData: {
+                    gdprApplies: true,
+                    tcString: "CPBZjR9PBZjR9AKAZAENBMCsAP_AAH_AAAqIHWtf_X_fb39j-_59_9t0eY1f9_7_v-0zjhfds-8Nyf_X_L8X42M7vF36pq4KuR4Eu3LBIQFlHOHUTUmw6okVrTPsak2Mr7NKJ7LEinMbe2dYGHtfn9VTuZKYr97s___z__-__v__79f_r-3_3_vp9X---_e_V3dgdYASYal8BFmJY4Ek0aVQogQhXEh0AoAKKEYWiawgJXBTsrgI9QQMAEBqAjAiBBiCjFgEAAAAASURASAHggEQBEAgABACpAQgAIkAQWAFgYBAAKAaFgBFAEIEhBkcFRymBARItFBPJWAJRd7GGEIZRYAUCj-iowEAAAAA.cAAAAAAAAAAA",
+                }
+            }
+        });
+        id5Status.onAvailable(id5Callback);
+    </script>
+    <!-- /ID5 API -->
+
+</body>
+</html>
