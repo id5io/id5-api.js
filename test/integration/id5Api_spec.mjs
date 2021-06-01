@@ -9,14 +9,11 @@ import { version as currentVersion } from '../../generated/version.mjs';
 import chaiDateTime from 'chai-datetime';
 import { readFile } from 'fs/promises';
 
-
 chai.use(chaiDateTime);
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const TEST_PAGE_PATH = path.join(SCRIPT_DIR, 'integration.html');
 const ID5_API_JS_FILE = path.join(SCRIPT_DIR, '..', '..', 'build', 'dist', 'id5-api.js');
-
-const CONSTANTS = JSON.parse(await readFile(path.join(SCRIPT_DIR, '..', '..', 'lib', 'constants.json')));
 
 const MOCK_CORS_HEADERS = {
   'Access-Control-Allow-Origin': 'https://my-publisher-website.net',
@@ -27,9 +24,11 @@ const DAYS_TO_MILLISECONDS = (60 * 60 * 24 * 1000);
 
 // Note: do not use lambda syntax in describes. https://mochajs.org/#arrow-functions
 describe('The ID5 API', function() {
-  let browser, server;
+  let browser, server, CONSTANTS;
 
   before(async () => {
+    CONSTANTS = JSON.parse(await readFile(path.join(SCRIPT_DIR, '..', '..', 'lib', 'constants.json')));
+
     // Create a proxy server with a self-signed HTTPS CA certificate:
     const https = await mockttp.generateCACertificate();
     server = mockttp.getLocal({ https });
