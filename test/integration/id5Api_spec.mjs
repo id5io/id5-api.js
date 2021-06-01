@@ -8,6 +8,7 @@ import chai, { expect } from 'chai';
 import { version as currentVersion } from '../../generated/version.mjs';
 import chaiDateTime from 'chai-datetime';
 import { readFile } from 'fs/promises';
+import isDocker from 'is-docker';
 
 chai.use(chaiDateTime);
 
@@ -37,16 +38,21 @@ describe('The ID5 API', function() {
     await server.start();
 
     const profileDir = await tmp.dir({ unsafeCleanup: true });
+    const args = [
+      `--proxy-server=localhost:${server.port}`,
+      `--ignore-certificate-errors-spki-list=${caFingerprint}`,
+      `--user-data-dir=${profileDir.path}`,
+      '--no-first-run'
+    ];
+
+    if (isDocker()) {
+      args.push('--no-sandbox');
+    }
 
     browser = await puppeteer.launch({
       executablePath: chromePaths.chrome,
       // devtools: true,
-      args: [
-        `--proxy-server=localhost:${server.port}`,
-        `--ignore-certificate-errors-spki-list=${caFingerprint}`,
-        `--user-data-dir=${profileDir.path}`,
-        '--no-first-run'
-      ]
+      args
     });
   });
 
