@@ -109,8 +109,10 @@ import ID5 from '../lib/id5-api'
 const id5Status = ID5.init({ partnerId: 173 });
 ```
 
-Please be aware that this module requires node version higher than 13.2 and needs access to the `window` and `document` objects so it needs to run 
-in a browser.
+Please be aware that this module requires node version higher than 13.2
+and needs access to the `window` and `document` objects because it's made
+for the browser. You can see how we bundle the modules together into the final
+id5-api.js script by looking at /gulpfile.js
 
 ## Building from Source
 

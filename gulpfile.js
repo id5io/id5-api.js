@@ -13,7 +13,6 @@ const KarmaServer = require('karma').Server;
 const karmaConfMaker = require('./karma.conf.maker');
 const opens = require('opn');
 const webpackConfig = require('./webpack.conf');
-const footer = require('gulp-footer');
 const header = require('gulp-header');
 const shell = require('gulp-shell');
 const eslint = require('gulp-eslint');
@@ -58,7 +57,8 @@ function watch(done) {
     'src/**/*.js',
     'lib/**/*.js',
     'test/spec/**/*.js',
-    '!test/spec/loaders/**/*.js'
+    '!test/spec/loaders/**/*.js',
+    'package.json'
   ]);
   var loaderWatcher = gulp.watch([
     'loaders/**/*.js',
@@ -72,18 +72,18 @@ function watch(done) {
     livereload: true
   });
 
-  mainWatcher.on('all', gulp.series('clean', gulp.parallel(lint, 'build-bundle-dev', test)));
+  mainWatcher.on('all', gulp.series('clean', 'generate', gulp.parallel(lint, 'build-bundle-dev', test)));
   loaderWatcher.on('all', gulp.series(lint));
   done();
 }
 
-var banner = ['/**',
-  ' * <%= id5Api.name %> - <%= id5Api.description %>',
-  ' * @version v<%= id5Api.version %>',
-  ' * @link <%= id5Api.homepage %>',
-  ' * @license <%= id5Api.license %>',
-  ' */',
-  ''].join('\n');
+var banner = `/**
+ * ${id5Api.name} - ${id5Api.description}
+ * @version v${id5Api.version}
+ * @link ${id5Api.homepage}
+ * @license ${id5Api.license}
+ */
+`;
 
 function makeDevpackPkg() {
   var cloned = _.cloneDeep(webpackConfig);
@@ -95,7 +95,7 @@ function makeDevpackPkg() {
 
   return gulp.src(['src/index.js'])
     .pipe(webpackStream(cloned, webpack))
-    .pipe(gulpif(isNotMapFile, header(banner, { id5Api: id5Api })))
+    .pipe(gulpif(isNotMapFile, header(banner)))
     .pipe(gulp.dest('build/dev'))
     .pipe(connect.reload());
 }
@@ -107,7 +107,7 @@ function makeWebpackPkg() {
   return gulp.src(['src/index.js'])
     .pipe(webpackStream(cloned, webpack))
     .pipe(uglify())
-    .pipe(header(banner, { id5Api: id5Api }))
+    .pipe(header(banner))
     .pipe(gulp.dest('build/dist'));
 }
 
