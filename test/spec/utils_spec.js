@@ -233,40 +233,6 @@ describe('Utils', function () {
     });
   });
 
-  describe('_map', function () {
-    it('return empty array when input object is empty', function () {
-      var input = {};
-      var callback = function () {};
-
-      var output = utils._map(input, callback);
-      assert.deepStrictEqual(output, []);
-    });
-
-    it('return value array with vaild input object', function () {
-      var input = { a: 'A', b: 'B' };
-      var callback = function (v) { return v; };
-
-      var output = utils._map(input, callback);
-      assert.deepStrictEqual(output, ['A', 'B']);
-    });
-
-    it('return value array with vaild input object_callback func changed 1', function () {
-      var input = { a: 'A', b: 'B' };
-      var callback = function (v, k) { return v + k; };
-
-      var output = utils._map(input, callback);
-      assert.deepStrictEqual(output, ['Aa', 'Bb']);
-    });
-
-    it('return value array with vaild input object_callback func changed 2', function () {
-      var input = { a: 'A', b: 'B' };
-      var callback = function (v, k, o) { return o; };
-
-      var output = utils._map(input, callback);
-      assert.deepStrictEqual(output, [input, input]);
-    });
-  });
-
   describe('deferPixelFire', function () {
     let fn, fn2;
     beforeEach(function () {
