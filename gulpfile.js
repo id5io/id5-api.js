@@ -19,6 +19,7 @@ const eslint = require('gulp-eslint');
 const gulpif = require('gulp-if');
 const gv = require('genversion');
 const mocha = require('gulp-mocha');
+const isDocker = require('is-docker');
 
 const id5Api = require('./package.json');
 const port = 9998;
@@ -171,7 +172,7 @@ gulp.task('inttest', () => (
   gulp.src('test/integration/**/*_spec.mjs', {read: false})
     // `gulp-mocha` needs filepaths so you can't have any plugins before it
     .pipe(mocha({
-      reporter: 'nyan'
+      reporter: isDocker() ? 'spec' : 'nyan'
     }))
 ));
 
