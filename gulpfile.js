@@ -28,18 +28,16 @@ function lint(done) {
   if (argv.nolint) {
     return done();
   }
-  const isFixed = function(file) {
-    return file.eslint != null && file.eslint.fixed;
-  };
   return gulp.src([
       'src/**/*.js',
       'lib/**/*.js',
       'test/**/*.js',
+      'integration/**/*.js',
     ], {base: './'})
     .pipe(eslint())
     .pipe(eslint.format('stylish'))
     .pipe(eslint.failAfterError())
-    .pipe(gulpif(isFixed, gulp.dest('./')));
+    .pipe(gulpif(file => file.eslint?.fixed, gulp.dest('./')));
 }
 
 // View the code coverage report in the browser.
