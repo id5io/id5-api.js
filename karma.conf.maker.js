@@ -56,7 +56,7 @@ function setReporters(karmaConf, codeCoverage) {
     karmaConf.reporters.push('coverage-istanbul');
     karmaConf.coverageIstanbulReporter = {
       reports: ['html', 'lcovonly', 'text-summary'],
-      dir: path.join(__dirname, 'build', 'coverage'),
+      dir: path.join('build', 'coverage'),
       'report-config': {
         html: {
           subdir: 'karma_html',
