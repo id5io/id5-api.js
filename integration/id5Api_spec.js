@@ -5,7 +5,7 @@ import tmp from 'tmp-promise';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import chai, { expect } from 'chai';
-import { version as currentVersion } from '../../generated/version.mjs';
+import { version as currentVersion } from '../generated/version.js';
 import chaiDateTime from 'chai-datetime';
 import { readFile } from 'fs/promises';
 import isDocker from 'is-docker';
@@ -14,7 +14,7 @@ chai.use(chaiDateTime);
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const TEST_PAGE_PATH = path.join(SCRIPT_DIR, 'integration.html');
-const ID5_API_JS_FILE = path.join(SCRIPT_DIR, '..', '..', 'build', 'dist', 'id5-api.js');
+const ID5_API_JS_FILE = path.join(SCRIPT_DIR, '..', 'build', 'dist', 'id5-api.js');
 
 const MOCK_CORS_HEADERS = {
   'Access-Control-Allow-Origin': 'https://my-publisher-website.net',
@@ -28,7 +28,7 @@ describe('The ID5 API', function() {
   let browser, server, CONSTANTS;
 
   before(async () => {
-    CONSTANTS = JSON.parse(await readFile(path.join(SCRIPT_DIR, '..', '..', 'lib', 'constants.json')));
+    CONSTANTS = JSON.parse(await readFile(path.join(SCRIPT_DIR, '..', 'lib', 'constants.json')));
 
     // Create a proxy server with a self-signed HTTPS CA certificate:
     const https = await mockttp.generateCACertificate();

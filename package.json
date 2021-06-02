@@ -6,6 +6,7 @@
   "module": "lib/id5-api.js",
   "main": "lib/id5-api.js",
   "browser": "build/dist/id5-api.js",
+  "type": "module",
   "scripts": {
     "test": "gulp test",
     "lint": "gulp lint"

@@ -1,28 +1,28 @@
-'use strict';
+import log from 'fancy-log';
+import _ from 'lodash';
+import yargs from 'yargs';
+import gulp from 'gulp';
+import del from 'del';
+import connect from 'gulp-connect';
+import webpack from 'webpack';
+import webpackStream from 'webpack-stream';
+import uglify from 'gulp-uglify';
+import karma from 'karma';
+import karmaConfMaker from './karma.conf.maker.js';
+import opens from 'opn';
+import webpackConfig from './webpack.conf.js';
+import header from 'gulp-header';
+import shell from 'gulp-shell';
+import eslint from 'gulp-eslint';
+import gulpif from 'gulp-if';
+import gv from 'genversion';
+import mocha from 'gulp-mocha';
+import isDocker from 'is-docker';
+import { readFile } from 'fs/promises';
 
-const log = require('fancy-log');
-const _ = require('lodash');
-const argv = require('yargs').argv;
-const gulp = require('gulp');
-const del = require('del');
-const connect = require('gulp-connect');
-const webpack = require('webpack');
-const webpackStream = require('webpack-stream');
-const uglify = require('gulp-uglify');
-const KarmaServer = require('karma').Server;
-const karmaConfMaker = require('./karma.conf.maker');
-const opens = require('opn');
-const webpackConfig = require('./webpack.conf');
-const header = require('gulp-header');
-const shell = require('gulp-shell');
-const eslint = require('gulp-eslint');
-const gulpif = require('gulp-if');
-const gv = require('genversion');
-const mocha = require('gulp-mocha');
-const isDocker = require('is-docker');
-
-const id5Api = require('./package.json');
+const id5Api = JSON.parse(await readFile('package.json'));
 const port = 9998;
+const argv = yargs.argv;
 
 function lint(done) {
   if (argv.nolint) {
@@ -35,7 +35,6 @@ function lint(done) {
       'src/**/*.js',
       'lib/**/*.js',
       'test/**/*.js',
-      'test/**/*.mjs'
     ], {base: './'})
     .pipe(eslint())
     .pipe(eslint.format('stylish'))
@@ -126,7 +125,7 @@ function test(done) {
   if (argv.notest) {
     done();
   } else {
-    new KarmaServer(karmaConfMaker(false, argv.watch, argv.file), karmaCallback(done)).start();
+    new karma.Server(karmaConfMaker(false, argv.watch, argv.file), karmaCallback(done)).start();
   }
 }
 
@@ -142,7 +141,7 @@ function karmaCallback(done) {
 
 // If --file "<path-to-test-file>" is given, the task will only run tests in the specified file.
 function testCoverage(done) {
-  new KarmaServer(karmaConfMaker(true, false, false, argv.file), karmaCallback(done)).start();
+  new karma.Server(karmaConfMaker(true, false, false, argv.file), karmaCallback(done)).start();
 }
 
 function coveralls() { // 2nd arg is a dependency: 'test' must be finished
@@ -155,21 +154,21 @@ function coveralls() { // 2nd arg is a dependency: 'test' must be finished
 // support tasks
 gulp.task(lint);
 gulp.task(watch);
-gulp.task('clean', () => del(['build']));
+gulp.task('clean', () => del(['build', 'generated']));
 gulp.task('info', (done) => {
   log(`Running gulp on node ${process.version}`);
   log(`Building ID5 API version ${id5Api.version}`);
   done();
 });
 gulp.task('generate', (done) => {
-  gv.generate('generated/version.mjs', { useEs6Syntax: true }, done);
+  gv.generate('generated/version.js', { useEs6Syntax: true }, done);
 });
 
 gulp.task('build-bundle-dev', makeDevpackPkg);
 gulp.task('build-bundle-prod', makeWebpackPkg);
 
 gulp.task('inttest', () => (
-  gulp.src('test/integration/**/*_spec.mjs', {read: false})
+  gulp.src('integration/**/*_spec.js', {read: false})
     // `gulp-mocha` needs filepaths so you can't have any plugins before it
     .pipe(mocha({
       reporter: isDocker() ? 'spec' : 'nyan'
