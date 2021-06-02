@@ -5,10 +5,11 @@ build:
   image: kekel87/node-chrome-firefox:1.5.0
   stage: build
   script:
-    - apt-get install g++ && npm install gulp && npm install gulp-cli -g
+    - npm install --global gulp-cli
     - npm install
     - gulp build
   artifacts:
     paths:
       - build/dist/id5-api.js
       - build/dev/id5-api.js
+      - build/dev/id5-api.js.map
