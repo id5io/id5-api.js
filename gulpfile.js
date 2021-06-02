@@ -192,6 +192,7 @@ gulp.task('build', gulp.series(
   'info',
   'clean',
   'generate',
+  'lint',
   test,
   gulp.parallel('build-bundle-dev', 'build-bundle-prod'),
   'inttest'

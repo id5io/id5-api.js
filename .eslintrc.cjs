@@ -15,7 +15,7 @@ module.exports = {
   "globals": {
     "ID5": false
   },
-  "parser": "babel-eslint",
+  "parser": "@babel/eslint-parser",
   "parserOptions": {
     "sourceType": "module"
   },
