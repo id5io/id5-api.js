@@ -3,11 +3,9 @@ import CONSTANTS from '../../lib/constants.json';
 import * as utils from '../../lib/utils';
 import ClientStore from '../../lib/clientStore';
 import * as abTesting from '../../lib/abTesting';
+import { version } from '../../generated/version.js';
 
 require('../../src/index.js');
-
-// need to manually set version since the test process doesn't set it like gulp build does
-ID5.version = 'TESTING';
 
 let expect = require('chai').expect;
 
@@ -255,7 +253,7 @@ describe('ID5 JS API', function () {
           expect(requestData.partner).to.be.equal(TEST_ID5_PARTNER_ID);
           expect(requestData.s).to.be.undefined;
           expect(requestData.o).to.be.equal('api');
-          expect(requestData.v).to.be.equal('TESTING');
+          expect(requestData.v).to.be.equal(version);
           expect(requestData.pd).to.be.undefined;
           expect(requestData.rf).to.include('http://localhost');
           expect(requestData.top).to.be.equal(1);
@@ -758,7 +756,7 @@ describe('ID5 JS API', function () {
           expect(requestData.partner).to.be.equal(TEST_ID5_PARTNER_ID);
           expect(requestData.s).to.be.undefined;
           expect(requestData.o).to.be.equal('api');
-          expect(requestData.v).to.be.equal('TESTING');
+          expect(requestData.v).to.be.equal(version);
           expect(requestData.pd).to.be.undefined;
           expect(requestData.rf).to.include('http://localhost');
           expect(requestData.top).to.be.equal(1);

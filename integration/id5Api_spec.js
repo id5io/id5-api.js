@@ -5,7 +5,7 @@ import tmp from 'tmp-promise';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import chai, { expect } from 'chai';
-import { version as currentVersion } from '../generated/version.js';
+import { version } from '../generated/version.js';
 import chaiDateTime from 'chai-datetime';
 import { readFile } from 'fs/promises';
 import isDocker from 'is-docker';
@@ -27,8 +27,11 @@ const DAYS_TO_MILLISECONDS = (60 * 60 * 24 * 1000);
 describe('The ID5 API', function() {
   let browser, server, CONSTANTS;
 
+  this.timeout(30000);
+
   before(async () => {
-    CONSTANTS = JSON.parse(await readFile(path.join(SCRIPT_DIR, '..', 'lib', 'constants.json')));
+    CONSTANTS = JSON.parse(await readFile(path.join(SCRIPT_DIR,
+      '..', 'lib', 'constants.json')));
 
     // Create a proxy server with a self-signed HTTPS CA certificate:
     const https = await mockttp.generateCACertificate();
@@ -64,7 +67,8 @@ describe('The ID5 API', function() {
   beforeEach(async () => {
     await server.get('code.jquery.com/jquery-3.3.1.slim.min.js').thenPassThrough();
     await server.get('https://my-publisher-website.net').thenFromFile(200, TEST_PAGE_PATH);
-    await server.get('https://cdn.id5-sync.com/api/integration/id5-api.js').thenFromFile(200, ID5_API_JS_FILE);
+    await server.get('https://cdn.id5-sync.com/api/integration/id5-api.js')
+      .thenFromFile(200, ID5_API_JS_FILE);
   });
 
   afterEach(async () => {
@@ -89,7 +93,7 @@ describe('The ID5 API', function() {
     const mockDummyImage = await server.get('https://dummyimage.com/600x200')
       .thenReply(200, '');
     const page = await browser.newPage();
-    await page.goto('https://my-publisher-website.net?id5_debug=true');
+    await page.goto('https://my-publisher-website.net');
     await page.waitForSelector('p#done');
 
     const id5SyncRequests = await mockId5.getSeenRequests();
@@ -97,12 +101,12 @@ describe('The ID5 API', function() {
 
     const response = id5SyncRequests[0].body.json;
     expect(response.partner).to.equal(415); // from integration.html
-    expect(response.v).to.equal(currentVersion);
+    expect(response.v).to.equal(version);
     expect(response.id5cdn).to.equal(true);
     expect(response.top).to.equal(1);
     expect(response.o).to.equal('api');
-    expect(response.u).to.equal('https://my-publisher-website.net/?id5_debug=true');
-    expect(response.rf).to.equal('https://my-publisher-website.net/?id5_debug=true');
+    expect(response.u).to.equal('https://my-publisher-website.net/');
+    expect(response.rf).to.equal('https://my-publisher-website.net/');
     // from integration.html
     expect(response.gdpr_consent).to.equal( // from integration.html
       'CPBZjR9PBZjR9AKAZAENBMCsAP_AAH_AAAqIHWtf_X_fb39j-_59_9t0eY1f9_7_v-0zjhfds-8Nyf_X_L8X42M7vF36pq4KuR4Eu3LBIQFlHOHUTUmw6okVrTPsak2Mr7NKJ7LEinMbe2dYGHtfn9VTuZKYr97s___z__-__v__79f_r-3_3_vp9X---_e_V3dgdYASYal8BFmJY4Ek0aVQogQhXEh0AoAKKEYWiawgJXBTsrgI9QQMAEBqAjAiBBiCjFgEAAAAASURASAHggEQBEAgABACpAQgAIkAQWAFgYBAAKAaFgBFAEIEhBkcFRymBARItFBPJWAJRd7GGEIZRYAUCj-iowEAAAAA.cAAAAAAAAAAA');
@@ -132,6 +136,7 @@ describe('The ID5 API', function() {
 
     const dummyImageRequests = await mockDummyImage.getSeenRequests();
     expect(dummyImageRequests).to.have.lengthOf(1);
-    expect(dummyImageRequests[0].url).to.equal('https://dummyimage.com/600x200?text=' + mockFetchReponse.universal_uid);
+    expect(dummyImageRequests[0].url).to.equal(
+      'https://dummyimage.com/600x200?text=' + mockFetchReponse.universal_uid);
   });
 });
