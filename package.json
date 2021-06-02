@@ -29,12 +29,12 @@
     "node": ">13.2"
   },
   "devDependencies": {
-    "@babel/core": "^7.12.10",
-    "@babel/eslint-parser": "^7.12.17",
+    "@babel/core": "^7.14.3",
+    "@babel/eslint-parser": "^7.14.4",
     "@babel/plugin-transform-object-assign": "^7.12.13",
-    "@babel/preset-env": "^7.12.17",
+    "@babel/preset-env": "^7.14.4",
     "babel-loader": "^8.2.2",
-    "chai": "^4.2.0",
+    "chai": "^4.3.4",
     "chai-datetime": "^1.8.0",
     "chrome-paths": "^1.0.1",
     "coveralls": "^3.0.2",
