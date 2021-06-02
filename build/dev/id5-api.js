@@ -1,5 +1,5 @@
 /**
- * @id5io/id5-api.js - The ID5 API is designed to make accessing the ID5 Universal ID simple for publishers, advertisers, and their ad tech vendors. The ID5 Universal ID is a shared, neutral identifier that publishers, advertisers, and ad tech platforms can use to recognise users even in environments where 3rd party cookies are not available. For more information, visit https://id5.io/universal-id.
+ * id5-api.js - The ID5 API is designed to make accessing the ID5 Universal ID simple for publishers, advertisers, and their ad tech vendors. The ID5 Universal ID is a shared, neutral identifier that publishers, advertisers, and ad tech platforms can use to recognise users even in environments where 3rd party cookies are not available. For more information, visit https://id5.io/universal-id.
  * @version v1.0.3
  * @link https://id5.io/
  * @license Apache-2.0
@@ -66,7 +66,7 @@
 /******/ 	__webpack_require__.p = "";
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 3);
+/******/ 	return __webpack_require__(__webpack_require__.s = 2);
 /******/ })
 /************************************************************************/
 /******/ ([
@@ -136,7 +136,6 @@ var tNumb = 'Number';
 var tObject = 'Object';
 var tBoolean = 'Boolean';
 var toString = Object.prototype.toString;
-var isDebug = getParameterByName('id5_debug').toUpperCase() === 'TRUE';
 var consoleExists = Boolean(window.console);
 var consoleLogExists = Boolean(consoleExists && window.console.log);
 var consoleInfoExists = Boolean(consoleExists && window.console.info);
@@ -200,7 +199,7 @@ function logError() {
 function decorateLog(args, prefix) {
   args = [].slice.call(args);
 
-  if (__WEBPACK_IMPORTED_MODULE_0__id5_api__["a" /* default */].version !== 'TESTING') {
+  if (__WEBPACK_IMPORTED_MODULE_0__id5_api__["default"].version !== 'TESTING') {
     prefix && args.unshift(prefix);
     args.unshift('display: inline-block; color: #fff; background: #1c307e; padding: 1px 4px; border-radius: 3px;');
     args.unshift('%cID5');
@@ -212,7 +211,7 @@ function decorateLog(args, prefix) {
 }
 
 function debugTurnedOn() {
-  return isDebug || window && window.ID5 && window.ID5.debug;
+  return __WEBPACK_IMPORTED_MODULE_0__id5_api__["default"] && __WEBPACK_IMPORTED_MODULE_0__id5_api__["default"].debug === true;
 }
 /*
  *   Check if a given parameter name exists in query string
@@ -673,13 +672,14 @@ module.exports = {"STORAGE_CONFIG":{"ID5":{"name":"id5id","expiresDays":90},"LAS
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-
+Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "Id5Api", function() { return Id5Api; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "ID5", function() { return ID5; });
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__utils__ = __webpack_require__(0);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__refererDetection__ = __webpack_require__(4);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__clientStore__ = __webpack_require__(5);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__consentManagement__ = __webpack_require__(6);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__id5Status__ = __webpack_require__(7);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_5__generated_version__ = __webpack_require__(10);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__refererDetection__ = __webpack_require__(3);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__clientStore__ = __webpack_require__(4);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__consentManagement__ = __webpack_require__(5);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__id5Status__ = __webpack_require__(6);
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 function _defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
@@ -689,8 +689,6 @@ function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _d
 function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
 
 /** @module id5-api */
-
-
 
 
 
@@ -731,20 +729,19 @@ var Id5Api = /*#__PURE__*/function () {
 
     _defineProperty(this, "referer", false);
 
-    _defineProperty(this, "version", __WEBPACK_IMPORTED_MODULE_5__generated_version__["a" /* version */]);
+    _defineProperty(this, "version", void 0);
 
     _defineProperty(this, "versions", {});
 
     this.loaded = true;
-    this.isUsingCdn = !!(document && document.currentScript && document.currentScript.src && document.currentScript.src.indexOf('https://cdn.id5-sync.com') === 0);
-
+    this.debug = this.debug || __WEBPACK_IMPORTED_MODULE_0__utils__["getParameterByName"]('id5_debug').toUpperCase() === 'TRUE';
+    this.isUsingCdn = !!(document.currentScript && document.currentScript.src && document.currentScript.src.indexOf('https://cdn.id5-sync.com') === 0);
     this.referer = Object(__WEBPACK_IMPORTED_MODULE_1__refererDetection__["a" /* getRefererInfo */])();
     var currentThis = this; // preserve this in callback
 
     this.clientStore = new __WEBPACK_IMPORTED_MODULE_2__clientStore__["a" /* default */](function () {
       return currentThis.localStorageAllowed;
     });
-    this.versions[__WEBPACK_IMPORTED_MODULE_5__generated_version__["a" /* version */]] = true;
   }
   /**
    * This function will initialize ID5, wait for consent then try to fetch or refresh ID5 user id if required
@@ -1000,25 +997,16 @@ var Id5Api = /*#__PURE__*/function () {
   return Id5Api;
 }();
 
-/* harmony default export */ __webpack_exports__["a"] = (new Id5Api());
-
-/***/ }),
-/* 3 */
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
-Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__lib_id5_api__ = __webpack_require__(2);
-
-
 if (!window.ID5) {
-  window.ID5 = __WEBPACK_IMPORTED_MODULE_0__lib_id5_api__["a" /* default */];
+  window.ID5 = new Id5Api();
 } else {// TODO: Check for different versions in the same page at init
 }
 
+var ID5 = window.ID5;
+/* harmony default export */ __webpack_exports__["default"] = (ID5);
 
 /***/ }),
-/* 4 */
+/* 3 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -1240,7 +1228,7 @@ function detectReferer(win) {
 var getRefererInfo = detectReferer(window);
 
 /***/ }),
-/* 5 */
+/* 4 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -1565,14 +1553,14 @@ var ClientStore = /*#__PURE__*/function () {
 
 
 /***/ }),
-/* 6 */
+/* 5 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return ConsentManagement; });
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__utils__ = __webpack_require__(0);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__constants_json__ = __webpack_require__(1);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__constants_json___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_1__constants_json__);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1_src_constants_json__ = __webpack_require__(1);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1_src_constants_json___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_1_src_constants_json__);
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 function _defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
@@ -1834,7 +1822,7 @@ var ConsentManagement = /*#__PURE__*/function () {
     key: "isProvisionalLocalStorageAllowed",
     value: function isProvisionalLocalStorageAllowed() {
       if (!__WEBPACK_IMPORTED_MODULE_0__utils__["isPlainObject"](this.storedPrivacyData)) {
-        this.storedPrivacyData = JSON.parse(__WEBPACK_IMPORTED_MODULE_0__utils__["getFromLocalStorage"](__WEBPACK_IMPORTED_MODULE_1__constants_json___default.a.STORAGE_CONFIG.PRIVACY));
+        this.storedPrivacyData = JSON.parse(__WEBPACK_IMPORTED_MODULE_0__utils__["getFromLocalStorage"](__WEBPACK_IMPORTED_MODULE_1_src_constants_json___default.a.STORAGE_CONFIG.PRIVACY));
       }
 
       if (this.storedPrivacyData && this.storedPrivacyData.id5_consent === true) {
@@ -1842,7 +1830,7 @@ var ConsentManagement = /*#__PURE__*/function () {
       } else if (!this.storedPrivacyData || typeof this.storedPrivacyData.jurisdiction === 'undefined') {
         return undefined;
       } else {
-        var jurisdictionRequiresConsent = typeof __WEBPACK_IMPORTED_MODULE_1__constants_json___default.a.PRIVACY.JURISDICTIONS[this.storedPrivacyData.jurisdiction] !== 'undefined' ? __WEBPACK_IMPORTED_MODULE_1__constants_json___default.a.PRIVACY.JURISDICTIONS[this.storedPrivacyData.jurisdiction] : false;
+        var jurisdictionRequiresConsent = typeof __WEBPACK_IMPORTED_MODULE_1_src_constants_json___default.a.PRIVACY.JURISDICTIONS[this.storedPrivacyData.jurisdiction] !== 'undefined' ? __WEBPACK_IMPORTED_MODULE_1_src_constants_json___default.a.PRIVACY.JURISDICTIONS[this.storedPrivacyData.jurisdiction] : false;
         return jurisdictionRequiresConsent === false || this.storedPrivacyData.id5_consent === true;
       }
     }
@@ -1852,7 +1840,7 @@ var ConsentManagement = /*#__PURE__*/function () {
       try {
         if (__WEBPACK_IMPORTED_MODULE_0__utils__["isPlainObject"](privacy)) {
           this.storedPrivacyData = privacy;
-          __WEBPACK_IMPORTED_MODULE_0__utils__["setInLocalStorage"](__WEBPACK_IMPORTED_MODULE_1__constants_json___default.a.STORAGE_CONFIG.PRIVACY, JSON.stringify(privacy));
+          __WEBPACK_IMPORTED_MODULE_0__utils__["setInLocalStorage"](__WEBPACK_IMPORTED_MODULE_1_src_constants_json___default.a.STORAGE_CONFIG.PRIVACY, JSON.stringify(privacy));
         } else {
           __WEBPACK_IMPORTED_MODULE_0__utils__["logInfo"]('Cannot store privacy if it is not an object: ', privacy);
         }
@@ -1949,15 +1937,15 @@ var ConsentManagement = /*#__PURE__*/function () {
 
 
 /***/ }),
-/* 7 */
+/* 6 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return Id5Status; });
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__config__ = __webpack_require__(8);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__config__ = __webpack_require__(7);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__constants_json__ = __webpack_require__(1);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__constants_json___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_1__constants_json__);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__abTesting__ = __webpack_require__(9);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__abTesting__ = __webpack_require__(8);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__utils__ = __webpack_require__(0);
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
@@ -2343,7 +2331,7 @@ var Id5Status = /*#__PURE__*/function () {
 
 
 /***/ }),
-/* 8 */
+/* 7 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -2511,7 +2499,7 @@ _defineProperty(Config, "configTypes", {
 
 
 /***/ }),
-/* 9 */
+/* 8 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -2552,15 +2540,6 @@ function isInControlGroup(userId, controlGroupRatio) {
   return abTestBucket(userId) < controlGroupRatio * ABTEST_RESOLUTION;
 }
 /* unused harmony default export */ var _unused_webpack_default_export = (isInControlGroup);
-
-/***/ }),
-/* 10 */
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return version; });
-// generated by genversion
-var version = '1.0.3-pre';
 
 /***/ })
 /******/ ]);
