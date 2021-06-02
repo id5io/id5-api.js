@@ -6,7 +6,7 @@ build:
   stage: build
   script:
     - npm install --global gulp-cli
-    - npm install
+    - npm ci
     - gulp build
   artifacts:
     paths:
