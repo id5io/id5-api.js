@@ -82,7 +82,7 @@ function watch(done) {
 }
 
 var banner = `/**
- * ${id5Api.name} - ${id5Api.description}
+ * ${id5Api.name}
  * @version v${id5Api.version}
  * @link ${id5Api.homepage}
  * @license ${id5Api.license}
