@@ -100,9 +100,12 @@ As a publisher or advertiser, the advantage to hosting the code in your website 
 
 You have the option to embed the library as is into a larger bundle by either:
 - Concatenate the minified Javascript with some other javascript code into a larger file
-- Import the ECMAScript module and use it directly in your code
+- Import the ES6 module and use it directly in your code
 
-Here is an example of how integrating the ECMAScript module might look like:
+If you choose to import the ES6 module you most probably need to
+transpile the javascript depending on which browsers you want to support.
+
+Here is an example of how integrating the ES6 module might look like:
 #### index.js
 ```javascript
 import ID5 from '@id5io/id5-api.js'
@@ -120,8 +123,7 @@ status.onAvailable((id5Status) => {
   "description": "Dummy project for showing how to use the id5-api.js module",
   "main": "index.js",
   "scripts": {
-    "rollup": "rollup --config rollup.config.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "rollup": "rollup --config rollup.config.js"
   },
   "author": "",
   "license": "Apache-2.0",
@@ -129,18 +131,21 @@ status.onAvailable((id5Status) => {
     "@id5io/id5-api.js": "^1.0.3"
   },
   "devDependencies": {
+    "@babel/core": "^7.14.3",
+    "@id5io/id5-api.js": "file:../id5-api.js",
+    "@rollup/plugin-babel": "^5.3.0",
     "@rollup/plugin-json": "^4.1.0",
     "@rollup/plugin-node-resolve": "^13.0.0",
     "rollup": "^2.50.5"
   }
 }
-
 ```
 
 #### rollup.config.js
 ```javascript
 import resolve from '@rollup/plugin-node-resolve';
 import json from '@rollup/plugin-json';
+import babel from '@rollup/plugin-babel';
 
 export default {
   input: 'index.js',
@@ -148,7 +153,7 @@ export default {
     file: 'bundle.js',
     format: 'iife',
   },
-  plugins: [ resolve(), json() ]
+  plugins: [ resolve(), json(), babel({ babelHelpers: 'bundled' }) ]
 };
 ```
 
@@ -157,14 +162,13 @@ export default {
 $ npm install
 ```
 ```bash
-$ npm rollup
+$ npm run rollup
 ```
 then the bundle is created into `bundle.js`.
 
-Please note that this is a very minimal example. You may want to use tools like
-[Babel](https://babeljs.io/) to ensure the bundle is compatible with all the 
-browsers you intend to support or use a different bundler like 
-[Webpack](https://webpack.js.org/).
+Please note that this is a very minimal example. You may want,
+for example, to use a different bundler like
+[Webpack](https://webpack.js.org/) or [Browserify](https://browserify.org/).
 
 ## Building from Source
 
