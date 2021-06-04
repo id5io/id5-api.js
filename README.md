@@ -132,7 +132,7 @@ status.onAvailable((id5Status) => {
   },
   "devDependencies": {
     "@babel/core": "^7.14.3",
-    "@id5io/id5-api.js": "file:../id5-api.js",
+    "@id5io/id5-api.js": "^1.0.3",
     "@rollup/plugin-babel": "^5.3.0",
     "@rollup/plugin-json": "^4.1.0",
     "@rollup/plugin-node-resolve": "^13.0.0",
