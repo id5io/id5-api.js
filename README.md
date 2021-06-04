@@ -105,6 +105,10 @@ You have the option to embed the library as is into a larger bundle by either:
 If you choose to import the ES6 module you most probably need to
 transpile the javascript depending on which browsers you want to support.
 
+Additionally please note that the ID5 object doesn't get published
+automatically to the `window` object when you import the ES6 module in your code.
+You can just add `window.ID5 = ID5;` in the example below if you need so.
+
 Here is an example of how integrating the ES6 module might look like:
 #### index.js
 ```javascript
