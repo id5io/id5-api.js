@@ -28,27 +28,6 @@ function newWebpackConfig(codeCoverage) {
   return webpackConfig;
 }
 
-function newPluginsArray(browserstack) {
-  var plugins = [
-    'karma-chrome-launcher',
-    'karma-coverage-istanbul-reporter',
-    'karma-es5-shim',
-    'karma-mocha',
-    'karma-chai',
-    'karma-sinon',
-    'karma-sourcemap-loader',
-    'karma-spec-reporter',
-    'karma-webpack',
-    'karma-mocha-reporter'
-  ];
-  plugins.push('karma-firefox-launcher');
-  plugins.push('karma-opera-launcher');
-  plugins.push('karma-safari-launcher');
-  plugins.push('karma-script-launcher');
-  plugins.push('karma-ie-launcher');
-  return plugins;
-}
-
 function setReporters(karmaConf, codeCoverage) {
   // In browserstack, the default 'progress' reporter floods the logs.
   // The karma-spec-reporter reports failures more concisely

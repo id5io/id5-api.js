@@ -89,29 +89,25 @@ var banner = `/**
  */
 `;
 
+const isNotMap = file => file.extname !== '.map'
+
 function makeDevpackPkg() {
   var cloned = _.cloneDeep(webpackConfig);
-  cloned.devtool = 'source-map';
-
-  const isNotMapFile = function(file) {
-    return file.extname !== '.map';
-  };
 
   return gulp.src(['src/index.js'])
     .pipe(webpackStream(cloned, webpack))
-    .pipe(gulpif(isNotMapFile, header(banner)))
+    .pipe(gulpif(isNotMap, header(banner)))
     .pipe(gulp.dest('build/dev'))
     .pipe(connect.reload());
 }
 
 function makeWebpackPkg() {
   var cloned = _.cloneDeep(webpackConfig);
-  delete cloned.devtool;
 
   return gulp.src(['src/index.js'])
     .pipe(webpackStream(cloned, webpack))
-    .pipe(uglify())
-    .pipe(header(banner))
+    .pipe(gulpif(isNotMap, uglify()))
+    .pipe(gulpif(isNotMap, header(banner)))
     .pipe(gulp.dest('build/dist'));
 }
 
