@@ -65,7 +65,6 @@ describe('The ID5 API', function() {
   });
 
   beforeEach(async () => {
-    await server.get('code.jquery.com/jquery-3.3.1.slim.min.js').thenPassThrough();
     await server.get('https://my-publisher-website.net').thenFromFile(200, TEST_PAGE_PATH);
     await server.get('https://cdn.id5-sync.com/api/integration/id5-api.js')
       .thenFromFile(200, ID5_API_JS_FILE);

@@ -89,7 +89,7 @@ var banner = `/**
  */
 `;
 
-const isNotMap = file => file.extname !== '.map'
+const isNotMap = file => file.extname !== '.map';
 
 function makeDevpackPkg() {
   var cloned = _.cloneDeep(webpackConfig);
