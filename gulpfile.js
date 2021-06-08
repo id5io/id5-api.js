@@ -1,45 +1,43 @@
-'use strict';
+import log from 'fancy-log';
+import _ from 'lodash';
+import yargs from 'yargs';
+import gulp from 'gulp';
+import del from 'del';
+import connect from 'gulp-connect';
+import webpack from 'webpack';
+import webpackStream from 'webpack-stream';
+import uglify from 'gulp-uglify';
+import karma from 'karma';
+import karmaConfMaker from './karma.conf.maker.js';
+import opens from 'opn';
+import webpackConfig from './webpack.conf.js';
+import header from 'gulp-header';
+import shell from 'gulp-shell';
+import eslint from 'gulp-eslint';
+import gulpif from 'gulp-if';
+import gv from 'genversion';
+import mocha from 'gulp-mocha';
+import isDocker from 'is-docker';
+import { readFile } from 'fs/promises';
 
-var _ = require('lodash');
-var argv = require('yargs').argv;
-var gulp = require('gulp');
-var connect = require('gulp-connect');
-var webpack = require('webpack');
-var webpackStream = require('webpack-stream');
-var uglify = require('gulp-uglify');
-var gulpClean = require('gulp-clean');
-var KarmaServer = require('karma').Server;
-var karmaConfMaker = require('./karma.conf.maker');
-var opens = require('opn');
-var webpackConfig = require('./webpack.conf');
-var footer = require('gulp-footer');
-var header = require('gulp-header');
-var shell = require('gulp-shell');
-var eslint = require('gulp-eslint');
-var gulpif = require('gulp-if');
-
-var id5Api = require('./package.json');
-var port = 9998;
-
-function clean() {
-  return gulp.src(['build'], {
-    read: false,
-    allowEmpty: true
-  }).pipe(gulpClean());
-}
+const id5Api = JSON.parse(await readFile('package.json'));
+const port = 9998;
+const argv = yargs.argv;
 
 function lint(done) {
   if (argv.nolint) {
     return done();
   }
-  const isFixed = function(file) {
-    return file.eslint != null && file.eslint.fixed;
-  };
-  return gulp.src(['src/**/*.js', 'test/**/*.js'], {base: './'})
+  return gulp.src([
+      'src/**/*.js',
+      'lib/**/*.js',
+      'test/**/*.js',
+      'integration/**/*.js',
+    ], {base: './'})
     .pipe(eslint())
     .pipe(eslint.format('stylish'))
     .pipe(eslint.failAfterError())
-    .pipe(gulpif(isFixed, gulp.dest('./')));
+    .pipe(gulpif(file => file.eslint?.fixed, gulp.dest('./')));
 }
 
 // View the code coverage report in the browser.
@@ -61,8 +59,10 @@ viewCoverage.displayName = 'view-coverage';
 function watch(done) {
   var mainWatcher = gulp.watch([
     'src/**/*.js',
+    'lib/**/*.js',
     'test/spec/**/*.js',
-    '!test/spec/loaders/**/*.js'
+    '!test/spec/loaders/**/*.js',
+    'package.json'
   ]);
   var loaderWatcher = gulp.watch([
     'loaders/**/*.js',
@@ -76,46 +76,38 @@ function watch(done) {
     livereload: true
   });
 
-  mainWatcher.on('all', gulp.series(clean, gulp.parallel(lint, 'build-bundle-dev', test)));
+  mainWatcher.on('all', gulp.series('clean', 'generate', gulp.parallel(lint, 'build-bundle-dev', test)));
   loaderWatcher.on('all', gulp.series(lint));
   done();
 }
 
-var banner = ['/**',
-  ' * <%= id5Api.name %> - <%= id5Api.description %>',
-  ' * @version v<%= id5Api.version %>',
-  ' * @link <%= id5Api.homepage %>',
-  ' * @license <%= id5Api.license %>',
-  ' */',
-  ''].join('\n');
+var banner = `/**
+ * ${id5Api.name}
+ * @version v${id5Api.version}
+ * @link ${id5Api.homepage}
+ * @license ${id5Api.license}
+ */
+`;
 
-var setId5VersionJs = '\nID5.version=\'<%= id5Api.version %>\';\nID5.versions[ID5.version]=true;\n';
+const isNotMap = file => file.extname !== '.map';
 
 function makeDevpackPkg() {
   var cloned = _.cloneDeep(webpackConfig);
-  cloned.devtool = 'source-map';
 
-  const isNotMapFile = function(file) {
-    return file.extname !== '.map';
-  };
-
-  return gulp.src(['src/id5-api.js'])
+  return gulp.src(['src/index.js'])
     .pipe(webpackStream(cloned, webpack))
-    .pipe(gulpif(isNotMapFile, footer(setId5VersionJs, { id5Api: id5Api })))
-    .pipe(gulpif(isNotMapFile, header(banner, { id5Api: id5Api })))
+    .pipe(gulpif(isNotMap, header(banner)))
     .pipe(gulp.dest('build/dev'))
     .pipe(connect.reload());
 }
 
 function makeWebpackPkg() {
   var cloned = _.cloneDeep(webpackConfig);
-  delete cloned.devtool;
 
-  return gulp.src(['src/id5-api.js'])
+  return gulp.src(['src/index.js'])
     .pipe(webpackStream(cloned, webpack))
-    .pipe(footer(setId5VersionJs, { id5Api: id5Api }))
-    .pipe(uglify())
-    .pipe(header(banner, { id5Api: id5Api }))
+    .pipe(gulpif(isNotMap, uglify()))
+    .pipe(gulpif(isNotMap, header(banner)))
     .pipe(gulp.dest('build/dist'));
 }
 
@@ -127,7 +119,7 @@ function test(done) {
   if (argv.notest) {
     done();
   } else {
-    new KarmaServer(karmaConfMaker(false, argv.watch, argv.file), karmaCallback(done)).start();
+    new karma.Server(karmaConfMaker(false, argv.watch, argv.file), karmaCallback(done)).start();
   }
 }
 
@@ -143,7 +135,7 @@ function karmaCallback(done) {
 
 // If --file "<path-to-test-file>" is given, the task will only run tests in the specified file.
 function testCoverage(done) {
-  new KarmaServer(karmaConfMaker(true, false, false, argv.file), karmaCallback(done)).start();
+  new karma.Server(karmaConfMaker(true, false, false, argv.file), karmaCallback(done)).start();
 }
 
 function coveralls() { // 2nd arg is a dependency: 'test' must be finished
@@ -156,20 +148,55 @@ function coveralls() { // 2nd arg is a dependency: 'test' must be finished
 // support tasks
 gulp.task(lint);
 gulp.task(watch);
-gulp.task(clean);
+gulp.task('clean', () => del(['build', 'generated']));
+gulp.task('info', (done) => {
+  log(`Running gulp on node ${process.version}`);
+  log(`Building ID5 API version ${id5Api.version}`);
+  done();
+});
+gulp.task('generate', (done) => {
+  gv.generate('generated/version.js', { useEs6Syntax: true }, done);
+});
 
 gulp.task('build-bundle-dev', makeDevpackPkg);
 gulp.task('build-bundle-prod', makeWebpackPkg);
 
-// public tasks (dependencies are needed for each task since they can be ran on their own)
-gulp.task('test', gulp.series(clean, lint, test));
+gulp.task('inttest', () => (
+  gulp.src('integration/**/*_spec.js', {read: false})
+    // `gulp-mocha` needs filepaths so you can't have any plugins before it
+    .pipe(mocha({
+      reporter: isDocker() ? 'spec' : 'nyan'
+    }))
+));
 
-gulp.task('test-coverage', gulp.series(clean, testCoverage));
+// public tasks (dependencies are needed for each task since they can be ran on their own)
+gulp.task('test', gulp.series('clean', 'generate', lint, test));
+
+gulp.task('test-coverage', gulp.series(
+  'info',
+  'clean',
+  'generate',
+  testCoverage
+));
 gulp.task(viewCoverage);
 
 gulp.task('coveralls', gulp.series('test-coverage', coveralls));
 
-gulp.task('build', gulp.series(clean, test, 'build-bundle-dev', 'build-bundle-prod'));
+gulp.task('build', gulp.series(
+  'info',
+  'clean',
+  'generate',
+  'lint',
+  test,
+  gulp.parallel('build-bundle-dev', 'build-bundle-prod'),
+  'inttest'
+));
 
-gulp.task('serve', gulp.series(clean, lint, gulp.parallel('build-bundle-dev', watch, test)));
-gulp.task('default', gulp.series(clean, makeWebpackPkg));
+gulp.task('serve', gulp.series(
+  'info',
+  'clean',
+  'generate',
+  lint,
+  gulp.parallel('build-bundle-dev', watch, test)
+));
+

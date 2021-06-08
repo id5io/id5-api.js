@@ -16,10 +16,11 @@ Stay up-to-date with all of our API releases by subscribing to our [release note
 - [Setup and Installation](#setup-and-installation)
   - [ID5 Partner Creation](#id5-partner-creation)
   - [Quick Start](#quick-start)
-  - [API Source Code](#api-source-code)
+  - [Integration options](#integration-options)
     - [ID5 CDN](#id5-cdn)
     - [Pre-built and Minified for Download](#pre-built-and-minified-for-download)
-    - [Build from Source (more advanced)](#build-from-source-more-advanced)
+    - [Embed into a larger bundle](#embed-into-a-larger-bundle)
+    - [Building from Source](#building-from-source)
   - [Usage](#usage)
     - [Load the API javascript file](#load-the-api-javascript-file)
     - [Initialize the API](#initialize-the-api)
@@ -66,7 +67,7 @@ Install the ID5 API after your CMP (if applicable), but as high in the `<head>` 
 </script>
 ```
 
-## API Source Code
+## Integration options
 
 ### ID5 CDN
 
@@ -84,9 +85,96 @@ You may also choose to download the latest release (and host on your own CDN) in
 
 * [https://github.com/id5io/id5-api.js/releases/download/v1.0.3/id5-api.js](https://github.com/id5io/id5-api.js/releases/download/v1.0.3/id5-api.js)
 
+Alternatively, we also publish the minified bundle to NPM:
+```json
+  "dependencies": {
+    "@id5io/id5-api.js": "^1.0.3"
+  },
+```
+After running `npm install` you can find the bundle at 
+`node_modules/@id5io/id5-api.js/build/dist/id5-api.js`.
+
 As a publisher or advertiser, the advantage to hosting the code in your website domain is that the API will have "1st party" privileges with the browser, improving the value of the Universal ID delivered.
 
-### Build from Source (more advanced)
+### Embed into a larger bundle
+
+You have the option to embed the library as is into a larger bundle by either:
+- Concatenate the minified Javascript with some other javascript code into a larger file
+- Import the ES6 module and use it directly in your code
+
+If you choose to import the ES6 module you most probably need to
+transpile the javascript depending on which browsers you want to support.
+
+Additionally please note that the ID5 object doesn't get published
+automatically to the `window` object when you import the ES6 module in your code.
+You can just add `window.ID5 = ID5;` in the example below if you need so.
+
+Here is an example of how integrating the ES6 module might look like:
+#### index.js
+```javascript
+import ID5 from '@id5io/id5-api.js'
+
+const status = ID5.init({ partner: 173 });
+status.onAvailable((id5Status) => {
+    console.log(id5Status.getUserId());
+});
+```
+#### package.json
+```json
+{
+  "name": "id5-api-dummy",
+  "version": "0.0.1",
+  "description": "Dummy project for showing how to use the id5-api.js module",
+  "main": "index.js",
+  "scripts": {
+    "rollup": "rollup --config rollup.config.js"
+  },
+  "author": "",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "@id5io/id5-api.js": "^1.0.3"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.14.3",
+    "@id5io/id5-api.js": "^1.0.3",
+    "@rollup/plugin-babel": "^5.3.0",
+    "@rollup/plugin-json": "^4.1.0",
+    "@rollup/plugin-node-resolve": "^13.0.0",
+    "rollup": "^2.50.5"
+  }
+}
+```
+
+#### rollup.config.js
+```javascript
+import resolve from '@rollup/plugin-node-resolve';
+import json from '@rollup/plugin-json';
+import babel from '@rollup/plugin-babel';
+
+export default {
+  input: 'index.js',
+  output: {
+    file: 'bundle.js',
+    format: 'iife',
+  },
+  plugins: [ resolve(), json(), babel({ babelHelpers: 'bundled' }) ]
+};
+```
+
+#### steps to create your own bundle
+```bash
+$ npm install
+```
+```bash
+$ npm run rollup
+```
+then the bundle is created into `bundle.js`.
+
+Please note that this is a very minimal example. You may want,
+for example, to use a different bundler like
+[Webpack](https://webpack.js.org/) or [Browserify](https://browserify.org/).
+
+## Building from Source
 
 To build a production-ready version of the API from source yourself, follow these steps:
 
@@ -98,17 +186,19 @@ $ cd id5-api
 $ npm install
 ```
 
-*Note*: You need to have `NodeJS 8.9.x` or greater and `Gulp 4.0` or greater installed.
+*Note*: You need to have the following software installed
+- `NodeJS 14.17.x` or greater
+- `gulp-cli 2.3.x` or greater; install using `npm install --global gulp-cli`
+- `Google chrome 90` or greater
 
-Build for production with gulp
+Build for production and/or development with gulp
 
 ```bash
 $ gulp build
 ```
 
-The resulting minified javascript file will be available in `./build/dist/id5-api.js`.
-
-*Note*: If you build from source, you must use our `gulp build` process as it appends required variables to the end of the built file. If `ID5.version` is missing, the API will fail to load.
+The resulting minified javascript file will be available in `build/dist/id5-api.js`
+while the non minified version can be found in `build/dev/id5-api.js`
 
 ## Usage
 

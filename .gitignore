@@ -3,8 +3,9 @@ node_modules/
 
 *.iml
 .idea/
+.vscode/
 /out/
 .idea_modules/
 
 .DS_Store
-/package-lock.json
+

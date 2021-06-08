@@ -1,6 +1,6 @@
 import sinon from 'sinon';
-import ConsentManagement from 'src/consentManagement';
-import * as utils from 'src/utils';
+import ConsentManagement from '../../lib/consentManagement';
+import * as utils from '../../lib/utils';
 
 let expect = require('chai').expect;
 

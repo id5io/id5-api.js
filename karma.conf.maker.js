@@ -2,10 +2,11 @@
 //
 // For more information, see http://karma-runner.github.io/1.0/config/configuration-file.html
 
-var _ = require('lodash');
-var webpackConf = require('./webpack.conf');
-var path = require('path');
-var karmaConstants = require('karma').constants;
+import _ from 'lodash';
+import webpackConf from './webpack.conf.js';
+import path from 'path';
+import { constants as karmaConstants } from 'karma';
+import isDocker from 'is-docker';
 
 function newWebpackConfig(codeCoverage) {
   // Make a clone here because we plan on mutating this object, and don't want parallel tasks to trample each other.
@@ -27,27 +28,6 @@ function newWebpackConfig(codeCoverage) {
   return webpackConfig;
 }
 
-function newPluginsArray(browserstack) {
-  var plugins = [
-    'karma-chrome-launcher',
-    'karma-coverage-istanbul-reporter',
-    'karma-es5-shim',
-    'karma-mocha',
-    'karma-chai',
-    'karma-sinon',
-    'karma-sourcemap-loader',
-    'karma-spec-reporter',
-    'karma-webpack',
-    'karma-mocha-reporter'
-  ];
-  plugins.push('karma-firefox-launcher');
-  plugins.push('karma-opera-launcher');
-  plugins.push('karma-safari-launcher');
-  plugins.push('karma-script-launcher');
-  plugins.push('karma-ie-launcher');
-  return plugins;
-}
-
 function setReporters(karmaConf, codeCoverage) {
   // In browserstack, the default 'progress' reporter floods the logs.
   // The karma-spec-reporter reports failures more concisely
@@ -55,7 +35,7 @@ function setReporters(karmaConf, codeCoverage) {
     karmaConf.reporters.push('coverage-istanbul');
     karmaConf.coverageIstanbulReporter = {
       reports: ['html', 'lcovonly', 'text-summary'],
-      dir: path.join(__dirname, 'build', 'coverage'),
+      dir: path.join('build', 'coverage'),
       'report-config': {
         html: {
           subdir: 'karma_html',
@@ -67,8 +47,7 @@ function setReporters(karmaConf, codeCoverage) {
 }
 
 function setBrowsers(karmaConf) {
-  var isDocker = require('is-docker')();
-  if (isDocker) {
+  if (isDocker()) {
     karmaConf.customLaunchers = karmaConf.customLaunchers || {};
     karmaConf.customLaunchers.ChromeCustom = {
       base: 'ChromeHeadless',
@@ -82,7 +61,7 @@ function setBrowsers(karmaConf) {
   }
 }
 
-module.exports = function(codeCoverage, watchMode, file) {
+export default function(codeCoverage, watchMode, file) {
   var webpackConfig = newWebpackConfig(codeCoverage);
 
   var files = file ? ['test/helpers/id5-apiGlobal.js', file] : ['test/test_index.js'];

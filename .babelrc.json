@@ -1,18 +1,7 @@
-
-let path = require('path');
-
-function useLocal(module) {
-  return require.resolve(module, {
-    paths: [
-      __dirname
-    ]
-  })
-}
-
-module.exports = {
+{
   "presets": [
     [
-      useLocal('@babel/preset-env'),
+      "@babel/preset-env",
       {
         "targets": {
           "browsers": [
@@ -28,6 +17,6 @@ module.exports = {
     ]
   ],
   "plugins": [
-    useLocal('babel-plugin-transform-object-assign')
+    "@babel/plugin-transform-object-assign"
   ]
-};
+}

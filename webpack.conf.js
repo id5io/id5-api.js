@@ -1,7 +1,6 @@
-let path = require('path');
-let webpack = require('webpack');
+import path from 'path';
 
-module.exports = {
+export default {
   devtool: 'source-map',
   resolve: {
     modules: [

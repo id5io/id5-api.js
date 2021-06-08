@@ -1,16 +1,23 @@
 {
-  "name": "id5-api.js",
+  "name": "@id5io/id5-api.js",
   "version": "1.0.4-pre",
   "description": "The ID5 API is designed to make accessing the ID5 Universal ID simple for publishers, advertisers, and their ad tech vendors. The ID5 Universal ID is a shared, neutral identifier that publishers, advertisers, and ad tech platforms can use to recognise users even in environments where 3rd party cookies are not available. For more information, visit https://id5.io/universal-id.",
   "homepage": "https://id5.io/",
-  "main": "src/id5-api.js",
+  "exports": "./lib/id5-api.js",
+  "browser": "build/dist/id5-api.js",
+  "type": "module",
+  "files": [
+    "generated",
+    "lib",
+    "universal-id-flow.png"
+  ],
   "scripts": {
     "test": "gulp test",
     "lint": "gulp lint"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/id5io/id5-api.js.git"
+    "url": "git+https://github.com/id5io/id5-api.js.git"
   },
   "keywords": [
     "advertising",
@@ -19,41 +26,42 @@
   "author": "Pierre-Antoine Durgeat",
   "license": "Apache-2.0",
   "engines": {
-    "node": ">=8.0"
+    "node": ">13.2"
   },
   "devDependencies": {
-    "@babel/core": "^7.12.10",
-    "@babel/plugin-proposal-class-properties": "^7.12.1",
-    "@babel/preset-env": "^7.12.10",
-    "ajv": "5.5.2",
-    "babel-eslint": "^10.1.0",
+    "@babel/core": "^7.14.3",
+    "@babel/eslint-parser": "^7.14.4",
+    "@babel/plugin-transform-object-assign": "^7.12.13",
+    "@babel/preset-env": "^7.14.4",
     "babel-loader": "^8.2.2",
-    "chai": "^4.2.0",
+    "chai": "^4.3.4",
+    "chai-datetime": "^1.8.0",
+    "chrome-paths": "^1.0.1",
     "coveralls": "^3.0.2",
-    "documentation": "^5.2.2",
+    "del": "^6.0.0",
+    "documentation": "^13.2.5",
     "es5-shim": "^4.5.2",
+    "eslint": "^7.27.0",
     "eslint-config-standard": "^10.2.1",
-    "eslint-plugin-import": "^2.22.1",
+    "eslint-plugin-import": "^2.23.4",
     "eslint-plugin-node": "^5.1.0",
     "eslint-plugin-promise": "^3.5.0",
     "eslint-plugin-standard": "^3.0.1",
     "execa": "^1.0.0",
     "faker": "^3.1.0",
     "fs.extra": "^1.3.2",
+    "genversion": "^3.0.0",
     "gulp": "^4.0.2",
-    "gulp-clean": "^0.4.0",
     "gulp-concat": "^2.6.1",
     "gulp-connect": "^5.7.0",
     "gulp-eslint": "^6.0.0",
-    "gulp-footer": "^2.0.2",
     "gulp-header": "^2.0.9",
     "gulp-if": "^3.0.0",
     "gulp-js-escape": "^1.0.1",
+    "gulp-mocha": "^8.0.0",
     "gulp-replace": "^1.0.0",
     "gulp-shell": "^0.7.1",
-    "gulp-sourcemaps": "^2.6.5",
     "gulp-uglify": "^3.0.2",
-    "gulp-util": "^3.0.0",
     "is-docker": "^1.1.0",
     "istanbul": "^0.4.5",
     "istanbul-instrumenter-loader": "^3.0.0",
@@ -65,7 +73,7 @@
     "karma-es5-shim": "^0.0.4",
     "karma-firefox-launcher": "^1.0.1",
     "karma-ie-launcher": "^1.0.0",
-    "karma-mocha": "^1.3.0",
+    "karma-mocha": "^2.0.1",
     "karma-mocha-reporter": "^2.2.5",
     "karma-opera-launcher": "^1.0.0",
     "karma-safari-launcher": "^1.0.0",
@@ -75,12 +83,14 @@
     "karma-spec-reporter": "^0.0.31",
     "karma-webpack": "^3.0.5",
     "lodash": "^4.17.4",
-    "mocha": "^5.0.0",
+    "mocha": "^8.4.0",
+    "mockttp": "^1.2.2",
     "opn": "^5.4.0",
-    "querystringify": "^2.2.0",
+    "puppeteer-core": "^10.0.0",
     "resolve-from": "^5.0.0",
     "sinon": "^4.1.3",
     "through2": "^2.0.3",
+    "tmp-promise": "^3.0.2",
     "url-parse": "^1.0.5",
     "webpack": "^3.0.0",
     "webpack-bundle-analyzer": "^3.9.0",
@@ -88,11 +98,12 @@
     "yargs": "^1.3.1"
   },
   "dependencies": {
-    "babel-plugin-transform-object-assign": "^6.22.0",
-    "core-js": ">=3.8",
-    "dlv": "1.1.3",
-    "dset": "2.0.1",
-    "fun-hooks": "^0.9.5",
-    "just-clone": "^1.0.2"
+    "core-js": ">=3.8"
+  },
+  "bugs": {
+    "url": "https://github.com/id5io/id5-api.js/issues"
+  },
+  "directories": {
+    "test": "test"
   }
 }
