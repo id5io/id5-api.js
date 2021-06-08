@@ -88,7 +88,7 @@ describe('The ID5 API', function() {
         'id5_consent': true
       }
     };
-    const mockId5 = await server.post('https://id5-sync.com/g/v2/415.json')
+    const mockId5 = await server.post('https://id5-sync.com/g/v2/99.json')
       .thenJson(200, mockFetchReponse, MOCK_CORS_HEADERS);
     const mockDummyImage = await server.get('https://dummyimage.com/600x200')
       .thenReply(200, '');
