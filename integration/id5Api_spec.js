@@ -100,7 +100,7 @@ describe('The ID5 API', function() {
     expect(id5SyncRequests).to.have.lengthOf(1);
 
     const response = id5SyncRequests[0].body.json;
-    expect(response.partner).to.equal(415); // from integration.html
+    expect(response.partner).to.equal(99); // from integration.html
     expect(response.v).to.equal(version);
     expect(response.id5cdn).to.equal(true);
     expect(response.top).to.equal(1);
