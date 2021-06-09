@@ -5,8 +5,7 @@ import ClientStore from '../../lib/clientStore';
 import * as abTesting from '../../lib/abTesting';
 import { version } from '../../generated/version.js';
 import LocalStorage from '../../lib/localStorage.js';
-
-require('../../src/index.js');
+import ID5 from '../../lib/id5-api';
 
 let expect = require('chai').expect;
 const localStorage = new LocalStorage(window);
