@@ -182,6 +182,7 @@ describe('The ID5 API', function() {
       const requestBody = id5SyncRequests[0].body.json;
       expect(requestBody.top).to.equal(1);
       expect(requestBody.localStorage).to.equal(0);
+      expect(requestBody.rf).to.equal('https://my-iframe-website.net/');
 
       // Check there is no id5 stuff in the iframe local storage
       const id5idRaw = await frame.evaluate(() => localStorage.getItem('id5id'));
