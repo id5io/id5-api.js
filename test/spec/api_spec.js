@@ -4,10 +4,12 @@ import * as utils from '../../lib/utils';
 import ClientStore from '../../lib/clientStore';
 import * as abTesting from '../../lib/abTesting';
 import { version } from '../../generated/version.js';
+import LocalStorage from '../../lib/localStorage.js';
 
 require('../../src/index.js');
 
 let expect = require('chai').expect;
+const localStorage = new LocalStorage(window);
 
 describe('ID5 JS API', function () {
   const TEST_ID5_PARTNER_ID = 99;
@@ -114,7 +116,7 @@ describe('ID5 JS API', function () {
     'privacy': JSON.parse(TEST_PRIVACY_DISALLOWED)
   });
 
-  const testClientStore = new ClientStore(() => true);
+  const testClientStore = new ClientStore(() => true, localStorage);
 
   beforeEach(function () {
     ID5.debug = false;
@@ -124,12 +126,12 @@ describe('ID5 JS API', function () {
   });
 
   function resetAll() {
-    utils.removeFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG);
-    utils.removeFromLocalStorage(TEST_LAST_STORAGE_CONFIG);
-    utils.removeFromLocalStorage(TEST_PRIVACY_STORAGE_CONFIG);
-    utils.removeFromLocalStorage(TEST_PD_STORAGE_CONFIG);
-    utils.removeFromLocalStorage(TEST_CONSENT_DATA_STORAGE_CONFIG);
-    utils.removeFromLocalStorage(TEST_NB_STORAGE_CONFIG);
+    localStorage.removeItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG);
+    localStorage.removeItemWithExpiration(TEST_LAST_STORAGE_CONFIG);
+    localStorage.removeItemWithExpiration(TEST_PRIVACY_STORAGE_CONFIG);
+    localStorage.removeItemWithExpiration(TEST_PD_STORAGE_CONFIG);
+    localStorage.removeItemWithExpiration(TEST_CONSENT_DATA_STORAGE_CONFIG);
+    localStorage.removeItemWithExpiration(TEST_NB_STORAGE_CONFIG);
   }
 
   describe('Core API Availability', function () {
@@ -224,8 +226,8 @@ describe('ID5 JS API', function () {
         expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
         expect(id5Status.isFromCache()).to.be.false;
         expect(id5Status.getUserIdAsEid()).to.be.eql(TEST_RESPONSE_EID);
-        expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(encodeURIComponent(response));
-        expect(utils.getFromLocalStorage(TEST_PRIVACY_STORAGE_CONFIG)).to.be.null;
+        expect(localStorage.getItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(encodeURIComponent(response));
+        expect(localStorage.getItemWithExpiration(TEST_PRIVACY_STORAGE_CONFIG)).to.be.null;
       });
     });
 
@@ -267,9 +269,9 @@ describe('ID5 JS API', function () {
           expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
           expect(id5Status.isFromCache()).to.be.false;
           expect(id5Status.getUserIdAsEid()).to.be.eql(TEST_RESPONSE_EID);
-          expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(encodeURIComponent(JSON_RESPONSE_ID5_CONSENT));
-          expect(utils.getFromLocalStorage(TEST_PRIVACY_STORAGE_CONFIG)).to.be.eq(TEST_PRIVACY_ALLOWED);
-          expect(utils.getFromLocalStorage(TEST_PD_STORAGE_CONFIG)).to.be.equal(utils.cyrb53Hash(''));
+          expect(localStorage.getItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(encodeURIComponent(JSON_RESPONSE_ID5_CONSENT));
+          expect(localStorage.getItemWithExpiration(TEST_PRIVACY_STORAGE_CONFIG)).to.be.eq(TEST_PRIVACY_ALLOWED);
+          expect(localStorage.getItemWithExpiration(TEST_PD_STORAGE_CONFIG)).to.be.equal(utils.cyrb53Hash(''));
         });
 
         it('should request new value with pd and provider in request when pd and provider config is set with consent override', function () {
@@ -282,7 +284,7 @@ describe('ID5 JS API', function () {
           expect(requestData.pd).to.be.equal('pubdata');
           expect(requestData.provider).to.be.equal('test-provider');
           expect(requestData.puid).to.be.equal('abc');
-          expect(utils.getFromLocalStorage(TEST_PD_STORAGE_CONFIG)).to.be.equal(utils.cyrb53Hash('pubdata'));
+          expect(localStorage.getItemWithExpiration(TEST_PD_STORAGE_CONFIG)).to.be.equal(utils.cyrb53Hash('pubdata'));
         });
 
         it('should not set ab features flag when abTesting is disabled', function () {
@@ -297,8 +299,8 @@ describe('ID5 JS API', function () {
 
       describe('Legacy Stored Value with No Refresh Needed', function () {
         beforeEach(function () {
-          utils.setInLocalStorage(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON_LEGACY);
-          utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, new Date().toUTCString());
+          localStorage.setItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON_LEGACY);
+          localStorage.setItemWithExpiration(TEST_LAST_STORAGE_CONFIG, new Date().toUTCString());
         });
 
         it('should use stored value with consent override', function () {
@@ -308,14 +310,14 @@ describe('ID5 JS API', function () {
           expect(id5Status.getUserId()).to.be.equal(TEST_STORED_ID5ID);
           expect(id5Status.getLinkType()).to.be.equal(TEST_STORED_LINK_TYPE);
           expect(id5Status.isFromCache()).to.be.true;
-          expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(STORED_JSON_LEGACY); // without a refresh, the storage doesn't change
+          expect(localStorage.getItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(STORED_JSON_LEGACY); // without a refresh, the storage doesn't change
         });
       });
 
       describe('Stored Value with No Refresh Needed', function () {
         beforeEach(function () {
-          utils.setInLocalStorage(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON);
-          utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, new Date().toUTCString());
+          localStorage.setItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON);
+          localStorage.setItemWithExpiration(TEST_LAST_STORAGE_CONFIG, new Date().toUTCString());
         });
 
         it('should use stored value with consent override', function () {
@@ -328,7 +330,7 @@ describe('ID5 JS API', function () {
         });
 
         it('should use stored value with consent from privacy storage', function () {
-          utils.setInLocalStorage(TEST_PRIVACY_STORAGE_CONFIG, TEST_PRIVACY_ALLOWED);
+          localStorage.setItemWithExpiration(TEST_PRIVACY_STORAGE_CONFIG, TEST_PRIVACY_ALLOWED);
 
           const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID, refreshInSeconds: 1000 });
 
@@ -341,8 +343,8 @@ describe('ID5 JS API', function () {
 
       describe('Legacy Stored Value with Refresh Needed', function () {
         beforeEach(function () {
-          utils.setInLocalStorage(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON_LEGACY);
-          utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, new Date(Date.now() - (8000 * 1000)).toUTCString());
+          localStorage.setItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON_LEGACY);
+          localStorage.setItemWithExpiration(TEST_LAST_STORAGE_CONFIG, new Date(Date.now() - (8000 * 1000)).toUTCString());
         });
 
         it('should request new value with consent override', function () {
@@ -352,14 +354,14 @@ describe('ID5 JS API', function () {
           expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
           expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
           expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
-          expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(encodeURIComponent(JSON_RESPONSE_ID5_CONSENT));
+          expect(localStorage.getItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(encodeURIComponent(JSON_RESPONSE_ID5_CONSENT));
         });
       });
 
       describe('Stored Value with Refresh Needed', function () {
         beforeEach(function () {
-          utils.setInLocalStorage(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON);
-          utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, new Date(Date.now() - (8000 * 1000)).toUTCString());
+          localStorage.setItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON);
+          localStorage.setItemWithExpiration(TEST_LAST_STORAGE_CONFIG, new Date(Date.now() - (8000 * 1000)).toUTCString());
         });
 
         it('should request new value with consent override', function () {
@@ -372,7 +374,7 @@ describe('ID5 JS API', function () {
         });
 
         it('should request new value with consent from privacy storage', function () {
-          utils.setInLocalStorage(TEST_PRIVACY_STORAGE_CONFIG, TEST_PRIVACY_ALLOWED);
+          localStorage.setItemWithExpiration(TEST_PRIVACY_STORAGE_CONFIG, TEST_PRIVACY_ALLOWED);
 
           const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID, refreshInSeconds: 1000 });
 
@@ -385,7 +387,7 @@ describe('ID5 JS API', function () {
 
       describe('Stored Value with Missing Last Stored Value', function () {
         beforeEach(function () {
-          utils.setInLocalStorage(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON);
+          localStorage.setItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON);
         });
 
         it('should request new value with consent override', function () {
@@ -398,7 +400,7 @@ describe('ID5 JS API', function () {
         });
 
         it('should request new value with consent from privacy storage', function () {
-          utils.setInLocalStorage(TEST_PRIVACY_STORAGE_CONFIG, TEST_PRIVACY_ALLOWED);
+          localStorage.setItemWithExpiration(TEST_PRIVACY_STORAGE_CONFIG, TEST_PRIVACY_ALLOWED);
 
           const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID, refreshInSeconds: 1000 });
 
@@ -411,8 +413,8 @@ describe('ID5 JS API', function () {
 
       describe('Expired Stored Value with Refresh Not Needed', function () {
         beforeEach(function () {
-          utils.setInLocalStorage(TEST_ID5ID_STORAGE_CONFIG_EXPIRED, STORED_JSON);
-          utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, new Date().toUTCString());
+          localStorage.setItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG_EXPIRED, STORED_JSON);
+          localStorage.setItemWithExpiration(TEST_LAST_STORAGE_CONFIG, new Date().toUTCString());
         });
 
         it('should request new value with consent override', function () {
@@ -425,7 +427,7 @@ describe('ID5 JS API', function () {
         });
 
         it('should request new value and not use stored value with consent from privacy storage', function () {
-          utils.setInLocalStorage(TEST_PRIVACY_STORAGE_CONFIG, TEST_PRIVACY_ALLOWED);
+          localStorage.setItemWithExpiration(TEST_PRIVACY_STORAGE_CONFIG, TEST_PRIVACY_ALLOWED);
 
           const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID, refreshInSeconds: 1000 });
 
@@ -438,17 +440,17 @@ describe('ID5 JS API', function () {
 
       describe('Stored Data Change Forces Refresh with Refresh Not Needed', function () {
         beforeEach(function () {
-          utils.setInLocalStorage(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON);
-          utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, new Date().toUTCString());
-          utils.setInLocalStorage(TEST_PRIVACY_STORAGE_CONFIG, TEST_PRIVACY_ALLOWED);
+          localStorage.setItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON);
+          localStorage.setItemWithExpiration(TEST_LAST_STORAGE_CONFIG, new Date().toUTCString());
+          localStorage.setItemWithExpiration(TEST_PRIVACY_STORAGE_CONFIG, TEST_PRIVACY_ALLOWED);
         });
 
         describe('Stored Consent Changes', function () {
           before(function () {
-            utils.removeFromLocalStorage(TEST_CONSENT_DATA_STORAGE_CONFIG);
+            localStorage.removeItemWithExpiration(TEST_CONSENT_DATA_STORAGE_CONFIG);
           });
           afterEach(function () {
-            utils.removeFromLocalStorage(TEST_CONSENT_DATA_STORAGE_CONFIG);
+            localStorage.removeItemWithExpiration(TEST_CONSENT_DATA_STORAGE_CONFIG);
           });
 
           describe('TCF v1', function () {
@@ -646,7 +648,7 @@ describe('ID5 JS API', function () {
 
           expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
           expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
-          expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(encodeURIComponent(JSON_RESPONSE_ID5_CONSENT));
+          expect(localStorage.getItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(encodeURIComponent(JSON_RESPONSE_ID5_CONSENT));
 
           utils.setCookie('id5id.1st', '', expStrExpired);
         });
@@ -766,9 +768,9 @@ describe('ID5 JS API', function () {
           expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
           expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
           expect(id5Status.isFromCache()).to.be.false;
-          expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(encodeURIComponent(JSON_RESPONSE_ID5_CONSENT));
-          expect(utils.getFromLocalStorage(TEST_PRIVACY_STORAGE_CONFIG)).to.be.eq(TEST_PRIVACY_ALLOWED);
-          expect(utils.getFromLocalStorage(TEST_PD_STORAGE_CONFIG)).to.be.null;
+          expect(localStorage.getItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(encodeURIComponent(JSON_RESPONSE_ID5_CONSENT));
+          expect(localStorage.getItemWithExpiration(TEST_PRIVACY_STORAGE_CONFIG)).to.be.eq(TEST_PRIVACY_ALLOWED);
+          expect(localStorage.getItemWithExpiration(TEST_PD_STORAGE_CONFIG)).to.be.null;
         });
 
         it('should not store consent data nor pd on first request, but should after refresh', function () {
@@ -776,24 +778,24 @@ describe('ID5 JS API', function () {
 
           sinon.assert.calledOnce(ajaxStub);
           expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
-          expect(utils.getFromLocalStorage(TEST_PD_STORAGE_CONFIG)).to.be.null;
-          expect(utils.getFromLocalStorage(TEST_CONSENT_DATA_STORAGE_CONFIG)).to.be.null;
+          expect(localStorage.getItemWithExpiration(TEST_PD_STORAGE_CONFIG)).to.be.null;
+          expect(localStorage.getItemWithExpiration(TEST_CONSENT_DATA_STORAGE_CONFIG)).to.be.null;
 
           ID5.refreshId(id5Status);
 
           sinon.assert.calledOnce(ajaxStub);
-          expect(utils.getFromLocalStorage(TEST_PD_STORAGE_CONFIG)).to.be.equal(utils.cyrb53Hash('pubdata'));
-          expect(utils.getFromLocalStorage(TEST_CONSENT_DATA_STORAGE_CONFIG)).to.not.be.null;
+          expect(localStorage.getItemWithExpiration(TEST_PD_STORAGE_CONFIG)).to.be.equal(utils.cyrb53Hash('pubdata'));
+          expect(localStorage.getItemWithExpiration(TEST_CONSENT_DATA_STORAGE_CONFIG)).to.not.be.null;
         });
       });
 
       describe('Stored Value', function () {
         beforeEach(function () {
-          utils.setInLocalStorage(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON);
+          localStorage.setItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON);
         });
 
         it('should request new value with no refresh needed', function () {
-          utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, new Date().toUTCString());
+          localStorage.setItemWithExpiration(TEST_LAST_STORAGE_CONFIG, new Date().toUTCString());
 
           const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID, refreshInSeconds: 1000 });
 
@@ -805,7 +807,7 @@ describe('ID5 JS API', function () {
         });
 
         it('should request new value with refresh needed', function () {
-          utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, new Date(Date.now() - (8000 * 1000)).toUTCString());
+          localStorage.setItemWithExpiration(TEST_LAST_STORAGE_CONFIG, new Date(Date.now() - (8000 * 1000)).toUTCString());
 
           const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID, refreshInSeconds: 10 });
 
@@ -825,8 +827,8 @@ describe('ID5 JS API', function () {
         });
 
         it('should request new value with expired stored value with no refresh needed', function () {
-          utils.setInLocalStorage(TEST_ID5ID_STORAGE_CONFIG_EXPIRED, STORED_JSON);
-          utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, new Date().toUTCString());
+          localStorage.setItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG_EXPIRED, STORED_JSON);
+          localStorage.setItemWithExpiration(TEST_LAST_STORAGE_CONFIG, new Date().toUTCString());
 
           const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID, refreshInSeconds: 1000 });
 
@@ -839,16 +841,16 @@ describe('ID5 JS API', function () {
 
       describe('Stored Data Change Forces Refresh with Refresh Not Needed', function () {
         beforeEach(function () {
-          utils.setInLocalStorage(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON);
-          utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, new Date().toUTCString());
+          localStorage.setItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON);
+          localStorage.setItemWithExpiration(TEST_LAST_STORAGE_CONFIG, new Date().toUTCString());
         });
 
         describe('Stored Consent Changes', function () {
           before(function () {
-            utils.removeFromLocalStorage(TEST_CONSENT_DATA_STORAGE_CONFIG);
+            localStorage.removeItemWithExpiration(TEST_CONSENT_DATA_STORAGE_CONFIG);
           });
           afterEach(function () {
-            utils.removeFromLocalStorage(TEST_CONSENT_DATA_STORAGE_CONFIG);
+            localStorage.removeItemWithExpiration(TEST_CONSENT_DATA_STORAGE_CONFIG);
           });
 
           describe('TCF v1', function () {
@@ -963,10 +965,10 @@ describe('ID5 JS API', function () {
 
         describe('Stored PD Changes', function () {
           before(function () {
-            utils.removeFromLocalStorage(TEST_PD_STORAGE_CONFIG);
+            localStorage.removeItemWithExpiration(TEST_PD_STORAGE_CONFIG);
           });
           afterEach(function () {
-            utils.removeFromLocalStorage(TEST_PD_STORAGE_CONFIG);
+            localStorage.removeItemWithExpiration(TEST_PD_STORAGE_CONFIG);
           });
 
           it('should call id5 servers if empty stored pd data', function () {
@@ -1000,7 +1002,7 @@ describe('ID5 JS API', function () {
       let ajaxStub;
 
       beforeEach(function () {
-        utils.setInLocalStorage(TEST_PRIVACY_STORAGE_CONFIG, TEST_PRIVACY_ALLOWED);
+        localStorage.setItemWithExpiration(TEST_PRIVACY_STORAGE_CONFIG, TEST_PRIVACY_ALLOWED);
 
         ajaxStub = sinon.stub(utils, 'ajax').callsFake(function(url, callbacks, data, options) {
           callbacks.success(JSON_RESPONSE_NO_ID5_CONSENT);
@@ -1019,8 +1021,8 @@ describe('ID5 JS API', function () {
         expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID_NO_CONSENT);
         expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE_NO_CONSENT);
         expect(id5Status.isFromCache()).to.be.false;
-        expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.null;
-        expect(utils.getFromLocalStorage(TEST_PRIVACY_STORAGE_CONFIG)).to.be.eq(TEST_PRIVACY_DISALLOWED);
+        expect(localStorage.getItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG)).to.be.null;
+        expect(localStorage.getItemWithExpiration(TEST_PRIVACY_STORAGE_CONFIG)).to.be.eq(TEST_PRIVACY_DISALLOWED);
       });
 
       it('should not store consent data nor pd on first request, nor after refresh', function () {
@@ -1028,34 +1030,34 @@ describe('ID5 JS API', function () {
 
         sinon.assert.calledOnce(ajaxStub);
         expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
-        expect(utils.getFromLocalStorage(TEST_PD_STORAGE_CONFIG)).to.be.null;
-        expect(utils.getFromLocalStorage(TEST_CONSENT_DATA_STORAGE_CONFIG)).to.be.null;
+        expect(localStorage.getItemWithExpiration(TEST_PD_STORAGE_CONFIG)).to.be.null;
+        expect(localStorage.getItemWithExpiration(TEST_CONSENT_DATA_STORAGE_CONFIG)).to.be.null;
 
         ID5.refreshId(id5Status);
 
         sinon.assert.calledOnce(ajaxStub);
-        expect(utils.getFromLocalStorage(TEST_PD_STORAGE_CONFIG)).to.be.null;
-        expect(utils.getFromLocalStorage(TEST_CONSENT_DATA_STORAGE_CONFIG)).to.be.null;
+        expect(localStorage.getItemWithExpiration(TEST_PD_STORAGE_CONFIG)).to.be.null;
+        expect(localStorage.getItemWithExpiration(TEST_CONSENT_DATA_STORAGE_CONFIG)).to.be.null;
       });
 
       it('should clear previous stored data after no-consent response', function() {
-        utils.setInLocalStorage(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON);
-        utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, 'last');
-        utils.setInLocalStorage(TEST_NB_STORAGE_CONFIG, 'nb');
-        utils.setInLocalStorage(TEST_PD_STORAGE_CONFIG, 'pd');
-        utils.setInLocalStorage(TEST_CONSENT_DATA_STORAGE_CONFIG, 'consent_data');
+        localStorage.setItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON);
+        localStorage.setItemWithExpiration(TEST_LAST_STORAGE_CONFIG, 'last');
+        localStorage.setItemWithExpiration(TEST_NB_STORAGE_CONFIG, 'nb');
+        localStorage.setItemWithExpiration(TEST_PD_STORAGE_CONFIG, 'pd');
+        localStorage.setItemWithExpiration(TEST_CONSENT_DATA_STORAGE_CONFIG, 'consent_data');
 
         const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID });
 
         sinon.assert.calledOnce(ajaxStub);
         expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID_NO_CONSENT);
         expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE_NO_CONSENT);
-        expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.null;
-        expect(utils.getFromLocalStorage(TEST_LAST_STORAGE_CONFIG)).to.be.null;
-        expect(utils.getFromLocalStorage(TEST_NB_STORAGE_CONFIG)).to.be.null;
-        expect(utils.getFromLocalStorage(TEST_PD_STORAGE_CONFIG)).to.be.null;
-        expect(utils.getFromLocalStorage(TEST_CONSENT_DATA_STORAGE_CONFIG)).to.be.null;
-        expect(utils.getFromLocalStorage(TEST_PRIVACY_STORAGE_CONFIG)).to.be.eq(TEST_PRIVACY_DISALLOWED);
+        expect(localStorage.getItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG)).to.be.null;
+        expect(localStorage.getItemWithExpiration(TEST_LAST_STORAGE_CONFIG)).to.be.null;
+        expect(localStorage.getItemWithExpiration(TEST_NB_STORAGE_CONFIG)).to.be.null;
+        expect(localStorage.getItemWithExpiration(TEST_PD_STORAGE_CONFIG)).to.be.null;
+        expect(localStorage.getItemWithExpiration(TEST_CONSENT_DATA_STORAGE_CONFIG)).to.be.null;
+        expect(localStorage.getItemWithExpiration(TEST_PRIVACY_STORAGE_CONFIG)).to.be.eq(TEST_PRIVACY_DISALLOWED);
       });
     });
 
@@ -1063,7 +1065,7 @@ describe('ID5 JS API', function () {
       let ajaxStub;
 
       beforeEach(function () {
-        utils.setInLocalStorage(TEST_PRIVACY_STORAGE_CONFIG, TEST_PRIVACY_DISALLOWED);
+        localStorage.setItemWithExpiration(TEST_PRIVACY_STORAGE_CONFIG, TEST_PRIVACY_DISALLOWED);
 
         ajaxStub = sinon.stub(utils, 'ajax').callsFake(function(url, callbacks, data, options) {
           callbacks.success(JSON_RESPONSE_NO_ID5_CONSENT);
@@ -1079,12 +1081,12 @@ describe('ID5 JS API', function () {
         sinon.assert.notCalled(ajaxStub);
         expect(id5Status.getUserId()).to.be.undefined;
         expect(id5Status.getLinkType()).to.be.undefined;
-        expect(utils.getFromLocalStorage(TEST_PD_STORAGE_CONFIG)).to.be.null;
-        expect(utils.getFromLocalStorage(TEST_CONSENT_DATA_STORAGE_CONFIG)).to.be.null;
+        expect(localStorage.getItemWithExpiration(TEST_PD_STORAGE_CONFIG)).to.be.null;
+        expect(localStorage.getItemWithExpiration(TEST_CONSENT_DATA_STORAGE_CONFIG)).to.be.null;
       });
 
       it('should not use stored response for ID with previous no-consent privacy data', function() {
-        utils.setInLocalStorage(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON);
+        localStorage.setItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON);
 
         const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID });
 
@@ -1108,10 +1110,10 @@ describe('ID5 JS API', function () {
     });
 
     before(function () {
-      utils.removeFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG);
-      utils.removeFromLocalStorage(TEST_LAST_STORAGE_CONFIG);
-      utils.removeFromLocalStorage(TEST_CONSENT_DATA_STORAGE_CONFIG);
-      utils.removeFromLocalStorage(TEST_PD_STORAGE_CONFIG);
+      localStorage.removeItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG);
+      localStorage.removeItemWithExpiration(TEST_LAST_STORAGE_CONFIG);
+      localStorage.removeItemWithExpiration(TEST_CONSENT_DATA_STORAGE_CONFIG);
+      localStorage.removeItemWithExpiration(TEST_PD_STORAGE_CONFIG);
     });
     beforeEach(function () {
       ajaxStub = sinon.stub(utils, 'ajax').callsFake(function(url, callbacks, data, options) {
@@ -1120,10 +1122,10 @@ describe('ID5 JS API', function () {
     });
     afterEach(function () {
       ajaxStub.restore();
-      utils.removeFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG);
-      utils.removeFromLocalStorage(TEST_LAST_STORAGE_CONFIG);
-      utils.removeFromLocalStorage(TEST_CONSENT_DATA_STORAGE_CONFIG);
-      utils.removeFromLocalStorage(TEST_PD_STORAGE_CONFIG);
+      localStorage.removeItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG);
+      localStorage.removeItemWithExpiration(TEST_LAST_STORAGE_CONFIG);
+      localStorage.removeItemWithExpiration(TEST_CONSENT_DATA_STORAGE_CONFIG);
+      localStorage.removeItemWithExpiration(TEST_PD_STORAGE_CONFIG);
     });
 
     describe('No Force Fetch', function () {
@@ -1151,7 +1153,7 @@ describe('ID5 JS API', function () {
 
         expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
         expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
-        expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(encodeURIComponent(JSON_RESPONSE_ID5_CONSENT));
+        expect(localStorage.getItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(encodeURIComponent(JSON_RESPONSE_ID5_CONSENT));
       });
 
       it('should not call ID5 with config changes that do not require a refresh', function () {
@@ -1169,7 +1171,7 @@ describe('ID5 JS API', function () {
 
         expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
         expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
-        expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(encodeURIComponent(JSON_RESPONSE_ID5_CONSENT));
+        expect(localStorage.getItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(encodeURIComponent(JSON_RESPONSE_ID5_CONSENT));
       });
 
       it('should call ID5 with config changes that require a refresh', function () {
@@ -1190,7 +1192,7 @@ describe('ID5 JS API', function () {
 
         expect(id5Status.getUserId()).to.be.equal(TEST_REFRESH_RESPONSE_ID5ID);
         expect(id5Status.getLinkType()).to.be.equal(TEST_REFRESH_RESPONSE_LINK_TYPE);
-        expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(encodeURIComponent(REFRESH_JSON_RESPONSE));
+        expect(localStorage.getItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(encodeURIComponent(REFRESH_JSON_RESPONSE));
       });
 
       describe('Consent Checks TCF v2', function () {
@@ -1205,7 +1207,7 @@ describe('ID5 JS API', function () {
         let cmpStub;
 
         before(function () {
-          utils.removeFromLocalStorage(TEST_CONSENT_DATA_STORAGE_CONFIG);
+          localStorage.removeItemWithExpiration(TEST_CONSENT_DATA_STORAGE_CONFIG);
         });
         beforeEach(function () {
           window.__tcfapi = function () {};
@@ -1216,7 +1218,7 @@ describe('ID5 JS API', function () {
         afterEach(function () {
           cmpStub.restore();
           delete window.__tcfapi;
-          utils.removeFromLocalStorage(TEST_CONSENT_DATA_STORAGE_CONFIG);
+          localStorage.removeItemWithExpiration(TEST_CONSENT_DATA_STORAGE_CONFIG);
         });
 
         it('should not call ID5 with no consent changes', function () {
@@ -1234,7 +1236,7 @@ describe('ID5 JS API', function () {
 
           expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
           expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
-          expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(encodeURIComponent(JSON_RESPONSE_ID5_CONSENT));
+          expect(localStorage.getItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(encodeURIComponent(JSON_RESPONSE_ID5_CONSENT));
         });
 
         it('should call ID5 when consent changes after init', function () {
@@ -1264,7 +1266,7 @@ describe('ID5 JS API', function () {
 
           expect(id5Status.getUserId()).to.be.equal(TEST_REFRESH_RESPONSE_ID5ID);
           expect(id5Status.getLinkType()).to.be.equal(TEST_REFRESH_RESPONSE_LINK_TYPE);
-          expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(encodeURIComponent(REFRESH_JSON_RESPONSE));
+          expect(localStorage.getItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(encodeURIComponent(REFRESH_JSON_RESPONSE));
         });
       });
     });
@@ -1294,7 +1296,7 @@ describe('ID5 JS API', function () {
 
         expect(id5Status.getUserId()).to.be.equal(TEST_REFRESH_RESPONSE_ID5ID);
         expect(id5Status.getLinkType()).to.be.equal(TEST_REFRESH_RESPONSE_LINK_TYPE);
-        expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(encodeURIComponent(REFRESH_JSON_RESPONSE));
+        expect(localStorage.getItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(encodeURIComponent(REFRESH_JSON_RESPONSE));
       });
     });
   });
@@ -1428,7 +1430,7 @@ describe('ID5 JS API', function () {
 
         describe('No Consent in Stored Privacy', function () {
           beforeEach(function() {
-            utils.setInLocalStorage(TEST_PRIVACY_STORAGE_CONFIG, TEST_PRIVACY_DISALLOWED);
+            localStorage.setItemWithExpiration(TEST_PRIVACY_STORAGE_CONFIG, TEST_PRIVACY_DISALLOWED);
           });
 
           it('should call onAvailable at time-out, but not onUpdate', function (done) {
@@ -1485,9 +1487,9 @@ describe('ID5 JS API', function () {
 
       describe('Stored Value, No Consent Override, Consent in Stored Privacy', function () {
         beforeEach(function () {
-          utils.setInLocalStorage(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON);
-          utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, new Date().toUTCString());
-          utils.setInLocalStorage(TEST_PRIVACY_STORAGE_CONFIG, TEST_PRIVACY_ALLOWED);
+          localStorage.setItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON);
+          localStorage.setItemWithExpiration(TEST_LAST_STORAGE_CONFIG, new Date().toUTCString());
+          localStorage.setItemWithExpiration(TEST_PRIVACY_STORAGE_CONFIG, TEST_PRIVACY_ALLOWED);
         });
 
         it('should call onAvailable immediately even with time-out', function (done) {
@@ -1523,8 +1525,8 @@ describe('ID5 JS API', function () {
 
       describe('Stored Value, No Refresh, With Override', function () {
         beforeEach(function () {
-          utils.setInLocalStorage(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON);
-          utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, new Date().toUTCString());
+          localStorage.setItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON);
+          localStorage.setItemWithExpiration(TEST_LAST_STORAGE_CONFIG, new Date().toUTCString());
         });
 
         it('should call onAvailable and onUpdate immediately even with time-out set', function (done) {
@@ -1622,8 +1624,8 @@ describe('ID5 JS API', function () {
 
       describe('Stored Value, Refresh Needed, With Consent Override', function () {
         beforeEach(function () {
-          utils.setInLocalStorage(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON);
-          utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, new Date(Date.now() - (8000 * 1000)).toUTCString());
+          localStorage.setItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON);
+          localStorage.setItemWithExpiration(TEST_LAST_STORAGE_CONFIG, new Date(Date.now() - (8000 * 1000)).toUTCString());
         });
 
         it('should call onAvailable immediately and only once with time-out set', function (done) {
@@ -1682,8 +1684,8 @@ describe('ID5 JS API', function () {
 
       describe('Stored Value, No Refresh, With RefreshId', function () {
         beforeEach(function () {
-          utils.setInLocalStorage(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON);
-          utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, new Date().toUTCString());
+          localStorage.setItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON);
+          localStorage.setItemWithExpiration(TEST_LAST_STORAGE_CONFIG, new Date().toUTCString());
         });
 
         describe('No Fetch Required on Refresh', function () {
@@ -1997,7 +1999,7 @@ describe('ID5 JS API', function () {
         })
 
         it('should never set userId with no stored value, no consent override, no-consent in privacy data', function (done) {
-          utils.setInLocalStorage(TEST_PRIVACY_STORAGE_CONFIG, TEST_PRIVACY_DISALLOWED);
+          localStorage.setItemWithExpiration(TEST_PRIVACY_STORAGE_CONFIG, TEST_PRIVACY_DISALLOWED);
 
           const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID });
 
@@ -2013,9 +2015,9 @@ describe('ID5 JS API', function () {
         });
 
         it('should set userId immediately and not change, with stored value, no refresh, no consent override, consent in privacy data', function (done) {
-          utils.setInLocalStorage(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON);
-          utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, new Date().toUTCString());
-          utils.setInLocalStorage(TEST_PRIVACY_STORAGE_CONFIG, TEST_PRIVACY_ALLOWED);
+          localStorage.setItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON);
+          localStorage.setItemWithExpiration(TEST_LAST_STORAGE_CONFIG, new Date().toUTCString());
+          localStorage.setItemWithExpiration(TEST_PRIVACY_STORAGE_CONFIG, TEST_PRIVACY_ALLOWED);
 
           const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID });
 
@@ -2031,8 +2033,8 @@ describe('ID5 JS API', function () {
         });
 
         it('should set userId immediately and not change, with stored value, no refresh, consent override', function (done) {
-          utils.setInLocalStorage(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON);
-          utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, new Date().toUTCString());
+          localStorage.setItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON);
+          localStorage.setItemWithExpiration(TEST_LAST_STORAGE_CONFIG, new Date().toUTCString());
 
           const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true });
 
@@ -2057,14 +2059,14 @@ describe('ID5 JS API', function () {
           setTimeout(() => {
             expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
             expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
-            expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(encodeURIComponent(JSON_RESPONSE_ID5_CONSENT));
-            expect(utils.getFromLocalStorage(TEST_PRIVACY_STORAGE_CONFIG)).to.be.eq(TEST_PRIVACY_ALLOWED);
+            expect(localStorage.getItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(encodeURIComponent(JSON_RESPONSE_ID5_CONSENT));
+            expect(localStorage.getItemWithExpiration(TEST_PRIVACY_STORAGE_CONFIG)).to.be.eq(TEST_PRIVACY_ALLOWED);
             done();
           }, LONG_TIMEOUT);
         });
 
         it('should set userId after the response with no stored value, consent in privacy data', function (done) {
-          utils.setInLocalStorage(TEST_PRIVACY_STORAGE_CONFIG, TEST_PRIVACY_ALLOWED);
+          localStorage.setItemWithExpiration(TEST_PRIVACY_STORAGE_CONFIG, TEST_PRIVACY_ALLOWED);
 
           const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID });
 
@@ -2075,15 +2077,15 @@ describe('ID5 JS API', function () {
           setTimeout(() => {
             expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
             expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
-            expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(encodeURIComponent(JSON_RESPONSE_ID5_CONSENT));
-            expect(utils.getFromLocalStorage(TEST_PRIVACY_STORAGE_CONFIG)).to.be.eq(TEST_PRIVACY_ALLOWED);
+            expect(localStorage.getItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(encodeURIComponent(JSON_RESPONSE_ID5_CONSENT));
+            expect(localStorage.getItemWithExpiration(TEST_PRIVACY_STORAGE_CONFIG)).to.be.eq(TEST_PRIVACY_ALLOWED);
             done();
           }, LONG_TIMEOUT);
         });
 
         it('should set userId immediately and update it after response received with stored value, consent override', function (done) {
-          utils.setInLocalStorage(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON);
-          utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, new Date(Date.now() - (8000 * 1000)).toUTCString());
+          localStorage.setItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON);
+          localStorage.setItemWithExpiration(TEST_LAST_STORAGE_CONFIG, new Date(Date.now() - (8000 * 1000)).toUTCString());
           const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true, refreshInSeconds: 10 });
 
           sinon.assert.calledOnce(ajaxStub);
@@ -2093,16 +2095,16 @@ describe('ID5 JS API', function () {
           setTimeout(() => {
             expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
             expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
-            expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(encodeURIComponent(JSON_RESPONSE_ID5_CONSENT));
-            expect(utils.getFromLocalStorage(TEST_PRIVACY_STORAGE_CONFIG)).to.be.eq(TEST_PRIVACY_ALLOWED);
+            expect(localStorage.getItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(encodeURIComponent(JSON_RESPONSE_ID5_CONSENT));
+            expect(localStorage.getItemWithExpiration(TEST_PRIVACY_STORAGE_CONFIG)).to.be.eq(TEST_PRIVACY_ALLOWED);
             done();
           }, LONG_TIMEOUT);
         });
 
         it('should set userId immediately and update it after response received with stored value, consent in privacy data', function (done) {
-          utils.setInLocalStorage(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON);
-          utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, new Date(Date.now() - (8000 * 1000)).toUTCString());
-          utils.setInLocalStorage(TEST_PRIVACY_STORAGE_CONFIG, TEST_PRIVACY_ALLOWED);
+          localStorage.setItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON);
+          localStorage.setItemWithExpiration(TEST_LAST_STORAGE_CONFIG, new Date(Date.now() - (8000 * 1000)).toUTCString());
+          localStorage.setItemWithExpiration(TEST_PRIVACY_STORAGE_CONFIG, TEST_PRIVACY_ALLOWED);
 
           const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true, refreshInSeconds: 10 });
 
@@ -2113,8 +2115,8 @@ describe('ID5 JS API', function () {
           setTimeout(() => {
             expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
             expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
-            expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(encodeURIComponent(JSON_RESPONSE_ID5_CONSENT));
-            expect(utils.getFromLocalStorage(TEST_PRIVACY_STORAGE_CONFIG)).to.be.eq(TEST_PRIVACY_ALLOWED);
+            expect(localStorage.getItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(encodeURIComponent(JSON_RESPONSE_ID5_CONSENT));
+            expect(localStorage.getItemWithExpiration(TEST_PRIVACY_STORAGE_CONFIG)).to.be.eq(TEST_PRIVACY_ALLOWED);
             done();
           }, LONG_TIMEOUT);
         });
@@ -2140,14 +2142,14 @@ describe('ID5 JS API', function () {
           setTimeout(() => {
             expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID_NO_CONSENT);
             expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE_NO_CONSENT);
-            expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(encodeURIComponent(JSON_RESPONSE_NO_ID5_CONSENT));
-            expect(utils.getFromLocalStorage(TEST_PRIVACY_STORAGE_CONFIG)).to.be.eq(TEST_PRIVACY_DISALLOWED);
+            expect(localStorage.getItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(encodeURIComponent(JSON_RESPONSE_NO_ID5_CONSENT));
+            expect(localStorage.getItemWithExpiration(TEST_PRIVACY_STORAGE_CONFIG)).to.be.eq(TEST_PRIVACY_DISALLOWED);
             done();
           }, LONG_TIMEOUT);
         });
 
         it('should set userId after the response with no stored value, consent in privacy data', function (done) {
-          utils.setInLocalStorage(TEST_PRIVACY_STORAGE_CONFIG, TEST_PRIVACY_ALLOWED);
+          localStorage.setItemWithExpiration(TEST_PRIVACY_STORAGE_CONFIG, TEST_PRIVACY_ALLOWED);
 
           const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID });
 
@@ -2158,15 +2160,15 @@ describe('ID5 JS API', function () {
           setTimeout(() => {
             expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID_NO_CONSENT);
             expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE_NO_CONSENT);
-            expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.null;
-            expect(utils.getFromLocalStorage(TEST_PRIVACY_STORAGE_CONFIG)).to.be.eq(TEST_PRIVACY_DISALLOWED);
+            expect(localStorage.getItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG)).to.be.null;
+            expect(localStorage.getItemWithExpiration(TEST_PRIVACY_STORAGE_CONFIG)).to.be.eq(TEST_PRIVACY_DISALLOWED);
             done();
           }, LONG_TIMEOUT);
         });
 
         it('should set userId immediately and update it after response received with stored value, consent override', function (done) {
-          utils.setInLocalStorage(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON);
-          utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, new Date(Date.now() - (8000 * 1000)).toUTCString());
+          localStorage.setItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON);
+          localStorage.setItemWithExpiration(TEST_LAST_STORAGE_CONFIG, new Date(Date.now() - (8000 * 1000)).toUTCString());
           const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true, refreshInSeconds: 10 });
 
           sinon.assert.calledOnce(ajaxStub);
@@ -2176,16 +2178,16 @@ describe('ID5 JS API', function () {
           setTimeout(() => {
             expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID_NO_CONSENT);
             expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE_NO_CONSENT);
-            expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(encodeURIComponent(JSON_RESPONSE_NO_ID5_CONSENT));
-            expect(utils.getFromLocalStorage(TEST_PRIVACY_STORAGE_CONFIG)).to.be.eq(TEST_PRIVACY_DISALLOWED);
+            expect(localStorage.getItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(encodeURIComponent(JSON_RESPONSE_NO_ID5_CONSENT));
+            expect(localStorage.getItemWithExpiration(TEST_PRIVACY_STORAGE_CONFIG)).to.be.eq(TEST_PRIVACY_DISALLOWED);
             done();
           }, LONG_TIMEOUT);
         });
 
         it('should set userId immediately and update it after response received with stored value, consent in privacy data', function (done) {
-          utils.setInLocalStorage(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON);
-          utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, new Date(Date.now() - (8000 * 1000)).toUTCString());
-          utils.setInLocalStorage(TEST_PRIVACY_STORAGE_CONFIG, TEST_PRIVACY_ALLOWED);
+          localStorage.setItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON);
+          localStorage.setItemWithExpiration(TEST_LAST_STORAGE_CONFIG, new Date(Date.now() - (8000 * 1000)).toUTCString());
+          localStorage.setItemWithExpiration(TEST_PRIVACY_STORAGE_CONFIG, TEST_PRIVACY_ALLOWED);
 
           const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID, refreshInSeconds: 10 });
 
@@ -2196,41 +2198,41 @@ describe('ID5 JS API', function () {
           setTimeout(() => {
             expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID_NO_CONSENT);
             expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE_NO_CONSENT);
-            expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.null;
-            expect(utils.getFromLocalStorage(TEST_PRIVACY_STORAGE_CONFIG)).to.be.eq(TEST_PRIVACY_DISALLOWED);
+            expect(localStorage.getItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG)).to.be.null;
+            expect(localStorage.getItemWithExpiration(TEST_PRIVACY_STORAGE_CONFIG)).to.be.eq(TEST_PRIVACY_DISALLOWED);
             done();
           }, LONG_TIMEOUT);
         });
 
         it('should clear stored values after receiving no-consent response', function (done) {
-          utils.setInLocalStorage(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON);
-          utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, new Date(Date.now() - (8000 * 1000)).toUTCString());
-          utils.setInLocalStorage(TEST_NB_STORAGE_CONFIG, 1);
+          localStorage.setItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON);
+          localStorage.setItemWithExpiration(TEST_LAST_STORAGE_CONFIG, new Date(Date.now() - (8000 * 1000)).toUTCString());
+          localStorage.setItemWithExpiration(TEST_NB_STORAGE_CONFIG, 1);
           testClientStore.putHashedPd(TEST_ID5_PARTNER_ID, 'pd');
-          utils.setInLocalStorage(TEST_CONSENT_DATA_STORAGE_CONFIG, 'consent_data');
-          utils.setInLocalStorage(TEST_PRIVACY_STORAGE_CONFIG, TEST_PRIVACY_ALLOWED);
+          localStorage.setItemWithExpiration(TEST_CONSENT_DATA_STORAGE_CONFIG, 'consent_data');
+          localStorage.setItemWithExpiration(TEST_PRIVACY_STORAGE_CONFIG, TEST_PRIVACY_ALLOWED);
 
           const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID, pd: 'pd', refreshInSeconds: 10 });
 
           sinon.assert.calledOnce(ajaxStub);
           expect(id5Status.getUserId()).to.be.equal(TEST_STORED_ID5ID);
           expect(id5Status.getLinkType()).to.be.equal(TEST_STORED_LINK_TYPE);
-          expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(STORED_JSON);
-          expect(utils.getFromLocalStorage(TEST_LAST_STORAGE_CONFIG)).to.not.be.null;
-          expect(utils.getFromLocalStorage(TEST_NB_STORAGE_CONFIG)).to.not.be.null;
-          expect(utils.getFromLocalStorage(TEST_PD_STORAGE_CONFIG)).to.not.be.null;
-          expect(utils.getFromLocalStorage(TEST_CONSENT_DATA_STORAGE_CONFIG)).to.not.be.null;
-          expect(utils.getFromLocalStorage(TEST_PRIVACY_STORAGE_CONFIG)).to.be.eq(TEST_PRIVACY_ALLOWED);
+          expect(localStorage.getItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(STORED_JSON);
+          expect(localStorage.getItemWithExpiration(TEST_LAST_STORAGE_CONFIG)).to.not.be.null;
+          expect(localStorage.getItemWithExpiration(TEST_NB_STORAGE_CONFIG)).to.not.be.null;
+          expect(localStorage.getItemWithExpiration(TEST_PD_STORAGE_CONFIG)).to.not.be.null;
+          expect(localStorage.getItemWithExpiration(TEST_CONSENT_DATA_STORAGE_CONFIG)).to.not.be.null;
+          expect(localStorage.getItemWithExpiration(TEST_PRIVACY_STORAGE_CONFIG)).to.be.eq(TEST_PRIVACY_ALLOWED);
 
           setTimeout(() => {
             expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID_NO_CONSENT);
             expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE_NO_CONSENT);
-            expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.null;
-            expect(utils.getFromLocalStorage(TEST_LAST_STORAGE_CONFIG)).to.be.null;
-            expect(utils.getFromLocalStorage(TEST_NB_STORAGE_CONFIG)).to.be.null;
-            expect(utils.getFromLocalStorage(TEST_PD_STORAGE_CONFIG)).to.be.null;
-            expect(utils.getFromLocalStorage(TEST_CONSENT_DATA_STORAGE_CONFIG)).to.be.null;
-            expect(utils.getFromLocalStorage(TEST_PRIVACY_STORAGE_CONFIG)).to.be.eq(TEST_PRIVACY_DISALLOWED);
+            expect(localStorage.getItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG)).to.be.null;
+            expect(localStorage.getItemWithExpiration(TEST_LAST_STORAGE_CONFIG)).to.be.null;
+            expect(localStorage.getItemWithExpiration(TEST_NB_STORAGE_CONFIG)).to.be.null;
+            expect(localStorage.getItemWithExpiration(TEST_PD_STORAGE_CONFIG)).to.be.null;
+            expect(localStorage.getItemWithExpiration(TEST_CONSENT_DATA_STORAGE_CONFIG)).to.be.null;
+            expect(localStorage.getItemWithExpiration(TEST_PRIVACY_STORAGE_CONFIG)).to.be.eq(TEST_PRIVACY_DISALLOWED);
             done();
           }, LONG_TIMEOUT);
         });
@@ -2243,8 +2245,8 @@ describe('ID5 JS API', function () {
     let syncStub;
 
     before(function () {
-      utils.removeFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG);
-      utils.removeFromLocalStorage(TEST_LAST_STORAGE_CONFIG);
+      localStorage.removeItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG);
+      localStorage.removeItemWithExpiration(TEST_LAST_STORAGE_CONFIG);
     });
     beforeEach(function () {
       syncStub = sinon.stub(utils, 'deferPixelFire').callsFake(function(url, initCallback, callback) {
@@ -2259,8 +2261,8 @@ describe('ID5 JS API', function () {
     afterEach(function () {
       ajaxStub.restore();
       syncStub.restore();
-      utils.removeFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG);
-      utils.removeFromLocalStorage(TEST_LAST_STORAGE_CONFIG);
+      localStorage.removeItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG);
+      localStorage.removeItemWithExpiration(TEST_LAST_STORAGE_CONFIG);
     });
 
     describe('Without Calling ID5', function () {
@@ -2271,8 +2273,8 @@ describe('ID5 JS API', function () {
       });
 
       it('should not fire sync pixel if ID5 is not called', function () {
-        utils.setInLocalStorage(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON);
-        utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, new Date().toUTCString());
+        localStorage.setItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON);
+        localStorage.setItemWithExpiration(TEST_LAST_STORAGE_CONFIG, new Date().toUTCString());
 
         ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true });
 
@@ -2360,45 +2362,45 @@ describe('ID5 JS API', function () {
     });
 
     it('should set counter to 1 if no existing counter cookie and not calling ID5 servers', function () {
-      utils.setInLocalStorage(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON);
-      utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, new Date().toUTCString());
-      utils.setInLocalStorage(TEST_PRIVACY_STORAGE_CONFIG, TEST_PRIVACY_ALLOWED);
+      localStorage.setItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON);
+      localStorage.setItemWithExpiration(TEST_LAST_STORAGE_CONFIG, new Date().toUTCString());
+      localStorage.setItemWithExpiration(TEST_PRIVACY_STORAGE_CONFIG, TEST_PRIVACY_ALLOWED);
 
       ID5.init({ partnerId: TEST_ID5_PARTNER_ID });
 
       sinon.assert.notCalled(ajaxStub);
 
-      const nb = parseInt(utils.getFromLocalStorage(TEST_NB_STORAGE_CONFIG));
+      const nb = parseInt(localStorage.getItemWithExpiration(TEST_NB_STORAGE_CONFIG));
       expect(nb).to.be.equal(1);
     });
     it('should increment counter when not calling ID5 servers if existing ID in cookie', function () {
-      utils.setInLocalStorage(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON);
-      utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, new Date().toUTCString());
-      utils.setInLocalStorage(TEST_PRIVACY_STORAGE_CONFIG, TEST_PRIVACY_ALLOWED);
-      utils.setInLocalStorage(TEST_NB_STORAGE_CONFIG, 5);
+      localStorage.setItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON);
+      localStorage.setItemWithExpiration(TEST_LAST_STORAGE_CONFIG, new Date().toUTCString());
+      localStorage.setItemWithExpiration(TEST_PRIVACY_STORAGE_CONFIG, TEST_PRIVACY_ALLOWED);
+      localStorage.setItemWithExpiration(TEST_NB_STORAGE_CONFIG, 5);
 
       ID5.init({ partnerId: TEST_ID5_PARTNER_ID });
 
       sinon.assert.notCalled(ajaxStub);
 
-      const nb = parseInt(utils.getFromLocalStorage(TEST_NB_STORAGE_CONFIG));
+      const nb = parseInt(localStorage.getItemWithExpiration(TEST_NB_STORAGE_CONFIG));
       expect(nb).to.be.equal(6);
     });
     it('should not increment counter when not calling ID5 servers if no existing ID in cookie', function () {
-      utils.setInLocalStorage(TEST_NB_STORAGE_CONFIG, 5);
-      utils.setInLocalStorage(TEST_PRIVACY_STORAGE_CONFIG, TEST_PRIVACY_DISALLOWED);
+      localStorage.setItemWithExpiration(TEST_NB_STORAGE_CONFIG, 5);
+      localStorage.setItemWithExpiration(TEST_PRIVACY_STORAGE_CONFIG, TEST_PRIVACY_DISALLOWED);
 
       ID5.init({ partnerId: TEST_ID5_PARTNER_ID });
 
       sinon.assert.notCalled(ajaxStub);
 
-      const nb = parseInt(utils.getFromLocalStorage(TEST_NB_STORAGE_CONFIG));
+      const nb = parseInt(localStorage.getItemWithExpiration(TEST_NB_STORAGE_CONFIG));
       expect(nb).to.be.equal(5);
     });
     it('should reset counter to 0 after calling ID5 servers if ID in cookie with a previous counter', function () {
-      utils.setInLocalStorage(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON);
-      utils.setInLocalStorage(TEST_PRIVACY_STORAGE_CONFIG, TEST_PRIVACY_ALLOWED);
-      utils.setInLocalStorage(TEST_NB_STORAGE_CONFIG, 5);
+      localStorage.setItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON);
+      localStorage.setItemWithExpiration(TEST_PRIVACY_STORAGE_CONFIG, TEST_PRIVACY_ALLOWED);
+      localStorage.setItemWithExpiration(TEST_NB_STORAGE_CONFIG, 5);
 
       ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true });
 
@@ -2406,11 +2408,11 @@ describe('ID5 JS API', function () {
       const requestPayload = JSON.parse(ajaxStub.firstCall.args[2]);
       expect(requestPayload.nbPage).to.be.equal(6);
 
-      const nb = parseInt(utils.getFromLocalStorage(TEST_NB_STORAGE_CONFIG));
+      const nb = parseInt(localStorage.getItemWithExpiration(TEST_NB_STORAGE_CONFIG));
       expect(nb).to.be.equal(0);
     });
     it('should reset counter to 0 after calling ID5 servers if ID in cookie without a previous counter', function () {
-      utils.setInLocalStorage(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON);
+      localStorage.setItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON);
 
       ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true });
 
@@ -2418,11 +2420,11 @@ describe('ID5 JS API', function () {
       const requestPayload = JSON.parse(ajaxStub.firstCall.args[2]);
       expect(requestPayload.nbPage).to.be.equal(1);
 
-      const nb = parseInt(utils.getFromLocalStorage(TEST_NB_STORAGE_CONFIG));
+      const nb = parseInt(localStorage.getItemWithExpiration(TEST_NB_STORAGE_CONFIG));
       expect(nb).to.be.equal(0);
     });
     it('should reset counter to 1 after calling ID5 servers if no ID in cookie with a previous counter', function () {
-      utils.setInLocalStorage(TEST_NB_STORAGE_CONFIG, 5);
+      localStorage.setItemWithExpiration(TEST_NB_STORAGE_CONFIG, 5);
 
       ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true });
 
@@ -2430,7 +2432,7 @@ describe('ID5 JS API', function () {
       const requestPayload = JSON.parse(ajaxStub.firstCall.args[2]);
       expect(requestPayload.nbPage).to.be.equal(5);
 
-      const nb = parseInt(utils.getFromLocalStorage(TEST_NB_STORAGE_CONFIG));
+      const nb = parseInt(localStorage.getItemWithExpiration(TEST_NB_STORAGE_CONFIG));
       expect(nb).to.be.equal(1);
     });
     it('should reset counter to 1 after calling ID5 servers if no ID in cookie without a previous counter', function () {
@@ -2440,7 +2442,7 @@ describe('ID5 JS API', function () {
       const requestPayload = JSON.parse(ajaxStub.firstCall.args[2]);
       expect(requestPayload.nbPage).to.be.equal(0);
 
-      const nb = parseInt(utils.getFromLocalStorage(TEST_NB_STORAGE_CONFIG));
+      const nb = parseInt(localStorage.getItemWithExpiration(TEST_NB_STORAGE_CONFIG));
       expect(nb).to.be.equal(1);
     });
   });
@@ -2450,8 +2452,8 @@ describe('ID5 JS API', function () {
     let isInControlGroupStub;
 
     before(function () {
-      utils.removeFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG);
-      utils.removeFromLocalStorage(TEST_LAST_STORAGE_CONFIG);
+      localStorage.removeItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG);
+      localStorage.removeItemWithExpiration(TEST_LAST_STORAGE_CONFIG);
       ID5.userId = undefined;
     });
     beforeEach(function () {
@@ -2461,8 +2463,8 @@ describe('ID5 JS API', function () {
     });
     afterEach(function () {
       ajaxStub.restore();
-      utils.removeFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG);
-      utils.removeFromLocalStorage(TEST_LAST_STORAGE_CONFIG);
+      localStorage.removeItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG);
+      localStorage.removeItemWithExpiration(TEST_LAST_STORAGE_CONFIG);
       ID5.userId = undefined;
     });
 
@@ -2495,7 +2497,7 @@ describe('ID5 JS API', function () {
         sinon.assert.calledOnce(ajaxStub);
         expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
         expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
-        expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(encodeURIComponent(JSON_RESPONSE_ID5_CONSENT));
+        expect(localStorage.getItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(encodeURIComponent(JSON_RESPONSE_ID5_CONSENT));
         expect(id5Status.exposeUserId()).to.be.true;
         expect(id5Status.getUserIdAsEid()).to.be.eql(TEST_RESPONSE_EID);
 
@@ -2504,8 +2506,8 @@ describe('ID5 JS API', function () {
       });
 
       it('should expose ID5.userId from a stored response', function () {
-        utils.setInLocalStorage(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON);
-        utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, new Date().toUTCString());
+        localStorage.setItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON);
+        localStorage.setItemWithExpiration(TEST_LAST_STORAGE_CONFIG, new Date().toUTCString());
 
         const id5Status = ID5.init(apiConfig);
 
@@ -2538,7 +2540,7 @@ describe('ID5 JS API', function () {
         sinon.assert.calledOnce(ajaxStub);
         expect(id5Status.getUserId()).to.be.equal(TEST_CONTROL_GROUP_USERID);
         expect(id5Status.getLinkType()).to.be.equal(TEST_CONTROL_GROUP_LINKTYPE);
-        expect(utils.getFromLocalStorage(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(encodeURIComponent(JSON_RESPONSE_ID5_CONSENT));
+        expect(localStorage.getItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(encodeURIComponent(JSON_RESPONSE_ID5_CONSENT));
         expect(id5Status.exposeUserId()).to.be.false;
         expect(id5Status.getUserIdAsEid()).to.be.eql(TEST_RESPONSE_EID_AB_CONTROL_GROUP);
 
@@ -2547,8 +2549,8 @@ describe('ID5 JS API', function () {
       });
 
       it('should not expose ID5.userId from a stored response', function () {
-        utils.setInLocalStorage(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON);
-        utils.setInLocalStorage(TEST_LAST_STORAGE_CONFIG, new Date().toUTCString());
+        localStorage.setItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON);
+        localStorage.setItemWithExpiration(TEST_LAST_STORAGE_CONFIG, new Date().toUTCString());
 
         const id5Status = ID5.init(apiConfig);
 
