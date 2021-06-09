@@ -30,6 +30,7 @@ describe('LocalStorage', function() {
       // not thowing, so all good!
       testStorage.setItem('test');
       testStorage.setItemWithExpiration({ name: 'test', expiresDays: 11 }, 'test');
+      testStorage.removeItem('test' );
       testStorage.removeItemWithExpiration({ name: 'test' });
     });
   });
