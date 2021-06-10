@@ -83,12 +83,12 @@ Using our CDN has the advantage of patch updates being automatically deployed wi
 
 You may also choose to download the latest release (and host on your own CDN) in a pre-built, minified version from Github:
 
-* [https://github.com/id5io/id5-api.js/releases/download/v1.0.3/id5-api.js](https://github.com/id5io/id5-api.js/releases/download/v1.0.3/id5-api.js)
+* [https://github.com/id5io/id5-api.js/releases/download/v1.0.4/id5-api.js](https://github.com/id5io/id5-api.js/releases/download/v1.0.4/id5-api.js)
 
 Alternatively, we also publish the minified bundle to NPM:
 ```json
   "dependencies": {
-    "@id5io/id5-api.js": "^1.0.3"
+    "@id5io/id5-api.js": "^1.0.4"
   },
 ```
 After running `npm install` you can find the bundle at 
@@ -132,11 +132,10 @@ status.onAvailable((id5Status) => {
   "author": "",
   "license": "Apache-2.0",
   "dependencies": {
-    "@id5io/id5-api.js": "^1.0.3"
+    "@id5io/id5-api.js": "^1.0.4"
   },
   "devDependencies": {
     "@babel/core": "^7.14.3",
-    "@id5io/id5-api.js": "^1.0.3",
     "@rollup/plugin-babel": "^5.3.0",
     "@rollup/plugin-json": "^4.1.0",
     "@rollup/plugin-node-resolve": "^13.0.0",

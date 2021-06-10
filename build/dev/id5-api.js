@@ -1,6 +1,6 @@
 /**
- * id5-api.js - The ID5 API is designed to make accessing the ID5 Universal ID simple for publishers, advertisers, and their ad tech vendors. The ID5 Universal ID is a shared, neutral identifier that publishers, advertisers, and ad tech platforms can use to recognise users even in environments where 3rd party cookies are not available. For more information, visit https://id5.io/universal-id.
- * @version v1.0.3
+ * @id5io/id5-api.js
+ * @version v1.0.4
  * @link https://id5.io/
  * @license Apache-2.0
  */
@@ -74,44 +74,32 @@
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "bind", function() { return bind; });
-/* harmony export (immutable) */ __webpack_exports__["replaceTokenInString"] = replaceTokenInString;
-/* harmony export (immutable) */ __webpack_exports__["logMessage"] = logMessage;
-/* harmony export (immutable) */ __webpack_exports__["logInfo"] = logInfo;
-/* harmony export (immutable) */ __webpack_exports__["logWarn"] = logWarn;
-/* harmony export (immutable) */ __webpack_exports__["logError"] = logError;
-/* harmony export (immutable) */ __webpack_exports__["getParameterByName"] = getParameterByName;
-/* harmony export (immutable) */ __webpack_exports__["isA"] = isA;
-/* harmony export (immutable) */ __webpack_exports__["isFn"] = isFn;
-/* harmony export (immutable) */ __webpack_exports__["isStr"] = isStr;
-/* harmony export (immutable) */ __webpack_exports__["isArray"] = isArray;
-/* harmony export (immutable) */ __webpack_exports__["isNumber"] = isNumber;
-/* harmony export (immutable) */ __webpack_exports__["isPlainObject"] = isPlainObject;
-/* harmony export (immutable) */ __webpack_exports__["isBoolean"] = isBoolean;
-/* harmony export (immutable) */ __webpack_exports__["isEmpty"] = isEmpty;
-/* harmony export (immutable) */ __webpack_exports__["_each"] = _each;
-/* harmony export (immutable) */ __webpack_exports__["_map"] = _map;
-/* harmony export (immutable) */ __webpack_exports__["isSafariBrowser"] = isSafariBrowser;
-/* harmony export (immutable) */ __webpack_exports__["checkCookieSupport"] = checkCookieSupport;
-/* harmony export (immutable) */ __webpack_exports__["cookiesAreEnabled"] = cookiesAreEnabled;
-/* harmony export (immutable) */ __webpack_exports__["getCookie"] = getCookie;
-/* harmony export (immutable) */ __webpack_exports__["setCookie"] = setCookie;
-/* harmony export (immutable) */ __webpack_exports__["getItemFromLocalStorage"] = getItemFromLocalStorage;
-/* harmony export (immutable) */ __webpack_exports__["getFromLocalStorage"] = getFromLocalStorage;
-/* harmony export (immutable) */ __webpack_exports__["setItemInLocalStorage"] = setItemInLocalStorage;
-/* harmony export (immutable) */ __webpack_exports__["setInLocalStorage"] = setInLocalStorage;
-/* harmony export (immutable) */ __webpack_exports__["removeItemFromLocalStorage"] = removeItemFromLocalStorage;
-/* harmony export (immutable) */ __webpack_exports__["removeFromLocalStorage"] = removeFromLocalStorage;
-/* harmony export (immutable) */ __webpack_exports__["parseQS"] = parseQS;
-/* harmony export (immutable) */ __webpack_exports__["formatQS"] = formatQS;
-/* harmony export (immutable) */ __webpack_exports__["parse"] = parse;
-/* harmony export (immutable) */ __webpack_exports__["format"] = format;
-/* harmony export (immutable) */ __webpack_exports__["ajax"] = ajax;
-/* harmony export (immutable) */ __webpack_exports__["fireAsyncPixel"] = fireAsyncPixel;
-/* harmony export (immutable) */ __webpack_exports__["deferPixelFire"] = deferPixelFire;
-/* harmony export (immutable) */ __webpack_exports__["cyrb53Hash"] = cyrb53Hash;
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__id5_api__ = __webpack_require__(2);
+/* unused harmony export replaceTokenInString */
+/* unused harmony export logMessage */
+/* harmony export (immutable) */ __webpack_exports__["m"] = logInfo;
+/* harmony export (immutable) */ __webpack_exports__["n"] = logWarn;
+/* harmony export (immutable) */ __webpack_exports__["l"] = logError;
+/* harmony export (immutable) */ __webpack_exports__["p"] = setGlobalDebug;
+/* harmony export (immutable) */ __webpack_exports__["h"] = isGlobalDebug;
+/* unused harmony export getParameterByName */
+/* harmony export (immutable) */ __webpack_exports__["e"] = isA;
+/* harmony export (immutable) */ __webpack_exports__["g"] = isFn;
+/* harmony export (immutable) */ __webpack_exports__["k"] = isStr;
+/* unused harmony export isArray */
+/* harmony export (immutable) */ __webpack_exports__["i"] = isNumber;
+/* harmony export (immutable) */ __webpack_exports__["j"] = isPlainObject;
+/* harmony export (immutable) */ __webpack_exports__["f"] = isBoolean;
+/* unused harmony export isEmpty */
+/* harmony export (immutable) */ __webpack_exports__["d"] = getCookie;
+/* harmony export (immutable) */ __webpack_exports__["o"] = setCookie;
+/* unused harmony export parseQS */
+/* unused harmony export formatQS */
+/* unused harmony export parse */
+/* unused harmony export format */
+/* harmony export (immutable) */ __webpack_exports__["a"] = ajax;
+/* unused harmony export fireAsyncPixel */
+/* harmony export (immutable) */ __webpack_exports__["c"] = deferPixelFire;
+/* harmony export (immutable) */ __webpack_exports__["b"] = cyrb53Hash;
 function _extends() { _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends.apply(this, arguments); }
 
 function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
@@ -128,7 +116,6 @@ function _iterableToArrayLimit(arr, i) { var _i = arr && (typeof Symbol !== "und
 
 function _arrayWithHoles(arr) { if (Array.isArray(arr)) return arr; }
 
-
 var tArr = 'Array';
 var tStr = 'String';
 var tFn = 'Function';
@@ -136,21 +123,13 @@ var tNumb = 'Number';
 var tObject = 'Object';
 var tBoolean = 'Boolean';
 var toString = Object.prototype.toString;
+var isParamDebug = getParameterByName('id5_debug').toUpperCase() === 'TRUE';
 var consoleExists = Boolean(window.console);
 var consoleLogExists = Boolean(consoleExists && window.console.log);
 var consoleInfoExists = Boolean(consoleExists && window.console.info);
 var consoleWarnExists = Boolean(consoleExists && window.console.warn);
 var consoleErrorExists = Boolean(consoleExists && window.console.error);
-var uniqueRef = {};
-var bind = function (a, b) {
-  return b;
-}.bind(null, 1, uniqueRef)() === uniqueRef ? Function.prototype.bind : function (bind) {
-  var self = this;
-  var args = Array.prototype.slice.call(arguments, 1);
-  return function () {
-    return self.apply(bind, args.concat(Array.prototype.slice.call(arguments)));
-  };
-};
+var isDebug = false;
 /*
  *   Substitutes into a string from a given map using the token
  *   Usage
@@ -176,48 +155,44 @@ function replaceTokenInString(str, map, token) {
  */
 
 function logMessage() {
-  if (debugTurnedOn() && consoleLogExists) {
+  if (isGlobalDebug() && consoleLogExists) {
     console.log.apply(console, decorateLog(arguments, 'MESSAGE:'));
   }
 }
 function logInfo() {
-  if (debugTurnedOn() && consoleInfoExists) {
+  if (isGlobalDebug() && consoleInfoExists) {
     console.info.apply(console, decorateLog(arguments, 'INFO:'));
   }
 }
 function logWarn() {
-  if (debugTurnedOn() && consoleWarnExists) {
+  if (isGlobalDebug() && consoleWarnExists) {
     console.warn.apply(console, decorateLog(arguments, 'WARNING:'));
   }
 }
 function logError() {
-  if (debugTurnedOn() && consoleErrorExists) {
+  if (isGlobalDebug() && consoleErrorExists) {
     console.error.apply(console, decorateLog(arguments, 'ERROR:'));
   }
 }
 
 function decorateLog(args, prefix) {
   args = [].slice.call(args);
-
-  if (__WEBPACK_IMPORTED_MODULE_0__id5_api__["default"].version !== 'TESTING') {
-    prefix && args.unshift(prefix);
-    args.unshift('display: inline-block; color: #fff; background: #1c307e; padding: 1px 4px; border-radius: 3px;');
-    args.unshift('%cID5');
-  } else {
-    args.unshift(new Date().getTime());
-  }
-
+  prefix && args.unshift(prefix);
+  args.unshift('display: inline-block; color: #fff; background: #1c307e; padding: 1px 4px; border-radius: 3px;');
+  args.unshift('%cID5');
   return args;
 }
 
-function debugTurnedOn() {
-  return __WEBPACK_IMPORTED_MODULE_0__id5_api__["default"] && __WEBPACK_IMPORTED_MODULE_0__id5_api__["default"].debug === true;
+function setGlobalDebug(value) {
+  isDebug = !!value;
+}
+function isGlobalDebug() {
+  return isParamDebug || isDebug;
 }
 /*
  *   Check if a given parameter name exists in query string
  *   and if it does return the value
  */
-
 
 function getParameterByName(name) {
   var regexS = '[\\?&]' + name + '=([^&#]*)';
@@ -302,144 +277,13 @@ function _each(object, fn) {
     }
   }
 }
-/**
- * Map an array or object into another array
- * given a function
- * @param {Array|Object} object
- * @param {function(value, key, object)} callback
- * @return {Array}
- */
 
-function _map(object, callback) {
-  if (isEmpty(object)) return [];
-  if (isFn(object.map)) return object.map(callback);
-  var output = [];
-
-  _each(object, function (value, key) {
-    output.push(callback(value, key, object));
-  });
-
-  return output;
-}
-function isSafariBrowser() {
-  return /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-}
-function checkCookieSupport() {
-  if (window.navigator.cookieEnabled || !!document.cookie.length) {
-    return true;
-  }
-}
-function cookiesAreEnabled() {
-  window.document.cookie = 'id5.cookieTest';
-  return window.document.cookie.indexOf('id5.cookieTest') !== -1;
-}
 function getCookie(name) {
   var m = window.document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]*)\\s*(;|$)');
   return m ? decodeURIComponent(m[2]) : null;
 }
 function setCookie(key, value, expires) {
   document.cookie = "".concat(key, "=").concat(encodeURIComponent(value)).concat(expires !== '' ? "; expires=".concat(expires) : '', "; path=/");
-}
-/**
- * @returns {boolean}
- */
-
-function hasLocalStorage() {
-  try {
-    return !!window.localStorage;
-  } catch (e) {
-    logError('Local storage api disabled!');
-  }
-
-  return false;
-}
-/**
- * @typedef {object} StoreItem
- * @property {string} name - Unique key of the stored value
- * @property {number} expiresDays - Number of days of TTL
- */
-
-/**
- * Get stored string from local storage
- *
- * @param {string} key
- * @returns {string|null|undefined} the stored value, null if no value or expired were stored, undefined if no localStorage
- */
-
-
-function getItemFromLocalStorage(key) {
-  if (hasLocalStorage()) {
-    return window.localStorage.getItem(key);
-  }
-}
-/**
- * Get StoreItem from local storage
- *
- * @param {string} storageConfig.name
- * @param {number} storageConfig.expiresDays
- * @returns {string|null|undefined} the stored value, null if no value or expired were stored, undefined if no localStorage
- */
-
-function getFromLocalStorage(storageConfig) {
-  var storedValueExp = window.localStorage.getItem("".concat(storageConfig.name, "_exp"));
-
-  if (storedValueExp && new Date(storedValueExp).getTime() - Date.now() > 0) {
-    // result is not expired, so it can be retrieved
-    return getItemFromLocalStorage(storageConfig.name);
-  } else {
-    // if we got here, then we have an expired item, so we need to remove the item
-    // from the local storage
-    removeFromLocalStorage(storageConfig);
-    return null;
-  }
-}
-/**
- * Put string in local storage
- *
- * @param {string} key
- * @param {string} value
- * @returns {string|null|undefined} the stored value, null if no value or expired were stored, undefined if no localStorage
- */
-
-function setItemInLocalStorage(key, value) {
-  if (hasLocalStorage()) {
-    window.localStorage.setItem(key, value);
-  }
-}
-/**
- * Put StoreItem in local storage
- *
- * @param {StoreItem} storageConfig
- * @param {string} value
- * @returns {string|null|undefined} the stored value, null if no value or expired were stored, undefined if no localStorage
- */
-
-function setInLocalStorage(storageConfig, value) {
-  // always set an expiration
-  var expiresStr = new Date(Date.now() + storageConfig.expiresDays * (60 * 60 * 24 * 1000)).toUTCString();
-  setItemInLocalStorage("".concat(storageConfig.name, "_exp"), expiresStr);
-  setItemInLocalStorage("".concat(storageConfig.name), value);
-}
-/**
- * Clear a string in local storage
- *
- * @param {string} key
- */
-
-function removeItemFromLocalStorage(key) {
-  if (hasLocalStorage()) {
-    window.localStorage.removeItem(key);
-  }
-}
-/**
- * Clear StoreItem in local storage
- *
- * @param {StoreItem} storageConfig
- */
-
-function removeFromLocalStorage(storageConfig) {
-  removeItemFromLocalStorage("".concat(storageConfig.name));
-  removeItemFromLocalStorage("".concat(storageConfig.name, "_exp"));
 }
 function parseQS(query) {
   return !query ? {} : query.replace(/^\?/, '').split('&').reduce(function (acc, criteria) {
@@ -673,13 +517,26 @@ module.exports = {"STORAGE_CONFIG":{"ID5":{"name":"id5id","expiresDays":90},"LAS
 
 "use strict";
 Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "Id5Api", function() { return Id5Api; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "ID5", function() { return ID5; });
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__lib_id5_api__ = __webpack_require__(3);
+
+
+if (!window.ID5) {
+  window.ID5 = __WEBPACK_IMPORTED_MODULE_0__lib_id5_api__["a" /* default */];
+} else {// TODO: Check for different versions in the same page at init
+}
+
+/***/ }),
+/* 3 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__utils__ = __webpack_require__(0);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__refererDetection__ = __webpack_require__(3);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__clientStore__ = __webpack_require__(4);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__consentManagement__ = __webpack_require__(5);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__id5Status__ = __webpack_require__(6);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__refererDetection__ = __webpack_require__(4);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__clientStore__ = __webpack_require__(5);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__consentManagement__ = __webpack_require__(6);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__id5Status__ = __webpack_require__(7);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_5__generated_version_js__ = __webpack_require__(10);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_6__localStorage_js__ = __webpack_require__(11);
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 function _defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
@@ -694,30 +551,14 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
 
 
 
+
+
+
 var Id5Api = /*#__PURE__*/function () {
-  /** @type {boolean} */
-
-  /** @type {boolean} */
-
-  /** @type {boolean} */
-
-  /** @type {boolean} */
-
-  /** @type {boolean} */
-
-  /** @type {boolean} */
-
-  /** @type {object} */
-
-  /** @type {string} */
-
-  /** @type {object} */
   function Id5Api() {
     _classCallCheck(this, Id5Api);
 
     _defineProperty(this, "loaded", false);
-
-    _defineProperty(this, "debug", false);
 
     _defineProperty(this, "debugBypassConsent", false);
 
@@ -729,19 +570,23 @@ var Id5Api = /*#__PURE__*/function () {
 
     _defineProperty(this, "referer", false);
 
-    _defineProperty(this, "version", void 0);
+    _defineProperty(this, "version", __WEBPACK_IMPORTED_MODULE_5__generated_version_js__["a" /* version */]);
 
     _defineProperty(this, "versions", {});
 
+    _defineProperty(this, "localStorage", void 0);
+
     this.loaded = true;
-    this.debug = this.debug || __WEBPACK_IMPORTED_MODULE_0__utils__["getParameterByName"]('id5_debug').toUpperCase() === 'TRUE';
-    this.isUsingCdn = !!(document.currentScript && document.currentScript.src && document.currentScript.src.indexOf('https://cdn.id5-sync.com') === 0);
+    this.isUsingCdn = !!(document && document.currentScript && document.currentScript.src && document.currentScript.src.indexOf('https://cdn.id5-sync.com') === 0);
     this.referer = Object(__WEBPACK_IMPORTED_MODULE_1__refererDetection__["a" /* getRefererInfo */])();
     var currentThis = this; // preserve this in callback
 
+    this.versions[__WEBPACK_IMPORTED_MODULE_5__generated_version_js__["a" /* version */]] = true; // By using window.top we say we want to use storage only if we're in a first-party context
+
+    this.localStorage = new __WEBPACK_IMPORTED_MODULE_6__localStorage_js__["a" /* default */](window.top);
     this.clientStore = new __WEBPACK_IMPORTED_MODULE_2__clientStore__["a" /* default */](function () {
       return currentThis.localStorageAllowed;
-    });
+    }, this.localStorage);
   }
   /**
    * This function will initialize ID5, wait for consent then try to fetch or refresh ID5 user id if required
@@ -751,6 +596,20 @@ var Id5Api = /*#__PURE__*/function () {
 
 
   _createClass(Id5Api, [{
+    key: "debug",
+    get: function get() {
+      return Object(__WEBPACK_IMPORTED_MODULE_0__utils__["h" /* isGlobalDebug */])();
+    }
+    /** @type {boolean} */
+    ,
+    set:
+    /** @type {boolean} */
+
+    /** @type {boolean} */
+    function set(isDebug) {
+      Object(__WEBPACK_IMPORTED_MODULE_0__utils__["p" /* setGlobalDebug */])(isDebug);
+    }
+  }, {
     key: "init",
     value: function init(options) {
       if (typeof this.version === 'undefined') {
@@ -758,16 +617,16 @@ var Id5Api = /*#__PURE__*/function () {
       }
 
       try {
-        __WEBPACK_IMPORTED_MODULE_0__utils__["logInfo"]('Invoking Id5Api.init', arguments);
+        Object(__WEBPACK_IMPORTED_MODULE_0__utils__["m" /* logInfo */])('Invoking Id5Api.init', arguments);
         var partnerStatus = new __WEBPACK_IMPORTED_MODULE_4__id5Status__["a" /* default */](options);
         this.debugBypassConsent = this.debugBypassConsent || partnerStatus.getOptions().debugBypassConsent;
         this.allowLocalStorageWithoutConsentApi = this.allowLocalStorageWithoutConsentApi || partnerStatus.getOptions().allowLocalStorageWithoutConsentApi;
-        this.consent = new __WEBPACK_IMPORTED_MODULE_3__consentManagement__["a" /* default */]();
+        this.consent = new __WEBPACK_IMPORTED_MODULE_3__consentManagement__["a" /* default */](this.localStorage);
         this.getId(partnerStatus, false);
-        __WEBPACK_IMPORTED_MODULE_0__utils__["logInfo"]("ID5 initialized for partner ".concat(partnerStatus.getOptions().partnerId, " with referer ").concat(this.referer.referer, " and options"), options);
+        Object(__WEBPACK_IMPORTED_MODULE_0__utils__["m" /* logInfo */])("ID5 initialized for partner ".concat(partnerStatus.getOptions().partnerId, " with referer ").concat(this.referer.referer, " and options"), options);
         return partnerStatus;
       } catch (e) {
-        __WEBPACK_IMPORTED_MODULE_0__utils__["logError"]('Exception caught from Id5Api.init', e);
+        Object(__WEBPACK_IMPORTED_MODULE_0__utils__["l" /* logError */])('Exception caught from Id5Api.init', e);
       }
     }
   }, {
@@ -786,18 +645,18 @@ var Id5Api = /*#__PURE__*/function () {
         throw new Error('ID5.version variable is missing! Make sure you build from source with "gulp build" from this project. Contact support@id5.io for help.');
       }
 
-      if (!__WEBPACK_IMPORTED_MODULE_0__utils__["isBoolean"](forceFetch)) {
+      if (!Object(__WEBPACK_IMPORTED_MODULE_0__utils__["f" /* isBoolean */])(forceFetch)) {
         throw new Error('Invalid signature for Id5Api.refreshId: second parameter must be a boolean');
       }
 
       try {
-        __WEBPACK_IMPORTED_MODULE_0__utils__["logInfo"]('Invoking Id5Api.refreshId', arguments);
+        Object(__WEBPACK_IMPORTED_MODULE_0__utils__["m" /* logInfo */])('Invoking Id5Api.refreshId', arguments);
         id5Status.startRefresh(forceFetch);
         id5Status.updateOptions(options);
         this.consent.resetConsentData();
         this.getId(id5Status, forceFetch);
       } catch (e) {
-        __WEBPACK_IMPORTED_MODULE_0__utils__["logError"]('Exception caught from Id5Api.refreshId', e);
+        Object(__WEBPACK_IMPORTED_MODULE_0__utils__["l" /* logError */])('Exception caught from Id5Api.refreshId', e);
       }
 
       return id5Status;
@@ -847,17 +706,17 @@ var Id5Api = /*#__PURE__*/function () {
         id5Status.setUserId(storedResponse.universal_uid, storedResponse.link_type || 0, true);
         nb = this.clientStore.incNb(options.partnerId, nb);
         cachedResponseUsed = true;
-        __WEBPACK_IMPORTED_MODULE_0__utils__["logInfo"]('ID5 User ID available from cache:', {
+        Object(__WEBPACK_IMPORTED_MODULE_0__utils__["m" /* logInfo */])('ID5 User ID available from cache:', {
           storedResponse: storedResponse,
           storedDateTime: storedDateTime,
           refreshNeeded: refreshInSecondsHasElapsed
         });
       } else if (storedResponse && storedResponse.universal_uid && pdHasChanged) {
-        __WEBPACK_IMPORTED_MODULE_0__utils__["logInfo"]('PD value has changed, so ignoring User ID from cache');
+        Object(__WEBPACK_IMPORTED_MODULE_0__utils__["m" /* logInfo */])('PD value has changed, so ignoring User ID from cache');
       } else if (storedResponse && !storedResponse.universal_uid) {
-        __WEBPACK_IMPORTED_MODULE_0__utils__["logError"]('Invalid stored response: ', storedResponse);
+        Object(__WEBPACK_IMPORTED_MODULE_0__utils__["l" /* logError */])('Invalid stored response: ', storedResponse);
       } else {
-        __WEBPACK_IMPORTED_MODULE_0__utils__["logInfo"]('No ID5 User ID available from cache');
+        Object(__WEBPACK_IMPORTED_MODULE_0__utils__["m" /* logInfo */])('No ID5 User ID available from cache');
       }
 
       this.consent.requestConsent(this.debugBypassConsent, options.cmpApi, options.consentData, function (consentData) {
@@ -865,7 +724,7 @@ var Id5Api = /*#__PURE__*/function () {
         _this.updateLocalStorageAllowed();
 
         if (_this.localStorageAllowed !== false) {
-          __WEBPACK_IMPORTED_MODULE_0__utils__["logInfo"]('Consent to access local storage is given: ', _this.localStorageAllowed);
+          Object(__WEBPACK_IMPORTED_MODULE_0__utils__["m" /* logInfo */])('Consent to access local storage is given: ', _this.localStorageAllowed);
           storedResponse = _this.clientStore.getResponse() || _this.clientStore.getResponseFromLegacyCookie(); // store hashed consent data and pd for future page loads
 
           var consentHasChanged = !_this.clientStore.storedConsentDataMatchesConsentData(consentData);
@@ -893,6 +752,7 @@ var Id5Api = /*#__PURE__*/function () {
               'rf': _this.referer.referer,
               'u': _this.referer.stack[0] || window.location.href,
               'top': _this.referer.reachedTop ? 1 : 0,
+              'localStorage': _this.localStorage.isAvailable() ? 1 : 0,
               'nbPage': nb,
               'id5cdn': _this.isUsingCdn
             }; // pass in optional data, but only if populated
@@ -923,23 +783,23 @@ var Id5Api = /*#__PURE__*/function () {
               data.features.ab = 1;
             }
 
-            __WEBPACK_IMPORTED_MODULE_0__utils__["logInfo"]('Fetching ID5 user ID from:', url, data);
+            Object(__WEBPACK_IMPORTED_MODULE_0__utils__["m" /* logInfo */])('Fetching ID5 user ID from:', url, data);
 
             if (forceFetch) {
-              __WEBPACK_IMPORTED_MODULE_0__utils__["logInfo"]('...with Force Fetch');
+              Object(__WEBPACK_IMPORTED_MODULE_0__utils__["m" /* logInfo */])('...with Force Fetch');
             }
 
-            __WEBPACK_IMPORTED_MODULE_0__utils__["ajax"](url, {
+            Object(__WEBPACK_IMPORTED_MODULE_0__utils__["a" /* ajax */])(url, {
               success: function success(response) {
-                __WEBPACK_IMPORTED_MODULE_0__utils__["logInfo"]('Response from ID5 received:', response);
+                Object(__WEBPACK_IMPORTED_MODULE_0__utils__["m" /* logInfo */])('Response from ID5 received:', response);
                 var responseObj;
 
                 if (response) {
                   try {
                     responseObj = JSON.parse(response);
-                    __WEBPACK_IMPORTED_MODULE_0__utils__["logInfo"]('Valid json response from ID5 received:', responseObj);
+                    Object(__WEBPACK_IMPORTED_MODULE_0__utils__["m" /* logInfo */])('Valid json response from ID5 received:', responseObj);
 
-                    if (__WEBPACK_IMPORTED_MODULE_0__utils__["isStr"](responseObj.universal_uid)) {
+                    if (Object(__WEBPACK_IMPORTED_MODULE_0__utils__["k" /* isStr */])(responseObj.universal_uid)) {
                       id5Status.setUserId(responseObj.universal_uid, responseObj.link_type || 0, false); // privacy has to be stored first so we can use it when storing other values
 
                       _this.consent.setStoredPrivacy(responseObj.privacy); // re-evaluate local storage access as geo is now available
@@ -966,21 +826,21 @@ var Id5Api = /*#__PURE__*/function () {
                       if (responseObj.cascade_needed === true && _this.localStorageAllowed === true && options.maxCascades >= 0) {
                         var isSync = options.partnerUserId && options.partnerUserId.length > 0;
                         var syncUrl = "https://id5-sync.com/".concat(isSync ? 's' : 'i', "/").concat(options.partnerId, "/").concat(options.maxCascades, ".gif?id5id=").concat(id5Status._userId, "&o=api&").concat(isSync ? 'puid=' + options.partnerUserId + '&' : '', "gdpr_consent=").concat(gdprConsentString, "&gdpr=").concat(gdprApplies);
-                        __WEBPACK_IMPORTED_MODULE_0__utils__["logInfo"]('Opportunities to cascade available:', syncUrl);
-                        __WEBPACK_IMPORTED_MODULE_0__utils__["deferPixelFire"](syncUrl);
+                        Object(__WEBPACK_IMPORTED_MODULE_0__utils__["m" /* logInfo */])('Opportunities to cascade available:', syncUrl);
+                        Object(__WEBPACK_IMPORTED_MODULE_0__utils__["c" /* deferPixelFire */])(syncUrl);
                       }
                     } else {
-                      __WEBPACK_IMPORTED_MODULE_0__utils__["logError"]('Invalid response from ID5 servers:', response);
+                      Object(__WEBPACK_IMPORTED_MODULE_0__utils__["l" /* logError */])('Invalid response from ID5 servers:', response);
                     }
                   } catch (error) {
-                    __WEBPACK_IMPORTED_MODULE_0__utils__["logError"](error);
+                    Object(__WEBPACK_IMPORTED_MODULE_0__utils__["l" /* logError */])(error);
                   }
                 } else {
-                  __WEBPACK_IMPORTED_MODULE_0__utils__["logError"]('Empty response from ID5 servers:', response);
+                  Object(__WEBPACK_IMPORTED_MODULE_0__utils__["l" /* logError */])('Empty response from ID5 servers:', response);
                 }
               },
               error: function error(_error) {
-                __WEBPACK_IMPORTED_MODULE_0__utils__["logError"](_error);
+                Object(__WEBPACK_IMPORTED_MODULE_0__utils__["l" /* logError */])(_error);
               }
             }, JSON.stringify(data), {
               method: 'POST',
@@ -988,7 +848,7 @@ var Id5Api = /*#__PURE__*/function () {
             });
           }
         } else {
-          __WEBPACK_IMPORTED_MODULE_0__utils__["logInfo"]('No legal basis to use ID5', consentData);
+          Object(__WEBPACK_IMPORTED_MODULE_0__utils__["m" /* logInfo */])('No legal basis to use ID5', consentData);
         }
       });
     }
@@ -997,16 +857,11 @@ var Id5Api = /*#__PURE__*/function () {
   return Id5Api;
 }();
 
-if (!window.ID5) {
-  window.ID5 = new Id5Api();
-} else {// TODO: Check for different versions in the same page at init
-}
-
-var ID5 = window.ID5;
-/* harmony default export */ __webpack_exports__["default"] = (ID5);
+var ID5 = new Id5Api();
+/* harmony default export */ __webpack_exports__["a"] = (ID5);
 
 /***/ }),
-/* 3 */
+/* 4 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -1228,12 +1083,12 @@ function detectReferer(win) {
 var getRefererInfo = detectReferer(window);
 
 /***/ }),
-/* 4 */
+/* 5 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return ClientStore; });
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__utils__ = __webpack_require__(0);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__utils_js__ = __webpack_require__(0);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__constants_json__ = __webpack_require__(1);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__constants_json___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_1__constants_json__);
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
@@ -1253,13 +1108,21 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
 var ClientStore = /*#__PURE__*/function () {
   /** @type {function} */
 
-  /* @param {function} localStorageAllowedCallback */
-  function ClientStore(localStorageAllowedCallback) {
+  /** @type {LocalStorage} */
+
+  /**
+   * @param {function} localStorageAllowedCallback
+   * @param {LocalStorage} driver the localStorage abstraction object to use
+   */
+  function ClientStore(localStorageAllowedCallback, driver) {
     _classCallCheck(this, ClientStore);
 
     _defineProperty(this, "localStorageAllowedCallback", void 0);
 
+    _defineProperty(this, "driver", void 0);
+
     this.localStorageAllowedCallback = localStorageAllowedCallback;
+    this.driver = driver;
   }
   /**
    * Get stored data from local storage, if any, after checking if local storage is allowed
@@ -1273,12 +1136,12 @@ var ClientStore = /*#__PURE__*/function () {
     value: function get(cacheConfig) {
       try {
         if (this.localStorageAllowedCallback() === true) {
-          return __WEBPACK_IMPORTED_MODULE_0__utils__["getFromLocalStorage"](cacheConfig);
+          return this.driver.getItemWithExpiration(cacheConfig);
         } else {
-          __WEBPACK_IMPORTED_MODULE_0__utils__["logError"]('clientStore.get() has been called without localStorageAllowed');
+          Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["l" /* logError */])('clientStore.get() has been called without localStorageAllowed');
         }
       } catch (e) {
-        __WEBPACK_IMPORTED_MODULE_0__utils__["logError"](e);
+        Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["l" /* logError */])(e);
       }
     }
     /**
@@ -1290,9 +1153,9 @@ var ClientStore = /*#__PURE__*/function () {
     key: "clear",
     value: function clear(cacheConfig) {
       try {
-        __WEBPACK_IMPORTED_MODULE_0__utils__["removeFromLocalStorage"](cacheConfig);
+        this.driver.removeItemWithExpiration(cacheConfig);
       } catch (e) {
-        __WEBPACK_IMPORTED_MODULE_0__utils__["logError"](e);
+        Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["l" /* logError */])(e);
       }
     }
     /**
@@ -1306,12 +1169,12 @@ var ClientStore = /*#__PURE__*/function () {
     value: function put(cacheConfig, data) {
       try {
         if (this.localStorageAllowedCallback() === true) {
-          __WEBPACK_IMPORTED_MODULE_0__utils__["setInLocalStorage"](cacheConfig, data);
+          this.driver.setItemWithExpiration(cacheConfig, data);
         } else {
-          __WEBPACK_IMPORTED_MODULE_0__utils__["logError"]('clientStore.put() has been called without localStorageAllowed');
+          Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["l" /* logError */])('clientStore.put() has been called without localStorageAllowed');
         }
       } catch (e) {
-        __WEBPACK_IMPORTED_MODULE_0__utils__["logError"](e);
+        Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["l" /* logError */])(e);
       }
     }
   }, {
@@ -1319,8 +1182,8 @@ var ClientStore = /*#__PURE__*/function () {
     value: function getResponseFromLegacyCookie() {
       var legacyStoredValue;
       __WEBPACK_IMPORTED_MODULE_1__constants_json___default.a.LEGACY_COOKIE_NAMES.forEach(function (cookie) {
-        if (__WEBPACK_IMPORTED_MODULE_0__utils__["getCookie"](cookie)) {
-          legacyStoredValue = __WEBPACK_IMPORTED_MODULE_0__utils__["getCookie"](cookie);
+        if (Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["d" /* getCookie */])(cookie)) {
+          legacyStoredValue = Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["d" /* getCookie */])(cookie);
         }
       });
 
@@ -1466,12 +1329,12 @@ var ClientStore = /*#__PURE__*/function () {
     value: function removeLegacyCookies(partnerId) {
       var expired = new Date(Date.now() - 1000).toUTCString();
       __WEBPACK_IMPORTED_MODULE_1__constants_json___default.a.LEGACY_COOKIE_NAMES.forEach(function (cookie) {
-        __WEBPACK_IMPORTED_MODULE_0__utils__["setCookie"]("".concat(cookie), '', expired);
-        __WEBPACK_IMPORTED_MODULE_0__utils__["setCookie"]("".concat(cookie, "_nb"), '', expired);
-        __WEBPACK_IMPORTED_MODULE_0__utils__["setCookie"]("".concat(cookie, "_").concat(partnerId, "_nb"), '', expired);
-        __WEBPACK_IMPORTED_MODULE_0__utils__["setCookie"]("".concat(cookie, "_last"), '', expired);
-        __WEBPACK_IMPORTED_MODULE_0__utils__["setCookie"]("".concat(cookie, ".cached_pd"), '', expired);
-        __WEBPACK_IMPORTED_MODULE_0__utils__["setCookie"]("".concat(cookie, ".cached_consent_data"), '', expired);
+        Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["o" /* setCookie */])("".concat(cookie), '', expired);
+        Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["o" /* setCookie */])("".concat(cookie, "_nb"), '', expired);
+        Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["o" /* setCookie */])("".concat(cookie, "_").concat(partnerId, "_nb"), '', expired);
+        Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["o" /* setCookie */])("".concat(cookie, "_last"), '', expired);
+        Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["o" /* setCookie */])("".concat(cookie, ".cached_pd"), '', expired);
+        Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["o" /* setCookie */])("".concat(cookie, ".cached_consent_data"), '', expired);
       });
     }
     /**
@@ -1513,7 +1376,7 @@ var ClientStore = /*#__PURE__*/function () {
   }, {
     key: "makeStoredHash",
     value: function makeStoredHash(userId) {
-      return __WEBPACK_IMPORTED_MODULE_0__utils__["cyrb53Hash"](typeof userId === 'string' ? userId : '');
+      return Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["b" /* cyrb53Hash */])(typeof userId === 'string' ? userId : '');
     }
   }, {
     key: "nbCacheConfig",
@@ -1543,7 +1406,7 @@ var ClientStore = /*#__PURE__*/function () {
         storedConsentData.apiVersion = consentData.apiVersion;
       }
 
-      return __WEBPACK_IMPORTED_MODULE_0__utils__["cyrb53Hash"](JSON.stringify(storedConsentData));
+      return Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["b" /* cyrb53Hash */])(JSON.stringify(storedConsentData));
     }
   }]);
 
@@ -1553,14 +1416,14 @@ var ClientStore = /*#__PURE__*/function () {
 
 
 /***/ }),
-/* 5 */
+/* 6 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return ConsentManagement; });
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__utils__ = __webpack_require__(0);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1_src_constants_json__ = __webpack_require__(1);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1_src_constants_json___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_1_src_constants_json__);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__utils_js__ = __webpack_require__(0);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__constants_json__ = __webpack_require__(1);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__constants_json___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_1__constants_json__);
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 function _defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
@@ -1573,7 +1436,12 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
 
 
 var ConsentManagement = /*#__PURE__*/function () {
-  function ConsentManagement() {
+  /** @type {LocalStorage} */
+
+  /**
+   * @param {LocalStorage} localStorage the localStorage object to use
+   */
+  function ConsentManagement(localStorage) {
     _classCallCheck(this, ConsentManagement);
 
     _defineProperty(this, "consentData", void 0);
@@ -1584,23 +1452,27 @@ var ConsentManagement = /*#__PURE__*/function () {
 
     _defineProperty(this, "cmpVersion", 0);
 
+    _defineProperty(this, "localStorage", void 0);
+
     _defineProperty(this, "cmpCallMap", {
       'iab': this.lookupIabConsent,
       'static': this.lookupStaticConsentData
     });
+
+    this.localStorage = localStorage;
   }
+  /**
+   * This function reads the consent string from the config to obtain the consent information of the user.
+   * @param {function(ConsentManagement, string, function(object))} cmpSuccess acts as a success callback when the value is read from config; pass along consentObject (string) from CMP
+   * @param {function(object)} finalCallback acts as an error callback while interacting with the config string; pass along an error message (string)
+   */
+
 
   _createClass(ConsentManagement, [{
     key: "lookupStaticConsentData",
-    value:
-    /**
-     * This function reads the consent string from the config to obtain the consent information of the user.
-     * @param {function(ConsentManagement, string, function(object))} cmpSuccess acts as a success callback when the value is read from config; pass along consentObject (string) from CMP
-     * @param {function(object)} finalCallback acts as an error callback while interacting with the config string; pass along an error message (string)
-     */
-    function lookupStaticConsentData(cmpSuccess, finalCallback) {
+    value: function lookupStaticConsentData(cmpSuccess, finalCallback) {
       this.cmpVersion = this.staticConsentData.getConsentData ? 1 : this.staticConsentData.getTCData ? 2 : 0;
-      __WEBPACK_IMPORTED_MODULE_0__utils__["logInfo"]("Using static consent data from config for TCF v".concat(this.cmpVersion), this.staticConsentData);
+      __WEBPACK_IMPORTED_MODULE_0__utils_js__["m" /* logInfo */]("Using static consent data from config for TCF v".concat(this.cmpVersion), this.staticConsentData);
 
       if (this.cmpVersion === 2) {
         // remove extra layer in static v2 data object so it matches normal v2 CMP object for processing step
@@ -1631,14 +1503,14 @@ var ConsentManagement = /*#__PURE__*/function () {
       var consentThis = this;
 
       function v2CmpResponseCallback(tcfData, success) {
-        __WEBPACK_IMPORTED_MODULE_0__utils__["logInfo"]('Received a response from CMP', tcfData);
+        __WEBPACK_IMPORTED_MODULE_0__utils_js__["m" /* logInfo */]('Received a response from CMP', tcfData);
 
         if (success) {
           if (tcfData.gdprApplies === false || tcfData.eventStatus === 'tcloaded' || tcfData.eventStatus === 'useractioncomplete') {
             cmpSuccess(consentThis, tcfData, finalCallback);
           }
         } else {
-          __WEBPACK_IMPORTED_MODULE_0__utils__["logError"]("CMP unable to register callback function.  Please check CMP setup.");
+          __WEBPACK_IMPORTED_MODULE_0__utils_js__["l" /* logError */]("CMP unable to register callback function.  Please check CMP setup.");
           cmpSuccess(consentThis, undefined, finalCallback); // TODO cmpError('CMP unable to register callback function.  Please check CMP setup.', hookConfig);
         }
       }
@@ -1654,12 +1526,12 @@ var ConsentManagement = /*#__PURE__*/function () {
 
         return {
           consentDataCallback: function consentDataCallback(consentResponse) {
-            __WEBPACK_IMPORTED_MODULE_0__utils__["logInfo"]("cmpApi: consentDataCallback");
+            __WEBPACK_IMPORTED_MODULE_0__utils_js__["m" /* logInfo */]("cmpApi: consentDataCallback");
             cmpResponse.getConsentData = consentResponse;
             afterEach();
           },
           vendorConsentsCallback: function vendorConsentsCallback(consentResponse) {
-            __WEBPACK_IMPORTED_MODULE_0__utils__["logInfo"]("cmpApi: vendorConsentsCallback");
+            __WEBPACK_IMPORTED_MODULE_0__utils_js__["m" /* logInfo */]("cmpApi: vendorConsentsCallback");
             cmpResponse.getVendorConsents = consentResponse;
             afterEach();
           }
@@ -1678,13 +1550,13 @@ var ConsentManagement = /*#__PURE__*/function () {
       if (!cmpFrame) {
         // TODO implement cmpError
         // return cmpError('CMP not found.', hookConfig);
-        __WEBPACK_IMPORTED_MODULE_0__utils__["logError"]("CMP not found");
+        __WEBPACK_IMPORTED_MODULE_0__utils_js__["l" /* logError */]("CMP not found");
         cmpSuccess(consentThis, undefined, finalCallback);
         return;
       }
 
-      if (__WEBPACK_IMPORTED_MODULE_0__utils__["isFn"](cmpFunction)) {
-        __WEBPACK_IMPORTED_MODULE_0__utils__["logInfo"]("cmpApi: calling getConsentData & getVendorConsents");
+      if (__WEBPACK_IMPORTED_MODULE_0__utils_js__["g" /* isFn */](cmpFunction)) {
+        __WEBPACK_IMPORTED_MODULE_0__utils_js__["m" /* logInfo */]("cmpApi: calling getConsentData & getVendorConsents");
 
         if (cmpVersion === 1) {
           cmpFunction('getConsentData', null, v1CallbackHandler.consentDataCallback);
@@ -1708,18 +1580,18 @@ var ConsentManagement = /*#__PURE__*/function () {
     key: "requestConsent",
     value: function requestConsent(debugBypassConsent, cmpApi, providedConsentData, finalCallback) {
       if (debugBypassConsent) {
-        __WEBPACK_IMPORTED_MODULE_0__utils__["logWarn"]('ID5 is operating in forced consent mode and will not retrieve any consent signals from the CMP');
+        __WEBPACK_IMPORTED_MODULE_0__utils_js__["n" /* logWarn */]('ID5 is operating in forced consent mode and will not retrieve any consent signals from the CMP');
         finalCallback(this.consentData);
       } else if (!this.cmpCallMap[cmpApi]) {
-        __WEBPACK_IMPORTED_MODULE_0__utils__["logError"]("Unknown consent API: ".concat(cmpApi));
+        __WEBPACK_IMPORTED_MODULE_0__utils_js__["l" /* logError */]("Unknown consent API: ".concat(cmpApi));
         this.resetConsentData();
         finalCallback(this.consentData);
       } else if (!this.consentData) {
         if (cmpApi === 'static') {
-          if (__WEBPACK_IMPORTED_MODULE_0__utils__["isPlainObject"](providedConsentData)) {
+          if (__WEBPACK_IMPORTED_MODULE_0__utils_js__["j" /* isPlainObject */](providedConsentData)) {
             this.staticConsentData = providedConsentData;
           } else {
-            __WEBPACK_IMPORTED_MODULE_0__utils__["logError"]("cmpApi: 'static' did not specify consent data.");
+            __WEBPACK_IMPORTED_MODULE_0__utils_js__["l" /* logError */]("cmpApi: 'static' did not specify consent data.");
           }
         }
 
@@ -1784,7 +1656,7 @@ var ConsentManagement = /*#__PURE__*/function () {
     key: "isLocalStorageAllowed",
     value: function isLocalStorageAllowed(allowLocalStorageWithoutConsentApi, debugBypassConsent) {
       if (allowLocalStorageWithoutConsentApi === true || debugBypassConsent === true) {
-        __WEBPACK_IMPORTED_MODULE_0__utils__["logWarn"]('Local storage access granted by configuration override, consent will not be checked');
+        __WEBPACK_IMPORTED_MODULE_0__utils_js__["n" /* logWarn */]('Local storage access granted by configuration override, consent will not be checked');
         return true;
       } else if (!this.consentData) {
         // no cmp on page, so check if provisional access is allowed
@@ -1821,8 +1693,9 @@ var ConsentManagement = /*#__PURE__*/function () {
   }, {
     key: "isProvisionalLocalStorageAllowed",
     value: function isProvisionalLocalStorageAllowed() {
-      if (!__WEBPACK_IMPORTED_MODULE_0__utils__["isPlainObject"](this.storedPrivacyData)) {
-        this.storedPrivacyData = JSON.parse(__WEBPACK_IMPORTED_MODULE_0__utils__["getFromLocalStorage"](__WEBPACK_IMPORTED_MODULE_1_src_constants_json___default.a.STORAGE_CONFIG.PRIVACY));
+      if (!__WEBPACK_IMPORTED_MODULE_0__utils_js__["j" /* isPlainObject */](this.storedPrivacyData)) {
+        var privacyData = this.localStorage.getItemWithExpiration(__WEBPACK_IMPORTED_MODULE_1__constants_json___default.a.STORAGE_CONFIG.PRIVACY);
+        this.storedPrivacyData = privacyData && JSON.parse(privacyData);
       }
 
       if (this.storedPrivacyData && this.storedPrivacyData.id5_consent === true) {
@@ -1830,7 +1703,7 @@ var ConsentManagement = /*#__PURE__*/function () {
       } else if (!this.storedPrivacyData || typeof this.storedPrivacyData.jurisdiction === 'undefined') {
         return undefined;
       } else {
-        var jurisdictionRequiresConsent = typeof __WEBPACK_IMPORTED_MODULE_1_src_constants_json___default.a.PRIVACY.JURISDICTIONS[this.storedPrivacyData.jurisdiction] !== 'undefined' ? __WEBPACK_IMPORTED_MODULE_1_src_constants_json___default.a.PRIVACY.JURISDICTIONS[this.storedPrivacyData.jurisdiction] : false;
+        var jurisdictionRequiresConsent = typeof __WEBPACK_IMPORTED_MODULE_1__constants_json___default.a.PRIVACY.JURISDICTIONS[this.storedPrivacyData.jurisdiction] !== 'undefined' ? __WEBPACK_IMPORTED_MODULE_1__constants_json___default.a.PRIVACY.JURISDICTIONS[this.storedPrivacyData.jurisdiction] : false;
         return jurisdictionRequiresConsent === false || this.storedPrivacyData.id5_consent === true;
       }
     }
@@ -1838,14 +1711,14 @@ var ConsentManagement = /*#__PURE__*/function () {
     key: "setStoredPrivacy",
     value: function setStoredPrivacy(privacy) {
       try {
-        if (__WEBPACK_IMPORTED_MODULE_0__utils__["isPlainObject"](privacy)) {
+        if (__WEBPACK_IMPORTED_MODULE_0__utils_js__["j" /* isPlainObject */](privacy)) {
           this.storedPrivacyData = privacy;
-          __WEBPACK_IMPORTED_MODULE_0__utils__["setInLocalStorage"](__WEBPACK_IMPORTED_MODULE_1_src_constants_json___default.a.STORAGE_CONFIG.PRIVACY, JSON.stringify(privacy));
+          this.localStorage.setItemWithExpiration(__WEBPACK_IMPORTED_MODULE_1__constants_json___default.a.STORAGE_CONFIG.PRIVACY, JSON.stringify(privacy));
         } else {
-          __WEBPACK_IMPORTED_MODULE_0__utils__["logInfo"]('Cannot store privacy if it is not an object: ', privacy);
+          __WEBPACK_IMPORTED_MODULE_0__utils_js__["m" /* logInfo */]('Cannot store privacy if it is not an object: ', privacy);
         }
       } catch (e) {
-        __WEBPACK_IMPORTED_MODULE_0__utils__["logError"](e);
+        __WEBPACK_IMPORTED_MODULE_0__utils_js__["l" /* logError */](e);
       }
     }
   }], [{
@@ -1904,23 +1777,23 @@ var ConsentManagement = /*#__PURE__*/function () {
     value: function cmpSuccess(consentThis, consentObject, finalCallback) {
       function checkV1Data(consentObject) {
         var gdprApplies = consentObject && consentObject.getConsentData && consentObject.getConsentData.gdprApplies;
-        return !!(typeof gdprApplies !== 'boolean' || gdprApplies === true && !(__WEBPACK_IMPORTED_MODULE_0__utils__["isStr"](consentObject.getConsentData.consentData) && __WEBPACK_IMPORTED_MODULE_0__utils__["isPlainObject"](consentObject.getVendorConsents) && Object.keys(consentObject.getVendorConsents).length > 1));
+        return !!(typeof gdprApplies !== 'boolean' || gdprApplies === true && !(__WEBPACK_IMPORTED_MODULE_0__utils_js__["k" /* isStr */](consentObject.getConsentData.consentData) && __WEBPACK_IMPORTED_MODULE_0__utils_js__["j" /* isPlainObject */](consentObject.getVendorConsents) && Object.keys(consentObject.getVendorConsents).length > 1));
       }
 
       function checkV2Data() {
         var gdprApplies = consentObject && typeof consentObject.gdprApplies === 'boolean' ? consentObject.gdprApplies : undefined;
         var tcString = consentObject && consentObject.tcString;
-        return !!(typeof gdprApplies !== 'boolean' || gdprApplies === true && !__WEBPACK_IMPORTED_MODULE_0__utils__["isStr"](tcString));
+        return !!(typeof gdprApplies !== 'boolean' || gdprApplies === true && !__WEBPACK_IMPORTED_MODULE_0__utils_js__["k" /* isStr */](tcString));
       } // determine which set of checks to run based on cmpVersion
 
 
       var checkFn = consentThis.cmpVersion === 1 ? checkV1Data : consentThis.cmpVersion === 2 ? checkV2Data : null;
-      __WEBPACK_IMPORTED_MODULE_0__utils__["logInfo"]('CMP Success callback for version', consentThis.cmpVersion, checkFn);
+      __WEBPACK_IMPORTED_MODULE_0__utils_js__["m" /* logInfo */]('CMP Success callback for version', consentThis.cmpVersion, checkFn);
 
-      if (__WEBPACK_IMPORTED_MODULE_0__utils__["isFn"](checkFn)) {
+      if (__WEBPACK_IMPORTED_MODULE_0__utils_js__["g" /* isFn */](checkFn)) {
         if (checkFn(consentObject)) {
           consentThis.resetConsentData();
-          __WEBPACK_IMPORTED_MODULE_0__utils__["logError"]("CMP returned unexpected value during lookup process.", consentObject);
+          __WEBPACK_IMPORTED_MODULE_0__utils_js__["l" /* logError */]("CMP returned unexpected value during lookup process.", consentObject);
         } else {
           consentThis.storeConsentData(consentObject);
         }
@@ -1937,15 +1810,15 @@ var ConsentManagement = /*#__PURE__*/function () {
 
 
 /***/ }),
-/* 6 */
+/* 7 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return Id5Status; });
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__config__ = __webpack_require__(7);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__config__ = __webpack_require__(8);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__constants_json__ = __webpack_require__(1);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__constants_json___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_1__constants_json__);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__abTesting__ = __webpack_require__(8);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__abTesting__ = __webpack_require__(9);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__utils__ = __webpack_require__(0);
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
@@ -2067,7 +1940,7 @@ var Id5Status = /*#__PURE__*/function () {
         this._userId = userId;
         this._linkType = linkType;
         this._fromCache = fromCache;
-        __WEBPACK_IMPORTED_MODULE_3__utils__["logInfo"]("Id5Status.setUserId: user id updated, hasChanged: ".concat(hasChanged)); // Evaluate if should be exposed
+        __WEBPACK_IMPORTED_MODULE_3__utils__["m" /* logInfo */]("Id5Status.setUserId: user id updated, hasChanged: ".concat(hasChanged)); // Evaluate if should be exposed
 
         var options = this.config.getOptions();
 
@@ -2082,10 +1955,10 @@ var Id5Status = /*#__PURE__*/function () {
           var currentThis = this; // Preserve this within callback
           // Fire onAvailable if not yet fired
 
-          if (__WEBPACK_IMPORTED_MODULE_3__utils__["isFn"](this._availableCallback) && this._availableCallbackFired === false) {
+          if (__WEBPACK_IMPORTED_MODULE_3__utils__["g" /* isFn */](this._availableCallback) && this._availableCallbackFired === false) {
             // Cancel pending watchdog
             if (this._availableCallbackTimerId) {
-              __WEBPACK_IMPORTED_MODULE_3__utils__["logInfo"]("Cancelling pending onAvailableCallback watchdog");
+              __WEBPACK_IMPORTED_MODULE_3__utils__["m" /* logInfo */]("Cancelling pending onAvailableCallback watchdog");
               clearTimeout(this._availableCallbackTimerId);
               this._availableCallbackTimerId = undefined;
             }
@@ -2096,11 +1969,11 @@ var Id5Status = /*#__PURE__*/function () {
           } // Fire onRefresh if not yet fired and not from cache
 
 
-          if (this._isRefreshing && __WEBPACK_IMPORTED_MODULE_3__utils__["isFn"](this._refreshCallback) && this._refreshCallbackFired === false) {
+          if (this._isRefreshing && __WEBPACK_IMPORTED_MODULE_3__utils__["g" /* isFn */](this._refreshCallback) && this._refreshCallbackFired === false) {
             if (fromCache === false || this._isRefreshingWithFetch === false) {
               // Cancel pending watchdog
               if (this._refreshCallbackTimerId) {
-                __WEBPACK_IMPORTED_MODULE_3__utils__["logInfo"]("Cancelling pending onRefreshCallback watchdog");
+                __WEBPACK_IMPORTED_MODULE_3__utils__["m" /* logInfo */]("Cancelling pending onRefreshCallback watchdog");
                 clearTimeout(this._refreshCallbackTimerId);
                 this._refreshCallbackTimerId = undefined;
               }
@@ -2112,7 +1985,7 @@ var Id5Status = /*#__PURE__*/function () {
           } // Always fire onUpdate if any change
 
 
-          if (hasChanged && __WEBPACK_IMPORTED_MODULE_3__utils__["isFn"](this._updateCallback)) {
+          if (hasChanged && __WEBPACK_IMPORTED_MODULE_3__utils__["g" /* isFn */](this._updateCallback)) {
             setTimeout(function () {
               return Id5Status.doFireOnUpdateCallBack(currentThis);
             }, 0);
@@ -2196,18 +2069,18 @@ var Id5Status = /*#__PURE__*/function () {
   }, {
     key: "onAvailable",
     value: function onAvailable(fn, timeout) {
-      if (!__WEBPACK_IMPORTED_MODULE_3__utils__["isFn"](fn)) {
+      if (!__WEBPACK_IMPORTED_MODULE_3__utils__["g" /* isFn */](fn)) {
         throw new Error('onAvailable expect a function');
       }
 
-      if (__WEBPACK_IMPORTED_MODULE_3__utils__["isFn"](this._availableCallback)) {
-        __WEBPACK_IMPORTED_MODULE_3__utils__["logInfo"]('onAvailable was already called, ignoring');
+      if (__WEBPACK_IMPORTED_MODULE_3__utils__["g" /* isFn */](this._availableCallback)) {
+        __WEBPACK_IMPORTED_MODULE_3__utils__["m" /* logInfo */]('onAvailable was already called, ignoring');
       } else {
         this._availableCallback = fn;
         var currentThis = this; // Preserve this within callback
 
         if (this.getUserId()) {
-          __WEBPACK_IMPORTED_MODULE_3__utils__["logInfo"]('Id5Status.onAvailable: User id already available firing callback immediately');
+          __WEBPACK_IMPORTED_MODULE_3__utils__["m" /* logInfo */]('Id5Status.onAvailable: User id already available firing callback immediately');
           this._availableCallbackTimerId = setTimeout(function () {
             return Id5Status.doFireOnAvailableCallBack(currentThis);
           }, 0);
@@ -2229,7 +2102,7 @@ var Id5Status = /*#__PURE__*/function () {
   }, {
     key: "onUpdate",
     value: function onUpdate(fn) {
-      if (!__WEBPACK_IMPORTED_MODULE_3__utils__["isFn"](fn)) {
+      if (!__WEBPACK_IMPORTED_MODULE_3__utils__["g" /* isFn */](fn)) {
         throw new Error('onUpdate expect a function');
       }
 
@@ -2255,7 +2128,7 @@ var Id5Status = /*#__PURE__*/function () {
   }, {
     key: "onRefresh",
     value: function onRefresh(fn, timeout) {
-      if (!__WEBPACK_IMPORTED_MODULE_3__utils__["isFn"](fn)) {
+      if (!__WEBPACK_IMPORTED_MODULE_3__utils__["g" /* isFn */](fn)) {
         throw new Error('onRefresh expect a function');
       } // We have a pending onRefresh, cancel it.
 
@@ -2289,7 +2162,7 @@ var Id5Status = /*#__PURE__*/function () {
   }], [{
     key: "doFireOnAvailableCallBack",
     value: function doFireOnAvailableCallBack(currentId5Status) {
-      __WEBPACK_IMPORTED_MODULE_3__utils__["logInfo"]("Id5Status.doFireOnAvailableCallBack");
+      __WEBPACK_IMPORTED_MODULE_3__utils__["m" /* logInfo */]("Id5Status.doFireOnAvailableCallBack");
       currentId5Status._availableCallbackFired = true;
       currentId5Status._availableCallbackTimerId = undefined;
 
@@ -2303,7 +2176,7 @@ var Id5Status = /*#__PURE__*/function () {
   }, {
     key: "doFireOnUpdateCallBack",
     value: function doFireOnUpdateCallBack(currentId5Status) {
-      __WEBPACK_IMPORTED_MODULE_3__utils__["logInfo"]("Id5Status.doFireOnUpdateCallBack");
+      __WEBPACK_IMPORTED_MODULE_3__utils__["m" /* logInfo */]("Id5Status.doFireOnUpdateCallBack");
 
       currentId5Status._updateCallback(currentId5Status);
     }
@@ -2315,7 +2188,7 @@ var Id5Status = /*#__PURE__*/function () {
   }, {
     key: "doFireOnRefreshCallBack",
     value: function doFireOnRefreshCallBack(currentId5Status) {
-      __WEBPACK_IMPORTED_MODULE_3__utils__["logInfo"]("Id5Status.doFireOnRefreshCallBack");
+      __WEBPACK_IMPORTED_MODULE_3__utils__["m" /* logInfo */]("Id5Status.doFireOnRefreshCallBack");
       currentId5Status._refreshCallbackFired = true;
       currentId5Status._refreshCallbackTimerId = undefined;
       currentId5Status._isRefreshing = false;
@@ -2331,11 +2204,12 @@ var Id5Status = /*#__PURE__*/function () {
 
 
 /***/ }),
-/* 7 */
+/* 8 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return Config; });
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__utils__ = __webpack_require__(0);
 function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
@@ -2349,7 +2223,7 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
 /*
  * Module for getting and setting ID5 API configuration.
  */
-var utils = __webpack_require__(0);
+
 /**
  * @typedef {Object} Id5Options
  * @property {number} [partnerId] - ID5 Publisher ID, mandatory
@@ -2373,7 +2247,6 @@ var utils = __webpack_require__(0);
  * @property {boolean|false} [enabled] - Enable control group
  * @property {number} [controlGroupPct] - Ratio of users in control group [0,1]
  */
-
 
 var Config = /*#__PURE__*/function () {
   /** @type {Id5Options} */
@@ -2456,7 +2329,7 @@ var Config = /*#__PURE__*/function () {
       var _this = this;
 
       if (_typeof(options) !== 'object') {
-        utils.logError('Config options must be an object');
+        Object(__WEBPACK_IMPORTED_MODULE_0__utils__["l" /* logError */])('Config options must be an object');
         return;
       }
 
@@ -2466,11 +2339,11 @@ var Config = /*#__PURE__*/function () {
       }
 
       Object.keys(options).forEach(function (topic) {
-        if (utils.isA(options[topic], Config.configTypes[topic])) {
+        if (Object(__WEBPACK_IMPORTED_MODULE_0__utils__["e" /* isA */])(options[topic], Config.configTypes[topic])) {
           _this.options[topic] = options[topic];
           _this.providedOptions[topic] = options[topic];
         } else {
-          utils.logError("updOptions options ".concat(topic, " must be of type ").concat(Config.configTypes[topic], " but was ").concat(toString.call(options[topic])));
+          Object(__WEBPACK_IMPORTED_MODULE_0__utils__["l" /* logError */])("updOptions options ".concat(topic, " must be of type ").concat(Config.configTypes[topic], " but was ").concat(toString.call(options[topic])));
         }
       });
     }
@@ -2499,7 +2372,7 @@ _defineProperty(Config, "configTypes", {
 
 
 /***/ }),
-/* 8 */
+/* 9 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -2519,7 +2392,7 @@ var ABTEST_RESOLUTION = 10000;
 
 function abTestBucket(userId) {
   if (userId) {
-    return (Object(__WEBPACK_IMPORTED_MODULE_0__utils__["cyrb53Hash"])(userId) % ABTEST_RESOLUTION + ABTEST_RESOLUTION) % ABTEST_RESOLUTION;
+    return (Object(__WEBPACK_IMPORTED_MODULE_0__utils__["b" /* cyrb53Hash */])(userId) % ABTEST_RESOLUTION + ABTEST_RESOLUTION) % ABTEST_RESOLUTION;
   } else {
     return Math.floor(Math.random() * ABTEST_RESOLUTION);
   }
@@ -2533,7 +2406,7 @@ function abTestBucket(userId) {
 
 
 function isInControlGroup(userId, controlGroupRatio) {
-  if (!Object(__WEBPACK_IMPORTED_MODULE_0__utils__["isNumber"])(controlGroupRatio) || controlGroupRatio < 0 || controlGroupRatio > 1) {
+  if (!Object(__WEBPACK_IMPORTED_MODULE_0__utils__["i" /* isNumber */])(controlGroupRatio) || controlGroupRatio < 0 || controlGroupRatio > 1) {
     throw new Error('A/B Testing controlGroupRatio must be a number >= 0 and <= 1');
   }
 
@@ -2541,8 +2414,181 @@ function isInControlGroup(userId, controlGroupRatio) {
 }
 /* unused harmony default export */ var _unused_webpack_default_export = (isInControlGroup);
 
+/***/ }),
+/* 10 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return version; });
+// generated by genversion
+var version = '1.0.4';
+
+/***/ }),
+/* 11 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return LocalStorage; });
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+function _defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
+
+function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _defineProperties(Constructor.prototype, protoProps); if (staticProps) _defineProperties(Constructor, staticProps); return Constructor; }
+
+function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
+
+/**
+ * This class deals with the mechanics of accessing the local storage
+ * on a certain window object
+ */
+var EXP_SUFFIX = '_exp';
+
+var LocalStorage = /*#__PURE__*/function () {
+  /** @type {boolean} */
+
+  /** @type {Object} */
+
+  /**
+   * Builds a new abstraction of the localStorage associated with
+   * the passed window object
+   * @param {Object} win the window object to use
+   */
+  function LocalStorage(win) {
+    _classCallCheck(this, LocalStorage);
+
+    _defineProperty(this, "available", false);
+
+    _defineProperty(this, "win", void 0);
+
+    this.win = win; // Test for availability
+
+    var test = '__id5test';
+
+    try {
+      this.win.localStorage.setItem(test, test);
+      this.win.localStorage.removeItem(test);
+      this.available = true;
+    } catch (e) {// do nothing
+    }
+  }
+  /**
+   * @returns {boolean} true if the localStorage is available
+   */
+
+
+  _createClass(LocalStorage, [{
+    key: "isAvailable",
+    value: function isAvailable() {
+      return this.available;
+    }
+    /**
+     * Gets a stored string from local storage
+     *
+     * @param {string} key
+     * @returns {string|null|undefined} the stored value, null if no value or expired were stored, undefined if no localStorage
+     */
+
+  }, {
+    key: "getItem",
+    value: function getItem(key) {
+      if (this.available) {
+        return this.win.localStorage.getItem(key);
+      }
+    }
+    /**
+     * Puts a string in local storage
+     *
+     * @param {string} key the key of the item
+     * @param {string} value the vaule to store
+     * @returns {undefined}
+     */
+
+  }, {
+    key: "setItem",
+    value: function setItem(key, value) {
+      if (this.available) {
+        this.win.localStorage.setItem(key, value);
+      }
+    }
+    /**
+     * Removes a string from local storage
+     * @param {string} key the key of the item
+     */
+
+  }, {
+    key: "removeItem",
+    value: function removeItem(key) {
+      if (this.available) {
+        this.win.localStorage.removeItem(key);
+      }
+    }
+    /**
+     * Gets a stored item from local storage dealing with expiration policy.
+     * @param {Object} config The item configuration
+     * @param {string} config.name The item name
+     * @returns {string|null} the stored value, null if no value, expired or no localStorage
+     */
+
+  }, {
+    key: "getItemWithExpiration",
+    value: function getItemWithExpiration(_ref) {
+      var name = _ref.name;
+      var storedValueExp = this.getItem(name + EXP_SUFFIX);
+
+      if (storedValueExp && !isExpired(storedValueExp)) {
+        return this.getItem(name);
+      } else {
+        this.removeItemWithExpiration({
+          name: name
+        });
+        return null;
+      }
+    }
+    /**
+     * Stores an item in local storage dealing with expiration policy.
+     * @param {Object} config The item configuration
+     * @param {string} config.name The item name
+     * @param {number} config.expiresDays The expiration in days
+     * @returns {undefined}
+     */
+
+  }, {
+    key: "setItemWithExpiration",
+    value: function setItemWithExpiration(_ref2, value) {
+      var name = _ref2.name,
+          expiresDays = _ref2.expiresDays;
+      var expirationInMs = Date.now() + expiresDays * (60 * 60 * 24 * 1000);
+      var expiresStr = new Date(expirationInMs).toUTCString();
+      this.setItem(name + EXP_SUFFIX, expiresStr);
+      this.setItem(name, value);
+    }
+    /**
+     * Removes an item from local storage dealing with expiration policy.
+     */
+
+  }, {
+    key: "removeItemWithExpiration",
+    value: function removeItemWithExpiration(_ref3) {
+      var name = _ref3.name;
+      this.removeItem(name);
+      this.removeItem(name + EXP_SUFFIX);
+    }
+  }]);
+
+  return LocalStorage;
+}();
+/**
+ * Tells whether a stored expiration date has passed
+ * @param {string} dateValue the .toUTCString() representation of the expiration date
+ */
+
+
+
+
+function isExpired(dateValue) {
+  return new Date(dateValue).getTime() - Date.now() <= 0;
+}
+
 /***/ })
 /******/ ]);
 //# sourceMappingURL=id5-api.js.map
-ID5.version='1.0.3';
-ID5.versions[ID5.version]=true;
