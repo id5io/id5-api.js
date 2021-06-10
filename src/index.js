@@ -1,4 +1,4 @@
-import ID5 from '../lib/id5-api'
+import ID5 from '../lib/id5-api';
 
 if (!window.ID5) {
   window.ID5 = ID5;
