@@ -12,16 +12,10 @@ describe('LocalStorage', function() {
       expect(testStorage.isAvailable()).to.equal(false);
     });
 
-    it('returns undefined when reading', () => {
+    it('returns undefined / null when reading', () => {
       const testStorage = new LocalStorage(windowMock);
       expect(testStorage.getItem('test')).to.equal(undefined);
-      expect(testStorage.getItemWithExpiration({ name: 'test' })).to.equal(undefined);
-    });
-
-    it('returns undefined when reading', () => {
-      const testStorage = new LocalStorage(windowMock);
-      expect(testStorage.getItem('test')).to.equal(undefined);
-      expect(testStorage.getItemWithExpiration({ name: 'test' })).to.equal(undefined);
+      expect(testStorage.getItemWithExpiration({ name: 'test' })).to.equal(null);
     });
 
     it('does not attempt to write', () => {

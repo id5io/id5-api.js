@@ -1,26 +1,24 @@
 module.exports = {
-  "env": {
-    "browser": true,
-    "commonjs": true
+  env: {
+    browser: true
   },
-  "settings": {
+  root: true,
+  settings: {
     "import/resolver": {
-      "node": {
-        "moduleDirectory": ["node_modules", "./"]
+      node: {
+        moduleDirectory: ["node_modules", "./"]
       }
     }
   },
-  "extends": "standard",
-  "plugins": [ ],
-  "globals": {
-    "ID5": false
+  extends: "standard",
+  parser: "@babel/eslint-parser",
+  plugins: [ "@babel" ],
+  globals: {
+    ID5: false
   },
-  "parser": "@babel/eslint-parser",
-  "parserOptions": {
-    "sourceType": "module"
-  },
-  "rules": {
+  rules: {
     "semi": "off",
+    "@babel/semi": "error",
     "space-before-function-paren": "off",
   }
 };
