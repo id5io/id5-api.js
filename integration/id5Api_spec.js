@@ -33,7 +33,7 @@ const mockFetchReponse = {
 describe('The ID5 API', function() {
   let browser, server, CONSTANTS;
 
-  this.timeout(330000);
+  this.timeout(30000);
 
   before(async () => {
     CONSTANTS = JSON.parse(await readFile(path.join(SCRIPT_DIR,
