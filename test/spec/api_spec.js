@@ -273,6 +273,17 @@ describe('ID5 JS API', function () {
           expect(localStorage.getItemWithExpiration(TEST_PD_STORAGE_CONFIG)).to.be.equal(utils.cyrb53Hash(''));
         });
 
+        it('does not drop local storage items when options.applyCreativeRestrictions', function () {
+          const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true, applyCreativeRestrictions: true});
+
+          expect(localStorage.getItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG)).to.be.null;
+          expect(localStorage.getItemWithExpiration(TEST_PRIVACY_STORAGE_CONFIG)).to.be.null;
+          expect(localStorage.getItemWithExpiration(TEST_PD_STORAGE_CONFIG)).to.be.null;
+
+          // hack!! Should be removed by a better implementation of applyCreativeRestrictions
+          ID5.localStorage.enableWriting();
+        });
+
         it('should request new value with pd and provider in request when pd and provider config is set with consent override', function () {
           ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true, pd: 'pubdata', provider: 'test-provider', partnerUserId: 'abc' });
 
