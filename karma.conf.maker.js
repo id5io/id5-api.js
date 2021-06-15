@@ -57,7 +57,7 @@ function setBrowsers(karmaConf) {
     };
     karmaConf.browsers = ['ChromeCustom'];
   } else {
-    karmaConf.browsers = ['ChromeHeadless'];
+    karmaConf.browsers = ['Chrome'];
   }
 }
 

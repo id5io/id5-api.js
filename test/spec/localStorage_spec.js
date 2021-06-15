@@ -93,5 +93,13 @@ describe('LocalStorage', function() {
       expect(windowMock.localStorage.removeItem.firstCall.args[0]).to.equal('test');
       expect(windowMock.localStorage.removeItem.secondCall.args[0]).to.equal('test_exp');
     });
+
+    it('skips writing when writing is disabled', () => {
+      const testStorage = new LocalStorage(windowMock);
+      windowMock.localStorage.setItem.resetHistory();
+      testStorage.disableWriting();
+      testStorage.setItemWithExpiration({ name: 'test', expiresDays: 11 }, 'value');
+      assert(windowMock.localStorage.setItem.notCalled);
+    });
   });
 });
