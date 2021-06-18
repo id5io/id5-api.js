@@ -95,9 +95,8 @@ describe('LocalStorage', function() {
     });
 
     it('skips writing when writing is disabled', () => {
-      const testStorage = new LocalStorage(windowMock);
+      const testStorage = new LocalStorage(windowMock, false);
       windowMock.localStorage.setItem.resetHistory();
-      testStorage.disableWriting();
       testStorage.setItemWithExpiration({ name: 'test', expiresDays: 11 }, 'value');
       assert(windowMock.localStorage.setItem.notCalled);
     });

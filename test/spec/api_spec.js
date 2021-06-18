@@ -106,9 +106,6 @@ describe('ID5 JS API', function () {
 
   beforeEach(function () {
     ID5.debug = false;
-    ID5.debugBypassConsent = false;
-    ID5.allowLocalStorageWithoutConsentApi = false;
-    ID5.localStorageAllowed = false;
   });
 
   function resetAll() {
@@ -161,21 +158,6 @@ describe('ID5 JS API', function () {
 
         sinon.assert.notCalled(ajaxStub);
         expect(id5Status).to.be.undefined;
-      });
-
-      it('should fail if ID5.version is not set', function () {
-        let version;
-        let id5Status;
-        try {
-          version = ID5.version;
-          ID5.version = undefined;
-
-          id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID });
-        } catch (e) { }
-
-        sinon.assert.notCalled(ajaxStub);
-        expect(id5Status).to.be.undefined;
-        ID5.version = version;
       });
     });
   });
@@ -266,9 +248,6 @@ describe('ID5 JS API', function () {
           expect(localStorage.getItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG)).to.be.null;
           expect(localStorage.getItemWithExpiration(TEST_PRIVACY_STORAGE_CONFIG)).to.be.null;
           expect(localStorage.getItemWithExpiration(TEST_PD_STORAGE_CONFIG)).to.be.null;
-
-          // hack!! Should be removed by a better implementation of applyCreativeRestrictions
-          ID5.localStorage.enableWriting();
         });
 
         it('should request new value with pd and provider in request when pd and provider config is set with consent override', function () {
