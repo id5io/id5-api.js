@@ -2,7 +2,6 @@ import sinon from 'sinon';
 import CONSTANTS from '../../lib/constants.json';
 import * as utils from '../../lib/utils';
 import ClientStore from '../../lib/clientStore';
-import * as abTesting from '../../lib/abTesting';
 import { version } from '../../generated/version.js';
 import LocalStorage from '../../lib/localStorage.js';
 import ID5 from '../../lib/id5-api';
@@ -54,8 +53,6 @@ describe('ID5 JS API', function () {
     'id5_consent': false
   });
 
-  const TEST_CONTROL_GROUP_USERID = '0';
-  const TEST_CONTROL_GROUP_LINKTYPE = 0;
   const TEST_STORED_ID5ID = 'teststoredid5id';
   const TEST_STORED_SIGNATURE = 'abcdef';
   const TEST_STORED_LINK_TYPE = 0;
@@ -80,16 +77,6 @@ describe('ID5 JS API', function () {
       ext: {
         linkType: TEST_RESPONSE_LINK_TYPE,
         abTestingControlGroup: false
-      }
-    }]
-  };
-  const TEST_RESPONSE_EID_AB_CONTROL_GROUP = {
-    source: CONSTANTS.ID5_EIDS_SOURCE,
-    uids: [{
-      id: TEST_CONTROL_GROUP_USERID,
-      ext: {
-        linkType: TEST_CONTROL_GROUP_LINKTYPE,
-        abTestingControlGroup: true
       }
     }]
   };
@@ -2459,114 +2446,157 @@ describe('ID5 JS API', function () {
 
   describe('A/B Testing', function () {
     let ajaxStub;
-    let isInControlGroupStub;
+    const API_CONFIG = {
+      partnerId: TEST_ID5_PARTNER_ID,
+      debugBypassConsent: true,
+      abTesting: { enabled: true, controlGroupPct: 0.5 } // config not relevant with the stub
+    };
 
     before(function () {
       localStorage.removeItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG);
       localStorage.removeItemWithExpiration(TEST_LAST_STORAGE_CONFIG);
       ID5.userId = undefined;
     });
-    beforeEach(function () {
-      ajaxStub = sinon.stub(utils, 'ajax').callsFake(function(url, callbacks, data, options) {
-        callbacks.success(JSON_RESPONSE_ID5_CONSENT);
-      });
-    });
+
     afterEach(function () {
-      ajaxStub.restore();
       localStorage.removeItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG);
       localStorage.removeItemWithExpiration(TEST_LAST_STORAGE_CONFIG);
       ID5.userId = undefined;
     });
 
     describe('Function Availability', function() {
+      beforeEach(function () {
+        ajaxStub = sinon.stub(utils, 'ajax').callsFake(function(url, callbacks, data, options) {
+          callbacks.success(JSON_RESPONSE_ID5_CONSENT);
+        });
+      });
+      afterEach(function () {
+        ajaxStub.restore();
+      });
+
       it('should set exposeUserId to true without any config', function() {
         const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID });
         expect(id5Status.exposeUserId()).to.be.true;
       });
+
+      it('should send ab_testing config in server request', function () {
+        ID5.init(API_CONFIG);
+
+        sinon.assert.calledOnce(ajaxStub);
+        const requestData = JSON.parse(ajaxStub.firstCall.args[2]);
+        expect(requestData.ab_testing).to.be.an('object');
+        expect(requestData.ab_testing.enabled).to.be.true;
+        expect(requestData.ab_testing.control_group_pct).to.equal(0.5);
+      });
     });
 
     describe('Not in Control Group', function() {
-      let apiConfig = {
-        partnerId: TEST_ID5_PARTNER_ID,
-        debugBypassConsent: true,
-        abTesting: { enabled: true, controlGroupPct: 0.5 } // config not relevant with the stub
+      const JSON_ABTEST = JSON.stringify({
+        'universal_uid': 'whateverID_AB_NORMAL',
+        'cascade_needed': false,
+        'signature': TEST_STORED_SIGNATURE,
+        'link_type': 1,
+        'privacy': JSON.parse(TEST_PRIVACY_ALLOWED),
+        'ab_testing': {
+          'result': 'normal'
+        }
+      });
+      const ENCODED_STORED_JSON_ABSTEST = encodeURIComponent(JSON_ABTEST);
+      const TEST_RESPONSE_EID_AB_NORMAL = {
+        source: CONSTANTS.ID5_EIDS_SOURCE,
+        uids: [{
+          id: 'whateverID_AB_NORMAL',
+          ext: {
+            linkType: 1,
+            abTestingControlGroup: false
+          }
+        }]
       };
 
       beforeEach(function () {
-        isInControlGroupStub = sinon.stub(abTesting, 'isInControlGroup').callsFake(() => {
-          return false;
+        ajaxStub = sinon.stub(utils, 'ajax').callsFake(function(url, callbacks, data, options) {
+          callbacks.success(JSON_ABTEST);
         });
       });
       afterEach(function () {
-        isInControlGroupStub.restore();
-      });
-
-      it('should expose ID5.userId from a server response', function () {
-        const id5Status = ID5.init(apiConfig);
-
-        sinon.assert.calledOnce(ajaxStub);
-        expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
-        expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
-        expect(localStorage.getItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(encodeURIComponent(JSON_RESPONSE_ID5_CONSENT));
-        expect(id5Status.exposeUserId()).to.be.true;
-        expect(id5Status.getUserIdAsEid()).to.be.eql(TEST_RESPONSE_EID);
-
-        const requestData = JSON.parse(ajaxStub.firstCall.args[2]);
-        expect(requestData.features.ab).to.be.equal(1);
+        ajaxStub.restore();
       });
 
       it('should expose ID5.userId from a stored response', function () {
-        localStorage.setItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON);
+        localStorage.setItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG, ENCODED_STORED_JSON_ABSTEST);
         localStorage.setItemWithExpiration(TEST_LAST_STORAGE_CONFIG, new Date().toUTCString());
 
-        const id5Status = ID5.init(apiConfig);
+        const id5Status = ID5.init(API_CONFIG);
 
         sinon.assert.notCalled(ajaxStub);
-        expect(id5Status.getUserId()).to.be.equal(TEST_STORED_ID5ID);
-        expect(id5Status.getLinkType()).to.be.equal(TEST_STORED_LINK_TYPE);
+        expect(id5Status.getUserId()).to.be.equal('whateverID_AB_NORMAL');
+        expect(id5Status.getLinkType()).to.be.equal(1);
         expect(id5Status.exposeUserId()).to.be.true;
+      });
+
+      it('should expose ID5.userId from a server response', function () {
+        const id5Status = ID5.init(API_CONFIG);
+
+        sinon.assert.calledOnce(ajaxStub);
+        expect(id5Status.getUserId()).to.be.equal('whateverID_AB_NORMAL');
+        expect(id5Status.getLinkType()).to.be.equal(1);
+        expect(id5Status.exposeUserId()).to.be.true;
+        expect(id5Status.getUserIdAsEid()).to.eql(TEST_RESPONSE_EID_AB_NORMAL);
       });
     });
 
     describe('In Control Group', function() {
-      let apiConfig = {
-        partnerId: TEST_ID5_PARTNER_ID,
-        debugBypassConsent: true,
-        abTesting: { enabled: true, controlGroupPct: 0.5 } // config not relevant with the stub
+      const JSON_ABTEST = JSON.stringify({
+        'universal_uid': 'whateverID_AB_NORMAL',
+        'cascade_needed': false,
+        'signature': TEST_STORED_SIGNATURE,
+        'link_type': 1,
+        'privacy': JSON.parse(TEST_PRIVACY_ALLOWED),
+        'ab_testing': {
+          'result': 'control'
+        }
+      });
+      const ENCODED_STORED_JSON_ABSTEST = encodeURIComponent(JSON_ABTEST);
+      const TEST_RESPONSE_EID_AB_CONTROL_GROUP = {
+        source: CONSTANTS.ID5_EIDS_SOURCE,
+        uids: [{
+          id: '0',
+          ext: {
+            linkType: 0,
+            abTestingControlGroup: true
+          }
+        }]
       };
 
       beforeEach(function () {
-        isInControlGroupStub = sinon.stub(abTesting, 'isInControlGroup').callsFake(() => {
-          return true;
+        ajaxStub = sinon.stub(utils, 'ajax').callsFake(function(url, callbacks, data, options) {
+          callbacks.success(JSON_ABTEST);
         });
       });
       afterEach(function () {
-        isInControlGroupStub.restore();
+        ajaxStub.restore();
       });
 
       it('should not expose ID5.userId from a server response', function () {
-        const id5Status = ID5.init(apiConfig);
+        const id5Status = ID5.init(API_CONFIG);
 
         sinon.assert.calledOnce(ajaxStub);
-        expect(id5Status.getUserId()).to.be.equal(TEST_CONTROL_GROUP_USERID);
-        expect(id5Status.getLinkType()).to.be.equal(TEST_CONTROL_GROUP_LINKTYPE);
-        expect(localStorage.getItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(encodeURIComponent(JSON_RESPONSE_ID5_CONSENT));
+        expect(id5Status.getUserId()).to.be.equal('0');
+        expect(id5Status.getLinkType()).to.be.equal(0);
+        expect(localStorage.getItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(encodeURIComponent(JSON_ABTEST));
         expect(id5Status.exposeUserId()).to.be.false;
         expect(id5Status.getUserIdAsEid()).to.be.eql(TEST_RESPONSE_EID_AB_CONTROL_GROUP);
-
-        const requestData = JSON.parse(ajaxStub.firstCall.args[2]);
-        expect(requestData.features.ab).to.be.equal(1);
       });
 
       it('should not expose ID5.userId from a stored response', function () {
-        localStorage.setItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON);
+        localStorage.setItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG, ENCODED_STORED_JSON_ABSTEST);
         localStorage.setItemWithExpiration(TEST_LAST_STORAGE_CONFIG, new Date().toUTCString());
 
-        const id5Status = ID5.init(apiConfig);
+        const id5Status = ID5.init(API_CONFIG);
 
         sinon.assert.notCalled(ajaxStub);
-        expect(id5Status.getUserId()).to.be.equal(TEST_CONTROL_GROUP_USERID);
-        expect(id5Status.getLinkType()).to.be.equal(TEST_CONTROL_GROUP_LINKTYPE);
+        expect(id5Status.getUserId()).to.be.equal('0');
+        expect(id5Status.getLinkType()).to.be.equal(0);
         expect(id5Status.exposeUserId()).to.be.false;
         expect(id5Status.getUserIdAsEid()).to.be.eql(TEST_RESPONSE_EID_AB_CONTROL_GROUP);
       });
