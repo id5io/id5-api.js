@@ -1,7 +1,7 @@
 import sinon from 'sinon';
-import ConsentManagement from '../../lib/consentManagement';
+import { ConsentManagement } from '../../lib/consentManagement.js';
 import LocalStorage from '../../lib/localStorage.js';
-import * as utils from '../../lib/utils';
+import * as utils from '../../lib/utils.js';
 
 let expect = require('chai').expect;
 
@@ -372,7 +372,7 @@ describe('Consent Management TCFv2', function () {
         const consent = new ConsentManagement(localStorage);
         consent.requestConsent(false, 'iab', undefined, callbackSpy);
 
-        sinon.assert.calledTwice(utils.logError);
+        sinon.assert.calledOnce(utils.logError);
         sinon.assert.calledOnce(callbackSpy);
         expect(consent.consentData).to.be.undefined;
         expect(consent.isLocalStorageAllowed(false, false)).to.be.undefined;
