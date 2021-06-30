@@ -67,7 +67,7 @@ describe('Consent Management TCFv1', function () {
     });
 
     describe('error checks:', function () {
-      it('should throw a warning and return to callback function when an unknown CMP framework ID is used', function () {
+      it('should print a warning and return to callback function when an unknown CMP framework ID is used', function () {
         const consent = new ConsentManagement(localStorage);
         consent.requestConsent(false, 'bad', {}, callbackSpy);
 
@@ -76,9 +76,27 @@ describe('Consent Management TCFv1', function () {
         expect(consent.consentData).to.be.undefined;
       });
 
-      it('should throw proper errors when CMP is not found', function () {
+      it('should print an error when CMP is not found', function () {
         const consent = new ConsentManagement(localStorage);
         consent.requestConsent(false, 'iab', undefined, callbackSpy);
+
+        sinon.assert.calledOnce(utils.logError);
+        sinon.assert.calledOnce(callbackSpy);
+        expect(consent.consentData).to.be.undefined;
+      });
+
+      it('should print an error when static CPM has the wrong structure', function () {
+        const consent = new ConsentManagement(localStorage);
+        consent.requestConsent(false, 'static', { test: 'test' }, callbackSpy);
+
+        sinon.assert.calledOnce(utils.logError);
+        sinon.assert.calledOnce(callbackSpy);
+        expect(consent.consentData).to.be.undefined;
+      });
+
+      it('should print an error when static CPM has undefined data', function () {
+        const consent = new ConsentManagement(localStorage);
+        consent.requestConsent(false, 'static', undefined, callbackSpy);
 
         sinon.assert.calledOnce(utils.logError);
         sinon.assert.calledOnce(callbackSpy);
