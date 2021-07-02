@@ -1,426 +1,530 @@
-import sinon from 'sinon';
+import { spy, stub, assert } from 'sinon';
+import { expect } from 'chai';
 import { ConsentManagement } from '../../lib/consentManagement.js';
-import LocalStorage from '../../lib/localStorage.js';
 import * as utils from '../../lib/utils.js';
-
-let expect = require('chai').expect;
+import CONSTANTS from '../../lib/constants.json';
 
 const TEST_PRIVACY_STORAGE_CONFIG = {
   name: 'id5id_privacy',
   expiresDays: 30
 }
 
-const localStorage = new LocalStorage(window);
+const TEST_CONSENT_DATA_V1 = {
+  getConsentData: {
+    'gdprApplies': true,
+    'hasGlobalScope': false,
+    'consentData': 'BOOgjO9OOgjO9APABAENAi-AAAAWd7_______9____7_9uz_Gv_r_ff_3nW0739P1A_r_Oz_rm_-zzV44_lpQQRCEA'
+  },
+  getVendorConsents: {
+    'metadata': 'BOOgjO9OOgjO9APABAENAi-AAAAWd7_______9____7_9uz_Gv_r_ff_3nW0739P1A_r_Oz_rm_-zzV44_lpQQRCEA',
+    'gdprApplies': true,
+    'hasGlobalScope': false,
+    'isEU': true,
+    'cookieVersion': 1,
+    'created': '2018-05-29T07:45:48.522Z',
+    'lastUpdated': '2018-05-29T07:45:48.522Z',
+    'cmpId': 15,
+    'cmpVersion': 1,
+    'consentLanguage': 'EN',
+    'vendorListVersion': 34,
+    'maxVendorId': 10,
+    'purposeConsents': {
+      '1': true, // Cookies/local storage access
+      '2': true,
+      '3': true,
+      '4': true,
+      '5': true
+    },
+    'vendorConsents': {
+      '1': true,
+      '2': true
+    }
+  }
+};
+
+const TEST_CONSENT_DATA_V2 = {
+  getTCData: {
+    'tcString': 'COuqj-POu90rDBcBkBENAZCgAPzAAAPAACiQFwwBAABAA1ADEAbQC4YAYAAgAxAG0A',
+    'cmpId': 92,
+    'cmpVersion': 100,
+    'tcfPolicyVersion': 2,
+    'gdprApplies': true,
+    'isServiceSpecific': true,
+    'useNonStandardStacks': false,
+    'purposeOneTreatment': false,
+    'publisherCC': 'US',
+    'cmpStatus': 'loaded',
+    'eventStatus': 'tcloaded',
+    'outOfBand': {
+      'allowedVendors': {},
+      'discloseVendors': {}
+    },
+    'purpose': {
+      'consents': {
+        '1': true,
+        '2': true,
+        '3': true
+      },
+      'legitimateInterests': {
+        '1': false,
+        '2': false,
+        '3': false
+      }
+    },
+    'vendor': {
+      'consents': {
+        '1': true,
+        '2': true,
+        '3': false
+      },
+      'legitimateInterests': {
+        '1': false,
+        '2': true,
+        '3': false,
+        '4': false,
+        '5': false
+      }
+    },
+    'specialFeatureOptins': {
+      '1': false,
+      '2': false
+    },
+    'restrictions': {},
+    'publisher': {
+      'consents': {
+        '1': false,
+        '2': false,
+        '3': false
+      },
+      'legitimateInterests': {
+        '1': false,
+        '2': false,
+        '3': false
+      },
+      'customPurpose': {
+        'consents': {},
+        'legitimateInterests': {}
+      }
+    }
+  }
+};
 
 describe('Consent Management', function () {
-  describe('TCFv1', function () {
-    before(function() {
-      localStorage.removeItemWithExpiration(TEST_PRIVACY_STORAGE_CONFIG);
+  let localStorageMock, callbackSpy;
+
+  beforeEach(function() {
+    callbackSpy = spy();
+
+    spy(utils, 'logError');
+    spy(utils, 'logWarn');
+
+    localStorageMock = {
+      getItemWithExpiration: stub(),
+      setItemWithExpiration: stub()
+    };
+  });
+
+  afterEach(function () {
+    callbackSpy.resetHistory();
+    utils.logWarn.restore();
+    utils.logError.restore();
+  });
+
+  it('should print an error and return to callback function when an unknown CMP framework ID is used', function () {
+    const consent = new ConsentManagement(localStorageMock);
+    consent.requestConsent(false, 'bad', {}, callbackSpy);
+
+    assert.calledOnce(utils.logError);
+    assert.calledOnce(callbackSpy);
+    expect(consent.consentData).to.be.undefined;
+  });
+
+  describe('with static consent data', function () {
+    it('should print an error when static CPM has the wrong structure', function () {
+      const consent = new ConsentManagement(localStorageMock);
+      consent.requestConsent(false, 'static', { test: 'test' }, callbackSpy);
+
+      assert.calledOnce(utils.logError);
+      assert.calledOnce(callbackSpy);
+      expect(consent.consentData).to.be.undefined;
     });
-    afterEach(function() {
-      localStorage.removeItemWithExpiration(TEST_PRIVACY_STORAGE_CONFIG);
+
+    it('should print an error when static CPM has undefined data', function () {
+      const consent = new ConsentManagement(localStorageMock);
+      consent.requestConsent(false, 'static', undefined, callbackSpy);
+
+      assert.calledOnce(utils.logError);
+      assert.calledOnce(callbackSpy);
+      expect(consent.consentData).to.be.undefined;
     });
 
-    describe('requestConsent tests:', function () {
-      let testConsentData = {
-        getConsentData: {
-          'gdprApplies': true,
-          'hasGlobalScope': false,
-          'consentData': 'BOOgjO9OOgjO9APABAENAi-AAAAWd7_______9____7_9uz_Gv_r_ff_3nW0739P1A_r_Oz_rm_-zzV44_lpQQRCEA'
-        },
-        getVendorConsents: {
-          'metadata': 'BOOgjO9OOgjO9APABAENAi-AAAAWd7_______9____7_9uz_Gv_r_ff_3nW0739P1A_r_Oz_rm_-zzV44_lpQQRCEA',
-          'gdprApplies': true,
-          'hasGlobalScope': false,
-          'isEU': true,
-          'cookieVersion': 1,
-          'created': '2018-05-29T07:45:48.522Z',
-          'lastUpdated': '2018-05-29T07:45:48.522Z',
-          'cmpId': 15,
-          'cmpVersion': 1,
-          'consentLanguage': 'EN',
-          'vendorListVersion': 34,
-          'maxVendorId': 10,
-          'purposeConsents': {
-            '1': true, // Cookies/local storage access
-            '2': true,
-            '3': true,
-            '4': true,
-            '5': true
-          },
-          'vendorConsents': {
-            '1': true,
-            '2': true
-          }
-        }
-      };
+    it('should parse correctly TCFv1 static data', function () {
+      const consent = new ConsentManagement(localStorageMock);
+      consent.requestConsent(false, 'static', TEST_CONSENT_DATA_V1, callbackSpy);
 
-      let callbackSpy
-      beforeEach(function () {
-        callbackSpy = sinon.spy();
-        sinon.spy(utils, 'logError');
-        sinon.spy(utils, 'logWarn');
+      assert.calledOnce(callbackSpy);
+      expect(consent.consentData.consentString).to.equal(TEST_CONSENT_DATA_V1.getConsentData.consentData);
+      expect(consent.consentData.gdprApplies).to.be.true;
+      expect(consent.consentData.hasCcpaString).to.be.false;
+      expect(consent.isLocalStorageAllowed(false, false)).to.be.true;
+    });
+
+    it('prints an error if static TCFv1 data is invalid', function () {
+      const consent = new ConsentManagement(localStorageMock);
+      consent.requestConsent(false, 'static', { getConsentData: {}, getVendorConsents: {} }, callbackSpy);
+
+      assert.calledOnce(utils.logError);
+      assert.calledOnce(callbackSpy);
+      expect(consent.consentData).to.be.undefined;
+      expect(consent.isLocalStorageAllowed(false, false)).to.be.undefined;
+      expect(consent.isLocalStorageAllowed(true, false)).to.be.true;
+    });
+
+    it('prints a warning debugBypassConsent set to true', function () {
+      const consent = new ConsentManagement(localStorageMock);
+      consent.requestConsent(true, 'static', undefined, callbackSpy);
+
+      assert.calledOnce(utils.logWarn);
+      assert.calledOnce(callbackSpy);
+      expect(consent.consentData).to.be.undefined;
+      expect(consent.isLocalStorageAllowed(false, true)).to.be.true;
+    });
+
+    it('should parse correctly TCFv2 static data', function () {
+      const consent = new ConsentManagement(localStorageMock);
+      consent.requestConsent(false, 'static', TEST_CONSENT_DATA_V2, callbackSpy);
+
+      assert.calledOnce(callbackSpy);
+      assert.notCalled(utils.logWarn);
+      assert.notCalled(utils.logError);
+      expect(consent.consentData.consentString).to.equal(TEST_CONSENT_DATA_V2.getTCData.tcString);
+      expect(consent.consentData.gdprApplies).to.be.true;
+      expect(consent.consentData.hasCcpaString).to.be.false;
+      expect(consent.isLocalStorageAllowed(false, false)).to.be.true;
+    });
+
+    it('prints an error if static TCFv2 data is invalid', function () {
+      const consent = new ConsentManagement(localStorageMock);
+      consent.requestConsent(false, 'static', { getTCData: {} }, callbackSpy);
+
+      assert.calledOnce(utils.logError);
+      assert.calledOnce(callbackSpy);
+      expect(consent.consentData).to.be.undefined;
+      expect(consent.isLocalStorageAllowed(false, false)).to.be.undefined;
+      expect(consent.isLocalStorageAllowed(true, false)).to.be.true;
+    });
+
+    it('should parse correctly USPv1 static data', function () {
+      const consent = new ConsentManagement(localStorageMock);
+      consent.requestConsent(false, 'static', { getUSPData: { uspString: '1YNN' } }, callbackSpy);
+
+      assert.calledOnce(callbackSpy);
+      assert.notCalled(utils.logWarn);
+      assert.notCalled(utils.logError);
+      expect(consent.consentData.gdprApplies).to.be.false;
+      expect(consent.consentData.hasCcpaString).to.be.true;
+      expect(consent.consentData.ccpaString).to.equal('1YNN');
+      expect(consent.isLocalStorageAllowed(false, false)).to.be.true;
+    });
+
+    it('prints an error if static USPv1 data is invalid', function () {
+      const consent = new ConsentManagement(localStorageMock);
+      consent.requestConsent(false, 'static', { getUSPData: {} }, callbackSpy);
+
+      assert.calledOnce(utils.logError);
+      assert.calledOnce(callbackSpy);
+      expect(consent.consentData).to.be.undefined;
+      expect(consent.isLocalStorageAllowed(false, false)).to.be.undefined;
+      expect(consent.isLocalStorageAllowed(true, false)).to.be.true;
+    });
+  });
+
+  describe('framework detection', function() {
+    it('should print a warning when no TCF is found (but CCPA is found)', function () {
+      window.__uspapi = spy();
+      const consent = new ConsentManagement(localStorageMock);
+      consent.requestConsent(false, 'iab', undefined, callbackSpy);
+
+      assert.calledOnce(utils.logWarn);
+      delete window.__uspapi;
+    });
+
+    it('should print a warning when no CCPA is found (but TCF is found)', function () {
+      window.__tcfapi = spy();
+      const consent = new ConsentManagement(localStorageMock);
+      consent.requestConsent(false, 'iab', undefined, callbackSpy);
+
+      assert.calledOnce(utils.logWarn);
+      delete window.__tcfapi;
+    });
+  });
+
+  describe('with TCFv1 IAB compliant CMP', function () {
+    let cmpStub;
+
+    beforeEach(function() {
+      window.__cmp = cmpStub = stub();
+    });
+
+    afterEach(function () {
+      delete window.__cmp;
+    });
+
+    it('can receive the data in a normal call flow', function () {
+      cmpStub.callsFake((command, param, callback) => {
+        callback(TEST_CONSENT_DATA_V1[command], true);
       });
-      afterEach(function () {
-        callbackSpy.resetHistory();
-        utils.logWarn.restore();
-        utils.logError.restore();
+      const consent = new ConsentManagement(localStorageMock);
+      consent.requestConsent(false, 'iab', undefined, callbackSpy);
+
+      assert.calledOnce(callbackSpy);
+      expect(consent.consentData.consentString).to.equal(TEST_CONSENT_DATA_V1.getConsentData.consentData);
+      expect(consent.consentData.vendorData.metadata).to.equal(TEST_CONSENT_DATA_V1.getVendorConsents.metadata);
+      expect(consent.consentData.gdprApplies).to.be.true;
+      expect(consent.consentData.apiVersion).to.equal(1);
+      expect(consent.consentData.hasCcpaString).to.be.false;
+
+      // two calls: getConsentData, getVendorConsents
+      assert.calledTwice(cmpStub);
+    });
+
+    it('should bypass CMP and return stored consentData when calling twice', function() {
+      cmpStub.callsFake((command, param, callback) => {
+        callback(TEST_CONSENT_DATA_V1[command], true);
       });
 
-      describe('error checks:', function () {
-        it('should print a warning and return to callback function when an unknown CMP framework ID is used', function () {
-          const consent = new ConsentManagement(localStorage);
-          consent.requestConsent(false, 'bad', {}, callbackSpy);
+      const consent = new ConsentManagement(localStorageMock);
+      consent.requestConsent(false, 'iab', undefined, callbackSpy);
+      cmpStub.reset();
 
-          sinon.assert.calledOnce(utils.logError);
-          sinon.assert.calledOnce(callbackSpy);
-          expect(consent.consentData).to.be.undefined;
+      consent.requestConsent(false, 'iab', undefined, callbackSpy);
+      assert.calledTwice(callbackSpy);
+      expect(callbackSpy.firstCall.firstArg).to.equal(callbackSpy.secondCall.firstArg)
+      assert.notCalled(cmpStub);
+    });
+
+    it('should reset the status correctly', function() {
+      cmpStub.callsFake((command, param, callback) => {
+        callback(TEST_CONSENT_DATA_V1[command]);
+      });
+
+      const consent = new ConsentManagement(localStorageMock);
+      consent.requestConsent(false, 'iab', undefined, callbackSpy);
+      consent.resetConsentData();
+
+      consent.requestConsent(false, 'iab', undefined, callbackSpy);
+      assert.calledTwice(callbackSpy);
+      expect(cmpStub.callCount).to.equal(4);
+    });
+
+    [
+      {
+        getConsentData: null,
+        getVendorConsents: TEST_CONSENT_DATA_V1.getVendorConsents
+      },
+      {
+        getConsentData: { getConsentData: {} },
+        getVendorConsents: TEST_CONSENT_DATA_V1.getVendorConsents
+      },
+      {
+        getConsentData: { getConsentData: { gdprApplies: '' } },
+        getVendorConsents: TEST_CONSENT_DATA_V1.getVendorConsents
+      },
+      {
+        getConsentData: { getConsentData: { gdprApplies: true, consentData: null } },
+        getVendorConsents: TEST_CONSENT_DATA_V1.getVendorConsents
+      },
+      {
+        getConsentData: TEST_CONSENT_DATA_V1.getConsentData,
+        getVendorConsents: null
+      },
+      {
+        getConsentData: TEST_CONSENT_DATA_V1.getConsentData,
+        getVendorConsents: { getVendorConsents: {} }
+      }
+    ].forEach((dataObj) =>
+      it('prints an error when TCF data is invalid', function () {
+        cmpStub.callsFake((command, param, callback) => {
+            callback(dataObj[command], true);
         });
+        const consent = new ConsentManagement(localStorageMock);
+        consent.requestConsent(false, 'iab', undefined, callbackSpy);
 
-        it('should print an error when CMP is not found', function () {
-          const consent = new ConsentManagement(localStorage);
-          consent.requestConsent(false, 'iab', undefined, callbackSpy);
+        assert.calledOnce(utils.logError);
+        assert.calledOnce(callbackSpy);
+        expect(consent.consentData).to.be.undefined;
+      })
+    );
 
-          sinon.assert.calledOnce(utils.logError);
-          sinon.assert.calledOnce(callbackSpy);
-          expect(consent.consentData).to.be.undefined;
-        });
+    it('prints an error when TCF callback unsuccesful', function () {
+      cmpStub.callsFake((command, param, callback) => {
+        callback(null, false);
+      });
+      const consent = new ConsentManagement(localStorageMock);
+      consent.requestConsent(false, 'iab', undefined, callbackSpy);
 
-        it('should print an error when static CPM has the wrong structure', function () {
-          const consent = new ConsentManagement(localStorage);
-          consent.requestConsent(false, 'static', { test: 'test' }, callbackSpy);
+      assert.calledThrice(utils.logError);
+      assert.calledOnce(callbackSpy);
+      expect(consent.consentData).to.be.undefined;
+    });
+  });
 
-          sinon.assert.calledOnce(utils.logError);
-          sinon.assert.calledOnce(callbackSpy);
-          expect(consent.consentData).to.be.undefined;
-        });
+  describe('with TCFv2 IAB compliant CMP', function () {
+    let cmpStub;
 
-        it('should print an error when static CPM has undefined data', function () {
-          const consent = new ConsentManagement(localStorage);
-          consent.requestConsent(false, 'static', undefined, callbackSpy);
+    beforeEach(function() {
+      window.__tcfapi = cmpStub = stub();
+    });
 
-          sinon.assert.calledOnce(utils.logError);
-          sinon.assert.calledOnce(callbackSpy);
-          expect(consent.consentData).to.be.undefined;
+    afterEach(function () {
+      delete window.__tcfapi;
+    });
+
+    describe('with valid data', function() {
+      beforeEach(function() {
+        cmpStub.callsFake((command, version, callback) => {
+          expect(command).to.equal('addEventListener');
+          expect(version).to.equal(2);
+          callback(TEST_CONSENT_DATA_V2.getTCData, true);
         });
       });
 
-      describe('Static Consent flow:', function () {
-        it('normal cmp static call, callback should be called', function () {
-          const consent = new ConsentManagement(localStorage);
-          consent.requestConsent(false, 'static', testConsentData, callbackSpy);
+      it('can receive the data in a normal call flow', function () {
+        const consent = new ConsentManagement(localStorageMock);
+        consent.requestConsent(false, 'iab', undefined, callbackSpy);
 
-          sinon.assert.calledOnce(callbackSpy);
-          expect(consent.consentData.consentString).to.equal(testConsentData.getConsentData.consentData);
-          expect(consent.consentData.gdprApplies).to.be.true;
-          expect(consent.isLocalStorageAllowed(false, false)).to.be.true;
-        });
-
-        it('throws an error when requestConsent check failed', function () {
-          const consent = new ConsentManagement(localStorage);
-          consent.requestConsent(false, 'static', { getConsentData: {}, getVendorConsents: {} }, callbackSpy);
-
-          sinon.assert.calledOnce(utils.logError);
-          sinon.assert.calledOnce(callbackSpy);
-          expect(consent.consentData).to.be.undefined;
-          expect(consent.isLocalStorageAllowed(false, false)).to.be.undefined;
-          expect(consent.isLocalStorageAllowed(true, false)).to.be.true;
-        });
-
-        it('throws a warning + calls callback when processCmpData check failed while config had debugBypassConsent set to true', function () {
-          const consent = new ConsentManagement(localStorage);
-          consent.requestConsent(true, 'static', { getConsentData: {}, getVendorConsents: {} }, callbackSpy);
-
-          sinon.assert.calledOnce(utils.logWarn);
-          sinon.assert.calledOnce(callbackSpy);
-          expect(consent.consentData).to.be.undefined;
-          expect(consent.isLocalStorageAllowed(false, true)).to.be.true;
-        });
+        assert.calledOnce(callbackSpy);
+        assert.calledOnce(cmpStub);
+        expect(consent.consentData.consentString).to.equal(TEST_CONSENT_DATA_V2.getTCData.tcString);
+        expect(consent.consentData.vendorData.metadata).to.equal(TEST_CONSENT_DATA_V2.getTCData.metadata);
+        expect(consent.consentData.gdprApplies).to.be.true;
       });
 
-      describe('IAB Consent flow:', function () {
-        let cmpStub = sinon.stub();
+      it('should bypass CMP and return stored consentData when calling twice', function() {
+        const consent = new ConsentManagement(localStorageMock);
+        consent.requestConsent(false, 'iab', undefined, callbackSpy);
+        cmpStub.reset();
 
-        beforeEach(function () {
-          window.__cmp = function() {};
-        });
+        consent.requestConsent(false, 'iab', undefined, callbackSpy);
+        assert.calledTwice(callbackSpy);
+        expect(callbackSpy.firstCall.firstArg).to.equal(callbackSpy.secondCall.firstArg)
+        assert.notCalled(cmpStub);
+      });
+    });
 
-        afterEach(function () {
-          cmpStub.restore();
-          delete window.__cmp;
-        });
 
-        it('normal first call then second call should bypass CMP and simply use previously stored consentData', function () {
-          cmpStub = sinon.stub(window, '__cmp').callsFake((...args) => {
-            args[2](testConsentData[args[0]]);
+    describe('with invalid data', function() {
+      [
+        { eventStatus: 'tcloaded' },
+        { eventStatus: 'tcloaded', gdprApplies: 'a string' },
+        { eventStatus: 'tcloaded', gdprApplies: true, tcString: null }
+      ].forEach((dataObj) =>
+        it('prints an error when TCF data is invalid', function () {
+          cmpStub.callsFake((command, version, callback) => {
+            callback(dataObj, true);
           });
-          const consent = new ConsentManagement(localStorage);
+          const consent = new ConsentManagement(localStorageMock);
           consent.requestConsent(false, 'iab', undefined, callbackSpy);
 
-          sinon.assert.calledOnce(callbackSpy);
-          expect(consent.consentData.consentString).to.equal(testConsentData.getConsentData.consentData);
-          expect(consent.consentData.gdprApplies).to.be.true;
-
-          // we expect the cmp stub to be called TWICE because in v1, we call the cmp function
-          // once for consent data and once for vendor data, so twice total.
-          sinon.assert.calledTwice(cmpStub);
-
-          cmpStub.restore();
-          cmpStub = sinon.stub(window, '__cmp').callsFake((...args) => {});
-          consent.requestConsent(false, 'iab', undefined, callbackSpy);
-
-          sinon.assert.notCalled(utils.logWarn);
-          sinon.assert.notCalled(utils.logError);
-          sinon.assert.calledTwice(callbackSpy);
-          expect(consent.consentData.consentString).to.equal(testConsentData.getConsentData.consentData);
-          expect(consent.consentData.vendorData.metadata).to.equal(testConsentData.getVendorConsents.metadata);
-          expect(consent.consentData.gdprApplies).to.be.true;
-          sinon.assert.notCalled(cmpStub);
-          expect(consent.isLocalStorageAllowed(false, false)).to.be.true;
-        });
-
-        it('throws an error when requestConsent check failed', function () {
-          cmpStub = sinon.stub(window, '__cmp').callsFake((...args) => { args[2]({}); });
-          const consent = new ConsentManagement(localStorage);
-          consent.requestConsent(false, 'iab', undefined, callbackSpy);
-
-          sinon.assert.calledOnce(utils.logError);
-          sinon.assert.calledOnce(callbackSpy);
+          assert.calledOnce(utils.logError);
+          assert.calledOnce(callbackSpy);
           expect(consent.consentData).to.be.undefined;
-          expect(consent.isLocalStorageAllowed(false, false)).to.be.undefined;
-        });
+        })
+      );
 
-        it('throws a warning + calls callback when processCmpData check failed while debugBypassConsent=true', function () {
-          cmpStub = sinon.stub(window, '__cmp').callsFake((...args) => { args[2]({}); });
-          const consent = new ConsentManagement(localStorage);
-          consent.requestConsent(true, 'iab', undefined, callbackSpy);
-
-          sinon.assert.calledOnce(utils.logWarn);
-          sinon.assert.calledOnce(callbackSpy);
-          expect(consent.consentData).to.be.undefined;
-          expect(consent.isLocalStorageAllowed(false, true)).to.be.true;
+      it('prints an error when TCF callback unsuccesful', function () {
+        cmpStub.callsFake((command, param, callback) => {
+          callback(null, false);
         });
+        const consent = new ConsentManagement(localStorageMock);
+        consent.requestConsent(false, 'iab', undefined, callbackSpy);
+
+        assert.calledOnce(utils.logError);
+        assert.calledOnce(callbackSpy);
+        expect(consent.consentData).to.be.undefined;
       });
     });
   });
 
-  describe('TCFv2', function () {
-    before(function() {
-      localStorage.removeItemWithExpiration(TEST_PRIVACY_STORAGE_CONFIG);
+
+  describe('with USPv1 IAB compliant CMP', function () {
+    let cmpStub;
+
+    beforeEach(function() {
+      window.__uspapi = cmpStub = stub();
     });
-    afterEach(function() {
-      localStorage.removeItemWithExpiration(TEST_PRIVACY_STORAGE_CONFIG);
+
+    afterEach(function () {
+      delete window.__uspapi;
     });
 
-    describe('requestConsent tests:', function () {
-      let testConsentData = {
-        getTCData: {
-          'tcString': 'COuqj-POu90rDBcBkBENAZCgAPzAAAPAACiQFwwBAABAA1ADEAbQC4YAYAAgAxAG0A',
-          'cmpId': 92,
-          'cmpVersion': 100,
-          'tcfPolicyVersion': 2,
-          'gdprApplies': true,
-          'isServiceSpecific': true,
-          'useNonStandardStacks': false,
-          'purposeOneTreatment': false,
-          'publisherCC': 'US',
-          'cmpStatus': 'loaded',
-          'eventStatus': 'tcloaded',
-          'outOfBand': {
-            'allowedVendors': {},
-            'discloseVendors': {}
-          },
-          'purpose': {
-            'consents': {
-              '1': true,
-              '2': true,
-              '3': true
-            },
-            'legitimateInterests': {
-              '1': false,
-              '2': false,
-              '3': false
-            }
-          },
-          'vendor': {
-            'consents': {
-              '1': true,
-              '2': true,
-              '3': false
-            },
-            'legitimateInterests': {
-              '1': false,
-              '2': true,
-              '3': false,
-              '4': false,
-              '5': false
-            }
-          },
-          'specialFeatureOptins': {
-            '1': false,
-            '2': false
-          },
-          'restrictions': {},
-          'publisher': {
-            'consents': {
-              '1': false,
-              '2': false,
-              '3': false
-            },
-            'legitimateInterests': {
-              '1': false,
-              '2': false,
-              '3': false
-            },
-            'customPurpose': {
-              'consents': {},
-              'legitimateInterests': {}
-            }
-          }
-        }
-      };
-
-      let callbackSpy
-      beforeEach(function () {
-        callbackSpy = sinon.spy();
-        sinon.spy(utils, 'logWarn');
-        sinon.spy(utils, 'logError');
-      });
-      afterEach(function () {
-        callbackSpy.resetHistory();
-        utils.logWarn.restore();
-        utils.logError.restore();
-      });
-
-      describe('error checks:', function () {
-        it('should throw a warning and return to callback function when an unknown CMP framework ID is used', function () {
-          const consent = new ConsentManagement(localStorage);
-          consent.requestConsent(false, 'bad', undefined, callbackSpy);
-
-          sinon.assert.calledOnce(callbackSpy);
-          sinon.assert.calledOnce(utils.logError);
-          expect(consent.consentData).to.be.undefined;
-        });
-
-        it('should throw proper errors when CMP is not found', function () {
-          const consent = new ConsentManagement(localStorage);
-          consent.requestConsent(false, 'iab', undefined, callbackSpy);
-
-          sinon.assert.calledOnce(callbackSpy);
-          sinon.assert.calledOnce(utils.logError);
-          expect(consent.consentData).to.be.undefined;
+    describe('with valid data', function() {
+      beforeEach(function() {
+        cmpStub.callsFake((command, version, callback) => {
+          expect(command).to.equal('getUSPData');
+          expect(version).to.equal(1);
+          callback({ uspString: "1YYN" }, true);
         });
       });
 
-      describe('Static Consent flow:', function () {
-        it('normal cmp static call, callback should be called', function () {
-          const consent = new ConsentManagement(localStorage);
-          consent.requestConsent(false, 'static', testConsentData, callbackSpy);
+      it('can receive the data in a normal call flow', function () {
+        const consent = new ConsentManagement(localStorageMock);
+        consent.requestConsent(false, 'iab', undefined, callbackSpy);
 
-          sinon.assert.calledOnce(callbackSpy);
-          sinon.assert.notCalled(utils.logWarn);
-          sinon.assert.notCalled(utils.logError);
-          expect(consent.consentData.consentString).to.equal(testConsentData.getTCData.tcString);
-          expect(consent.consentData.gdprApplies).to.be.true;
-          expect(consent.isLocalStorageAllowed(false, false)).to.be.true;
-        });
-
-        it('throws an error when requestConsent check failed', function () {
-          const consent = new ConsentManagement(localStorage);
-          consent.requestConsent(false, 'static', { getConsentData: {}, getVendorConsents: {} }, callbackSpy);
-
-          sinon.assert.calledOnce(callbackSpy);
-          sinon.assert.calledOnce(utils.logError);
-          expect(consent.consentData).to.be.undefined;
-          expect(consent.isLocalStorageAllowed(false, false)).to.be.undefined;
-        });
-
-        it('throws a warning + calls callback when processCmpData check failed while config had debugBypassConsent set to true', function () {
-          const consent = new ConsentManagement(localStorage);
-          consent.requestConsent(true, 'static', { getConsentData: {}, getVendorConsents: {} }, callbackSpy);
-
-          sinon.assert.calledOnce(callbackSpy);
-          sinon.assert.calledOnce(utils.logWarn);
-          expect(consent.consentData).to.be.undefined;
-        });
+        assert.calledOnce(callbackSpy);
+        assert.calledOnce(cmpStub);
+        expect(consent.consentData.gdprApplies).to.be.false;
+        expect(consent.consentData.hasCcpaString).to.be.true;
+        expect(consent.consentData.ccpaString).to.equal('1YYN');
       });
 
-      describe('IAB Consent flow:', function () {
-        let cmpStub = sinon.stub();
+      it('should bypass CMP and return stored consentData when calling twice', function() {
+        const consent = new ConsentManagement(localStorageMock);
+        consent.requestConsent(false, 'iab', undefined, callbackSpy);
+        cmpStub.reset();
 
-        beforeEach(function () {
-          window.__tcfapi = function() {};
-        });
+        consent.requestConsent(false, 'iab', undefined, callbackSpy);
+        assert.calledTwice(callbackSpy);
+        expect(callbackSpy.firstCall.firstArg).to.equal(callbackSpy.secondCall.firstArg)
+        assert.notCalled(cmpStub);
+      });
+    });
 
-        afterEach(function () {
-          cmpStub.restore();
-          delete window.__tcfapi;
-        });
-
-        it('normal first call then second call should bypass CMP and simply use previously stored consentData', function () {
-          cmpStub = sinon.stub(window, '__tcfapi').callsFake((...args) => {
-            args[2](testConsentData.getTCData, true);
+    describe('with invalid data', function() {
+      [
+        {},
+        { uspString: null },
+      ].forEach((dataObj) =>
+        it('prints an error when USP data is invalid', function () {
+          cmpStub.callsFake((command, version, callback) => {
+            callback(dataObj, true);
           });
-          const consent = new ConsentManagement(localStorage);
+          const consent = new ConsentManagement(localStorageMock);
           consent.requestConsent(false, 'iab', undefined, callbackSpy);
 
-          sinon.assert.calledOnce(callbackSpy);
-          expect(consent.consentData.consentString).to.equal(testConsentData.getTCData.tcString);
-          expect(consent.consentData.gdprApplies).to.be.true;
-          expect(consent.consentData.apiVersion).to.equal(2);
-
-          // we expect the cmp stub to be called ONCE because in v2, we set an event listener
-          // that gets called once when consent data is available
-          sinon.assert.calledOnce(cmpStub);
-
-          cmpStub.restore();
-          cmpStub = sinon.stub(window, '__tcfapi').callsFake((...args) => {}, true);
-          consent.requestConsent(false, 'iab', undefined, callbackSpy);
-
-          sinon.assert.notCalled(utils.logWarn);
-          sinon.assert.notCalled(utils.logError);
-          sinon.assert.calledTwice(callbackSpy);
-          expect(consent.consentData.consentString).to.equal(testConsentData.getTCData.tcString);
-          expect(consent.consentData.gdprApplies).to.be.true;
-          sinon.assert.notCalled(cmpStub);
-          expect(consent.isLocalStorageAllowed(false, false)).to.be.true;
-        });
-
-        it('throws an error when requestConsent check failed', function () {
-          cmpStub = sinon.stub(window, '__tcfapi').callsFake((...args) => { args[2]({}, false); });
-          const consent = new ConsentManagement(localStorage);
-          consent.requestConsent(false, 'iab', undefined, callbackSpy);
-
-          sinon.assert.calledOnce(utils.logError);
-          sinon.assert.calledOnce(callbackSpy);
+          assert.calledOnce(utils.logError);
+          assert.calledOnce(callbackSpy);
           expect(consent.consentData).to.be.undefined;
-          expect(consent.isLocalStorageAllowed(false, false)).to.be.undefined;
-        });
+        })
+      );
 
-        it('throws a warning + calls callback when processCmpData check failed while config had debugBypassConsent=true', function () {
-          cmpStub = sinon.stub(window, '__tcfapi').callsFake((...args) => { args[2]({}, true); });
-          const consent = new ConsentManagement(localStorage);
-          consent.requestConsent(true, 'iab', undefined, callbackSpy);
-
-          sinon.assert.calledOnce(utils.logWarn);
-          sinon.assert.calledOnce(callbackSpy);
-          expect(consent.consentData).to.be.undefined;
-          expect(consent.isLocalStorageAllowed(false, true)).to.be.true;
+      it('prints an error when USP callback unsuccesful', function () {
+        cmpStub.callsFake((command, param, callback) => {
+          callback(null, false);
         });
+        const consent = new ConsentManagement(localStorageMock);
+        consent.requestConsent(false, 'iab', undefined, callbackSpy);
+
+        assert.calledOnce(utils.logError);
+        assert.calledOnce(callbackSpy);
+        expect(consent.consentData).to.be.undefined;
       });
     });
   });
 
   describe('Provisional Local Storage Access', function() {
-    before(function() {
-      localStorage.removeItemWithExpiration(TEST_PRIVACY_STORAGE_CONFIG);
-    });
-    afterEach(function() {
-      localStorage.removeItemWithExpiration(TEST_PRIVACY_STORAGE_CONFIG);
-    });
-
-    it('should be true if privacy data is not set', function() {
-      const consent = new ConsentManagement(localStorage);
+    it('should be undefined if privacy data is not set', function() {
+      const consent = new ConsentManagement(localStorageMock);
       expect(consent.isProvisionalLocalStorageAllowed()).to.be.undefined;
     });
 
@@ -436,10 +540,16 @@ describe('Consent Management', function () {
     ];
     tests.forEach((test) => {
       it(`should be ${test.expected_result} with stored privacy data ${JSON.stringify(test.data)}`, function() {
-        localStorage.setItemWithExpiration(TEST_PRIVACY_STORAGE_CONFIG, JSON.stringify(test.data));
-        const consent = new ConsentManagement(localStorage);
+        localStorageMock.getItemWithExpiration.callsFake((config) => {
+          expect(config).to.equal(CONSTANTS.STORAGE_CONFIG.PRIVACY);
+          return JSON.stringify(test.data);
+        });
+        const consent = new ConsentManagement(localStorageMock);
         expect(consent.isProvisionalLocalStorageAllowed()).to.equal(test.expected_result);
       });
     });
+  });
+
+  describe('Local Storage Access', function() {
   });
 });

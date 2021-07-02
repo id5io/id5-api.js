@@ -440,7 +440,7 @@ describe('ID5 JS API', function () {
             beforeEach(function () {
               window.__cmp = function () {};
               cmpStub = sinon.stub(window, '__cmp').callsFake((...args) => {
-                args[2](testConsentDataFromCmp);
+                args[2](testConsentDataFromCmp, true);
               });
             });
 
