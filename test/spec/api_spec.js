@@ -431,21 +431,24 @@ describe('ID5 JS API', function () {
 
           describe('TCF v1', function () {
             const testConsentDataFromCmp = {
-              gdprApplies: true,
-              consentData: 'cmpconsentstring',
-              apiVersion: 1
+              getConsentData: {
+                gdprApplies: true,
+                consentData: 'cmpconsentstring',
+                apiVersion: 1
+              },
+              getVendorConsents: {
+                metadata: 'some meta',
+                'gdprApplies': true
+              }
             };
-            let cmpStub;
 
             beforeEach(function () {
-              window.__cmp = function () {};
-              cmpStub = sinon.stub(window, '__cmp').callsFake((...args) => {
-                args[2](testConsentDataFromCmp, true);
-              });
+              window.__cmp = (command, param, callback) => {
+                callback(testConsentDataFromCmp[command], true);
+              };
             });
 
             afterEach(function () {
-              cmpStub.restore();
               delete window.__cmp;
             });
 
