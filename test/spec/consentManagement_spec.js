@@ -1,6 +1,7 @@
 import { spy, stub, assert } from 'sinon';
 import { expect } from 'chai';
 import { ConsentManagement } from '../../lib/consentManagement.js';
+import clone from 'clone';
 import * as utils from '../../lib/utils.js';
 import CONSTANTS from '../../lib/constants.json';
 
@@ -463,7 +464,7 @@ describe('Consent Management', function () {
         cmpStub.callsFake((command, version, callback) => {
           expect(command).to.equal('getUSPData');
           expect(version).to.equal(1);
-          callback({ uspString: "1YYN" }, true);
+          callback({ uspString: '1YYN' }, true);
         });
       });
 
@@ -551,5 +552,220 @@ describe('Consent Management', function () {
   });
 
   describe('Local Storage Access', function() {
+    it('allows local storage whenever one of the flags is true', function() {
+      const consent = new ConsentManagement(localStorageMock);
+      expect(consent.isLocalStorageAllowed(true, false)).to.be.true;
+      expect(consent.isLocalStorageAllowed(false, true)).to.be.true;
+      expect(consent.isLocalStorageAllowed(true, true)).to.be.true;
+    });
+
+    describe('with TCFv2', function() {
+      let cmpStub;
+
+      beforeEach(function() {
+        window.__tcfapi = cmpStub = stub();
+      });
+
+      afterEach(function () {
+        delete window.__tcfapi;
+      });
+
+      it('allows local storage when vendor data allows purpose 1', function() {
+        cmpStub.callsFake((command, version, callback) => {
+          callback(TEST_CONSENT_DATA_V2.getTCData, true);
+        });
+        const consent = new ConsentManagement(localStorageMock);
+        consent.requestConsent(false, 'iab', undefined, callbackSpy);
+
+        expect(consent.isLocalStorageAllowed(false, false)).to.be.true;
+      });
+
+      it('disallows local storage when vendor data disallows purpose 1', function() {
+        const cloneTestData = clone(TEST_CONSENT_DATA_V2);
+        cloneTestData.getTCData.purpose.consents['1'] = false;
+        cmpStub.callsFake((command, version, callback) => {
+          callback(cloneTestData.getTCData, true);
+        });
+        const consent = new ConsentManagement(localStorageMock);
+        consent.requestConsent(false, 'iab', undefined, callbackSpy);
+
+        expect(consent.isLocalStorageAllowed(false, false)).to.be.false;
+      });
+
+      it('allows local storage when not in GDPR jurisdiction', function() {
+        const cloneTestData = clone(TEST_CONSENT_DATA_V2);
+        cloneTestData.getTCData.gdprApplies = false;
+        cmpStub.callsFake((command, version, callback) => {
+          callback(cloneTestData.getTCData, true);
+        });
+        const consent = new ConsentManagement(localStorageMock);
+        consent.requestConsent(false, 'iab', undefined, callbackSpy);
+
+        expect(consent.isLocalStorageAllowed(false, false)).to.be.true;
+      });
+    });
+
+    describe('with TCFv1', function() {
+      let cmpStub;
+
+      beforeEach(function() {
+        window.__cmp = cmpStub = stub();
+      });
+
+      afterEach(function () {
+        delete window.__cmp;
+      });
+
+      it('allows local storage when vendor data allows purpose 1', function() {
+        cmpStub.callsFake((command, param, callback) => {
+          callback(TEST_CONSENT_DATA_V1[command], true);
+        });
+        const consent = new ConsentManagement(localStorageMock);
+        consent.requestConsent(false, 'iab', undefined, callbackSpy);
+
+        expect(consent.isLocalStorageAllowed(false, false)).to.be.true;
+      });
+
+      it('disallows local storage when vendor data disallows purpose 1', function() {
+        const cloneTestData = clone(TEST_CONSENT_DATA_V1);
+        cloneTestData.getVendorConsents.purposeConsents['1'] = false;
+        cmpStub.callsFake((command, param, callback) => {
+          callback(cloneTestData[command], true);
+        });
+        const consent = new ConsentManagement(localStorageMock);
+        consent.requestConsent(false, 'iab', undefined, callbackSpy);
+
+        expect(consent.isLocalStorageAllowed(false, false)).to.be.false;
+      });
+
+      it('allows local storage when not in GDPR jurisdiction', function() {
+        const cloneTestData = clone(TEST_CONSENT_DATA_V1);
+        cloneTestData.getVendorConsents.gdprApplies = false;
+        cmpStub.callsFake((command, param, callback) => {
+          callback(cloneTestData[command], true);
+        });
+        const consent = new ConsentManagement(localStorageMock);
+        consent.requestConsent(false, 'iab', undefined, callbackSpy);
+
+        expect(consent.isLocalStorageAllowed(false, false)).to.be.true;
+      });
+    });
+  });
+
+  describe('when API is running in iframe and TCF in top frame', function() {
+    describe('with TCFv1', function() {
+      let eventListener;
+      beforeEach(function() {
+        eventListener = (event) => {
+          if (event.data.__cmpCall) {
+            const command = event.data.__cmpCall.command;
+            expect(command).to.be.oneOf(['getConsentData', 'getVendorConsents']);
+            const returnMessage = {
+              __cmpReturn: {
+                returnValue: TEST_CONSENT_DATA_V1[command],
+                success: true,
+                callId: event.data.__cmpCall.callId
+              }
+            }
+            event.source.postMessage(returnMessage, '*');
+          }
+        };
+        window.frames['__cmpLocator'] = {};
+        window.addEventListener('message', eventListener);
+      });
+
+      afterEach(function () {
+        delete window.frames['__cmpLocator'];
+        window.removeEventListener('message', eventListener);
+      });
+
+      it('can receive the data', function(done) {
+        const consent = new ConsentManagement(localStorageMock);
+        consent.requestConsent(false, 'iab', undefined, (consentData) => {
+          expect(consentData.consentString).to.equal(TEST_CONSENT_DATA_V1.getConsentData.consentData);
+          expect(consentData.vendorData.metadata).to.equal(TEST_CONSENT_DATA_V1.getVendorConsents.metadata);
+          expect(consentData.gdprApplies).to.be.true;
+          expect(consentData.apiVersion).to.equal(1);
+          done();
+        });
+      });
+    });
+
+    describe('with TCFv2', function() {
+      let eventListener;
+      beforeEach(function() {
+        eventListener = (event) => {
+          if (event.data.__tcfapiCall) {
+            const command = event.data.__tcfapiCall.command;
+            expect(command).to.equal('addEventListener');
+            expect(event.data.__tcfapiCall.version).to.equal(2);
+            const returnMessage = {
+              __tcfapiReturn: {
+                returnValue: TEST_CONSENT_DATA_V2.getTCData,
+                success: true,
+                callId: event.data.__tcfapiCall.callId
+              }
+            }
+            event.source.postMessage(returnMessage, '*');
+          }
+        };
+        window.frames['__tcfapiLocator'] = {};
+        window.addEventListener('message', eventListener);
+      });
+
+      afterEach(function () {
+        delete window.frames['__tcfapiLocator'];
+        window.removeEventListener('message', eventListener);
+      });
+
+      it('can receive the data', function(done) {
+        const consent = new ConsentManagement(localStorageMock);
+        consent.requestConsent(false, 'iab', undefined, (consentData) => {
+          expect(consentData.consentString).to.equal(TEST_CONSENT_DATA_V2.getTCData.tcString);
+          expect(consentData.vendorData.metadata).to.equal(TEST_CONSENT_DATA_V2.getTCData.metadata);
+          expect(consentData.gdprApplies).to.be.true;
+          expect(consentData.apiVersion).to.equal(2);
+          done();
+        });
+      });
+    });
+
+    describe('with USPv2', function() {
+      let eventListener;
+      beforeEach(function() {
+        eventListener = (event) => {
+          if (event.data.__uspapiCall) {
+            expect(event.data.__uspapiCall.version).to.equal(1);
+            expect(event.data.__uspapiCall.command).to.equal('getUSPData');
+            const returnMessage = {
+              __uspapiReturn: {
+                returnValue: { uspString: '1YYN' },
+                success: true,
+                callId: event.data.__uspapiCall.callId
+              }
+            }
+            event.source.postMessage(returnMessage, '*');
+          }
+        };
+        window.frames['__uspapiLocator'] = {};
+        window.addEventListener('message', eventListener);
+      });
+
+      afterEach(function () {
+        delete window.frames['__uspapiLocator'];
+        window.removeEventListener('message', eventListener);
+      });
+
+      it('can receive the data', function(done) {
+        const consent = new ConsentManagement(localStorageMock);
+        consent.requestConsent(false, 'iab', undefined, (consentData) => {
+          expect(consentData.hasCcpaString).to.be.true;
+          expect(consentData.ccpaString).to.equal('1YYN');
+          expect(consentData.gdprApplies).to.be.false;
+          expect(consentData.apiVersion).to.equal(0);
+          done();
+        });
+      });
+    });
   });
 });
