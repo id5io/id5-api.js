@@ -98,7 +98,9 @@
             if (msgIsString) {
               returnMsg = JSON.stringify(returnMsg);
             }
-            event.source.postMessage(returnMsg, '*');
+            if (event && event.source && event.source.postMessage) {
+              event.source.postMessage(returnMsg, '*');
+            }
           },
           payload.parameter
         );
@@ -129,7 +131,6 @@
 
   var uspStubFunction = function() {
     var arg = arguments;
-    // eslint-disable-next-line valid-typeof
     if (typeof window.__uspapi !== uspStubFunction) {
       setTimeout(function() {
         if (typeof window.__uspapi !== 'undefined') {
