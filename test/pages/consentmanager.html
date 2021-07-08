@@ -1,0 +1,59 @@
+<!doctype html>
+<!-- For this to work you have to 
+    - fake /etc/hosts with "127.0.0.1 my-publisher-website.net"
+    - use "gulp serve"
+    - navigate to "http://my-publisher-website.net:9998/test/pages/consentmanager.html" 
+-->
+<html lang="en">
+<head>
+    <title>ID5 API Basic Test</title>
+
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="author" content="ID5">
+    <meta name="generator" content="Jekyll v3.8.5">
+
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+          integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+
+    <link rel="stylesheet" href="https://cdn.consentmanager.mgr.consensu.org/delivery/cmp.min.css" />
+    <script>window.gdprAppliesGlobally=true;if(!("cmp_id" in window)){window.cmp_id=30615}if(!("cmp_params" in window)){window.cmp_params=""}if(!("cmp_host" in window)){window.cmp_host="consentmanager.mgr.consensu.org"}if(!("cmp_cdn" in window)){window.cmp_cdn="cdn.consentmanager.mgr.consensu.org"}window.cmp_getsupportedLangs=function(){var b=["DE","EN","FR","IT","NO","DA","FI","ES","PT","RO","BG","ET","EL","GA","HR","LV","LT","MT","NL","PL","SV","SK","SL","CS","HU","RU","SR","ZH","TR","UK","AR","BS"];if("cmp_customlanguages" in window){for(var a=0;a<window.cmp_customlanguages.length;a++){b.push(window.cmp_customlanguages[a].l.toUpperCase())}}return b};window.cmp_getRTLLangs=function(){return["AR"]};window.cmp_getlang=function(j){if(typeof(j)!="boolean"){j=true}if(j&&typeof(cmp_getlang.usedlang)=="string"&&cmp_getlang.usedlang!==""){return cmp_getlang.usedlang}var g=window.cmp_getsupportedLangs();var c=[];var f=location.hash;var e=location.search;var a="languages" in navigator?navigator.languages:[];if(f.indexOf("cmplang=")!=-1){c.push(f.substr(f.indexOf("cmplang=")+8,2))}else{if(e.indexOf("cmplang=")!=-1){c.push(e.substr(e.indexOf("cmplang=")+8,2))}else{if("cmp_setlang" in window&&window.cmp_setlang!=""){c.push(window.cmp_setlang.toUpperCase())}else{if(a.length>0){for(var d=0;d<a.length;d++){c.push(a[d])}}}}}if("language" in navigator){c.push(navigator.language)}if("userLanguage" in navigator){c.push(navigator.userLanguage)}var h="";for(var d=0;d<c.length;d++){var b=c[d].toUpperCase();if(g.indexOf(b)!=-1){h=b;break}if(b.indexOf("-")!=-1){b=b.substr(0,2)}if(g.indexOf(b)!=-1){h=b;break}}if(h==""&&typeof(cmp_getlang.defaultlang)=="string"&&cmp_getlang.defaultlang!==""){return cmp_getlang.defaultlang}else{if(h==""){h="EN"}}h=h.toUpperCase();return h};(function(){var a="";var f="_en";if("cmp_getlang" in window){a=window.cmp_getlang().toLowerCase();if("cmp_customlanguages" in window){for(var b=0;b<window.cmp_customlanguages.length;b++){if(window.cmp_customlanguages[b].l.toUpperCase()==a.toUpperCase()){a="en";break}}}f="_"+a}var d=("cmp_proto" in window)?window.cmp_proto:"https:";var h=("cmp_ref" in window)?window.cmp_ref:location.href;var c=document.createElement("script");c.setAttribute("data-cmp-ab","1");c.src=d+"//"+window.cmp_host+"/delivery/cmp.php?id="+window.cmp_id+"&h="+encodeURIComponent(h)+"&"+window.cmp_params+(document.cookie.length>0?"&__cmpfcc=1":"")+"&l="+a.toLowerCase()+"&o="+(new Date()).getTime();c.type="text/javascript";c.async=true;if(document.currentScript&&document.currentScript!==null){document.currentScript.parentElement.appendChild(c)}else{if(document.body&&document.body!==null){document.body.appendChild(c)}else{var g=document.getElementsByTagName("body");if(g.length==0){g=document.getElementsByTagName("div")}if(g.length==0){g=document.getElementsByTagName("span")}if(g.length==0){g=document.getElementsByTagName("ins")}if(g.length==0){g=document.getElementsByTagName("script")}if(g.length==0){g=document.getElementsByTagName("head")}if(g.length>0){g[0].appendChild(c)}}}var c=document.createElement("script");c.src=d+"//"+window.cmp_cdn+"/delivery/cmp"+f+".min.js";c.type="text/javascript";c.setAttribute("data-cmp-ab","1");c.async=true;if(document.currentScript&&document.currentScript!==null){document.currentScript.parentElement.appendChild(c)}else{if(document.body&&document.body!==null){document.body.appendChild(c)}else{var g=document.getElementsByTagName("body");if(g.length==0){g=document.getElementsByTagName("div")}if(g.length==0){g=document.getElementsByTagName("span")}if(g.length==0){g=document.getElementsByTagName("ins")}if(g.length==0){g=document.getElementsByTagName("script")}if(g.length==0){g=document.getElementsByTagName("head")}if(g.length>0){g[0].appendChild(c)}}}})();window.cmp_addFrame=function(b){if(!window.frames[b]){if(document.body&&document.body!==null){var a=document.createElement("iframe");a.style.cssText="display:none";a.name=b;document.body.appendChild(a)}else{window.setTimeout('window.cmp_addFrame("'+b+'")',10)}}};window.cmp_rc=function(h){var b=document.cookie;var f="";var d=0;while(b!=""&&d<100){d++;while(b.substr(0,1)==" "){b=b.substr(1,b.length)}var g=b.substring(0,b.indexOf("="));if(b.indexOf(";")!=-1){var c=b.substring(b.indexOf("=")+1,b.indexOf(";"))}else{var c=b.substr(b.indexOf("=")+1,b.length)}if(h==g){f=c}var e=b.indexOf(";")+1;if(e==0){e=b.length}b=b.substring(e,b.length)}return(f)};window.cmp_stub=function(){var a=arguments;__cmapi.a=__cmapi.a||[];if(!a.length){return __cmapi.a}else{if(a[0]==="ping"){if(a[1]===2){a[2]({gdprApplies:gdprAppliesGlobally,cmpLoaded:false,cmpStatus:"stub",displayStatus:"hidden",apiVersion:"2.0",cmpId:31},true)}else{a[2]({gdprAppliesGlobally:gdprAppliesGlobally,cmpLoaded:false},true)}}else{if(a[0]==="getUSPData"){a[2]({version:1,uspString:window.cmp_rc("")},true)}else{if(a[0]==="getTCData"){__cmapi.a.push([].slice.apply(a))}else{if(a[0]==="addEventListener"||a[0]==="removeEventListener"){__cmapi.a.push([].slice.apply(a))}else{if(a.length==4&&a[3]===false){a[2]({},false)}else{__cmapi.a.push([].slice.apply(a))}}}}}}};window.cmp_msghandler=function(d){var a=typeof d.data==="string";try{var c=a?JSON.parse(d.data):d.data}catch(f){var c=null}if(typeof(c)==="object"&&c!==null&&"__cmpCall" in c){var b=c.__cmpCall;window.__cmp(b.command,b.parameter,function(h,g){var e={__cmpReturn:{returnValue:h,success:g,callId:b.callId}};d.source.postMessage(a?JSON.stringify(e):e,"*")})}if(typeof(c)==="object"&&c!==null&&"__cmapiCall" in c){var b=c.__cmapiCall;window.__cmapi(b.command,b.parameter,function(h,g){var e={__cmapiReturn:{returnValue:h,success:g,callId:b.callId}};d.source.postMessage(a?JSON.stringify(e):e,"*")})}if(typeof(c)==="object"&&c!==null&&"__uspapiCall" in c){var b=c.__uspapiCall;window.__uspapi(b.command,b.version,function(h,g){var e={__uspapiReturn:{returnValue:h,success:g,callId:b.callId}};d.source.postMessage(a?JSON.stringify(e):e,"*")})}if(typeof(c)==="object"&&c!==null&&"__tcfapiCall" in c){var b=c.__tcfapiCall;window.__tcfapi(b.command,b.version,function(h,g){var e={__tcfapiReturn:{returnValue:h,success:g,callId:b.callId}};d.source.postMessage(a?JSON.stringify(e):e,"*")},b.parameter)}};window.cmp_setStub=function(a){if(!(a in window)||(typeof(window[a])!=="function"&&typeof(window[a])!=="object"&&(typeof(window[a])==="undefined"||window[a]!==null))){window[a]=window.cmp_stub;window[a].msgHandler=window.cmp_msghandler;if(window.addEventListener){window.addEventListener("message",window.cmp_msghandler,false)}else{window.attachEvent("onmessage",window.cmp_msghandler)}}};window.cmp_addFrame("__cmapiLocator");window.cmp_addFrame("__cmpLocator");window.cmp_addFrame("__uspapiLocator");window.cmp_addFrame("__tcfapiLocator");window.cmp_setStub("__cmapi");window.cmp_setStub("__cmp");window.cmp_setStub("__tcfapi");window.cmp_setStub("__uspapi");</script>
+</head>
+<body>
+<main role="main">
+    <div class="container">
+        <p>To see the calls the ID5 API makes, open Developer Tools in your browser and go to the Network tab. Filter
+            for <code>id5-sync.com</code> and you will see the http requests it makes.</p>
+
+        <p>To properly test, you need to update <code>/etc/hosts</code> to point <code>localhost</code> to <code>samples.id5.io</code> and <a href="http://samples.id5.io:9998/test/pages/basic.html">update the url accordingly</a></p>
+
+        <p>An image with the ID5 Universal ID will display in the box below when it is available:</p>
+        <div id="placeholder" class="py-3 border border-primary text-center"></div>
+    </div>
+</main>
+
+<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
+        integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
+        crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"
+        integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1"
+        crossorigin="anonymous"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"
+        integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
+        crossorigin="anonymous"></script>
+
+<!-- ID5 API -->
+<script type="text/javascript" src="../../build/dev/id5-api.js"></script>
+<script>
+    var id5Callback = function (id5Status) {
+        var i = new Image();
+        i.src = "https://dummyimage.com/600x200?text=" + id5Status.getUserId();
+        $('#placeholder').html(`<b>ID5 ID:</b> ${id5Status.getUserId()}<br><b>Link Type:</b> ${id5Status.getLinkType()}<br>`).append(i);
+    };
+    ID5.debug = true;
+    var id5Status = ID5.init({partnerId: 173, refreshInSeconds: 15}).onAvailable(id5Callback);
+</script>
+<!-- /ID5 API -->
+
+</body>
+</html>
