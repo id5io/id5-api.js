@@ -10,10 +10,17 @@ import chaiDateTime from 'chai-datetime';
 import { readFile } from 'fs/promises';
 import isDocker from 'is-docker';
 
+/**
+ * If you want to debug in the browser, you can use "devtools: true" in
+ * the launch configuration and block the browser using
+ * await browser.waitForTarget(() => false, { timeout: 0 });
+ * Also increase the timeout for the tests to a very large value.
+ */
+
 chai.use(chaiDateTime);
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
-const ID5_API_JS_FILE = path.join(SCRIPT_DIR, '..', 'build', 'dev', 'id5-api.js');
+const ID5_API_JS_FILE = path.join(SCRIPT_DIR, '..', 'build', 'dist', 'id5-api.js');
 
 const DAYS_TO_MILLISECONDS = (60 * 60 * 24 * 1000);
 const mockFetchReponse = {
@@ -31,25 +38,12 @@ const mockFetchReponse = {
 
 // Note: do not use lambda syntax in describes. https://mochajs.org/#arrow-functions
 describe('The ID5 API', function() {
-  let browser, server, CONSTANTS;
+  let browser, server, CONSTANTS, profileDir, caFingerprint;
 
   this.timeout(30000);
 
-  before(async () => {
-    CONSTANTS = JSON.parse(await readFile(path.join(SCRIPT_DIR,
-      '..', 'lib', 'constants.json')));
-
-    // Create a proxy server with a self-signed HTTPS CA certificate:
-    const https = await mockttp.generateCACertificate();
-    server = mockttp.getLocal({
-      https,
-      // debug: true
-    });
-    const caFingerprint = mockttp.generateSPKIFingerprint(https.cert);
-
-    await server.start();
-
-    const profileDir = await tmp.dir({ unsafeCleanup: true });
+  async function startBrowser() {
+    profileDir = await tmp.dir({ unsafeCleanup: true });
     const args = [
       `--proxy-server=localhost:${server.port}`,
       `--ignore-certificate-errors-spki-list=${caFingerprint}`,
@@ -67,16 +61,42 @@ describe('The ID5 API', function() {
       // devtools: true,
       args,
     });
+  }
+
+  async function stopBrowser() {
+    await browser.close();
+    await profileDir.cleanup();
+  }
+
+  before(async () => {
+    CONSTANTS = JSON.parse(await readFile(path.join(SCRIPT_DIR,
+      '..', 'lib', 'constants.json')));
+
+    // Create a proxy server with a self-signed HTTPS CA certificate:
+    const https = await mockttp.generateCACertificate();
+    server = mockttp.getLocal({
+      https,
+      // debug: true
+    });
+    caFingerprint = mockttp.generateSPKIFingerprint(https.cert);
+
+    await server.start();
   });
 
   after(async () => {
-    await browser.close();
     await server.stop();
   });
 
   beforeEach(async () => {
+    // The API under test
     await server.get('https://cdn.id5-sync.com/api/integration/id5-api.js')
       .thenFromFile(200, ID5_API_JS_FILE);
+    await server.get('/favicon.ico').thenReply(204);
+    await startBrowser();
+  });
+
+  afterEach(async () => {
+    await stopBrowser();
   });
 
   describe('when included directly in the publishers page', function() {
