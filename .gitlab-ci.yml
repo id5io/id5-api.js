@@ -11,5 +11,8 @@ build:
   artifacts:
     paths:
       - build/dist/id5-api.js
+      - build/dist/id5-api.js.map
+      - build/dist/esp.js
       - build/dev/id5-api.js
       - build/dev/id5-api.js.map
+      - build/dev/esp.js

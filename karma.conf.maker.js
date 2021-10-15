@@ -64,7 +64,10 @@ function setBrowsers(karmaConf) {
 export default function(codeCoverage, watchMode, file) {
   var webpackConfig = newWebpackConfig(codeCoverage);
 
-  var files = file ? ['test/helpers/id5-apiGlobal.js', file] : ['test/test_index.js'];
+  var files = file ? ['test/helpers/id5-apiGlobal.js', file] : [
+    'test/test_index.js',
+    { pattern: 'test/pages/1x1.png', watched: false, included: false, served: true }
+  ];
 
   var config = {
     // base path that will be used to resolve all patterns (eg. files, exclude)
