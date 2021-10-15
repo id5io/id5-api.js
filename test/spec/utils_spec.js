@@ -249,7 +249,8 @@ describe('Utils', function () {
     it('should not be called synchronously, and called on DOMContentLoaded', function (done) {
       // Fake document.readyState
       Object.defineProperty(document, 'readyState', {
-        get() { return 'loading'; }
+        get() { return 'loading'; },
+        configurable: true
       });
 
       // Served by Karma ('files' property)
@@ -266,7 +267,10 @@ describe('Utils', function () {
 
       setTimeout(() => {
         sinon.assert.calledOnce(fn2);
-        Object.defineProperty(document, 'readyState', 'complete');
+        Object.defineProperty(document, 'readyState', {
+          value: 'complete',
+          writable: false
+        });
         done();
       }, 100);
     });
