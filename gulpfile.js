@@ -101,6 +101,13 @@ function makeDevpackPkg() {
     .pipe(connect.reload());
 }
 
+function makeEspJsDevPkg() {
+  return gulp.src(['src/esp.js'])
+  .pipe(gulpif(isNotMap, header(banner)))
+  .pipe(gulp.dest('build/dev'))
+  .pipe(connect.reload());
+}
+
 function makeWebpackPkg() {
   var cloned = _.cloneDeep(webpackConfig);
 
@@ -109,6 +116,14 @@ function makeWebpackPkg() {
     .pipe(gulpif(isNotMap, uglify()))
     .pipe(gulpif(isNotMap, header(banner)))
     .pipe(gulp.dest('build/dist'));
+}
+
+
+function makeEspJsPkg() {
+  return gulp.src(['src/esp.js'])
+  .pipe(gulpif(isNotMap, uglify()))
+  .pipe(gulpif(isNotMap, header(banner)))
+  .pipe(gulp.dest('build/dist'));
 }
 
 // Run the unit tests in headless chrome.
@@ -158,8 +173,8 @@ gulp.task('generate', (done) => {
   gv.generate('generated/version.js', { useEs6Syntax: true }, done);
 });
 
-gulp.task('build-bundle-dev', makeDevpackPkg);
-gulp.task('build-bundle-prod', makeWebpackPkg);
+gulp.task('build-bundle-dev', gulp.series(makeDevpackPkg, makeEspJsDevPkg));
+gulp.task('build-bundle-prod', gulp.series(makeWebpackPkg, makeEspJsPkg));
 
 gulp.task('inttest', () => (
   gulp.src('integration/**/*_spec.js', {read: false})
