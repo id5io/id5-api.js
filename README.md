@@ -6,8 +6,6 @@ The ID5 Universal ID is a shared, neutral identifier that publishers, advertiser
 
 The ID5 API is designed to make accessing the ID5 Universal ID simple for publishers, advertisers, and their ad tech vendors. The lightweight source code handles retrieving users’ consent preferences, retrieving, caching, and storing the ID locally, and making it available to other code on the page. A flow diagram of how the ID5 API interacts with your CMP and other vendor tags can be [found below](#api-process-flow).
 
-Stay up-to-date with all of our API releases by subscribing to our [release notes](https://id5.io/universal-id/release-notes).
-
 # Table of Contents
 
 - [ID5 Universal ID](#id5-universal-id)
@@ -20,7 +18,11 @@ Stay up-to-date with all of our API releases by subscribing to our [release note
     - [ID5 CDN](#id5-cdn)
     - [Pre-built and Minified for Download](#pre-built-and-minified-for-download)
     - [Embed into a larger bundle](#embed-into-a-larger-bundle)
-    - [Building from Source](#building-from-source)
+      - [index.js](#indexjs)
+      - [package.json](#packagejson)
+      - [rollup.config.js](#rollupconfigjs)
+      - [steps to create your own bundle](#steps-to-create-your-own-bundle)
+  - [Building from Source](#building-from-source)
   - [Usage](#usage)
     - [Load the API javascript file](#load-the-api-javascript-file)
     - [Initialize the API](#initialize-the-api)
@@ -91,7 +93,7 @@ Alternatively, we also publish the minified bundle to NPM:
     "@id5io/id5-api.js": "^1.0.9"
   },
 ```
-After running `npm install` you can find the bundle at 
+After running `npm install` you can find the bundle at
 `node_modules/@id5io/id5-api.js/build/dist/id5-api.js`.
 
 As a publisher or advertiser, the advantage to hosting the code in your website domain is that the API will have "1st party" privileges with the browser, improving the value of the Universal ID delivered.
