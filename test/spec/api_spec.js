@@ -242,6 +242,25 @@ describe('ID5 JS API', function () {
           expect(localStorage.getItemWithExpiration(TEST_PD_STORAGE_CONFIG)).to.be.equal(utils.cyrb53Hash(''));
         });
 
+        it('should drop some erratic segments and inform server-side about the dropping', function () {
+          const id5Status = ID5.init({
+            partnerId: TEST_ID5_PARTNER_ID,
+            debugBypassConsent: true,
+            segments: [
+              { destination: '22', ids: ['abc']}, // valid
+              { destination: '22', ids: []} // invalid
+            ]
+          });
+
+          sinon.assert.calledOnce(ajaxStub);
+          expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
+
+          const requestData = JSON.parse(ajaxStub.firstCall.args[2]);
+          expect(requestData.segments).to.deep.equal([
+            { destination: '22', ids: ['abc'] }]);
+          expect(requestData._invalid_segments).to.equal(1);
+        });
+
         it('does not drop local storage items when options.applyCreativeRestrictions', function () {
           const id5Status = ID5.init({ partnerId: TEST_ID5_PARTNER_ID, debugBypassConsent: true, applyCreativeRestrictions: true});
 

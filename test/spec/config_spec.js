@@ -122,4 +122,25 @@ describe('config API', function () {
       expect(config.getProvidedOptions().pd).to.be.equal('newpd');
     });
   });
+
+  describe('segments validation', function () {
+    it('should accept a well formed segment', function () {
+      const config = new Config({ partnerId: 44, segments:[{ destination: '22', ids: ['abc']}] });
+      expect(config.getOptions().segments).to.have.lengthOf(1);
+      expect(config.getOptions().segments[0].destination).to.equal('22');
+      expect(config.getOptions().segments[0].ids).to.have.lengthOf(1);
+      expect(config.getOptions().segments[0].ids[0]).to.equal('abc');
+      expect(config.getInvalidSegments()).to.equal(0);
+    });
+    it('should reject malformed segments', function () {
+      const config = new Config({ partnerId: 44, segments:[
+        { destination: 122, ids: ['abc']},
+        { destination: '322', ids: 'abc'},
+        { destination: '422', ids: [123]},
+        { destination: '522', ids: []},
+      ]});
+      expect(config.getOptions().segments).to.have.lengthOf(0);
+      expect(config.getInvalidSegments()).to.equal(4);
+    });
+  });
 });
