@@ -120,6 +120,7 @@ describe('Utils', function () {
     it('should return true when object is defined', function() {
       expect(utils.isDefined(44)).to.be.true;
       expect(utils.isDefined({})).to.be.true;
+      expect(utils.isDefined(null)).to.be.true;
       expect(utils.isDefined(() => 0)).to.be.true;
     });
 
