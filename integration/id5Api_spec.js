@@ -134,8 +134,10 @@ describe('The ID5 API', function() {
       expect(requestBody.o).to.equal('api');
       expect(requestBody.u).to.equal('https://my-publisher-website.net/');
       expect(requestBody.rf).to.equal('https://my-publisher-website.net/');
+      expect(requestBody.segments).to.deep.equal([{ destination: '22', ids: ['abc'] }]);
+
       // from integration.html
-      expect(requestBody.gdpr_consent).to.equal( // from integration.html
+      expect(requestBody.gdpr_consent).to.equal(
         'CPBZjR9PBZjR9AKAZAENBMCsAP_AAH_AAAqIHWtf_X_fb39j-_59_9t0eY1f9_7_v-0zjhfds-8Nyf_X_L8X42M7vF36pq4KuR4Eu3LBIQFlHOHUTUmw6okVrTPsak2Mr7NKJ7LEinMbe2dYGHtfn9VTuZKYr97s___z__-__v__79f_r-3_3_vp9X---_e_V3dgdYASYal8BFmJY4Ek0aVQogQhXEh0AoAKKEYWiawgJXBTsrgI9QQMAEBqAjAiBBiCjFgEAAAAASURASAHggEQBEAgABACpAQgAIkAQWAFgYBAAKAaFgBFAEIEhBkcFRymBARItFBPJWAJRd7GGEIZRYAUCj-iowEAAAAA.cAAAAAAAAAAA');
 
       // Check local storage items with some puppeteer magic

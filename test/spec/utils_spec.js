@@ -2,6 +2,7 @@ import sinon from 'sinon';
 import * as utils from '../../lib/utils';
 
 let assert = require('assert');
+const expect = require('chai').expect;
 
 describe('Utils', function () {
   const OBJ_STRING = 's',
@@ -59,6 +60,15 @@ describe('Utils', function () {
     });
   });
 
+  describe('all', function () {
+    it('should return true when the mappings returns true', function () {
+      expect(utils.all(["a", "b", "c"], utils.isStr)).to.be.true;
+    });
+    it('should return false when one of the mappings returns false', function () {
+      expect(utils.all(["a", 12, "c"], utils.isStr)).to.not.be.true;
+    });
+  });
+
   describe('isA', function () {
     it('should return true with string object', function () {
       var output = utils.isA(OBJ_STRING, TYPE_STRING);
@@ -103,6 +113,19 @@ describe('Utils', function () {
     it('should return true with number', function () {
       var output = utils.isA(OBJ_NUMBER, TYPE_NUMBER);
       assert.deepStrictEqual(output, true);
+    });
+  });
+
+  describe('isDefined', function () {
+    it('should return true when object is defined', function() {
+      expect(utils.isDefined(44)).to.be.true;
+      expect(utils.isDefined({})).to.be.true;
+      expect(utils.isDefined(null)).to.be.true;
+      expect(utils.isDefined(() => 0)).to.be.true;
+    });
+
+    it('should return false when object is undefined', function() {
+      expect(utils.isDefined(undefined)).to.not.be.true;
     });
   });
 
