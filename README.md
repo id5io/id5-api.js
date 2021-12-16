@@ -261,7 +261,7 @@ There are a few cases in which `getUserId()` may not be ready or have a value ye
 
 #### consentData Object
 This object can contain one of the following properties:
-- getConsentData - an object which is parsed as the return value of a call to the AIB TCFv1 API
+- getConsentData - an object which is parsed as the return value of a call to the IAB TCFv1 API
 - getTCData - an object which is parsed as the return value of a call to the AIB TCFv2 API
 - getUSPData - an object which is parsed as the return value of a call to the AIB USPv1 API
 - allowedVendors - an array of strings which represents ID5 partnerns which are consented for all GDPR purposes. The strings can be:
