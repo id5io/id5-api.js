@@ -281,7 +281,7 @@ var id5Status = ID5.init({
     allowedVendors: [ '131', '3', 'ID5-5' ]
   }
 });
-```removethistext
+```
 
 #### PD Example
 Taking the example from [Passing Partner Data to ID5](https://support.id5.io/portal/en/kb/articles/passing-partner-data-to-id5), here's how your configuration could look when initializing the API:
