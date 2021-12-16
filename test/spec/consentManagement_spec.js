@@ -250,6 +250,7 @@ describe('Consent Management', function () {
       expect(consent.consentData.consentString).to.be.undefined;
       expect(consent.consentData.gdprApplies).to.be.true;
       expect(consent.consentData.hasCcpaString).to.be.false;
+      expect(consent.consentData.allowedVendors).to.deep.equal(['131']);
       expect(consent.isLocalStorageAllowed(false, false)).to.be.true;
     });
 
@@ -263,6 +264,7 @@ describe('Consent Management', function () {
       expect(consent.consentData.consentString).to.be.undefined;
       expect(consent.consentData.gdprApplies).to.be.true;
       expect(consent.consentData.hasCcpaString).to.be.false;
+      expect(consent.consentData.allowedVendors).to.deep.equal(['66']);
       expect(consent.isLocalStorageAllowed(false, false)).to.be.false;
     });
   });

@@ -264,9 +264,11 @@ This object can contain one of the following properties:
 - getConsentData - an object which is parsed as the return value of a call to the AIB TCFv1 API
 - getTCData - an object which is parsed as the return value of a call to the AIB TCFv2 API
 - getUSPData - an object which is parsed as the return value of a call to the AIB USPv1 API
-- allowedVendors - an array of strings which represents ID5 partnerns which are consented for all GDPR purposes. The strings can be:
+- allowedVendors - an array of strings which represents ID5 partners which are consented for all GDPR purposes. The strings can be:
   - the [IAB GVL](https://iabeurope.eu/vendor-list-tcf-v2-0/) ID of the partner. Eg. "131" indicates consent for ID5 itself
   - the ID5 partner ID in the form "ID5-xxx" with xxx being the ID. Eg. "ID5-478"
+
+Example: `allowedVendors: ['131', 'ID5-38']`
 
 Note that in case `cmpApi` is `'static'` and the `consentData` object is either undefined or empty, the request is treated as not restricted by any privacy law until the ID5 server determine that the request is subject to restrictions. In such a case, not having received any consent information, the request will be trated as non-consented.
 #### PD Example
