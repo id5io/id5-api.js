@@ -1,6 +1,6 @@
 import { spy, stub, assert } from 'sinon';
 import { expect } from 'chai';
-import { ConsentManagement } from '../../lib/consentManagement.js';
+import { API_TYPE, ConsentManagement } from '../../lib/consentManagement.js';
 import clone from 'clone';
 import * as utils from '../../lib/utils.js';
 import CONSTANTS from '../../lib/constants.json';
@@ -141,22 +141,26 @@ describe('Consent Management', function () {
   });
 
   describe('with static consent data', function () {
-    it('should print an error when static CPM has the wrong structure', function () {
+    it('should print a warning when static consentData has the wrong structure', function () {
       const consent = new ConsentManagement(localStorageMock);
-      consent.requestConsent(false, 'static', { test: 'test' }, callbackSpy);
+      consent.requestConsent(false, 'static', { wrong: 'structure' }, callbackSpy);
 
-      assert.calledOnce(utils.logError);
+      assert.calledOnce(utils.logWarn);
       assert.calledOnce(callbackSpy);
-      expect(consent.consentData).to.be.undefined;
+      expect(consent.consentData.api).to.equal(API_TYPE.NONE);
+      expect(consent.consentData.gdprApplies).to.be.false;
+      expect(consent.isLocalStorageAllowed(false, false)).to.be.undefined;
     });
 
-    it('should print an error when static CPM has undefined data', function () {
+    it('should print a warning when static consentData has undefined data', function () {
       const consent = new ConsentManagement(localStorageMock);
       consent.requestConsent(false, 'static', undefined, callbackSpy);
 
-      assert.calledOnce(utils.logError);
+      assert.calledOnce(utils.logWarn);
       assert.calledOnce(callbackSpy);
-      expect(consent.consentData).to.be.undefined;
+      expect(consent.consentData.api).to.equal(API_TYPE.NONE);
+      expect(consent.consentData.gdprApplies).to.be.false;
+      expect(consent.isLocalStorageAllowed(false, false)).to.be.undefined;
     });
 
     it('should parse correctly TCFv1 static data', function () {
@@ -164,6 +168,7 @@ describe('Consent Management', function () {
       consent.requestConsent(false, 'static', TEST_CONSENT_DATA_V1, callbackSpy);
 
       assert.calledOnce(callbackSpy);
+      expect(consent.consentData.api).to.equal(API_TYPE.TCF_V1);
       expect(consent.consentData.consentString).to.equal(TEST_CONSENT_DATA_V1.getConsentData.consentData);
       expect(consent.consentData.gdprApplies).to.be.true;
       expect(consent.consentData.hasCcpaString).to.be.false;
@@ -176,9 +181,8 @@ describe('Consent Management', function () {
 
       assert.calledOnce(utils.logError);
       assert.calledOnce(callbackSpy);
-      expect(consent.consentData).to.be.undefined;
+      expect(consent.consentData.api).to.equal(API_TYPE.NONE);
       expect(consent.isLocalStorageAllowed(false, false)).to.be.undefined;
-      expect(consent.isLocalStorageAllowed(true, false)).to.be.true;
     });
 
     it('prints a warning debugBypassConsent set to true', function () {
@@ -187,7 +191,6 @@ describe('Consent Management', function () {
 
       assert.calledOnce(utils.logWarn);
       assert.calledOnce(callbackSpy);
-      expect(consent.consentData).to.be.undefined;
       expect(consent.isLocalStorageAllowed(false, true)).to.be.true;
     });
 
@@ -210,9 +213,8 @@ describe('Consent Management', function () {
 
       assert.calledOnce(utils.logError);
       assert.calledOnce(callbackSpy);
-      expect(consent.consentData).to.be.undefined;
+      expect(consent.consentData.api).to.equal(API_TYPE.NONE);
       expect(consent.isLocalStorageAllowed(false, false)).to.be.undefined;
-      expect(consent.isLocalStorageAllowed(true, false)).to.be.true;
     });
 
     it('should parse correctly USPv1 static data', function () {
@@ -234,9 +236,34 @@ describe('Consent Management', function () {
 
       assert.calledOnce(utils.logError);
       assert.calledOnce(callbackSpy);
-      expect(consent.consentData).to.be.undefined;
+      expect(consent.consentData.api).to.equal(API_TYPE.NONE);
       expect(consent.isLocalStorageAllowed(false, false)).to.be.undefined;
-      expect(consent.isLocalStorageAllowed(true, false)).to.be.true;
+    });
+
+    it('should parse correctly allowedVendors static data', function () {
+      const consent = new ConsentManagement(localStorageMock);
+      consent.requestConsent(false, 'static', { allowedVendors: [ 131 ] }, callbackSpy);
+
+      assert.calledOnce(callbackSpy);
+      assert.notCalled(utils.logWarn);
+      assert.notCalled(utils.logError);
+      expect(consent.consentData.consentString).to.be.undefined;
+      expect(consent.consentData.gdprApplies).to.be.true;
+      expect(consent.consentData.hasCcpaString).to.be.false;
+      expect(consent.isLocalStorageAllowed(false, false)).to.be.true;
+    });
+
+    it('should not allow local storage if ID5 is not in the list of allowed vendors', function () {
+      const consent = new ConsentManagement(localStorageMock);
+      consent.requestConsent(false, 'static', { allowedVendors: [ 66 ] }, callbackSpy);
+
+      assert.calledOnce(callbackSpy);
+      assert.notCalled(utils.logWarn);
+      assert.notCalled(utils.logError);
+      expect(consent.consentData.consentString).to.be.undefined;
+      expect(consent.consentData.gdprApplies).to.be.true;
+      expect(consent.consentData.hasCcpaString).to.be.false;
+      expect(consent.isLocalStorageAllowed(false, false)).to.be.false;
     });
   });
 
@@ -282,7 +309,7 @@ describe('Consent Management', function () {
       expect(consent.consentData.consentString).to.equal(TEST_CONSENT_DATA_V1.getConsentData.consentData);
       expect(consent.consentData.vendorData.metadata).to.equal(TEST_CONSENT_DATA_V1.getVendorConsents.metadata);
       expect(consent.consentData.gdprApplies).to.be.true;
-      expect(consent.consentData.apiVersion).to.equal(1);
+      expect(consent.consentData.api).to.equal(API_TYPE.TCF_V1);
       expect(consent.consentData.hasCcpaString).to.be.false;
 
       // two calls: getConsentData, getVendorConsents
@@ -353,7 +380,7 @@ describe('Consent Management', function () {
 
         assert.calledOnce(utils.logError);
         assert.calledOnce(callbackSpy);
-        expect(consent.consentData).to.be.undefined;
+        expect(consent.consentData.api).to.equal(API_TYPE.NONE);
       })
     );
 
@@ -366,7 +393,7 @@ describe('Consent Management', function () {
 
       assert.calledThrice(utils.logError);
       assert.calledOnce(callbackSpy);
-      expect(consent.consentData).to.be.undefined;
+      expect(consent.consentData.api).to.equal(API_TYPE.NONE);
     });
   });
 
@@ -429,7 +456,7 @@ describe('Consent Management', function () {
 
           assert.calledOnce(utils.logError);
           assert.calledOnce(callbackSpy);
-          expect(consent.consentData).to.be.undefined;
+          expect(consent.consentData.api).to.equal(API_TYPE.NONE);
         })
       );
 
@@ -442,7 +469,7 @@ describe('Consent Management', function () {
 
         assert.calledOnce(utils.logError);
         assert.calledOnce(callbackSpy);
-        expect(consent.consentData).to.be.undefined;
+        expect(consent.consentData.api).to.equal(API_TYPE.NONE);
       });
     });
   });
@@ -505,7 +532,7 @@ describe('Consent Management', function () {
 
           assert.calledOnce(utils.logError);
           assert.calledOnce(callbackSpy);
-          expect(consent.consentData).to.be.undefined;
+          expect(consent.consentData.api).to.equal(API_TYPE.NONE);
         })
       );
 
@@ -518,7 +545,7 @@ describe('Consent Management', function () {
 
         assert.calledOnce(utils.logError);
         assert.calledOnce(callbackSpy);
-        expect(consent.consentData).to.be.undefined;
+        expect(consent.consentData.api).to.equal(API_TYPE.NONE);
       });
     });
   });
@@ -685,7 +712,7 @@ describe('Consent Management', function () {
           expect(consentData.consentString).to.equal(TEST_CONSENT_DATA_V1.getConsentData.consentData);
           expect(consentData.vendorData.metadata).to.equal(TEST_CONSENT_DATA_V1.getVendorConsents.metadata);
           expect(consentData.gdprApplies).to.be.true;
-          expect(consentData.apiVersion).to.equal(1);
+          expect(consentData.api).to.equal(API_TYPE.TCF_V1);
           done();
         });
       });
@@ -724,7 +751,7 @@ describe('Consent Management', function () {
           expect(consentData.consentString).to.equal(TEST_CONSENT_DATA_V2.getTCData.tcString);
           expect(consentData.vendorData.metadata).to.equal(TEST_CONSENT_DATA_V2.getTCData.metadata);
           expect(consentData.gdprApplies).to.be.true;
-          expect(consentData.apiVersion).to.equal(2);
+          expect(consentData.api).to.equal(API_TYPE.TCF_V2);
           done();
         });
       });
@@ -762,7 +789,7 @@ describe('Consent Management', function () {
           expect(consentData.hasCcpaString).to.be.true;
           expect(consentData.ccpaString).to.equal('1YYN');
           expect(consentData.gdprApplies).to.be.false;
-          expect(consentData.apiVersion).to.equal(0);
+          expect(consentData.api).to.equal(API_TYPE.USP_V1);
           done();
         });
       });
