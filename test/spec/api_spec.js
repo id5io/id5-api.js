@@ -457,7 +457,10 @@ describe('ID5 JS API', function () {
               },
               getVendorConsents: {
                 metadata: 'some meta',
-                'gdprApplies': true
+                gdprApplies: true,
+                purposeConsents: {
+                  '1': true, // Cookies/local storage access
+                }
               }
             };
 
@@ -510,9 +513,15 @@ describe('ID5 JS API', function () {
                 gdprApplies: true,
                 tcString: 'cmpconsentstring',
                 eventStatus: 'tcloaded',
-                apiVersion: 2
+                apiVersion: 2,
+                purpose: {
+                  consents: {
+                    '1': true
+                  }
+                }
               }
             };
+
             let cmpStub;
 
             beforeEach(function () {
@@ -853,21 +862,27 @@ describe('ID5 JS API', function () {
 
           describe('TCF v1', function () {
             const testConsentDataFromCmp = {
-              gdprApplies: true,
-              consentData: 'cmpconsentstring',
-              apiVersion: 1
+              getConsentData: {
+                gdprApplies: true,
+                consentData: 'cmpconsentstring',
+                apiVersion: 1
+              },
+              getVendorConsents: {
+                metadata: 'some meta',
+                gdprApplies: true,
+                purposeConsents: {
+                  '1': true, // Cookies/local storage access
+                }
+              }
             };
-            let cmpStub;
 
             beforeEach(function () {
-              window.__cmp = function () {};
-              cmpStub = sinon.stub(window, '__cmp').callsFake((...args) => {
-                args[2](testConsentDataFromCmp);
-              });
+              window.__cmp = (command, param, callback) => {
+                callback(testConsentDataFromCmp[command], true);
+              };
             });
 
             afterEach(function () {
-              cmpStub.restore();
               delete window.__cmp;
             });
 
@@ -910,7 +925,12 @@ describe('ID5 JS API', function () {
                 gdprApplies: true,
                 tcString: 'cmpconsentstring',
                 eventStatus: 'tcloaded',
-                apiVersion: 2
+                apiVersion: 2,
+                purpose: {
+                  consents: {
+                    '1': true
+                  }
+                }
               }
             };
             let cmpStub;
@@ -1199,7 +1219,12 @@ describe('ID5 JS API', function () {
             gdprApplies: true,
             tcString: 'cmpconsentstring',
             eventStatus: 'tcloaded',
-            apiVersion: 2
+            apiVersion: 2,
+            purpose: {
+              consents: {
+                '1': true
+              }
+            }
           }
         };
         let cmpStub;
@@ -1254,7 +1279,12 @@ describe('ID5 JS API', function () {
               gdprApplies: true,
               tcString: 'NEWcmpconsentstring',
               eventStatus: 'tcloaded',
-              apiVersion: 2
+              apiVersion: 2,
+              purpose: {
+                consents: {
+                  '1': true
+                }
+              }
             }, true);
           });
 
