@@ -1,6 +1,6 @@
 /**
  * @id5io/id5-api.js
- * @version v1.0.9
+ * @version v1.0.10
  * @link https://id5.io/
  * @license Apache-2.0
  */
@@ -75,32 +75,34 @@
 
 "use strict";
 /* unused harmony export replaceTokenInString */
+/* harmony export (immutable) */ __webpack_exports__["b"] = all;
 /* unused harmony export logMessage */
-/* harmony export (immutable) */ __webpack_exports__["m"] = logInfo;
-/* harmony export (immutable) */ __webpack_exports__["n"] = logWarn;
-/* harmony export (immutable) */ __webpack_exports__["l"] = logError;
-/* harmony export (immutable) */ __webpack_exports__["p"] = setGlobalDebug;
-/* harmony export (immutable) */ __webpack_exports__["i"] = isGlobalDebug;
+/* harmony export (immutable) */ __webpack_exports__["q"] = logInfo;
+/* harmony export (immutable) */ __webpack_exports__["r"] = logWarn;
+/* harmony export (immutable) */ __webpack_exports__["p"] = logError;
+/* harmony export (immutable) */ __webpack_exports__["t"] = setGlobalDebug;
+/* harmony export (immutable) */ __webpack_exports__["l"] = isGlobalDebug;
 /* unused harmony export getParameterByName */
-/* harmony export (immutable) */ __webpack_exports__["f"] = isA;
-/* harmony export (immutable) */ __webpack_exports__["h"] = isFn;
-/* harmony export (immutable) */ __webpack_exports__["k"] = isStr;
-/* unused harmony export isArray */
-/* unused harmony export isNumber */
-/* harmony export (immutable) */ __webpack_exports__["j"] = isPlainObject;
-/* harmony export (immutable) */ __webpack_exports__["g"] = isBoolean;
+/* harmony export (immutable) */ __webpack_exports__["g"] = isA;
+/* harmony export (immutable) */ __webpack_exports__["k"] = isFn;
+/* harmony export (immutable) */ __webpack_exports__["o"] = isStr;
+/* harmony export (immutable) */ __webpack_exports__["h"] = isArray;
+/* harmony export (immutable) */ __webpack_exports__["m"] = isNumber;
+/* harmony export (immutable) */ __webpack_exports__["n"] = isPlainObject;
+/* harmony export (immutable) */ __webpack_exports__["i"] = isBoolean;
+/* harmony export (immutable) */ __webpack_exports__["j"] = isDefined;
 /* unused harmony export isEmpty */
-/* harmony export (immutable) */ __webpack_exports__["e"] = getCookie;
-/* harmony export (immutable) */ __webpack_exports__["o"] = setCookie;
+/* harmony export (immutable) */ __webpack_exports__["f"] = getCookie;
+/* harmony export (immutable) */ __webpack_exports__["s"] = setCookie;
 /* unused harmony export parseQS */
 /* unused harmony export formatQS */
 /* unused harmony export parse */
 /* unused harmony export format */
 /* harmony export (immutable) */ __webpack_exports__["a"] = ajax;
 /* unused harmony export fireAsyncPixel */
-/* harmony export (immutable) */ __webpack_exports__["c"] = deferPixelFire;
-/* harmony export (immutable) */ __webpack_exports__["b"] = cyrb53Hash;
-/* harmony export (immutable) */ __webpack_exports__["d"] = delve;
+/* harmony export (immutable) */ __webpack_exports__["d"] = deferPixelFire;
+/* harmony export (immutable) */ __webpack_exports__["c"] = cyrb53Hash;
+/* harmony export (immutable) */ __webpack_exports__["e"] = delve;
 function _extends() { _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends.apply(this, arguments); }
 
 function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
@@ -150,6 +152,15 @@ function replaceTokenInString(str, map, token) {
   });
 
   return str;
+}
+function all(array, fn) {
+  var result = true;
+
+  _each(array, function (value) {
+    return result = result && fn(value);
+  });
+
+  return result;
 }
 /**
  * Wrappers to console.(log | info | warn | error). Takes N arguments, the same as the native methods
@@ -234,6 +245,9 @@ function isPlainObject(object) {
 }
 function isBoolean(object) {
   return isA(object, tBoolean);
+}
+function isDefined(object) {
+  return typeof object !== 'undefined';
 }
 /**
  * Return if the object is "empty";
@@ -585,10 +599,10 @@ var ClientStore = /*#__PURE__*/function () {
         if (this.localStorageAllowedCallback() === true) {
           return this.localStorage.getItemWithExpiration(cacheConfig);
         } else {
-          Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["l" /* logError */])('clientStore.get() has been called without localStorageAllowed');
+          Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["p" /* logError */])('clientStore.get() has been called without localStorageAllowed');
         }
       } catch (e) {
-        Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["l" /* logError */])(e);
+        Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["p" /* logError */])(e);
       }
     }
     /**
@@ -602,7 +616,7 @@ var ClientStore = /*#__PURE__*/function () {
       try {
         this.localStorage.removeItemWithExpiration(cacheConfig);
       } catch (e) {
-        Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["l" /* logError */])(e);
+        Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["p" /* logError */])(e);
       }
     }
     /**
@@ -618,10 +632,10 @@ var ClientStore = /*#__PURE__*/function () {
         if (this.localStorageAllowedCallback() === true) {
           this.localStorage.setItemWithExpiration(cacheConfig, data);
         } else {
-          Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["l" /* logError */])('clientStore.put() has been called without localStorageAllowed');
+          Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["p" /* logError */])('clientStore.put() has been called without localStorageAllowed');
         }
       } catch (e) {
-        Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["l" /* logError */])(e);
+        Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["p" /* logError */])(e);
       }
     }
     /**
@@ -647,8 +661,8 @@ var ClientStore = /*#__PURE__*/function () {
     value: function getResponseFromLegacyCookie() {
       var legacyStoredValue;
       __WEBPACK_IMPORTED_MODULE_1__constants_json___default.a.LEGACY_COOKIE_NAMES.forEach(function (cookie) {
-        if (Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["e" /* getCookie */])(cookie)) {
-          legacyStoredValue = Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["e" /* getCookie */])(cookie);
+        if (Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["f" /* getCookie */])(cookie)) {
+          legacyStoredValue = Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["f" /* getCookie */])(cookie);
         }
       });
 
@@ -794,12 +808,12 @@ var ClientStore = /*#__PURE__*/function () {
     value: function removeLegacyCookies(partnerId) {
       var expired = new Date(Date.now() - 1000).toUTCString();
       __WEBPACK_IMPORTED_MODULE_1__constants_json___default.a.LEGACY_COOKIE_NAMES.forEach(function (cookie) {
-        Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["o" /* setCookie */])("".concat(cookie), '', expired);
-        Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["o" /* setCookie */])("".concat(cookie, "_nb"), '', expired);
-        Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["o" /* setCookie */])("".concat(cookie, "_").concat(partnerId, "_nb"), '', expired);
-        Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["o" /* setCookie */])("".concat(cookie, "_last"), '', expired);
-        Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["o" /* setCookie */])("".concat(cookie, ".cached_pd"), '', expired);
-        Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["o" /* setCookie */])("".concat(cookie, ".cached_consent_data"), '', expired);
+        Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["s" /* setCookie */])("".concat(cookie), '', expired);
+        Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["s" /* setCookie */])("".concat(cookie, "_nb"), '', expired);
+        Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["s" /* setCookie */])("".concat(cookie, "_").concat(partnerId, "_nb"), '', expired);
+        Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["s" /* setCookie */])("".concat(cookie, "_last"), '', expired);
+        Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["s" /* setCookie */])("".concat(cookie, ".cached_pd"), '', expired);
+        Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["s" /* setCookie */])("".concat(cookie, ".cached_consent_data"), '', expired);
       });
     }
     /**
@@ -841,7 +855,7 @@ var ClientStore = /*#__PURE__*/function () {
   }, {
     key: "makeStoredHash",
     value: function makeStoredHash(userId) {
-      return Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["b" /* cyrb53Hash */])(typeof userId === 'string' ? userId : '');
+      return Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["c" /* cyrb53Hash */])(typeof userId === 'string' ? userId : '');
     }
   }, {
     key: "nbCacheConfig",
@@ -871,7 +885,7 @@ var ClientStore = /*#__PURE__*/function () {
         storedConsentData.apiVersion = consentData.apiVersion;
       }
 
-      return Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["b" /* cyrb53Hash */])(JSON.stringify(storedConsentData));
+      return Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["c" /* cyrb53Hash */])(JSON.stringify(storedConsentData));
     }
   }]);
 
@@ -989,7 +1003,7 @@ var ConsentManagement = /*#__PURE__*/function () {
     key: "requestConsent",
     value: function requestConsent(debugBypassConsent, cmpApi, providedConsentData, finalCallback) {
       if (debugBypassConsent) {
-        Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["n" /* logWarn */])('cmpApi: ID5 is operating in forced consent mode and will not retrieve any consent signals from the CMP');
+        Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["r" /* logWarn */])('cmpApi: ID5 is operating in forced consent mode and will not retrieve any consent signals from the CMP');
         finalCallback(this.consentData);
       } else if (!this._consentRequested) {
         this._consentRequested = true;
@@ -1004,7 +1018,7 @@ var ConsentManagement = /*#__PURE__*/function () {
             break;
 
           default:
-            Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["l" /* logError */])("cmpApi: Unknown consent API: ".concat(cmpApi));
+            Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["p" /* logError */])("cmpApi: Unknown consent API: ".concat(cmpApi));
             this.resetConsentData();
             finalCallback(this.consentData);
             break;
@@ -1032,8 +1046,8 @@ var ConsentManagement = /*#__PURE__*/function () {
   }, {
     key: "parseStaticConsentData",
     value: function parseStaticConsentData(data, finalCallback) {
-      if (!Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["j" /* isPlainObject */])(data)) {
-        Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["l" /* logError */])('cmpApi: "static" did not specify consent data. Using defaults.');
+      if (!Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["n" /* isPlainObject */])(data)) {
+        Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["p" /* logError */])('cmpApi: "static" did not specify consent data. Using defaults.');
         finalCallback(this.consentData);
         return;
       } // Try to detect the CMP version from the static object structure
@@ -1044,7 +1058,7 @@ var ConsentManagement = /*#__PURE__*/function () {
       var uspDetected = false;
 
       var logIt = function logIt(info, data) {
-        Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["m" /* logInfo */])("cmpApi: Using static consent data from config for ".concat(info), data);
+        Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["q" /* logInfo */])("cmpApi: Using static consent data from config for ".concat(info), data);
       };
 
       if (cmpVersion > 0) {
@@ -1057,7 +1071,7 @@ var ConsentManagement = /*#__PURE__*/function () {
         }
       }
 
-      if (Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["j" /* isPlainObject */])(data.getUSPData)) {
+      if (Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["n" /* isPlainObject */])(data.getUSPData)) {
         logIt('USP', data);
         uspDetected = true;
         var uspData = ConsentManagement.parseUspData(data.getUSPData);
@@ -1068,7 +1082,7 @@ var ConsentManagement = /*#__PURE__*/function () {
       }
 
       if (!tcfDetected && !uspDetected) {
-        Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["l" /* logError */])('cmpApi: Neither CMP nor USP static data detected! Using defaults.');
+        Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["p" /* logError */])('cmpApi: Neither CMP nor USP static data detected! Using defaults.');
       }
 
       finalCallback(this.consentData);
@@ -1121,16 +1135,16 @@ var ConsentManagement = /*#__PURE__*/function () {
       var uspFn;
 
       if (!uspapiFrame) {
-        Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["n" /* logWarn */])('cmpApi: USP not found! Using defaults for CCPA.');
+        Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["r" /* logWarn */])('cmpApi: USP not found! Using defaults for CCPA.');
         callback();
         return;
       }
 
-      if (Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["h" /* isFn */])(uspapiFunction)) {
-        Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["m" /* logInfo */])('cmpApi: Detected USP is directly accessible, calling it now.');
+      if (Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["k" /* isFn */])(uspapiFunction)) {
+        Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["q" /* logInfo */])('cmpApi: Detected USP is directly accessible, calling it now.');
         uspFn = uspapiFunction;
       } else {
-        Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["m" /* logInfo */])('cmpApi: Detected USP is outside the current iframe. Using message passing.');
+        Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["q" /* logInfo */])('cmpApi: Detected USP is outside the current iframe. Using message passing.');
         uspFn = ConsentManagement.buildCmpSurrogate('uspv1', uspapiFrame);
       }
 
@@ -1138,7 +1152,7 @@ var ConsentManagement = /*#__PURE__*/function () {
         if (success) {
           callback(ConsentManagement.parseUspData(consentResponse));
         } else {
-          Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["l" /* logError */])('cmpApi: USP callback not succesful. Using defaults for CCPA.');
+          Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["p" /* logError */])('cmpApi: USP callback not succesful. Using defaults for CCPA.');
           callback();
         }
       };
@@ -1162,15 +1176,15 @@ var ConsentManagement = /*#__PURE__*/function () {
           cmpFunction = _ConsentManagement$fi2.cmpFunction;
 
       if (!cmpFrame) {
-        Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["n" /* logWarn */])('cmpApi: TCF not found! Using defaults for GDPR.');
+        Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["r" /* logWarn */])('cmpApi: TCF not found! Using defaults for GDPR.');
         callback();
         return;
       }
 
-      if (Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["h" /* isFn */])(cmpFunction)) {
+      if (Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["k" /* isFn */])(cmpFunction)) {
         this.lookupDirectTcf(cmpVersion, cmpFunction, callback);
       } else {
-        Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["m" /* logInfo */])('cmpApi: Detected TCF is outside the current iframe. Using message passing.');
+        Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["q" /* logInfo */])('cmpApi: Detected TCF is outside the current iframe. Using message passing.');
         this.lookupMessageTcf(cmpVersion, cmpFrame, callback);
       }
     }
@@ -1188,11 +1202,11 @@ var ConsentManagement = /*#__PURE__*/function () {
       var done = {};
 
       var logcb = function logcb(version, callback, data) {
-        Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["m" /* logInfo */])("cmpApi: TCFv".concat(version, " - Received a call back: ").concat(callback), data);
+        Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["q" /* logInfo */])("cmpApi: TCFv".concat(version, " - Received a call back: ").concat(callback), data);
       };
 
       var logNoSuccess = function logNoSuccess(version, callback) {
-        Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["l" /* logError */])("cmpApi: TCFv".concat(version, " - Received insuccess: ").concat(callback, ". Please check your CMP setup. Using defaults for GDPR."));
+        Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["p" /* logError */])("cmpApi: TCFv".concat(version, " - Received insuccess: ").concat(callback, ". Please check your CMP setup. Using defaults for GDPR."));
       };
 
       var makeV1Callback = function makeV1Callback(verb) {
@@ -1271,7 +1285,7 @@ var ConsentManagement = /*#__PURE__*/function () {
       var consentData = this.consentData;
 
       if (allowLocalStorageWithoutConsentApi === true || debugBypassConsent === true) {
-        Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["n" /* logWarn */])('cmpApi: Local storage access granted by configuration override, consent will not be checked');
+        Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["r" /* logWarn */])('cmpApi: Local storage access granted by configuration override, consent will not be checked');
         return true;
       }
 
@@ -1289,11 +1303,11 @@ var ConsentManagement = /*#__PURE__*/function () {
       }
 
       if (consentData.apiVersion === 1) {
-        return Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["d" /* delve */])(consentData, 'vendorData.purposeConsents.1') !== false;
+        return Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["e" /* delve */])(consentData, 'vendorData.purposeConsents.1') === true;
       }
 
       if (consentData.apiVersion === 2) {
-        return Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["d" /* delve */])(consentData, 'vendorData.purpose.consents.1') !== false;
+        return Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["e" /* delve */])(consentData, 'vendorData.purpose.consents.1') === true;
       }
 
       return true;
@@ -1314,7 +1328,7 @@ var ConsentManagement = /*#__PURE__*/function () {
   }, {
     key: "isProvisionalLocalStorageAllowed",
     value: function isProvisionalLocalStorageAllowed() {
-      if (!Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["j" /* isPlainObject */])(this.storedPrivacyData)) {
+      if (!Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["n" /* isPlainObject */])(this.storedPrivacyData)) {
         var privacyData = this.localStorage.getItemWithExpiration(__WEBPACK_IMPORTED_MODULE_1__constants_json___default.a.STORAGE_CONFIG.PRIVACY);
         this.storedPrivacyData = privacyData && JSON.parse(privacyData);
       }
@@ -1332,14 +1346,14 @@ var ConsentManagement = /*#__PURE__*/function () {
     key: "setStoredPrivacy",
     value: function setStoredPrivacy(privacy) {
       try {
-        if (Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["j" /* isPlainObject */])(privacy)) {
+        if (Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["n" /* isPlainObject */])(privacy)) {
           this.storedPrivacyData = privacy;
           this.localStorage.setItemWithExpiration(__WEBPACK_IMPORTED_MODULE_1__constants_json___default.a.STORAGE_CONFIG.PRIVACY, JSON.stringify(privacy));
         } else {
-          Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["m" /* logInfo */])('cmpApi: Cannot store privacy if it is not an object: ', privacy);
+          Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["q" /* logInfo */])('cmpApi: Cannot store privacy if it is not an object: ', privacy);
         }
       } catch (e) {
-        Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["l" /* logError */])(e);
+        Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["p" /* logError */])(e);
       }
     }
     /**
@@ -1366,7 +1380,7 @@ var ConsentManagement = /*#__PURE__*/function () {
         msg[config.objName] = requestObj;
 
         var eventHandler = function eventHandler(event) {
-          var result = Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["d" /* delve */])(event, "data.".concat(config.returnObjName));
+          var result = Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["e" /* delve */])(event, "data.".concat(config.returnObjName));
 
           if (result && result.callId === callId) {
             window.removeEventListener('message', eventHandler);
@@ -1381,8 +1395,8 @@ var ConsentManagement = /*#__PURE__*/function () {
   }, {
     key: "parseUspData",
     value: function parseUspData(consentObject) {
-      if (!Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["j" /* isPlainObject */])(consentObject) || !Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["k" /* isStr */])(consentObject.uspString)) {
-        Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["l" /* logError */])('cmpApi: No or malformed USP data. Using defaults for CCPA.');
+      if (!Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["n" /* isPlainObject */])(consentObject) || !Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["o" /* isStr */])(consentObject.uspString)) {
+        Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["p" /* logError */])('cmpApi: No or malformed USP data. Using defaults for CCPA.');
         return;
       }
 
@@ -1410,12 +1424,12 @@ var ConsentManagement = /*#__PURE__*/function () {
         isValid = ConsentManagement.isValidV2ConsentObject;
         normalizeFn = ConsentManagement.normalizeV2Data;
       } else {
-        Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["l" /* logError */])('cmpApi: No or malformed CMP data. Using defaults for GDPR.');
+        Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["p" /* logError */])('cmpApi: No or malformed CMP data. Using defaults for GDPR.');
         return;
       }
 
       if (!isValid(consentObject)) {
-        Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["l" /* logError */])('cmpApi: Invalid CMP data. Using defaults for GDPR.', consentObject);
+        Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["p" /* logError */])('cmpApi: Invalid CMP data. Using defaults for GDPR.', consentObject);
         return;
       }
 
@@ -1424,9 +1438,9 @@ var ConsentManagement = /*#__PURE__*/function () {
   }, {
     key: "isValidV1ConsentObject",
     value: function isValidV1ConsentObject(consentObject) {
-      var gdprApplies = Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["d" /* delve */])(consentObject, 'getConsentData.gdprApplies');
+      var gdprApplies = Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["e" /* delve */])(consentObject, 'getConsentData.gdprApplies');
 
-      if (!Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["g" /* isBoolean */])(gdprApplies)) {
+      if (!Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["i" /* isBoolean */])(gdprApplies)) {
         return false;
       }
 
@@ -1434,7 +1448,7 @@ var ConsentManagement = /*#__PURE__*/function () {
         return true;
       }
 
-      return Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["k" /* isStr */])(consentObject.getConsentData.consentData) && Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["j" /* isPlainObject */])(consentObject.getVendorConsents) && Object.keys(consentObject.getVendorConsents).length > 1;
+      return Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["o" /* isStr */])(consentObject.getConsentData.consentData) && Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["n" /* isPlainObject */])(consentObject.getVendorConsents) && Object.keys(consentObject.getVendorConsents).length > 1;
     }
   }, {
     key: "isValidV2ConsentObject",
@@ -1442,7 +1456,7 @@ var ConsentManagement = /*#__PURE__*/function () {
       var gdprApplies = consentObject && consentObject.gdprApplies;
       var tcString = consentObject && consentObject.tcString;
 
-      if (!Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["g" /* isBoolean */])(gdprApplies)) {
+      if (!Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["i" /* isBoolean */])(gdprApplies)) {
         return false;
       }
 
@@ -1450,7 +1464,7 @@ var ConsentManagement = /*#__PURE__*/function () {
         return true;
       }
 
-      return Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["k" /* isStr */])(tcString);
+      return Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["o" /* isStr */])(tcString);
     }
   }, {
     key: "normalizeV1Data",
@@ -1754,8 +1768,6 @@ function isExpired(dateValue) {
 "use strict";
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return Config; });
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__utils__ = __webpack_require__(0);
-function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
-
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 function _defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
@@ -1785,7 +1797,12 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
  * @property {string} [provider] - Defines who is deploying the API on behalf of the partner. A hard-coded value that will be provided by ID5 when applicable
  * @property {number} [maxCascades] - Defines the maximum number of cookie syncs that can occur when usersyncing for the user is required. A value of -1 will disable cookie syncing altogether. Defaults to 8
  * @property {boolean} [applyCreativeRestrictions] - When true some restrictions are applied, for example avoid writing to localStorage and avoid cookie syncing.
- */
+ * @property {Array<Segment>} [segments] - A list of segments to push to partners.
+
+ * @typedef {Object} Segment
+ * @property {string} [destination] - GVL ID or ID5-XX Partner ID. Mandatory
+ * @property {Array<string>} [ids] - The segment IDs to push. Must contain at least one segment ID.
+*/
 
 /**
  * @typedef {Object} AbTestConfig
@@ -1798,6 +1815,8 @@ var Config = /*#__PURE__*/function () {
 
   /** @type {Id5Options} */
 
+  /** @type {Number} */
+
   /**
    * Create configuration instance from an object containing key-value pairs
    * @param {Id5Options} options
@@ -1808,6 +1827,8 @@ var Config = /*#__PURE__*/function () {
     _defineProperty(this, "options", void 0);
 
     _defineProperty(this, "providedOptions", void 0);
+
+    _defineProperty(this, "invalidSegments", void 0);
 
     this.options = {
       debugBypassConsent: false,
@@ -1833,7 +1854,8 @@ var Config = /*#__PURE__*/function () {
       },
       provider: undefined,
       maxCascades: 8,
-      applyCreativeRestrictions: false
+      applyCreativeRestrictions: false,
+      segments: undefined
     };
     this.providedOptions = {};
 
@@ -1841,6 +1863,7 @@ var Config = /*#__PURE__*/function () {
       throw new Error('partnerId is required and must be a number');
     }
 
+    this.invalidSegments = 0;
     this.updOptions(options);
   }
   /**
@@ -1865,6 +1888,16 @@ var Config = /*#__PURE__*/function () {
       return this.providedOptions;
     }
     /**
+     * Return how many invalid segments we got in the options
+     * @returns {number} invalidSegments
+     */
+
+  }, {
+    key: "getInvalidSegments",
+    value: function getInvalidSegments() {
+      return this.invalidSegments;
+    }
+    /**
      * Override the configuration with an object containing key-value pairs
      * @param {Id5Options} options
      */
@@ -1874,22 +1907,66 @@ var Config = /*#__PURE__*/function () {
     value: function updOptions(options) {
       var _this = this;
 
-      if (_typeof(options) !== 'object') {
-        Object(__WEBPACK_IMPORTED_MODULE_0__utils__["l" /* logError */])('Config options must be an object');
+      var self = this;
+
+      if (!Object(__WEBPACK_IMPORTED_MODULE_0__utils__["n" /* isPlainObject */])(options)) {
+        Object(__WEBPACK_IMPORTED_MODULE_0__utils__["p" /* logError */])('Config options must be an object');
         return;
       }
 
-      if (typeof this.options.partnerId === 'number' && // Might be undefined
-      typeof options.partnerId === 'number' && options.partnerId !== this.options.partnerId) {
+      if (Object(__WEBPACK_IMPORTED_MODULE_0__utils__["m" /* isNumber */])(this.options.partnerId) && // Might be undefined
+      Object(__WEBPACK_IMPORTED_MODULE_0__utils__["m" /* isNumber */])(options.partnerId) && options.partnerId !== this.options.partnerId) {
         throw new Error('Cannot update config with a different partnerId');
       }
 
+      var acceptOption = function acceptOption(topic, value) {
+        _this.options[topic] = value;
+        _this.providedOptions[topic] = value;
+      };
+
       Object.keys(options).forEach(function (topic) {
-        if (Object(__WEBPACK_IMPORTED_MODULE_0__utils__["f" /* isA */])(options[topic], Config.configTypes[topic])) {
-          _this.options[topic] = options[topic];
-          _this.providedOptions[topic] = options[topic];
+        if (topic === 'segments') {
+          var segments = options[topic];
+          var value = [];
+
+          if (!Object(__WEBPACK_IMPORTED_MODULE_0__utils__["h" /* isArray */])(segments)) {
+            logTypeError(topic, 'Array', segments);
+            return;
+          }
+
+          segments.forEach(function (segment, index) {
+            var locator = "segments[".concat(index, "]");
+
+            if (!Object(__WEBPACK_IMPORTED_MODULE_0__utils__["h" /* isArray */])(segment['ids']) || !Object(__WEBPACK_IMPORTED_MODULE_0__utils__["b" /* all */])(segment['ids'], __WEBPACK_IMPORTED_MODULE_0__utils__["o" /* isStr */])) {
+              logTypeError("".concat(locator, ".ids"), 'Array of String', segment['ids']);
+              self.invalidSegments += 1;
+              return;
+            }
+
+            if (segment['ids'].length < 1) {
+              Object(__WEBPACK_IMPORTED_MODULE_0__utils__["p" /* logError */])("Config option ".concat(locator, ".ids should contain at least one segment ID"));
+              self.invalidSegments += 1;
+              return;
+            }
+
+            if (!Object(__WEBPACK_IMPORTED_MODULE_0__utils__["o" /* isStr */])(segment['destination'])) {
+              logTypeError("".concat(locator, ".destination"), 'String', segment['destination']);
+              self.invalidSegments += 1;
+              return;
+            }
+
+            value.push(segment);
+          });
+          acceptOption(topic, value);
         } else {
-          Object(__WEBPACK_IMPORTED_MODULE_0__utils__["l" /* logError */])("updOptions options ".concat(topic, " must be of type ").concat(Config.configTypes[topic], " but was ").concat(toString.call(options[topic])));
+          var expectedType = Config.configTypes[topic];
+          var _value = options[topic];
+
+          if (Object(__WEBPACK_IMPORTED_MODULE_0__utils__["g" /* isA */])(_value, expectedType)) {
+            acceptOption(topic, _value);
+          } else {
+            logTypeError(topic, expectedType, _value);
+          }
         }
       });
     }
@@ -1918,6 +1995,10 @@ _defineProperty(Config, "configTypes", {
 
 
 
+function logTypeError(topic, expectedType, value) {
+  Object(__WEBPACK_IMPORTED_MODULE_0__utils__["p" /* logError */])("Config option ".concat(topic, " must be of type ").concat(expectedType, " but was ").concat(toString.call(value), ". Ignoring..."));
+}
+
 /***/ }),
 /* 6 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
@@ -1945,6 +2026,18 @@ if (!window.ID5) {
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_5__generated_version_js__ = __webpack_require__(10);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_6__localStorage_js__ = __webpack_require__(4);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_7__config_js__ = __webpack_require__(5);
+function _slicedToArray(arr, i) { return _arrayWithHoles(arr) || _iterableToArrayLimit(arr, i) || _unsupportedIterableToArray(arr, i) || _nonIterableRest(); }
+
+function _nonIterableRest() { throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); }
+
+function _unsupportedIterableToArray(o, minLen) { if (!o) return; if (typeof o === "string") return _arrayLikeToArray(o, minLen); var n = Object.prototype.toString.call(o).slice(8, -1); if (n === "Object" && o.constructor) n = o.constructor.name; if (n === "Map" || n === "Set") return Array.from(o); if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray(o, minLen); }
+
+function _arrayLikeToArray(arr, len) { if (len == null || len > arr.length) len = arr.length; for (var i = 0, arr2 = new Array(len); i < len; i++) { arr2[i] = arr[i]; } return arr2; }
+
+function _iterableToArrayLimit(arr, i) { var _i = arr && (typeof Symbol !== "undefined" && arr[Symbol.iterator] || arr["@@iterator"]); if (_i == null) return; var _arr = []; var _n = true; var _d = false; var _s, _e; try { for (_i = _i.call(arr); !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"] != null) _i["return"](); } finally { if (_d) throw _e; } } return _arr; }
+
+function _arrayWithHoles(arr) { if (Array.isArray(arr)) return arr; }
+
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 function _defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
@@ -1996,7 +2089,7 @@ var Id5Api = /*#__PURE__*/function () {
   _createClass(Id5Api, [{
     key: "debug",
     get: function get() {
-      return Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["i" /* isGlobalDebug */])();
+      return Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["l" /* isGlobalDebug */])();
     }
     /** @type {boolean} */
     ,
@@ -2005,13 +2098,13 @@ var Id5Api = /*#__PURE__*/function () {
 
     /** @type {boolean} */
     function set(isDebug) {
-      Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["p" /* setGlobalDebug */])(isDebug);
+      Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["t" /* setGlobalDebug */])(isDebug);
     }
   }, {
     key: "init",
     value: function init(passedOptions) {
       try {
-        Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["m" /* logInfo */])('Invoking Id5Api.init', arguments);
+        Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["q" /* logInfo */])('Invoking Id5Api.init', arguments);
         var config = new __WEBPACK_IMPORTED_MODULE_7__config_js__["a" /* default */](passedOptions);
         var options = config.getOptions(); // By using window.top we say we want to use storage only if we're in a first-party context
 
@@ -2022,10 +2115,10 @@ var Id5Api = /*#__PURE__*/function () {
         }, localStorage);
         var partnerStatus = new __WEBPACK_IMPORTED_MODULE_4__id5Status_js__["a" /* default */](config, clientStore, consentManagement);
         this.getId(partnerStatus, false);
-        Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["m" /* logInfo */])("ID5 initialized for partner ".concat(options.partnerId, " with referer ").concat(this._referer.referer, " and options"), passedOptions);
+        Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["q" /* logInfo */])("ID5 initialized for partner ".concat(options.partnerId, " with referer ").concat(this._referer.referer, " and options"), passedOptions);
         return partnerStatus;
       } catch (e) {
-        Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["l" /* logError */])('Exception caught from Id5Api.init', e);
+        Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["p" /* logError */])('Exception caught from Id5Api.init', e);
       }
     }
   }, {
@@ -2041,18 +2134,18 @@ var Id5Api = /*#__PURE__*/function () {
       var forceFetch = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : false;
       var options = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
 
-      if (!Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["g" /* isBoolean */])(forceFetch)) {
+      if (!Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["i" /* isBoolean */])(forceFetch)) {
         throw new Error('Invalid signature for Id5Api.refreshId: second parameter must be a boolean');
       }
 
       try {
-        Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["m" /* logInfo */])('Invoking Id5Api.refreshId', arguments);
+        Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["q" /* logInfo */])('Invoking Id5Api.refreshId', arguments);
         id5Status.startRefresh(forceFetch);
         id5Status.updateOptions(options);
         id5Status.consentManagement.resetConsentData();
         this.getId(id5Status, forceFetch);
       } catch (e) {
-        Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["l" /* logError */])('Exception caught from Id5Api.refreshId', e);
+        Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["p" /* logError */])('Exception caught from Id5Api.refreshId', e);
       }
 
       return id5Status;
@@ -2096,26 +2189,26 @@ var Id5Api = /*#__PURE__*/function () {
         id5Status.setUserId(storedResponse, true);
         nb = id5Status.clientStore.incNb(options.partnerId, nb);
         cachedResponseUsed = true;
-        Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["m" /* logInfo */])('ID5 User ID available from cache:', {
+        Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["q" /* logInfo */])('ID5 User ID available from cache:', {
           storedResponse: storedResponse,
           storedDateTime: storedDateTime,
           refreshNeeded: refreshInSecondsHasElapsed
         });
       } else if (storedResponse && storedResponse.universal_uid && pdHasChanged) {
-        Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["m" /* logInfo */])('PD value has changed, so ignoring User ID from cache');
+        Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["q" /* logInfo */])('PD value has changed, so ignoring User ID from cache');
       } else if (storedResponse && !storedResponse.universal_uid) {
-        Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["l" /* logError */])('Invalid stored response: ', storedResponse);
+        Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["p" /* logError */])('Invalid stored response: ', storedResponse);
       } else {
-        Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["m" /* logInfo */])('No ID5 User ID available from cache');
+        Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["q" /* logInfo */])('No ID5 User ID available from cache');
       }
 
       id5Status.consentManagement.requestConsent(options.debugBypassConsent, options.cmpApi, options.consentData, function (consentData) {
         if (id5Status.localStorageAllowed() === false) {
-          Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["m" /* logInfo */])('No legal basis to use ID5', consentData);
+          Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["q" /* logInfo */])('No legal basis to use ID5', consentData);
           return;
         }
 
-        Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["m" /* logInfo */])('Consent to access local storage is: ' + id5Status.localStorageAllowed());
+        Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["q" /* logInfo */])('Consent to access local storage is: ' + id5Status.localStorageAllowed());
         storedResponse = id5Status.clientStore.getResponse() || id5Status.clientStore.getResponseFromLegacyCookie(); // store hashed consent data and pd for future page loads
 
         var consentHasChanged = !id5Status.clientStore.storedConsentDataMatchesConsentData(consentData);
@@ -2145,61 +2238,68 @@ var Id5Api = /*#__PURE__*/function () {
             'id5cdn': _this._isUsingCdn
           }; // pass in optional data, but only if populated
 
-          if (typeof gdprConsentString !== 'undefined') {
+          if (Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["j" /* isDefined */])(gdprConsentString)) {
             data.gdpr_consent = gdprConsentString;
           }
 
-          if (typeof signature !== 'undefined') {
+          if (Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["j" /* isDefined */])(signature)) {
             data.s = signature;
-          }
-
-          if (typeof options.pd !== 'undefined') {
-            data.pd = options.pd;
-          }
-
-          if (typeof options.partnerUserId !== 'undefined') {
-            data.puid = options.partnerUserId;
-          }
-
-          if (typeof options.provider !== 'undefined') {
-            data.provider = options.provider;
           }
 
           if (consentData && consentData.hasCcpaString) {
             data.us_privacy = consentData.ccpaString;
-          } // pass in A/B Testing configuration, if applicable
+          }
 
+          Object.entries({
+            pd: 'pd',
+            partnerUserId: 'puid',
+            provider: 'provider',
+            segments: 'segments'
+          }).forEach(function (entry) {
+            var _entry = _slicedToArray(entry, 2),
+                optKey = _entry[0],
+                dataKey = _entry[1];
+
+            if (Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["j" /* isDefined */])(options[optKey])) {
+              data[dataKey] = options[optKey];
+            }
+          }); // pass in A/B Testing configuration, if applicable
 
           if (options.abTesting.enabled === true) {
             data.ab_testing = {
               enabled: true,
               control_group_pct: id5Status.getOptions().abTesting.controlGroupPct
             };
+          } // Monitoring server side for excluded invalid segments
+
+
+          if (id5Status.getInvalidSegments() > 0) {
+            data._invalid_segments = id5Status.getInvalidSegments();
           }
 
-          Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["m" /* logInfo */])('Fetching ID5 user ID from:', url, data);
+          Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["q" /* logInfo */])('Fetching ID5 user ID from:', url, data);
 
           if (forceFetch) {
-            Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["m" /* logInfo */])('...with Force Fetch');
+            Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["q" /* logInfo */])('...with Force Fetch');
           }
 
           Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["a" /* ajax */])(url, {
             success: function success(response) {
-              Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["m" /* logInfo */])('Response from ID5 received:', response);
+              Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["q" /* logInfo */])('Response from ID5 received:', response);
               var responseObj;
 
               if (response) {
                 try {
                   responseObj = JSON.parse(response);
-                  Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["m" /* logInfo */])('Valid json response from ID5 received:', responseObj);
+                  Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["q" /* logInfo */])('Valid json response from ID5 received:', responseObj);
 
-                  if (Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["k" /* isStr */])(responseObj.universal_uid)) {
+                  if (Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["o" /* isStr */])(responseObj.universal_uid)) {
                     id5Status.setUserId(responseObj, false); // privacy has to be stored first so we can use it when storing other values
 
-                    id5Status.consentManagement.setStoredPrivacy(responseObj.privacy); // @TODO: typeof responseObj.privacy === 'undefined' is only needed until fetch endpoint is updated and always returns a privacy object
+                    id5Status.consentManagement.setStoredPrivacy(responseObj.privacy); // @TODO: !isDefined(responseObj.privacy) is only needed until fetch endpoint is updated and always returns a privacy object
                     // once it does, I don't see a reason to keep that part of the if clause
 
-                    if (id5Status.localStorageAllowed() === true || typeof responseObj.privacy === 'undefined') {
+                    if (id5Status.localStorageAllowed() === true || !Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["j" /* isDefined */])(responseObj.privacy)) {
                       id5Status.clientStore.putResponse(response);
                       id5Status.clientStore.setDateTime(new Date().toUTCString());
                       id5Status.clientStore.setNb(options.partnerId, cachedResponseUsed ? 0 : 1);
@@ -2214,21 +2314,21 @@ var Id5Api = /*#__PURE__*/function () {
                     if (responseObj.cascade_needed === true && id5Status.localStorageAllowed() === true && options.maxCascades >= 0 && !options.applyCreativeRestrictions) {
                       var isSync = options.partnerUserId && options.partnerUserId.length > 0;
                       var syncUrl = "https://id5-sync.com/".concat(isSync ? 's' : 'i', "/").concat(options.partnerId, "/").concat(options.maxCascades, ".gif?id5id=").concat(id5Status._userId, "&o=api&").concat(isSync ? 'puid=' + options.partnerUserId + '&' : '', "gdpr_consent=").concat(gdprConsentString, "&gdpr=").concat(gdprApplies);
-                      Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["m" /* logInfo */])('Opportunities to cascade available:', syncUrl);
-                      Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["c" /* deferPixelFire */])(syncUrl);
+                      Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["q" /* logInfo */])('Opportunities to cascade available:', syncUrl);
+                      Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["d" /* deferPixelFire */])(syncUrl);
                     }
                   } else {
-                    Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["l" /* logError */])('Invalid response from ID5 servers:', response);
+                    Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["p" /* logError */])('Invalid response from ID5 servers:', response);
                   }
                 } catch (error) {
-                  Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["l" /* logError */])(error);
+                  Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["p" /* logError */])(error);
                 }
               } else {
-                Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["l" /* logError */])('Empty response from ID5 servers:', response);
+                Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["p" /* logError */])('Empty response from ID5 servers:', response);
               }
             },
             error: function error(_error) {
-              Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["l" /* logError */])(_error);
+              Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["p" /* logError */])(_error);
             }
           }, JSON.stringify(data), {
             method: 'POST',
@@ -2588,6 +2688,16 @@ var Id5Status = /*#__PURE__*/function () {
     value: function getOptions() {
       return this.config.getOptions();
     }
+    /**
+     * Return how many invalid segments we got in the options
+     * @returns {number} invalidSegments
+     */
+
+  }, {
+    key: "getInvalidSegments",
+    value: function getInvalidSegments() {
+      return this.config.getInvalidSegments();
+    }
     /** @param {Id5Options} options */
 
   }, {
@@ -2621,7 +2731,7 @@ var Id5Status = /*#__PURE__*/function () {
       var linkType = response.link_type || 0;
       this._isExposed = true;
 
-      if (__WEBPACK_IMPORTED_MODULE_1__utils__["j" /* isPlainObject */](response.ab_testing)) {
+      if (__WEBPACK_IMPORTED_MODULE_1__utils__["n" /* isPlainObject */](response.ab_testing)) {
         switch (response.ab_testing.result) {
           case 'normal':
             // nothing to do
@@ -2630,12 +2740,12 @@ var Id5Status = /*#__PURE__*/function () {
           default: // falls through
 
           case 'error':
-            __WEBPACK_IMPORTED_MODULE_1__utils__["l" /* logError */]('There was an error with A/B Testing. Make sure controlGroupRatio is a number >= 0 and <= 1');
+            __WEBPACK_IMPORTED_MODULE_1__utils__["p" /* logError */]('There was an error with A/B Testing. Make sure controlGroupRatio is a number >= 0 and <= 1');
             break;
 
           case 'control':
             this._isExposed = false;
-            __WEBPACK_IMPORTED_MODULE_1__utils__["m" /* logInfo */]('User is in control group!');
+            __WEBPACK_IMPORTED_MODULE_1__utils__["q" /* logInfo */]('User is in control group!');
             break;
         }
       }
@@ -2645,12 +2755,12 @@ var Id5Status = /*#__PURE__*/function () {
       this._userId = userId;
       this._linkType = linkType;
       this._fromCache = fromCache;
-      __WEBPACK_IMPORTED_MODULE_1__utils__["m" /* logInfo */]("Id5Status.setUserId: user id updated, hasChanged: ".concat(hasChanged)); // Fire onAvailable if not yet fired
+      __WEBPACK_IMPORTED_MODULE_1__utils__["q" /* logInfo */]("Id5Status.setUserId: user id updated, hasChanged: ".concat(hasChanged)); // Fire onAvailable if not yet fired
 
-      if (__WEBPACK_IMPORTED_MODULE_1__utils__["h" /* isFn */](this._availableCallback) && this._availableCallbackFired === false) {
+      if (__WEBPACK_IMPORTED_MODULE_1__utils__["k" /* isFn */](this._availableCallback) && this._availableCallbackFired === false) {
         // Cancel pending watchdog
         if (this._availableCallbackTimerId) {
-          __WEBPACK_IMPORTED_MODULE_1__utils__["m" /* logInfo */]("Cancelling pending onAvailableCallback watchdog");
+          __WEBPACK_IMPORTED_MODULE_1__utils__["q" /* logInfo */]("Cancelling pending onAvailableCallback watchdog");
           clearTimeout(this._availableCallbackTimerId);
           this._availableCallbackTimerId = undefined;
         }
@@ -2661,11 +2771,11 @@ var Id5Status = /*#__PURE__*/function () {
       } // Fire onRefresh if not yet fired and not from cache
 
 
-      if (this._isRefreshing && __WEBPACK_IMPORTED_MODULE_1__utils__["h" /* isFn */](this._refreshCallback) && this._refreshCallbackFired === false) {
+      if (this._isRefreshing && __WEBPACK_IMPORTED_MODULE_1__utils__["k" /* isFn */](this._refreshCallback) && this._refreshCallbackFired === false) {
         if (fromCache === false || this._isRefreshingWithFetch === false) {
           // Cancel pending watchdog
           if (this._refreshCallbackTimerId) {
-            __WEBPACK_IMPORTED_MODULE_1__utils__["m" /* logInfo */]("Cancelling pending onRefreshCallback watchdog");
+            __WEBPACK_IMPORTED_MODULE_1__utils__["q" /* logInfo */]("Cancelling pending onRefreshCallback watchdog");
             clearTimeout(this._refreshCallbackTimerId);
             this._refreshCallbackTimerId = undefined;
           }
@@ -2677,7 +2787,7 @@ var Id5Status = /*#__PURE__*/function () {
       } // Always fire onUpdate if any change
 
 
-      if (hasChanged && __WEBPACK_IMPORTED_MODULE_1__utils__["h" /* isFn */](this._updateCallback)) {
+      if (hasChanged && __WEBPACK_IMPORTED_MODULE_1__utils__["k" /* isFn */](this._updateCallback)) {
         setTimeout(function () {
           return Id5Status.doFireOnUpdateCallBack(_this);
         }, 0);
@@ -2754,18 +2864,18 @@ var Id5Status = /*#__PURE__*/function () {
   }, {
     key: "onAvailable",
     value: function onAvailable(fn, timeout) {
-      if (!__WEBPACK_IMPORTED_MODULE_1__utils__["h" /* isFn */](fn)) {
+      if (!__WEBPACK_IMPORTED_MODULE_1__utils__["k" /* isFn */](fn)) {
         throw new Error('onAvailable expect a function');
       }
 
-      if (__WEBPACK_IMPORTED_MODULE_1__utils__["h" /* isFn */](this._availableCallback)) {
-        __WEBPACK_IMPORTED_MODULE_1__utils__["m" /* logInfo */]('onAvailable was already called, ignoring');
+      if (__WEBPACK_IMPORTED_MODULE_1__utils__["k" /* isFn */](this._availableCallback)) {
+        __WEBPACK_IMPORTED_MODULE_1__utils__["q" /* logInfo */]('onAvailable was already called, ignoring');
       } else {
         this._availableCallback = fn;
         var currentThis = this; // Preserve this within callback
 
         if (this._userIdAvailable) {
-          __WEBPACK_IMPORTED_MODULE_1__utils__["m" /* logInfo */]('Id5Status.onAvailable: User id already available firing callback immediately');
+          __WEBPACK_IMPORTED_MODULE_1__utils__["q" /* logInfo */]('Id5Status.onAvailable: User id already available firing callback immediately');
           this._availableCallbackTimerId = setTimeout(function () {
             return Id5Status.doFireOnAvailableCallBack(currentThis);
           }, 0);
@@ -2788,7 +2898,7 @@ var Id5Status = /*#__PURE__*/function () {
   }, {
     key: "onUpdate",
     value: function onUpdate(fn) {
-      if (!__WEBPACK_IMPORTED_MODULE_1__utils__["h" /* isFn */](fn)) {
+      if (!__WEBPACK_IMPORTED_MODULE_1__utils__["k" /* isFn */](fn)) {
         throw new Error('onUpdate expect a function');
       }
 
@@ -2814,7 +2924,7 @@ var Id5Status = /*#__PURE__*/function () {
   }, {
     key: "onRefresh",
     value: function onRefresh(fn, timeout) {
-      if (!__WEBPACK_IMPORTED_MODULE_1__utils__["h" /* isFn */](fn)) {
+      if (!__WEBPACK_IMPORTED_MODULE_1__utils__["k" /* isFn */](fn)) {
         throw new Error('onRefresh expect a function');
       } // We have a pending onRefresh, cancel it.
 
@@ -2857,7 +2967,7 @@ var Id5Status = /*#__PURE__*/function () {
   }], [{
     key: "doFireOnAvailableCallBack",
     value: function doFireOnAvailableCallBack(currentId5Status) {
-      __WEBPACK_IMPORTED_MODULE_1__utils__["m" /* logInfo */]("Id5Status.doFireOnAvailableCallBack");
+      __WEBPACK_IMPORTED_MODULE_1__utils__["q" /* logInfo */]("Id5Status.doFireOnAvailableCallBack");
       currentId5Status._availableCallbackFired = true;
       currentId5Status._availableCallbackTimerId = undefined;
 
@@ -2871,7 +2981,7 @@ var Id5Status = /*#__PURE__*/function () {
   }, {
     key: "doFireOnUpdateCallBack",
     value: function doFireOnUpdateCallBack(currentId5Status) {
-      __WEBPACK_IMPORTED_MODULE_1__utils__["m" /* logInfo */]("Id5Status.doFireOnUpdateCallBack");
+      __WEBPACK_IMPORTED_MODULE_1__utils__["q" /* logInfo */]("Id5Status.doFireOnUpdateCallBack");
 
       currentId5Status._updateCallback(currentId5Status);
     }
@@ -2883,7 +2993,7 @@ var Id5Status = /*#__PURE__*/function () {
   }, {
     key: "doFireOnRefreshCallBack",
     value: function doFireOnRefreshCallBack(currentId5Status) {
-      __WEBPACK_IMPORTED_MODULE_1__utils__["m" /* logInfo */]("Id5Status.doFireOnRefreshCallBack");
+      __WEBPACK_IMPORTED_MODULE_1__utils__["q" /* logInfo */]("Id5Status.doFireOnRefreshCallBack");
       currentId5Status._refreshCallbackFired = true;
       currentId5Status._refreshCallbackTimerId = undefined;
       currentId5Status._isRefreshing = false;
@@ -2905,7 +3015,7 @@ var Id5Status = /*#__PURE__*/function () {
 "use strict";
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return version; });
 // generated by genversion
-var version = '1.0.9';
+var version = '1.0.10';
 
 /***/ })
 /******/ ]);

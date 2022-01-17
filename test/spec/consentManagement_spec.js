@@ -5,11 +5,6 @@ import clone from 'clone';
 import * as utils from '../../lib/utils.js';
 import CONSTANTS from '../../lib/constants.json';
 
-const TEST_PRIVACY_STORAGE_CONFIG = {
-  name: 'id5id_privacy',
-  expiresDays: 30
-}
-
 const TEST_CONSENT_DATA_V1 = {
   getConsentData: {
     'gdprApplies': true,
@@ -476,7 +471,6 @@ describe('Consent Management', function () {
     });
   });
 
-
   describe('with USPv1 IAB compliant CMP', function () {
     let cmpStub;
 
@@ -609,17 +603,19 @@ describe('Consent Management', function () {
         expect(consent.isLocalStorageAllowed(false, false)).to.be.true;
       });
 
-      it('disallows local storage when vendor data disallows purpose 1', function() {
-        const cloneTestData = clone(TEST_CONSENT_DATA_V2);
-        cloneTestData.getTCData.purpose.consents['1'] = false;
-        cmpStub.callsFake((command, version, callback) => {
-          callback(cloneTestData.getTCData, true);
-        });
-        const consent = new ConsentManagement(localStorageMock);
-        consent.requestConsent(false, 'iab', undefined, callbackSpy);
+      [false, null, undefined, "xxx"].forEach(value => {
+        it(`disallows local storage when vendor purpose 1 has value ${value}`, function() {
+          const cloneTestData = clone(TEST_CONSENT_DATA_V2);
+          cloneTestData.getTCData.purpose.consents['1'] = value;
+          cmpStub.callsFake((command, version, callback) => {
+            callback(cloneTestData.getTCData, true);
+          });
+          const consent = new ConsentManagement(localStorageMock);
+          consent.requestConsent(false, 'iab', undefined, callbackSpy);
 
-        expect(consent.isLocalStorageAllowed(false, false)).to.be.false;
-      });
+          expect(consent.isLocalStorageAllowed(false, false)).to.be.false;
+        });
+      })
 
       it('allows local storage when not in GDPR jurisdiction', function() {
         const cloneTestData = clone(TEST_CONSENT_DATA_V2);
@@ -665,6 +661,20 @@ describe('Consent Management', function () {
         consent.requestConsent(false, 'iab', undefined, callbackSpy);
 
         expect(consent.isLocalStorageAllowed(false, false)).to.be.false;
+      });
+
+      [false, null, undefined, "xxx"].forEach(value => {
+        it(`disallows local storage when vendor purpose 1 has value ${value}`, function() {
+          const cloneTestData = clone(TEST_CONSENT_DATA_V1);
+          cloneTestData.getVendorConsents.purposeConsents['1'] = value;
+          cmpStub.callsFake((command, param, callback) => {
+            callback(cloneTestData[command], true);
+          });
+          const consent = new ConsentManagement(localStorageMock);
+          consent.requestConsent(false, 'iab', undefined, callbackSpy);
+
+          expect(consent.isLocalStorageAllowed(false, false)).to.be.false;
+          });
       });
 
       it('allows local storage when not in GDPR jurisdiction', function() {
