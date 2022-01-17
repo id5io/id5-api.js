@@ -268,9 +268,20 @@ This object can contain one of the following properties:
   - the [IAB GVL](https://iabeurope.eu/vendor-list-tcf-v2-0/) ID of the partner. Eg. "131" indicates consent for ID5 itself
   - the ID5 partner ID in the form "ID5-xxx" with xxx being the ID. Eg. "ID5-478"
 
-Example: `allowedVendors: ['131', 'ID5-38']`
-
 Note that in case `cmpApi` is `'static'` and the `consentData` object is either undefined or empty, the request is treated as not restricted by any privacy law until the ID5 server determines that the request is subject to restrictions. In such a case, not having received any consent information, the request will be treated as non-consented.
+
+#### Allowed Vendors Example
+Here's an example of using Allowed Vendors to share that consent was received for ID5 (GVL ID `131`), a platform with GVL ID 3, and a brand with ID5 partner number 5:
+
+```javascript
+var id5Status = ID5.init({
+  partnerId: 173, // modify with your own partnerId
+  cmpApi: 'static',
+  consentData: {
+    allowedVendors: [ '131', '3', 'ID5-5' ]
+  }
+});
+```
 
 #### PD Example
 Taking the example from [Passing Partner Data to ID5](https://support.id5.io/portal/en/kb/articles/passing-partner-data-to-id5), here's how your configuration could look when initializing the API:
