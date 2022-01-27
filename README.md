@@ -251,13 +251,37 @@ There are a few cases in which `getUserId()` may not be ready or have a value ye
 | debugBypassConsent | Optional | boolean | `false` | Bypass consent API and Local Storage access; *for debugging purpose only* |
 | allowLocalStorageWithoutConsentApi | Optional | boolean | `false` | Tell ID5 that consent has been given to read local storage |
 | cmpApi | Optional | string | `iab` | API to use CMP. As of today, either `'iab'` or `'static'` |
-| consentData | Optional, Required if `cmpApi` is `'static'` | object | | Consent data if `cmpApi` is `'static'`. Object should be a valid TCF consent object.
+| consentData | Optional, Required if `cmpApi` is `'static'` | object | | Consent data if `cmpApi` is `'static'`. Content is described below.
 | partnerUserId | Optional | string | | User ID of the platform if they are deploying this API on behalf of a publisher/advertiser, to be used for user syncing with ID5 |
 | pd | Optional | string | | Partner-supplied data used for linking ID5 IDs across domains. See [Passing Partner Data to ID5](https://support.id5.io/portal/en/kb/articles/passing-partner-data-to-id5) for details on generating the string |
 | refreshInSeconds | Optional | integer | `7200`<br>(2 hours) | Refresh period of first-party local storage |
 | abTesting | Optional | object | `{ enabled: false, controlGroupPct: 0 }` | Enables A/B testing of the ID5 ID. See [A/B Testing](#ab-testing) below for more details |
 | provider | Optional | string | `pubmatic-identity-hub` | An identifier provided by ID5 to technology partners who manage API deployments on behalf of their clients. Reach out to [ID5](mailto:support@id5.io) if you have questions about this parameter |
 | maxCascades | Optional | number | `8` | Defines the maximum number of cookie syncs that can occur when usersyncing for the user is required. A value of `-1` will disable cookie syncing altogether. Defaults to `8` if not specified |
+
+#### consentData Object
+This object can contain one of the following properties:
+- getConsentData - an object which is parsed as the return value of a call to the IAB TCFv1 API
+- getTCData - an object which is parsed as the return value of a call to the IAB TCFv2 API
+- getUSPData - an object which is parsed as the return value of a call to the IAB USPv1 API
+- allowedVendors - an array of strings which represents ID5 partners which are consented for all GDPR purposes. The strings can be:
+  - the [IAB GVL](https://iabeurope.eu/vendor-list-tcf-v2-0/) ID of the partner. Eg. "131" indicates consent for ID5 itself
+  - the ID5 partner ID in the form "ID5-xxx" with xxx being the ID. Eg. "ID5-478"
+
+Note that in case `cmpApi` is `'static'` and the `consentData` object is either undefined or empty, the request is treated as not restricted by any privacy law until the ID5 server determines that the request is subject to restrictions. In such a case, not having received any consent information, the request will be treated as non-consented.
+
+#### Allowed Vendors Example
+Here's an example of using Allowed Vendors to share that consent was received for ID5 (GVL ID `131`), a platform with GVL ID 3, and a brand with ID5 partner number 5:
+
+```javascript
+var id5Status = ID5.init({
+  partnerId: 173, // modify with your own partnerId
+  cmpApi: 'static',
+  consentData: {
+    allowedVendors: [ '131', '3', 'ID5-5' ]
+  }
+});
+```
 
 #### PD Example
 Taking the example from [Passing Partner Data to ID5](https://support.id5.io/portal/en/kb/articles/passing-partner-data-to-id5), here's how your configuration could look when initializing the API:

@@ -98,6 +98,12 @@ describe('config API', function () {
     expect(config.getProvidedOptions().refreshInSeconds).to.be.undefined;
   });
 
+  it('does not set unknown config properties', function() {
+    const config = new Config({ partnerId: 44, blah: 44 });
+    expect(config.getProvidedOptions().blah).to.be.undefined;
+    expect(config.getOptions().blah).to.be.undefined;
+  });
+
   describe('Set and Get Config', function () {
     it('should have user-defined config and final config available', function () {
       const config = new Config({ partnerId: 44, debugBypassConsent: true, refreshInSeconds: 10 });

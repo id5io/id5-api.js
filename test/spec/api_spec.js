@@ -5,6 +5,7 @@ import ClientStore from '../../lib/clientStore';
 import { version } from '../../generated/version.js';
 import LocalStorage from '../../lib/localStorage.js';
 import ID5 from '../../lib/id5-api';
+import { API_TYPE, ConsentData } from '../../lib/consentManagement';
 
 let expect = require('chai').expect;
 const localStorage = new LocalStorage(window);
@@ -475,7 +476,8 @@ describe('ID5 JS API', function () {
             });
 
             it('should call id5 servers if empty stored consent data', function () {
-              testClientStore.putHashedConsentData();
+              const emptyConsentData = new ConsentData();
+              testClientStore.putHashedConsentData(emptyConsentData);
 
               ID5.init({ partnerId: TEST_ID5_PARTNER_ID, refreshInSeconds: 1000 });
 
@@ -483,11 +485,11 @@ describe('ID5 JS API', function () {
             });
 
             it('should call id5 servers if stored consent data does not match current consent', function () {
-              testClientStore.putHashedConsentData({
-                gdprApplies: true,
-                consentString: 'storedconsentstring',
-                apiVersion: 1
-              });
+              const someConsentData = new ConsentData();
+              someConsentData.api = API_TYPE.TCF_V1;
+              someConsentData.gdprApplies = true;
+              someConsentData.consentString = 'storedconsentstring';
+              testClientStore.putHashedConsentData(someConsentData);
 
               ID5.init({ partnerId: TEST_ID5_PARTNER_ID, refreshInSeconds: 1000 });
 
@@ -495,11 +497,11 @@ describe('ID5 JS API', function () {
             });
 
             it('should not call id5 servers if stored consent data matches current consent', function () {
-              testClientStore.putHashedConsentData({
-                gdprApplies: true,
-                consentString: 'cmpconsentstring',
-                apiVersion: 1
-              });
+              const consentData = new ConsentData();
+              consentData.api = API_TYPE.TCF_V1;
+              consentData.gdprApplies = true;
+              consentData.consentString = 'cmpconsentstring';
+              testClientStore.putHashedConsentData(consentData);
 
               ID5.init({ partnerId: TEST_ID5_PARTNER_ID, refreshInSeconds: 1000 });
 
@@ -537,7 +539,8 @@ describe('ID5 JS API', function () {
             });
 
             it('should call id5 servers if empty stored consent data', function () {
-              testClientStore.putHashedConsentData();
+              const emptyConsentData = new ConsentData();
+              testClientStore.putHashedConsentData(emptyConsentData);
 
               ID5.init({ partnerId: TEST_ID5_PARTNER_ID, refreshInSeconds: 1000 });
 
@@ -545,11 +548,11 @@ describe('ID5 JS API', function () {
             });
 
             it('should call id5 servers if stored consent data does not match current consent', function () {
-              testClientStore.putHashedConsentData({
-                gdprApplies: true,
-                consentString: 'storedconsentstring',
-                apiVersion: 2
-              });
+              const someConsentData = new ConsentData();
+              someConsentData.api = API_TYPE.TCF_V2;
+              someConsentData.gdprApplies = true;
+              someConsentData.consentString = 'storedconsentstring';
+              testClientStore.putHashedConsentData(someConsentData);
 
               ID5.init({ partnerId: TEST_ID5_PARTNER_ID, refreshInSeconds: 1000 });
 
@@ -557,11 +560,11 @@ describe('ID5 JS API', function () {
             });
 
             it('should not call id5 servers if stored consent data matches current consent', function () {
-              testClientStore.putHashedConsentData({
-                gdprApplies: true,
-                consentString: 'cmpconsentstring',
-                apiVersion: 2
-              });
+              const consentData = new ConsentData();
+              consentData.api = API_TYPE.TCF_V2;
+              consentData.gdprApplies = true;
+              consentData.consentString = 'cmpconsentstring';
+              testClientStore.putHashedConsentData(consentData);
 
               ID5.init({ partnerId: TEST_ID5_PARTNER_ID, refreshInSeconds: 1000 });
 
@@ -887,7 +890,8 @@ describe('ID5 JS API', function () {
             });
 
             it('should call id5 servers if empty stored consent data', function () {
-              testClientStore.putHashedConsentData();
+              const emptyConsentData = new ConsentData();
+              testClientStore.putHashedConsentData(emptyConsentData);
 
               ID5.init({ partnerId: TEST_ID5_PARTNER_ID, refreshInSeconds: 1000 });
 
@@ -895,11 +899,11 @@ describe('ID5 JS API', function () {
             });
 
             it('should call id5 servers if stored consent data does not match current consent', function () {
-              testClientStore.putHashedConsentData({
-                gdprApplies: true,
-                consentString: 'storedconsentstring',
-                apiVersion: 1
-              });
+              const someConsentData = new ConsentData();
+              someConsentData.api = API_TYPE.TCF_V1;
+              someConsentData.gdprApplies = true;
+              someConsentData.consentString = 'storedconsentstring';
+              testClientStore.putHashedConsentData(someConsentData);
 
               ID5.init({ partnerId: TEST_ID5_PARTNER_ID, refreshInSeconds: 1000 });
 
@@ -907,11 +911,11 @@ describe('ID5 JS API', function () {
             });
 
             it('should call id5 servers even if stored consent data matches current consent', function () {
-              testClientStore.putHashedConsentData({
-                gdprApplies: true,
-                consentString: 'cmpconsentstring',
-                apiVersion: 1
-              });
+              const consentData = new ConsentData();
+              consentData.api = API_TYPE.TCF_V1;
+              consentData.gdprApplies = true;
+              consentData.consentString = 'cmpconsentstring';
+              testClientStore.putHashedConsentData(consentData);
 
               ID5.init({ partnerId: TEST_ID5_PARTNER_ID, refreshInSeconds: 1000 });
 
@@ -948,7 +952,8 @@ describe('ID5 JS API', function () {
             });
 
             it('should call id5 servers if empty stored consent data', function () {
-              testClientStore.putHashedConsentData();
+              const emptyConsentData = new ConsentData();
+              testClientStore.putHashedConsentData(emptyConsentData);
 
               ID5.init({ partnerId: TEST_ID5_PARTNER_ID, refreshInSeconds: 1000 });
 
@@ -956,11 +961,11 @@ describe('ID5 JS API', function () {
             });
 
             it('should call id5 servers if stored consent data does not match current consent', function () {
-              testClientStore.putHashedConsentData({
-                gdprApplies: true,
-                consentString: 'storedconsentstring',
-                apiVersion: 2
-              });
+              const someConsentData = new ConsentData();
+              someConsentData.api = API_TYPE.TCF_V2;
+              someConsentData.gdprApplies = true;
+              someConsentData.consentString = 'storedconsentstring';
+              testClientStore.putHashedConsentData(someConsentData);
 
               ID5.init({ partnerId: TEST_ID5_PARTNER_ID, refreshInSeconds: 1000 });
 
@@ -968,11 +973,11 @@ describe('ID5 JS API', function () {
             });
 
             it('should call id5 servers even if stored consent data matches current consent', function () {
-              testClientStore.putHashedConsentData({
-                gdprApplies: true,
-                consentString: 'cmpconsentstring',
-                apiVersion: 2
-              });
+              const consentData = new ConsentData();
+              consentData.api = API_TYPE.TCF_V2;
+              consentData.gdprApplies = true;
+              consentData.consentString = 'cmpconsentstring';
+              testClientStore.putHashedConsentData(consentData);
 
               ID5.init({ partnerId: TEST_ID5_PARTNER_ID, refreshInSeconds: 1000 });
 
