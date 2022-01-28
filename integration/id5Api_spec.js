@@ -231,7 +231,7 @@ describe('The ID5 API', function() {
       const page = await browser.newPage();
       await page.goto('https://my-publisher-website.net');
       const espSignal = await page.evaluate(async () =>
-        await window.googletag.encryptedSignalProviders[0].collectorFunction());
+        window.googletag.encryptedSignalProviders[0].collectorFunction());
       expect(espSignal).to.equal(MOCK_FETCH_RESPONSE.universal_uid);
     });
   });
