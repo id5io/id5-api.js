@@ -10,7 +10,7 @@ gt.encryptedSignalProviders.push({
     return new Promise((resolve, reject) => {
       if (!isPlainObject(window.ID5EspConfig)) {
         const afterAjax = () => reject(new Error('No ID5 config'));
-        logError('Expected window.ID5.espInit to be an Object with the necessary configuration! Cannot invoke ID5 fetch.');
+        logError('Expected window.ID5EspConfig to be an Object with the necessary configuration! Cannot invoke ID5 fetch.');
         ajax(INCREMENT_URL + 'no-config', {
           success: afterAjax,
           error: afterAjax
