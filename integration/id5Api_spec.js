@@ -109,7 +109,8 @@ describe('The ID5 API', function() {
   describe('when included directly in the publishers page', function() {
     beforeEach(async () => {
       const TEST_PAGE_PATH = path.join(SCRIPT_DIR, 'integration.html');
-      await server.get('https://my-publisher-website.net').thenFromFile(200, TEST_PAGE_PATH);
+      await server.get('https://my-publisher-website.net')
+        .thenFromFile(200, TEST_PAGE_PATH);
     });
 
     afterEach(async () => {
@@ -216,23 +217,44 @@ describe('The ID5 API', function() {
   });
 
   describe('esp.js', function() {
-    beforeEach(async () => {
-      const TEST_PAGE_PATH = path.join(SCRIPT_DIR, 'esp.html');
-      await server.get('https://my-publisher-website.net').thenFromFile(200, TEST_PAGE_PATH);
-    });
-
     afterEach(async () => {
       await server.reset();
     });
 
     it('can integrate succesfully with google ESP', async () => {
-      await server.post('https://id5-sync.com/g/v2/99.json')
+      const TEST_PAGE_PATH = path.join(SCRIPT_DIR, 'esp.html');
+      await server.get('https://my-publisher-website.net')
+        .thenFromFile(200, TEST_PAGE_PATH);
+      const mockId5 = await server.post('https://id5-sync.com/g/v2/99.json')
         .thenJson(200, MOCK_FETCH_RESPONSE, MOCK_CORS_HEADERS);
       const page = await browser.newPage();
       await page.goto('https://my-publisher-website.net');
+
       const espSignal = await page.evaluate(async () =>
         window.googletag.encryptedSignalProviders[0].collectorFunction());
       expect(espSignal).to.equal(MOCK_FETCH_RESPONSE.universal_uid);
+
+      const id5FetchRequests = await mockId5.getSeenRequests();
+      expect(id5FetchRequests).to.have.lengthOf(1);
+    });
+
+    it('calls the API endpoint to incrment metrics if no config detected', async () => {
+      const TEST_PAGE_PATH = path.join(SCRIPT_DIR, 'esp_no_config.html');
+      await server.get('https://my-publisher-website.net')
+        .thenFromFile(200, TEST_PAGE_PATH);
+      const mockId5 = await server.get('https://id5-sync.com/api/esp/increment')
+        .thenReply(204, undefined, MOCK_CORS_HEADERS);
+      const page = await browser.newPage();
+      await page.goto('https://my-publisher-website.net');
+
+      await page.evaluate(async () => {
+        try {
+          await window.googletag.encryptedSignalProviders[0].collectorFunction();
+        } catch (ignore) {}
+      });
+      const id5Requests = await mockId5.getSeenRequests();
+      expect(id5Requests).to.have.lengthOf(1);
+      expect(id5Requests[0].url).to.equal('https://id5-sync.com/api/esp/increment?counter=no-config');
     });
   });
 });
