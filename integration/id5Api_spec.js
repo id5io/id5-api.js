@@ -21,9 +21,10 @@ chai.use(chaiDateTime);
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const ID5_API_JS_FILE = path.join(SCRIPT_DIR, '..', 'build', 'dist', 'id5-api.js');
+const ID5_ESP_JS_FILE = path.join(SCRIPT_DIR, '..', 'build', 'dist', 'esp.js');
 
 const DAYS_TO_MILLISECONDS = (60 * 60 * 24 * 1000);
-const mockFetchReponse = {
+const MOCK_FETCH_RESPONSE = {
   'created_at': '2021-05-26T20:08:13Z',
   'id5_consent': true,
   'universal_uid': 'ID5-ZHMOQ99ulpk687Fd9xVwzxMsYtkQIJnI-qm3iWdtww!ID5*LTzsUTSrz4juTlKvKoO0brhnjXyuZIGHv44Iqf4TzN0AAGwYr9heNFf7GF6QAMRq',
@@ -34,6 +35,10 @@ const mockFetchReponse = {
     'jurisdiction': 'gdpr',
     'id5_consent': true
   }
+};
+const MOCK_CORS_HEADERS = {
+  'Access-Control-Allow-Origin': 'https://my-publisher-website.net',
+  'Access-Control-Allow-Credentials': 'true'
 };
 
 // Note: do not use lambda syntax in describes. https://mochajs.org/#arrow-functions
@@ -91,6 +96,8 @@ describe('The ID5 API', function() {
     // The API under test
     await server.get('https://cdn.id5-sync.com/api/integration/id5-api.js')
       .thenFromFile(200, ID5_API_JS_FILE);
+    await server.get('https://cdn.id5-sync.com/api/integration/esp.js')
+      .thenFromFile(200, ID5_ESP_JS_FILE);
     await server.get('/favicon.ico').thenReply(204);
     await startBrowser();
   });
@@ -100,10 +107,6 @@ describe('The ID5 API', function() {
   });
 
   describe('when included directly in the publishers page', function() {
-    const MOCK_CORS_HEADERS = {
-      'Access-Control-Allow-Origin': 'https://my-publisher-website.net',
-      'Access-Control-Allow-Credentials': 'true'
-    };
     beforeEach(async () => {
       const TEST_PAGE_PATH = path.join(SCRIPT_DIR, 'integration.html');
       await server.get('https://my-publisher-website.net').thenFromFile(200, TEST_PAGE_PATH);
@@ -115,7 +118,7 @@ describe('The ID5 API', function() {
 
     it('can succesfully retrieve an ID, store in browser and fire callback', async () => {
       const mockId5 = await server.post('https://id5-sync.com/g/v2/99.json')
-        .thenJson(200, mockFetchReponse, MOCK_CORS_HEADERS);
+        .thenJson(200, MOCK_FETCH_RESPONSE, MOCK_CORS_HEADERS);
       const mockDummyImage = await server.get('https://dummyimage.com/600x200')
         .thenReply(200, '');
       const page = await browser.newPage();
@@ -143,7 +146,7 @@ describe('The ID5 API', function() {
       // Check local storage items with some puppeteer magic
       const id5idRaw = await page.evaluate(() => localStorage.getItem('id5id'));
       const id5idJson = JSON.parse(decodeURIComponent(id5idRaw));
-      expect(id5idJson).to.eql(mockFetchReponse);
+      expect(id5idJson).to.eql(MOCK_FETCH_RESPONSE);
 
       const NOW = Date.now();
 
@@ -166,12 +169,12 @@ describe('The ID5 API', function() {
       const dummyImageRequests = await mockDummyImage.getSeenRequests();
       expect(dummyImageRequests).to.have.lengthOf(1);
       expect(dummyImageRequests[0].url).to.equal(
-        'https://dummyimage.com/600x200?text=' + mockFetchReponse.universal_uid);
+        'https://dummyimage.com/600x200?text=' + MOCK_FETCH_RESPONSE.universal_uid);
     });
   });
 
   describe('in a non-friendly iframe', function() {
-    const MOCK_CORS_HEADERS = {
+    const NON_FRIENDLY_MOCK_CORS_HEADERS = {
       'Access-Control-Allow-Origin': 'https://non-friendly-stuff.com',
       'Access-Control-Allow-Credentials': 'true'
     };
@@ -189,7 +192,7 @@ describe('The ID5 API', function() {
 
     it('reports it cannot use localStorage but detects referrer', async () => {
       const mockId5 = await server.post('https://id5-sync.com/g/v2/99.json')
-        .thenJson(200, mockFetchReponse, MOCK_CORS_HEADERS);
+        .thenJson(200, MOCK_FETCH_RESPONSE, NON_FRIENDLY_MOCK_CORS_HEADERS);
       await server.get('https://dummyimage.com/600x200').thenReply(200, '');
       const page = await browser.newPage();
       await page.goto('https://my-iframe-website.net');
@@ -209,6 +212,27 @@ describe('The ID5 API', function() {
       // Check there is no id5 stuff in the iframe local storage
       const id5idRaw = await frame.evaluate(() => localStorage.getItem('id5id'));
       expect(id5idRaw).to.equal(null);
+    });
+  });
+
+  describe('esp.js', function() {
+    beforeEach(async () => {
+      const TEST_PAGE_PATH = path.join(SCRIPT_DIR, 'esp.html');
+      await server.get('https://my-publisher-website.net').thenFromFile(200, TEST_PAGE_PATH);
+    });
+
+    afterEach(async () => {
+      await server.reset();
+    });
+
+    it('can integrate succesfully with google ESP', async () => {
+      await server.post('https://id5-sync.com/g/v2/99.json')
+        .thenJson(200, MOCK_FETCH_RESPONSE, MOCK_CORS_HEADERS);
+      const page = await browser.newPage();
+      await page.goto('https://my-publisher-website.net');
+      const espSignal = await page.evaluate(async () =>
+        await window.googletag.encryptedSignalProviders[0].collectorFunction());
+      expect(espSignal).to.equal(MOCK_FETCH_RESPONSE.universal_uid);
     });
   });
 });

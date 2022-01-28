@@ -93,7 +93,6 @@ const isNotMap = file => file.extname !== '.map';
 
 function makeDevpackPkg() {
   var cloned = _.cloneDeep(webpackConfig);
-
   return gulp.src(['src/index.js'])
     .pipe(webpackStream(cloned, webpack))
     .pipe(gulpif(isNotMap, header(banner)))
@@ -102,7 +101,10 @@ function makeDevpackPkg() {
 }
 
 function makeEspJsDevPkg() {
+  var cloned = _.cloneDeep(webpackConfig);
+  cloned.output.filename = 'esp.js';
   return gulp.src(['src/esp.js'])
+  .pipe(webpackStream(cloned, webpack))
   .pipe(gulpif(isNotMap, header(banner)))
   .pipe(gulp.dest('build/dev'))
   .pipe(connect.reload());
@@ -110,7 +112,6 @@ function makeEspJsDevPkg() {
 
 function makeWebpackPkg() {
   var cloned = _.cloneDeep(webpackConfig);
-
   return gulp.src(['src/index.js'])
     .pipe(webpackStream(cloned, webpack))
     .pipe(gulpif(isNotMap, uglify()))
@@ -120,7 +121,10 @@ function makeWebpackPkg() {
 
 
 function makeEspJsPkg() {
+  var cloned = _.cloneDeep(webpackConfig);
+  cloned.output.filename = 'esp.js';
   return gulp.src(['src/esp.js'])
+  .pipe(webpackStream(cloned, webpack))
   .pipe(gulpif(isNotMap, uglify()))
   .pipe(gulpif(isNotMap, header(banner)))
   .pipe(gulp.dest('build/dist'));
