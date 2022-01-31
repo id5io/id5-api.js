@@ -1,6 +1,6 @@
 /**
  * @id5io/id5-api.js
- * @version v1.0.10
+ * @version v1.0.11
  * @link https://id5.io/
  * @license Apache-2.0
  */
@@ -703,10 +703,15 @@ var ClientStore = /*#__PURE__*/function () {
     value: function clearHashedConsentData() {
       this.clear(__WEBPACK_IMPORTED_MODULE_1__constants_json___default.a.STORAGE_CONFIG.CONSENT_DATA);
     }
+    /**
+     * Stores a hash of the consent data for alter comparison
+     * @param {ConsentData} consentData
+     */
+
   }, {
     key: "putHashedConsentData",
     value: function putHashedConsentData(consentData) {
-      this.put(__WEBPACK_IMPORTED_MODULE_1__constants_json___default.a.STORAGE_CONFIG.CONSENT_DATA, ClientStore.makeStoredConsentDataHash(consentData));
+      this.put(__WEBPACK_IMPORTED_MODULE_1__constants_json___default.a.STORAGE_CONFIG.CONSENT_DATA, consentData.hashCode());
     }
     /**
      * Get current hash PD for this partner
@@ -827,17 +832,15 @@ var ClientStore = /*#__PURE__*/function () {
 
   }, {
     key: "storedConsentDataMatchesConsentData",
-    value: function storedConsentDataMatchesConsentData(consentData) {
-      return ClientStore.storedDataMatchesCurrentData(this.getHashedConsentData(), ClientStore.makeStoredConsentDataHash(consentData));
-    }
+    value:
     /**
-     * makes an object that can be stored with only the keys we need to check.
-     * excluding the vendorConsents object since the consentString is enough to know
-     * if consent has changed without needing to have all the details in an object
-     * @param consentData
-     * @returns string
+     * Checks whether current consent data matches stored consent data
+     * @param {ConsentData} consentData current consent data
+     * @returns true if it matches
      */
-
+    function storedConsentDataMatchesConsentData(consentData) {
+      return ClientStore.storedDataMatchesCurrentData(this.getHashedConsentData(), consentData.hashCode());
+    }
   }], [{
     key: "pdCacheConfig",
     value: function pdCacheConfig(partnerId) {
@@ -870,23 +873,6 @@ var ClientStore = /*#__PURE__*/function () {
     value: function storedDataMatchesCurrentData(storedData, currentData) {
       return typeof storedData === 'undefined' || storedData === null || storedData === currentData;
     }
-  }, {
-    key: "makeStoredConsentDataHash",
-    value: function makeStoredConsentDataHash(consentData) {
-      var storedConsentData = {
-        consentString: '',
-        gdprApplies: false,
-        apiVersion: 0
-      };
-
-      if (consentData) {
-        storedConsentData.consentString = consentData.consentString;
-        storedConsentData.gdprApplies = consentData.gdprApplies;
-        storedConsentData.apiVersion = consentData.apiVersion;
-      }
-
-      return Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["c" /* cyrb53Hash */])(JSON.stringify(storedConsentData));
-    }
   }]);
 
   return ClientStore;
@@ -899,19 +885,26 @@ var ClientStore = /*#__PURE__*/function () {
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
+/* unused harmony export API_TYPE */
 /* unused harmony export ConsentData */
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return ConsentManagement; });
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__utils_js__ = __webpack_require__(0);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__constants_json__ = __webpack_require__(1);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__constants_json___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_1__constants_json__);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__localStorage_js__ = __webpack_require__(4);
+var _excluded = ["vendorData", "ccpaString"];
+
 function _extends() { _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends.apply(this, arguments); }
+
+function _objectWithoutProperties(source, excluded) { if (source == null) return {}; var target = _objectWithoutPropertiesLoose(source, excluded); var key, i; if (Object.getOwnPropertySymbols) { var sourceSymbolKeys = Object.getOwnPropertySymbols(source); for (i = 0; i < sourceSymbolKeys.length; i++) { key = sourceSymbolKeys[i]; if (excluded.indexOf(key) >= 0) continue; if (!Object.prototype.propertyIsEnumerable.call(source, key)) continue; target[key] = source[key]; } } return target; }
+
+function _objectWithoutPropertiesLoose(source, excluded) { if (source == null) return {}; var target = {}; var sourceKeys = Object.keys(source); var key, i; for (i = 0; i < sourceKeys.length; i++) { key = sourceKeys[i]; if (excluded.indexOf(key) >= 0) continue; target[key] = source[key]; } return target; }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 function _defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
 
 function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _defineProperties(Constructor.prototype, protoProps); if (staticProps) _defineProperties(Constructor, staticProps); return Constructor; }
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
 
@@ -922,6 +915,7 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
 
 /* eslint-enable no-unused-vars */
 
+var ID5_GVL_ID = '131';
 var USPAPI_VERSION = 1;
 var SURROGATE_CONFIG = {
   tcfv1: {
@@ -940,21 +934,79 @@ var SURROGATE_CONFIG = {
     returnObjName: '__uspapiReturn'
   }
 };
-var ConsentData = function ConsentData() {
-  _classCallCheck(this, ConsentData);
+var API_TYPE = Object.freeze({
+  NONE: 'none',
+  TCF_V1: 'TCFv1',
+  TCF_V2: 'TCFv2',
+  USP_V1: 'USPv1',
+  ID5_ALLOWED_VENDORS: 'ID5'
+});
+var ConsentData = /*#__PURE__*/function () {
+  function ConsentData() {
+    _classCallCheck(this, ConsentData);
 
-  _defineProperty(this, "consentString", '');
+    _defineProperty(this, "api", API_TYPE.NONE);
 
-  _defineProperty(this, "gdprApplies", false);
+    _defineProperty(this, "consentString", void 0);
 
-  _defineProperty(this, "vendorData", {});
+    _defineProperty(this, "gdprApplies", false);
 
-  _defineProperty(this, "apiVersion", 0);
+    _defineProperty(this, "vendorData", {});
 
-  _defineProperty(this, "hasCcpaString", false);
+    _defineProperty(this, "allowedVendors", void 0);
 
-  _defineProperty(this, "ccpaString", '');
-};
+    _defineProperty(this, "hasCcpaString", false);
+
+    _defineProperty(this, "ccpaString", '');
+  }
+
+  _createClass(ConsentData, [{
+    key: "canIUseLocalStorage",
+    value: function canIUseLocalStorage() {
+      switch (this.api) {
+        case API_TYPE.NONE:
+          // By default (so no indication from the owner of the page
+          // and no consent framework detected on page) we assume that we can use local storage
+          return true;
+
+        case API_TYPE.TCF_V1:
+          return !this.gdprApplies || Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["e" /* delve */])(this, 'vendorData.purposeConsents.1') === true;
+
+        case API_TYPE.TCF_V2:
+          return !this.gdprApplies || Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["e" /* delve */])(this, 'vendorData.purpose.consents.1') === true;
+
+        case API_TYPE.ID5_ALLOWED_VENDORS:
+          return this.allowedVendors.includes(ID5_GVL_ID);
+
+        case API_TYPE.USP_V1:
+          // CCPA never disallows local storage
+          return true;
+      }
+    }
+    /**
+     * Note this is not a generic hash code but rather a hash code
+     * used to check whether or not consent has changed across invocations
+     * @returns a hash code of some properties of this object
+     */
+
+  }, {
+    key: "hashCode",
+    value: function hashCode() {
+      /*
+      * We hash every properties except:
+      *   - vendorConsents object since the consentString is enough to know.
+      *   - ccpaString as it doesn't contribute to the local storage decision.
+      */
+      var vendorData = this.vendorData,
+          ccpaString = this.ccpaString,
+          others = _objectWithoutProperties(this, _excluded);
+
+      return Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["c" /* cyrb53Hash */])(JSON.stringify(others));
+    }
+  }]);
+
+  return ConsentData;
+}();
 var ConsentManagement = /*#__PURE__*/function () {
   /** @type {ConsentData} */
 
@@ -1003,9 +1055,11 @@ var ConsentManagement = /*#__PURE__*/function () {
     key: "requestConsent",
     value: function requestConsent(debugBypassConsent, cmpApi, providedConsentData, finalCallback) {
       if (debugBypassConsent) {
+        this.consentData = new ConsentData();
         Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["r" /* logWarn */])('cmpApi: ID5 is operating in forced consent mode and will not retrieve any consent signals from the CMP');
         finalCallback(this.consentData);
       } else if (!this._consentRequested) {
+        this.consentData = new ConsentData();
         this._consentRequested = true;
 
         switch (cmpApi) {
@@ -1046,45 +1100,31 @@ var ConsentManagement = /*#__PURE__*/function () {
   }, {
     key: "parseStaticConsentData",
     value: function parseStaticConsentData(data, finalCallback) {
-      if (!Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["n" /* isPlainObject */])(data)) {
-        Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["p" /* logError */])('cmpApi: "static" did not specify consent data. Using defaults.');
-        finalCallback(this.consentData);
-        return;
-      } // Try to detect the CMP version from the static object structure
+      data = data || {}; // Try to detect the API from the static object structure
 
+      var mergeData = {};
 
-      var cmpVersion = data.getConsentData ? 1 : data.getTCData ? 2 : 0;
-      var tcfDetected = false;
-      var uspDetected = false;
-
-      var logIt = function logIt(info, data) {
-        Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["q" /* logInfo */])("cmpApi: Using static consent data from config for ".concat(info), data);
-      };
-
-      if (cmpVersion > 0) {
-        logIt("TCF v".concat(this.cmpVersion), data);
-        tcfDetected = true;
-        var tcfData = ConsentManagement.parseTcfData(cmpVersion === 2 ? data.getTCData : data, cmpVersion);
-
-        if (tcfData) {
-          _extends(this.getOrCreateConsentData(), tcfData);
-        }
+      if (Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["n" /* isPlainObject */])(data.getConsentData)) {
+        mergeData = ConsentManagement.parseTcfData(data, 1);
+      } else if (Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["n" /* isPlainObject */])(data.getTCData)) {
+        mergeData = ConsentManagement.parseTcfData(data.getTCData, 2);
+      } else if (Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["h" /* isArray */])(data.allowedVendors)) {
+        mergeData = {
+          api: API_TYPE.ID5_ALLOWED_VENDORS,
+          allowedVendors: data.allowedVendors.map(function (item) {
+            return String(item);
+          }),
+          gdprApplies: true
+        };
+      } else if (Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["n" /* isPlainObject */])(data.getUSPData)) {
+        mergeData = ConsentManagement.parseUspData(data.getUSPData);
+      } else {
+        Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["r" /* logWarn */])('cmpApi: No static consent data detected! Using defaults.');
       }
 
-      if (Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["n" /* isPlainObject */])(data.getUSPData)) {
-        logIt('USP', data);
-        uspDetected = true;
-        var uspData = ConsentManagement.parseUspData(data.getUSPData);
+      _extends(this.consentData, mergeData);
 
-        if (uspData) {
-          _extends(this.getOrCreateConsentData(), uspData);
-        }
-      }
-
-      if (!tcfDetected && !uspDetected) {
-        Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["p" /* logError */])('cmpApi: Neither CMP nor USP static data detected! Using defaults.');
-      }
-
+      Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["q" /* logInfo */])("cmpApi: Detected API '".concat(this.consentData.api, "' from static consent data"), data);
       finalCallback(this.consentData);
     }
     /**
@@ -1108,7 +1148,7 @@ var ConsentManagement = /*#__PURE__*/function () {
             done[callbackPos] = true;
 
             if (result) {
-              _extends(self.getOrCreateConsentData(), result);
+              _extends(self.consentData, result);
             }
 
             if (done.every(function (d) {
@@ -1272,7 +1312,7 @@ var ConsentManagement = /*#__PURE__*/function () {
       this._consentRequested = false;
     }
     /**
-     * test if consent module is present, applies, and is valid for local storage or cookies (purpose 1)
+     * Test if consent module is present, applies, and is valid for local storage or cookies (purpose 1)
      * @param {boolean} allowLocalStorageWithoutConsentApi
      * @param {boolean} debugBypassConsent
      * @returns {boolean|undefined} undefined in case there's not yet any consent data from a
@@ -1282,35 +1322,17 @@ var ConsentManagement = /*#__PURE__*/function () {
   }, {
     key: "isLocalStorageAllowed",
     value: function isLocalStorageAllowed(allowLocalStorageWithoutConsentApi, debugBypassConsent) {
-      var consentData = this.consentData;
-
       if (allowLocalStorageWithoutConsentApi === true || debugBypassConsent === true) {
         Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["r" /* logWarn */])('cmpApi: Local storage access granted by configuration override, consent will not be checked');
         return true;
       }
 
-      if (!consentData) {
-        // no cmp on page, so check if provisional access is allowed
+      if (!this.consentData || this.consentData.api === API_TYPE.NONE) {
+        // no cmp detected, so check if provisional access is allowed
         return this.isProvisionalLocalStorageAllowed();
       }
 
-      if (!consentData.gdprApplies) {
-        return true;
-      }
-
-      if (!consentData.consentString || consentData.apiVersion === 0) {
-        return false;
-      }
-
-      if (consentData.apiVersion === 1) {
-        return Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["e" /* delve */])(consentData, 'vendorData.purposeConsents.1') === true;
-      }
-
-      if (consentData.apiVersion === 2) {
-        return Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["e" /* delve */])(consentData, 'vendorData.purpose.consents.1') === true;
-      }
-
-      return true;
+      return this.consentData.canIUseLocalStorage();
     }
     /**
      * if there is no CMP on page, consentData will be undefined, so we will check if we had stored
@@ -1401,6 +1423,7 @@ var ConsentManagement = /*#__PURE__*/function () {
       }
 
       return {
+        api: API_TYPE.USP_V1,
         hasCcpaString: true,
         ccpaString: consentObject.uspString
       };
@@ -1473,7 +1496,7 @@ var ConsentManagement = /*#__PURE__*/function () {
         consentString: cmpConsentObject.getConsentData.consentData,
         vendorData: cmpConsentObject.getVendorConsents,
         gdprApplies: cmpConsentObject.getConsentData.gdprApplies,
-        apiVersion: 1
+        api: API_TYPE.TCF_V1
       };
     }
   }, {
@@ -1483,7 +1506,7 @@ var ConsentManagement = /*#__PURE__*/function () {
         consentString: cmpConsentObject.tcString,
         vendorData: cmpConsentObject,
         gdprApplies: cmpConsentObject.gdprApplies,
-        apiVersion: 2
+        api: API_TYPE.TCF_V2
       };
     }
   }, {
@@ -2222,9 +2245,7 @@ var Id5Api = /*#__PURE__*/function () {
 
         if (!storedResponse || !storedResponse.universal_uid || !storedResponse.signature || refreshInSecondsHasElapsed || consentHasChanged || pdHasChanged || forceFetch) {
           var url = "https://id5-sync.com/g/v2/".concat(options.partnerId, ".json");
-          var gdprApplies = consentData && consentData.gdprApplies ? 1 : 0;
-          var gdprConsentString = consentData && consentData.gdprApplies ? consentData.consentString : undefined;
-          var signature = storedResponse && storedResponse.signature ? storedResponse.signature : undefined;
+          var gdprApplies = consentData.gdprApplies ? 1 : 0;
           var data = {
             'partner': options.partnerId,
             'v': _this._version,
@@ -2238,15 +2259,23 @@ var Id5Api = /*#__PURE__*/function () {
             'id5cdn': _this._isUsingCdn
           }; // pass in optional data, but only if populated
 
+          var gdprConsentString = consentData.gdprApplies ? consentData.consentString : undefined;
+
           if (Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["j" /* isDefined */])(gdprConsentString)) {
             data.gdpr_consent = gdprConsentString;
           }
+
+          if (Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["j" /* isDefined */])(consentData.allowedVendors)) {
+            data.allowed_vendors = consentData.allowedVendors;
+          }
+
+          var signature = storedResponse && storedResponse.signature ? storedResponse.signature : undefined;
 
           if (Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["j" /* isDefined */])(signature)) {
             data.s = signature;
           }
 
-          if (consentData && consentData.hasCcpaString) {
+          if (consentData.hasCcpaString) {
             data.us_privacy = consentData.ccpaString;
           }
 
@@ -3015,7 +3044,7 @@ var Id5Status = /*#__PURE__*/function () {
 "use strict";
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return version; });
 // generated by genversion
-var version = '1.0.10';
+var version = '1.0.11';
 
 /***/ })
 /******/ ]);
