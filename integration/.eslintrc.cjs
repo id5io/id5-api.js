@@ -20,5 +20,6 @@ module.exports = {
     'semi': ['error', 'always'],
     'space-before-function-paren': 'off',
     'comma-dangle': 'off',
+    'no-debugger': 'off'
   }
 };
