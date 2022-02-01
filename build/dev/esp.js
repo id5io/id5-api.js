@@ -1,6 +1,6 @@
 /**
  * @id5io/id5-api.js
- * @version v1.0.11
+ * @version v1.0.12
  * @link https://id5.io/
  * @license Apache-2.0
  */
@@ -1790,7 +1790,7 @@ function isExpired(dateValue) {
 
 "use strict";
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return Config; });
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__utils__ = __webpack_require__(0);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__utils_js__ = __webpack_require__(0);
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 function _defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
@@ -1932,13 +1932,13 @@ var Config = /*#__PURE__*/function () {
 
       var self = this;
 
-      if (!Object(__WEBPACK_IMPORTED_MODULE_0__utils__["n" /* isPlainObject */])(options)) {
-        Object(__WEBPACK_IMPORTED_MODULE_0__utils__["p" /* logError */])('Config options must be an object');
+      if (!Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["n" /* isPlainObject */])(options)) {
+        Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["p" /* logError */])('Config options must be an object');
         return;
       }
 
-      if (Object(__WEBPACK_IMPORTED_MODULE_0__utils__["m" /* isNumber */])(this.options.partnerId) && // Might be undefined
-      Object(__WEBPACK_IMPORTED_MODULE_0__utils__["m" /* isNumber */])(options.partnerId) && options.partnerId !== this.options.partnerId) {
+      if (Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["m" /* isNumber */])(this.options.partnerId) && // Might be undefined
+      Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["m" /* isNumber */])(options.partnerId) && options.partnerId !== this.options.partnerId) {
         throw new Error('Cannot update config with a different partnerId');
       }
 
@@ -1952,7 +1952,7 @@ var Config = /*#__PURE__*/function () {
           var segments = options[topic];
           var value = [];
 
-          if (!Object(__WEBPACK_IMPORTED_MODULE_0__utils__["h" /* isArray */])(segments)) {
+          if (!Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["h" /* isArray */])(segments)) {
             logTypeError(topic, 'Array', segments);
             return;
           }
@@ -1960,19 +1960,19 @@ var Config = /*#__PURE__*/function () {
           segments.forEach(function (segment, index) {
             var locator = "segments[".concat(index, "]");
 
-            if (!Object(__WEBPACK_IMPORTED_MODULE_0__utils__["h" /* isArray */])(segment['ids']) || !Object(__WEBPACK_IMPORTED_MODULE_0__utils__["b" /* all */])(segment['ids'], __WEBPACK_IMPORTED_MODULE_0__utils__["o" /* isStr */])) {
+            if (!Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["h" /* isArray */])(segment['ids']) || !Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["b" /* all */])(segment['ids'], __WEBPACK_IMPORTED_MODULE_0__utils_js__["o" /* isStr */])) {
               logTypeError("".concat(locator, ".ids"), 'Array of String', segment['ids']);
               self.invalidSegments += 1;
               return;
             }
 
             if (segment['ids'].length < 1) {
-              Object(__WEBPACK_IMPORTED_MODULE_0__utils__["p" /* logError */])("Config option ".concat(locator, ".ids should contain at least one segment ID"));
+              Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["p" /* logError */])("Config option ".concat(locator, ".ids should contain at least one segment ID"));
               self.invalidSegments += 1;
               return;
             }
 
-            if (!Object(__WEBPACK_IMPORTED_MODULE_0__utils__["o" /* isStr */])(segment['destination'])) {
+            if (!Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["o" /* isStr */])(segment['destination'])) {
               logTypeError("".concat(locator, ".destination"), 'String', segment['destination']);
               self.invalidSegments += 1;
               return;
@@ -1985,7 +1985,7 @@ var Config = /*#__PURE__*/function () {
           var expectedType = Config.configTypes[topic];
           var _value = options[topic];
 
-          if (Object(__WEBPACK_IMPORTED_MODULE_0__utils__["g" /* isA */])(_value, expectedType)) {
+          if (Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["g" /* isA */])(_value, expectedType)) {
             acceptOption(topic, _value);
           } else {
             logTypeError(topic, expectedType, _value);
@@ -2019,7 +2019,7 @@ _defineProperty(Config, "configTypes", {
 
 
 function logTypeError(topic, expectedType, value) {
-  Object(__WEBPACK_IMPORTED_MODULE_0__utils__["p" /* logError */])("Config option ".concat(topic, " must be of type ").concat(expectedType, " but was ").concat(toString.call(value), ". Ignoring..."));
+  Object(__WEBPACK_IMPORTED_MODULE_0__utils_js__["p" /* logError */])("Config option ".concat(topic, " must be of type ").concat(expectedType, " but was ").concat(toString.call(value), ". Ignoring..."));
 }
 
 /***/ }),
@@ -2641,8 +2641,8 @@ var getRefererInfo = detectReferer(window);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return Id5Status; });
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__constants_json__ = __webpack_require__(1);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__constants_json___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0__constants_json__);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__utils__ = __webpack_require__(0);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__config__ = __webpack_require__(5);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__utils_js__ = __webpack_require__(0);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__config_js__ = __webpack_require__(5);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__clientStore_js__ = __webpack_require__(2);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__consentManagement_js__ = __webpack_require__(3);
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
@@ -2797,7 +2797,7 @@ var Id5Status = /*#__PURE__*/function () {
       var linkType = response.link_type || 0;
       this._isExposed = true;
 
-      if (__WEBPACK_IMPORTED_MODULE_1__utils__["n" /* isPlainObject */](response.ab_testing)) {
+      if (__WEBPACK_IMPORTED_MODULE_1__utils_js__["n" /* isPlainObject */](response.ab_testing)) {
         switch (response.ab_testing.result) {
           case 'normal':
             // nothing to do
@@ -2806,12 +2806,12 @@ var Id5Status = /*#__PURE__*/function () {
           default: // falls through
 
           case 'error':
-            __WEBPACK_IMPORTED_MODULE_1__utils__["p" /* logError */]('There was an error with A/B Testing. Make sure controlGroupRatio is a number >= 0 and <= 1');
+            __WEBPACK_IMPORTED_MODULE_1__utils_js__["p" /* logError */]('There was an error with A/B Testing. Make sure controlGroupRatio is a number >= 0 and <= 1');
             break;
 
           case 'control':
             this._isExposed = false;
-            __WEBPACK_IMPORTED_MODULE_1__utils__["q" /* logInfo */]('User is in control group!');
+            __WEBPACK_IMPORTED_MODULE_1__utils_js__["q" /* logInfo */]('User is in control group!');
             break;
         }
       }
@@ -2821,12 +2821,12 @@ var Id5Status = /*#__PURE__*/function () {
       this._userId = userId;
       this._linkType = linkType;
       this._fromCache = fromCache;
-      __WEBPACK_IMPORTED_MODULE_1__utils__["q" /* logInfo */]("Id5Status.setUserId: user id updated, hasChanged: ".concat(hasChanged)); // Fire onAvailable if not yet fired
+      __WEBPACK_IMPORTED_MODULE_1__utils_js__["q" /* logInfo */]("Id5Status.setUserId: user id updated, hasChanged: ".concat(hasChanged)); // Fire onAvailable if not yet fired
 
-      if (__WEBPACK_IMPORTED_MODULE_1__utils__["k" /* isFn */](this._availableCallback) && this._availableCallbackFired === false) {
+      if (__WEBPACK_IMPORTED_MODULE_1__utils_js__["k" /* isFn */](this._availableCallback) && this._availableCallbackFired === false) {
         // Cancel pending watchdog
         if (this._availableCallbackTimerId) {
-          __WEBPACK_IMPORTED_MODULE_1__utils__["q" /* logInfo */]("Cancelling pending onAvailableCallback watchdog");
+          __WEBPACK_IMPORTED_MODULE_1__utils_js__["q" /* logInfo */]("Cancelling pending onAvailableCallback watchdog");
           clearTimeout(this._availableCallbackTimerId);
           this._availableCallbackTimerId = undefined;
         }
@@ -2837,11 +2837,11 @@ var Id5Status = /*#__PURE__*/function () {
       } // Fire onRefresh if not yet fired and not from cache
 
 
-      if (this._isRefreshing && __WEBPACK_IMPORTED_MODULE_1__utils__["k" /* isFn */](this._refreshCallback) && this._refreshCallbackFired === false) {
+      if (this._isRefreshing && __WEBPACK_IMPORTED_MODULE_1__utils_js__["k" /* isFn */](this._refreshCallback) && this._refreshCallbackFired === false) {
         if (fromCache === false || this._isRefreshingWithFetch === false) {
           // Cancel pending watchdog
           if (this._refreshCallbackTimerId) {
-            __WEBPACK_IMPORTED_MODULE_1__utils__["q" /* logInfo */]("Cancelling pending onRefreshCallback watchdog");
+            __WEBPACK_IMPORTED_MODULE_1__utils_js__["q" /* logInfo */]("Cancelling pending onRefreshCallback watchdog");
             clearTimeout(this._refreshCallbackTimerId);
             this._refreshCallbackTimerId = undefined;
           }
@@ -2853,7 +2853,7 @@ var Id5Status = /*#__PURE__*/function () {
       } // Always fire onUpdate if any change
 
 
-      if (hasChanged && __WEBPACK_IMPORTED_MODULE_1__utils__["k" /* isFn */](this._updateCallback)) {
+      if (hasChanged && __WEBPACK_IMPORTED_MODULE_1__utils_js__["k" /* isFn */](this._updateCallback)) {
         setTimeout(function () {
           return Id5Status.doFireOnUpdateCallBack(_this);
         }, 0);
@@ -2930,18 +2930,18 @@ var Id5Status = /*#__PURE__*/function () {
   }, {
     key: "onAvailable",
     value: function onAvailable(fn, timeout) {
-      if (!__WEBPACK_IMPORTED_MODULE_1__utils__["k" /* isFn */](fn)) {
+      if (!__WEBPACK_IMPORTED_MODULE_1__utils_js__["k" /* isFn */](fn)) {
         throw new Error('onAvailable expect a function');
       }
 
-      if (__WEBPACK_IMPORTED_MODULE_1__utils__["k" /* isFn */](this._availableCallback)) {
-        __WEBPACK_IMPORTED_MODULE_1__utils__["q" /* logInfo */]('onAvailable was already called, ignoring');
+      if (__WEBPACK_IMPORTED_MODULE_1__utils_js__["k" /* isFn */](this._availableCallback)) {
+        __WEBPACK_IMPORTED_MODULE_1__utils_js__["q" /* logInfo */]('onAvailable was already called, ignoring');
       } else {
         this._availableCallback = fn;
         var currentThis = this; // Preserve this within callback
 
         if (this._userIdAvailable) {
-          __WEBPACK_IMPORTED_MODULE_1__utils__["q" /* logInfo */]('Id5Status.onAvailable: User id already available firing callback immediately');
+          __WEBPACK_IMPORTED_MODULE_1__utils_js__["q" /* logInfo */]('Id5Status.onAvailable: User id already available firing callback immediately');
           this._availableCallbackTimerId = setTimeout(function () {
             return Id5Status.doFireOnAvailableCallBack(currentThis);
           }, 0);
@@ -2964,7 +2964,7 @@ var Id5Status = /*#__PURE__*/function () {
   }, {
     key: "onUpdate",
     value: function onUpdate(fn) {
-      if (!__WEBPACK_IMPORTED_MODULE_1__utils__["k" /* isFn */](fn)) {
+      if (!__WEBPACK_IMPORTED_MODULE_1__utils_js__["k" /* isFn */](fn)) {
         throw new Error('onUpdate expect a function');
       }
 
@@ -2990,7 +2990,7 @@ var Id5Status = /*#__PURE__*/function () {
   }, {
     key: "onRefresh",
     value: function onRefresh(fn, timeout) {
-      if (!__WEBPACK_IMPORTED_MODULE_1__utils__["k" /* isFn */](fn)) {
+      if (!__WEBPACK_IMPORTED_MODULE_1__utils_js__["k" /* isFn */](fn)) {
         throw new Error('onRefresh expect a function');
       } // We have a pending onRefresh, cancel it.
 
@@ -3033,7 +3033,7 @@ var Id5Status = /*#__PURE__*/function () {
   }], [{
     key: "doFireOnAvailableCallBack",
     value: function doFireOnAvailableCallBack(currentId5Status) {
-      __WEBPACK_IMPORTED_MODULE_1__utils__["q" /* logInfo */]("Id5Status.doFireOnAvailableCallBack");
+      __WEBPACK_IMPORTED_MODULE_1__utils_js__["q" /* logInfo */]("Id5Status.doFireOnAvailableCallBack");
       currentId5Status._availableCallbackFired = true;
       currentId5Status._availableCallbackTimerId = undefined;
 
@@ -3047,7 +3047,7 @@ var Id5Status = /*#__PURE__*/function () {
   }, {
     key: "doFireOnUpdateCallBack",
     value: function doFireOnUpdateCallBack(currentId5Status) {
-      __WEBPACK_IMPORTED_MODULE_1__utils__["q" /* logInfo */]("Id5Status.doFireOnUpdateCallBack");
+      __WEBPACK_IMPORTED_MODULE_1__utils_js__["q" /* logInfo */]("Id5Status.doFireOnUpdateCallBack");
 
       currentId5Status._updateCallback(currentId5Status);
     }
@@ -3059,7 +3059,7 @@ var Id5Status = /*#__PURE__*/function () {
   }, {
     key: "doFireOnRefreshCallBack",
     value: function doFireOnRefreshCallBack(currentId5Status) {
-      __WEBPACK_IMPORTED_MODULE_1__utils__["q" /* logInfo */]("Id5Status.doFireOnRefreshCallBack");
+      __WEBPACK_IMPORTED_MODULE_1__utils_js__["q" /* logInfo */]("Id5Status.doFireOnRefreshCallBack");
       currentId5Status._refreshCallbackFired = true;
       currentId5Status._refreshCallbackTimerId = undefined;
       currentId5Status._isRefreshing = false;
@@ -3081,7 +3081,7 @@ var Id5Status = /*#__PURE__*/function () {
 "use strict";
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return version; });
 // generated by genversion
-var version = '1.0.11';
+var version = '1.0.12';
 
 /***/ })
 /******/ ]);
