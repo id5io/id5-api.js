@@ -74,6 +74,7 @@ describe('ID5 JS API', function () {
   const TEST_RESPONSE_EID = {
     source: CONSTANTS.ID5_EIDS_SOURCE,
     uids: [{
+      atype: 1,
       id: TEST_RESPONSE_ID5ID,
       ext: {
         linkType: TEST_RESPONSE_LINK_TYPE,
@@ -2541,6 +2542,7 @@ describe('ID5 JS API', function () {
       const TEST_RESPONSE_EID_AB_NORMAL = {
         source: CONSTANTS.ID5_EIDS_SOURCE,
         uids: [{
+          atype: 1,
           id: 'whateverID_AB_NORMAL',
           ext: {
             linkType: 1,
@@ -2599,6 +2601,7 @@ describe('ID5 JS API', function () {
       const TEST_RESPONSE_EID_AB_CONTROL_GROUP = {
         source: CONSTANTS.ID5_EIDS_SOURCE,
         uids: [{
+          atype: 1,
           id: '0',
           ext: {
             linkType: 0,
