@@ -104,7 +104,7 @@ describe('ID5 JS API', function () {
     'privacy': JSON.parse(TEST_PRIVACY_DISALLOWED)
   });
 
-  const testClientStore = new ClientStore(() => true, localStorage);
+  const testClientStore = new ClientStore(0, () => true, localStorage);
 
   beforeEach(function () {
     ID5.debug = false;
