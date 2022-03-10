@@ -5,7 +5,7 @@ import ClientStore from '../../lib/clientStore';
 import { version } from '../../generated/version.js';
 import LocalStorage from '../../lib/localStorage.js';
 import ID5 from '../../lib/id5-api';
-import { API_TYPE, ConsentData } from '../../lib/consentManagement';
+import { API_TYPE, ConsentData, GRANT_TYPE, LocalStorageGrant } from '../../lib/consentManagement';
 
 let expect = require('chai').expect;
 const localStorage = new LocalStorage(window);
@@ -104,7 +104,9 @@ describe('ID5 JS API', function () {
     'privacy': JSON.parse(TEST_PRIVACY_DISALLOWED)
   });
 
-  const testClientStore = new ClientStore(() => true, localStorage);
+  const testClientStore = new ClientStore(0,
+    () => new LocalStorageGrant(true, GRANT_TYPE.FORCE_ALLOWED_BY_CONFIG, API_TYPE.NONE),
+    localStorage);
 
   beforeEach(function () {
     ID5.debug = false;

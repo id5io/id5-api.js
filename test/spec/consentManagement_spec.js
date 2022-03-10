@@ -1,6 +1,6 @@
 import { spy, stub, assert } from 'sinon';
 import { expect } from 'chai';
-import { API_TYPE, ConsentManagement } from '../../lib/consentManagement.js';
+import { API_TYPE, ConsentManagement, GRANT_TYPE } from '../../lib/consentManagement.js';
 import clone from 'clone';
 import * as utils from '../../lib/utils.js';
 import CONSTANTS from '../../lib/constants.json';
@@ -127,7 +127,7 @@ describe('Consent Management', function () {
   });
 
   it('should print an error and return to callback function when an unknown CMP framework ID is used', function () {
-    const consent = new ConsentManagement(localStorageMock);
+    const consent = new ConsentManagement(0, localStorageMock);
     consent.requestConsent(false, 'bad', {}, callbackSpy);
 
     assert.calledOnce(utils.logError);
@@ -137,61 +137,77 @@ describe('Consent Management', function () {
 
   describe('with static consent data', function () {
     it('should print a warning when static consentData has the wrong structure', function () {
-      const consent = new ConsentManagement(localStorageMock);
+      const consent = new ConsentManagement(0, localStorageMock);
       consent.requestConsent(false, 'static', { wrong: 'structure' }, callbackSpy);
+      const localStorageGrant = consent.localStorageGrant(false, false);
 
       assert.calledOnce(utils.logWarn);
       assert.calledOnce(callbackSpy);
       expect(consent.consentData.api).to.equal(API_TYPE.NONE);
       expect(consent.consentData.gdprApplies).to.be.false;
-      expect(consent.isLocalStorageAllowed(false, false)).to.be.undefined;
+      expect(localStorageGrant.allowed).to.be.true;
+      expect(localStorageGrant.grantType).to.equal(GRANT_TYPE.PROVISIONAL);
+      expect(localStorageGrant.api).to.equal(API_TYPE.NONE);
     });
 
     it('should print a warning when static consentData has undefined data', function () {
-      const consent = new ConsentManagement(localStorageMock);
+      const consent = new ConsentManagement(0, localStorageMock);
       consent.requestConsent(false, 'static', undefined, callbackSpy);
+      const localStorageGrant = consent.localStorageGrant(false, false);
 
       assert.calledOnce(utils.logWarn);
       assert.calledOnce(callbackSpy);
       expect(consent.consentData.api).to.equal(API_TYPE.NONE);
       expect(consent.consentData.gdprApplies).to.be.false;
-      expect(consent.isLocalStorageAllowed(false, false)).to.be.undefined;
+      expect(localStorageGrant.allowed).to.be.true;
+      expect(localStorageGrant.grantType).to.equal(GRANT_TYPE.PROVISIONAL);
+      expect(localStorageGrant.api).to.equal(API_TYPE.NONE);
     });
 
     it('should parse correctly TCFv1 static data', function () {
-      const consent = new ConsentManagement(localStorageMock);
+      const consent = new ConsentManagement(0, localStorageMock);
       consent.requestConsent(false, 'static', TEST_CONSENT_DATA_V1, callbackSpy);
+      const localStorageGrant = consent.localStorageGrant(false, false);
 
       assert.calledOnce(callbackSpy);
       expect(consent.consentData.api).to.equal(API_TYPE.TCF_V1);
       expect(consent.consentData.consentString).to.equal(TEST_CONSENT_DATA_V1.getConsentData.consentData);
       expect(consent.consentData.gdprApplies).to.be.true;
       expect(consent.consentData.hasCcpaString).to.be.false;
-      expect(consent.isLocalStorageAllowed(false, false)).to.be.true;
+      expect(localStorageGrant.allowed).to.be.true;
+      expect(localStorageGrant.grantType).to.equal(GRANT_TYPE.CONSENT_API);
+      expect(localStorageGrant.api).to.equal(API_TYPE.TCF_V1);
     });
 
     it('prints an error if static TCFv1 data is invalid', function () {
-      const consent = new ConsentManagement(localStorageMock);
+      const consent = new ConsentManagement(0, localStorageMock);
       consent.requestConsent(false, 'static', { getConsentData: {}, getVendorConsents: {} }, callbackSpy);
+      const localStorageGrant = consent.localStorageGrant(false, false);
 
       assert.calledOnce(utils.logError);
       assert.calledOnce(callbackSpy);
       expect(consent.consentData.api).to.equal(API_TYPE.NONE);
-      expect(consent.isLocalStorageAllowed(false, false)).to.be.undefined;
+      expect(localStorageGrant.allowed).to.be.true;
+      expect(localStorageGrant.grantType).to.equal(GRANT_TYPE.PROVISIONAL);
+      expect(localStorageGrant.api).to.equal(API_TYPE.NONE);
     });
 
-    it('prints a warning debugBypassConsent set to true', function () {
-      const consent = new ConsentManagement(localStorageMock);
+    it('prints warnings when debugBypassConsent set to true', function () {
+      const consent = new ConsentManagement(0, localStorageMock);
       consent.requestConsent(true, 'static', undefined, callbackSpy);
+      const localStorageGrant = consent.localStorageGrant(false, true);
 
-      assert.calledOnce(utils.logWarn);
+      assert.calledTwice(utils.logWarn);
       assert.calledOnce(callbackSpy);
-      expect(consent.isLocalStorageAllowed(false, true)).to.be.true;
+      expect(localStorageGrant.allowed).to.be.true;
+      expect(localStorageGrant.grantType).to.equal(GRANT_TYPE.FORCE_ALLOWED_BY_CONFIG);
+      expect(localStorageGrant.api).to.equal(API_TYPE.NONE);
     });
 
     it('should parse correctly TCFv2 static data', function () {
-      const consent = new ConsentManagement(localStorageMock);
+      const consent = new ConsentManagement(0, localStorageMock);
       consent.requestConsent(false, 'static', TEST_CONSENT_DATA_V2, callbackSpy);
+      const localStorageGrant = consent.localStorageGrant(false, false);
 
       assert.calledOnce(callbackSpy);
       assert.notCalled(utils.logWarn);
@@ -199,22 +215,28 @@ describe('Consent Management', function () {
       expect(consent.consentData.consentString).to.equal(TEST_CONSENT_DATA_V2.getTCData.tcString);
       expect(consent.consentData.gdprApplies).to.be.true;
       expect(consent.consentData.hasCcpaString).to.be.false;
-      expect(consent.isLocalStorageAllowed(false, false)).to.be.true;
+      expect(localStorageGrant.allowed).to.be.true;
+      expect(localStorageGrant.grantType).to.equal(GRANT_TYPE.CONSENT_API);
+      expect(localStorageGrant.api).to.equal(API_TYPE.TCF_V2);
     });
 
     it('prints an error if static TCFv2 data is invalid', function () {
-      const consent = new ConsentManagement(localStorageMock);
+      const consent = new ConsentManagement(0, localStorageMock);
       consent.requestConsent(false, 'static', { getTCData: {} }, callbackSpy);
+      const localStorageGrant = consent.localStorageGrant(false, false);
 
       assert.calledOnce(utils.logError);
       assert.calledOnce(callbackSpy);
       expect(consent.consentData.api).to.equal(API_TYPE.NONE);
-      expect(consent.isLocalStorageAllowed(false, false)).to.be.undefined;
+      expect(localStorageGrant.allowed).to.be.true;
+      expect(localStorageGrant.grantType).to.equal(GRANT_TYPE.PROVISIONAL);
+      expect(localStorageGrant.api).to.equal(API_TYPE.NONE);
     });
 
     it('should parse correctly USPv1 static data', function () {
-      const consent = new ConsentManagement(localStorageMock);
+      const consent = new ConsentManagement(0, localStorageMock);
       consent.requestConsent(false, 'static', { getUSPData: { uspString: '1YNN' } }, callbackSpy);
+      const localStorageGrant = consent.localStorageGrant(false, false);
 
       assert.calledOnce(callbackSpy);
       assert.notCalled(utils.logWarn);
@@ -222,22 +244,28 @@ describe('Consent Management', function () {
       expect(consent.consentData.gdprApplies).to.be.false;
       expect(consent.consentData.hasCcpaString).to.be.true;
       expect(consent.consentData.ccpaString).to.equal('1YNN');
-      expect(consent.isLocalStorageAllowed(false, false)).to.be.true;
+      expect(localStorageGrant.allowed).to.be.true;
+      expect(localStorageGrant.grantType).to.equal(GRANT_TYPE.CONSENT_API);
+      expect(localStorageGrant.api).to.equal(API_TYPE.USP_V1);
     });
 
     it('prints an error if static USPv1 data is invalid', function () {
-      const consent = new ConsentManagement(localStorageMock);
+      const consent = new ConsentManagement(0, localStorageMock);
       consent.requestConsent(false, 'static', { getUSPData: {} }, callbackSpy);
+      const localStorageGrant = consent.localStorageGrant(false, false);
 
       assert.calledOnce(utils.logError);
       assert.calledOnce(callbackSpy);
       expect(consent.consentData.api).to.equal(API_TYPE.NONE);
-      expect(consent.isLocalStorageAllowed(false, false)).to.be.undefined;
+      expect(localStorageGrant.allowed).to.be.true;
+      expect(localStorageGrant.grantType).to.equal(GRANT_TYPE.PROVISIONAL);
+      expect(localStorageGrant.api).to.equal(API_TYPE.NONE);
     });
 
     it('should parse correctly allowedVendors static data', function () {
-      const consent = new ConsentManagement(localStorageMock);
+      const consent = new ConsentManagement(0, localStorageMock);
       consent.requestConsent(false, 'static', { allowedVendors: [ 131 ] }, callbackSpy);
+      const localStorageGrant = consent.localStorageGrant(false, false);
 
       assert.calledOnce(callbackSpy);
       assert.notCalled(utils.logWarn);
@@ -246,12 +274,15 @@ describe('Consent Management', function () {
       expect(consent.consentData.gdprApplies).to.be.true;
       expect(consent.consentData.hasCcpaString).to.be.false;
       expect(consent.consentData.allowedVendors).to.deep.equal(['131']);
-      expect(consent.isLocalStorageAllowed(false, false)).to.be.true;
+      expect(localStorageGrant.allowed).to.be.true;
+      expect(localStorageGrant.grantType).to.equal(GRANT_TYPE.CONSENT_API);
+      expect(localStorageGrant.api).to.equal(API_TYPE.ID5_ALLOWED_VENDORS);
     });
 
     it('should not allow local storage if ID5 is not in the list of allowed vendors', function () {
-      const consent = new ConsentManagement(localStorageMock);
+      const consent = new ConsentManagement(0, localStorageMock);
       consent.requestConsent(false, 'static', { allowedVendors: [ 66 ] }, callbackSpy);
+      const localStorageGrant = consent.localStorageGrant(false, false);
 
       assert.calledOnce(callbackSpy);
       assert.notCalled(utils.logWarn);
@@ -260,14 +291,16 @@ describe('Consent Management', function () {
       expect(consent.consentData.gdprApplies).to.be.true;
       expect(consent.consentData.hasCcpaString).to.be.false;
       expect(consent.consentData.allowedVendors).to.deep.equal(['66']);
-      expect(consent.isLocalStorageAllowed(false, false)).to.be.false;
+      expect(localStorageGrant.allowed).to.be.false;
+      expect(localStorageGrant.grantType).to.equal(GRANT_TYPE.CONSENT_API);
+      expect(localStorageGrant.api).to.equal(API_TYPE.ID5_ALLOWED_VENDORS);
     });
   });
 
   describe('framework detection', function() {
     it('should print a warning when no TCF is found (but CCPA is found)', function () {
       window.__uspapi = spy();
-      const consent = new ConsentManagement(localStorageMock);
+      const consent = new ConsentManagement(0, localStorageMock);
       consent.requestConsent(false, 'iab', undefined, callbackSpy);
 
       assert.calledOnce(utils.logWarn);
@@ -276,7 +309,7 @@ describe('Consent Management', function () {
 
     it('should print a warning when no CCPA is found (but TCF is found)', function () {
       window.__tcfapi = spy();
-      const consent = new ConsentManagement(localStorageMock);
+      const consent = new ConsentManagement(0, localStorageMock);
       consent.requestConsent(false, 'iab', undefined, callbackSpy);
 
       assert.calledOnce(utils.logWarn);
@@ -299,7 +332,7 @@ describe('Consent Management', function () {
       cmpStub.callsFake((command, param, callback) => {
         callback(TEST_CONSENT_DATA_V1[command], true);
       });
-      const consent = new ConsentManagement(localStorageMock);
+      const consent = new ConsentManagement(0, localStorageMock);
       consent.requestConsent(false, 'iab', undefined, callbackSpy);
 
       assert.calledOnce(callbackSpy);
@@ -318,7 +351,7 @@ describe('Consent Management', function () {
         callback(TEST_CONSENT_DATA_V1[command], true);
       });
 
-      const consent = new ConsentManagement(localStorageMock);
+      const consent = new ConsentManagement(0, localStorageMock);
       consent.requestConsent(false, 'iab', undefined, callbackSpy);
       cmpStub.reset();
 
@@ -333,7 +366,7 @@ describe('Consent Management', function () {
         callback(TEST_CONSENT_DATA_V1[command]);
       });
 
-      const consent = new ConsentManagement(localStorageMock);
+      const consent = new ConsentManagement(0, localStorageMock);
       consent.requestConsent(false, 'iab', undefined, callbackSpy);
       consent.resetConsentData();
 
@@ -372,7 +405,7 @@ describe('Consent Management', function () {
         cmpStub.callsFake((command, param, callback) => {
             callback(dataObj[command], true);
         });
-        const consent = new ConsentManagement(localStorageMock);
+        const consent = new ConsentManagement(0, localStorageMock);
         consent.requestConsent(false, 'iab', undefined, callbackSpy);
 
         assert.calledOnce(utils.logError);
@@ -385,7 +418,7 @@ describe('Consent Management', function () {
       cmpStub.callsFake((command, param, callback) => {
         callback(null, false);
       });
-      const consent = new ConsentManagement(localStorageMock);
+      const consent = new ConsentManagement(0, localStorageMock);
       consent.requestConsent(false, 'iab', undefined, callbackSpy);
 
       assert.calledThrice(utils.logError);
@@ -415,7 +448,7 @@ describe('Consent Management', function () {
       });
 
       it('can receive the data in a normal call flow', function () {
-        const consent = new ConsentManagement(localStorageMock);
+        const consent = new ConsentManagement(0, localStorageMock);
         consent.requestConsent(false, 'iab', undefined, callbackSpy);
 
         assert.calledOnce(callbackSpy);
@@ -426,7 +459,7 @@ describe('Consent Management', function () {
       });
 
       it('should bypass CMP and return stored consentData when calling twice', function() {
-        const consent = new ConsentManagement(localStorageMock);
+        const consent = new ConsentManagement(0, localStorageMock);
         consent.requestConsent(false, 'iab', undefined, callbackSpy);
         cmpStub.reset();
 
@@ -448,7 +481,7 @@ describe('Consent Management', function () {
           cmpStub.callsFake((command, version, callback) => {
             callback(dataObj, true);
           });
-          const consent = new ConsentManagement(localStorageMock);
+          const consent = new ConsentManagement(0, localStorageMock);
           consent.requestConsent(false, 'iab', undefined, callbackSpy);
 
           assert.calledOnce(utils.logError);
@@ -461,7 +494,7 @@ describe('Consent Management', function () {
         cmpStub.callsFake((command, param, callback) => {
           callback(null, false);
         });
-        const consent = new ConsentManagement(localStorageMock);
+        const consent = new ConsentManagement(0, localStorageMock);
         consent.requestConsent(false, 'iab', undefined, callbackSpy);
 
         assert.calledOnce(utils.logError);
@@ -492,7 +525,7 @@ describe('Consent Management', function () {
       });
 
       it('can receive the data in a normal call flow', function () {
-        const consent = new ConsentManagement(localStorageMock);
+        const consent = new ConsentManagement(0, localStorageMock);
         consent.requestConsent(false, 'iab', undefined, callbackSpy);
 
         assert.calledOnce(callbackSpy);
@@ -503,7 +536,7 @@ describe('Consent Management', function () {
       });
 
       it('should bypass CMP and return stored consentData when calling twice', function() {
-        const consent = new ConsentManagement(localStorageMock);
+        const consent = new ConsentManagement(0, localStorageMock);
         consent.requestConsent(false, 'iab', undefined, callbackSpy);
         cmpStub.reset();
 
@@ -523,7 +556,7 @@ describe('Consent Management', function () {
           cmpStub.callsFake((command, version, callback) => {
             callback(dataObj, true);
           });
-          const consent = new ConsentManagement(localStorageMock);
+          const consent = new ConsentManagement(0, localStorageMock);
           consent.requestConsent(false, 'iab', undefined, callbackSpy);
 
           assert.calledOnce(utils.logError);
@@ -536,7 +569,7 @@ describe('Consent Management', function () {
         cmpStub.callsFake((command, param, callback) => {
           callback(null, false);
         });
-        const consent = new ConsentManagement(localStorageMock);
+        const consent = new ConsentManagement(0, localStorageMock);
         consent.requestConsent(false, 'iab', undefined, callbackSpy);
 
         assert.calledOnce(utils.logError);
@@ -546,40 +579,54 @@ describe('Consent Management', function () {
     });
   });
 
-  describe('Provisional Local Storage Access', function() {
-    it('should be undefined if privacy data is not set', function() {
-      const consent = new ConsentManagement(localStorageMock);
-      expect(consent.isProvisionalLocalStorageAllowed()).to.be.undefined;
+  describe('Provisional local storage access grant', function() {
+    it('should be allowed provisionally if privacy data is not set', function() {
+      const consent = new ConsentManagement(0, localStorageMock);
+      const localStorageGrant = consent.localStorageGrant(false, false);
+      expect(localStorageGrant.allowed).to.be.true;
+      expect(localStorageGrant.grantType).to.equal(GRANT_TYPE.PROVISIONAL);
+      expect(localStorageGrant.api).to.equal(API_TYPE.NONE);
     });
 
     const tests = [
-      { expected_result: undefined, data: { } },
-      { expected_result: true, data: { id5_consent: true } },
-      { expected_result: false, data: { jurisdiction: 'gdpr' } },
-      { expected_result: true, data: { jurisdiction: 'other' } },
-      { expected_result: false, data: { jurisdiction: 'gdpr', id5_consent: false } },
-      { expected_result: true, data: { jurisdiction: 'gdpr', id5_consent: true } },
-      { expected_result: true, data: { jurisdiction: 'other', id5_consent: true } },
-      { expected_result: true, data: { jurisdiction: 'other', id5_consent: false } }
+      { expected_result: { allowed: true, grantType: GRANT_TYPE.PROVISIONAL, api: API_TYPE.NONE }, data: { } },
+      { expected_result: { allowed: true, grantType: GRANT_TYPE.ID5_CONSENT, api: API_TYPE.NONE }, data: { id5_consent: true } },
+      { expected_result: { allowed: false, grantType: GRANT_TYPE.JURISDICTION, api: API_TYPE.NONE }, data: { jurisdiction: 'gdpr' } },
+      { expected_result: { allowed: true, grantType: GRANT_TYPE.JURISDICTION, api: API_TYPE.NONE }, data: { jurisdiction: 'other' } },
+      { expected_result: { allowed: false, grantType: GRANT_TYPE.JURISDICTION, api: API_TYPE.NONE }, data: { jurisdiction: 'gdpr', id5_consent: false } },
+      { expected_result: { allowed: true, grantType: GRANT_TYPE.ID5_CONSENT, api: API_TYPE.NONE }, data: { jurisdiction: 'gdpr', id5_consent: true } },
+      { expected_result: { allowed: true, grantType: GRANT_TYPE.ID5_CONSENT, api: API_TYPE.NONE }, data: { jurisdiction: 'other', id5_consent: true } },
+      { expected_result: { allowed: true, grantType: GRANT_TYPE.JURISDICTION, api: API_TYPE.NONE }, data: { jurisdiction: 'other', id5_consent: false } }
     ];
     tests.forEach((test) => {
-      it(`should be ${test.expected_result} with stored privacy data ${JSON.stringify(test.data)}`, function() {
+      it(`should be allowed:${test.expected_result.allowed}, grantType:${test.expected_result.grantType} with stored privacy data ${JSON.stringify(test.data)}`, function() {
         localStorageMock.getItemWithExpiration.callsFake((config) => {
           expect(config).to.equal(CONSTANTS.STORAGE_CONFIG.PRIVACY);
           return JSON.stringify(test.data);
         });
-        const consent = new ConsentManagement(localStorageMock);
-        expect(consent.isProvisionalLocalStorageAllowed()).to.equal(test.expected_result);
+        const consent = new ConsentManagement(0, localStorageMock);
+        const localStorageGrant = consent.localStorageGrant(false, false);
+        expect(localStorageGrant.allowed).to.equal(test.expected_result.allowed);
+        expect(localStorageGrant.grantType).to.equal(test.expected_result.grantType);
+        expect(localStorageGrant.api).to.equal(test.expected_result.api);
       });
     });
   });
 
-  describe('Local Storage Access', function() {
-    it('allows local storage whenever one of the flags is true', function() {
-      const consent = new ConsentManagement(localStorageMock);
-      expect(consent.isLocalStorageAllowed(true, false)).to.be.true;
-      expect(consent.isLocalStorageAllowed(false, true)).to.be.true;
-      expect(consent.isLocalStorageAllowed(true, true)).to.be.true;
+  describe('Local storage access grant', function() {
+    const bypassVariants = [
+      { allowLocalStorageWithoutConsentApi: true, debugBypassConsent: false },
+      { allowLocalStorageWithoutConsentApi: false, debugBypassConsent: true },
+      { allowLocalStorageWithoutConsentApi: true, debugBypassConsent: true },
+    ];
+    bypassVariants.forEach((variant) => {
+      it(`allows local storage when allowLocalStorageWithoutConsentApi:${variant.allowLocalStorageWithoutConsentApi} and debugBypassConsent:${variant.debugBypassConsent}`, function() {
+        const consent = new ConsentManagement(0, localStorageMock);
+        const localStorageGrant = consent.localStorageGrant(variant.allowLocalStorageWithoutConsentApi, variant.debugBypassConsent);
+        expect(localStorageGrant.allowed).to.be.true;
+        expect(localStorageGrant.grantType).to.equal(GRANT_TYPE.FORCE_ALLOWED_BY_CONFIG);
+        expect(localStorageGrant.api).to.equal(API_TYPE.NONE);
+      });
     });
 
     describe('with TCFv2', function() {
@@ -597,10 +644,13 @@ describe('Consent Management', function () {
         cmpStub.callsFake((command, version, callback) => {
           callback(TEST_CONSENT_DATA_V2.getTCData, true);
         });
-        const consent = new ConsentManagement(localStorageMock);
+        const consent = new ConsentManagement(0, localStorageMock);
         consent.requestConsent(false, 'iab', undefined, callbackSpy);
+        const localStorageGrant = consent.localStorageGrant(false, false);
 
-        expect(consent.isLocalStorageAllowed(false, false)).to.be.true;
+        expect(localStorageGrant.allowed).to.be.true;
+        expect(localStorageGrant.grantType).to.equal(GRANT_TYPE.CONSENT_API);
+        expect(localStorageGrant.api).to.equal(API_TYPE.TCF_V2);
       });
 
       [false, null, undefined, "xxx"].forEach(value => {
@@ -610,11 +660,14 @@ describe('Consent Management', function () {
           cmpStub.callsFake((command, version, callback) => {
             callback(cloneTestData.getTCData, true);
           });
-          const consent = new ConsentManagement(localStorageMock);
+          const consent = new ConsentManagement(0, localStorageMock);
           consent.requestConsent(false, 'iab', undefined, callbackSpy);
+          const localStorageGrant = consent.localStorageGrant(false, false);
 
-          expect(consent.isLocalStorageAllowed(false, false)).to.be.false;
-        });
+          expect(localStorageGrant.allowed).to.be.false;
+          expect(localStorageGrant.grantType).to.equal(GRANT_TYPE.CONSENT_API);
+          expect(localStorageGrant.api).to.equal(API_TYPE.TCF_V2);
+          });
       })
 
       it('allows local storage when not in GDPR jurisdiction', function() {
@@ -623,10 +676,13 @@ describe('Consent Management', function () {
         cmpStub.callsFake((command, version, callback) => {
           callback(cloneTestData.getTCData, true);
         });
-        const consent = new ConsentManagement(localStorageMock);
+        const consent = new ConsentManagement(0, localStorageMock);
         consent.requestConsent(false, 'iab', undefined, callbackSpy);
+        const localStorageGrant = consent.localStorageGrant(false, false);
 
-        expect(consent.isLocalStorageAllowed(false, false)).to.be.true;
+        expect(localStorageGrant.allowed).to.be.true;
+        expect(localStorageGrant.grantType).to.equal(GRANT_TYPE.CONSENT_API);
+        expect(localStorageGrant.api).to.equal(API_TYPE.TCF_V2);
       });
     });
 
@@ -645,22 +701,13 @@ describe('Consent Management', function () {
         cmpStub.callsFake((command, param, callback) => {
           callback(TEST_CONSENT_DATA_V1[command], true);
         });
-        const consent = new ConsentManagement(localStorageMock);
+        const consent = new ConsentManagement(0, localStorageMock);
         consent.requestConsent(false, 'iab', undefined, callbackSpy);
+        const localStorageGrant = consent.localStorageGrant(false, false);
 
-        expect(consent.isLocalStorageAllowed(false, false)).to.be.true;
-      });
-
-      it('disallows local storage when vendor data disallows purpose 1', function() {
-        const cloneTestData = clone(TEST_CONSENT_DATA_V1);
-        cloneTestData.getVendorConsents.purposeConsents['1'] = false;
-        cmpStub.callsFake((command, param, callback) => {
-          callback(cloneTestData[command], true);
-        });
-        const consent = new ConsentManagement(localStorageMock);
-        consent.requestConsent(false, 'iab', undefined, callbackSpy);
-
-        expect(consent.isLocalStorageAllowed(false, false)).to.be.false;
+        expect(localStorageGrant.allowed).to.be.true;
+        expect(localStorageGrant.grantType).to.equal(GRANT_TYPE.CONSENT_API);
+        expect(localStorageGrant.api).to.equal(API_TYPE.TCF_V1);
       });
 
       [false, null, undefined, "xxx"].forEach(value => {
@@ -670,11 +717,14 @@ describe('Consent Management', function () {
           cmpStub.callsFake((command, param, callback) => {
             callback(cloneTestData[command], true);
           });
-          const consent = new ConsentManagement(localStorageMock);
+          const consent = new ConsentManagement(0, localStorageMock);
           consent.requestConsent(false, 'iab', undefined, callbackSpy);
+          const localStorageGrant = consent.localStorageGrant(false, false);
 
-          expect(consent.isLocalStorageAllowed(false, false)).to.be.false;
-          });
+          expect(localStorageGrant.allowed).to.be.false;
+          expect(localStorageGrant.grantType).to.equal(GRANT_TYPE.CONSENT_API);
+          expect(localStorageGrant.api).to.equal(API_TYPE.TCF_V1);
+        });
       });
 
       it('allows local storage when not in GDPR jurisdiction', function() {
@@ -683,10 +733,13 @@ describe('Consent Management', function () {
         cmpStub.callsFake((command, param, callback) => {
           callback(cloneTestData[command], true);
         });
-        const consent = new ConsentManagement(localStorageMock);
+        const consent = new ConsentManagement(0, localStorageMock);
         consent.requestConsent(false, 'iab', undefined, callbackSpy);
+        const localStorageGrant = consent.localStorageGrant(false, false);
 
-        expect(consent.isLocalStorageAllowed(false, false)).to.be.true;
+        expect(localStorageGrant.allowed).to.be.true;
+        expect(localStorageGrant.grantType).to.equal(GRANT_TYPE.CONSENT_API);
+        expect(localStorageGrant.api).to.equal(API_TYPE.TCF_V1);
       });
     });
   });
@@ -719,7 +772,7 @@ describe('Consent Management', function () {
       });
 
       it('can receive the data', function(done) {
-        const consent = new ConsentManagement(localStorageMock);
+        const consent = new ConsentManagement(0, localStorageMock);
         consent.requestConsent(false, 'iab', undefined, (consentData) => {
           expect(consentData.consentString).to.equal(TEST_CONSENT_DATA_V1.getConsentData.consentData);
           expect(consentData.vendorData.metadata).to.equal(TEST_CONSENT_DATA_V1.getVendorConsents.metadata);
@@ -758,7 +811,7 @@ describe('Consent Management', function () {
       });
 
       it('can receive the data', function(done) {
-        const consent = new ConsentManagement(localStorageMock);
+        const consent = new ConsentManagement(0, localStorageMock);
         consent.requestConsent(false, 'iab', undefined, (consentData) => {
           expect(consentData.consentString).to.equal(TEST_CONSENT_DATA_V2.getTCData.tcString);
           expect(consentData.vendorData.metadata).to.equal(TEST_CONSENT_DATA_V2.getTCData.metadata);
@@ -796,7 +849,7 @@ describe('Consent Management', function () {
       });
 
       it('can receive the data', function(done) {
-        const consent = new ConsentManagement(localStorageMock);
+        const consent = new ConsentManagement(0, localStorageMock);
         consent.requestConsent(false, 'iab', undefined, (consentData) => {
           expect(consentData.hasCcpaString).to.be.true;
           expect(consentData.ccpaString).to.equal('1YYN');
