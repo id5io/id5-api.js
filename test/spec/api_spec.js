@@ -236,6 +236,7 @@ describe('ID5 JS API', function () {
           expect(requestData.features).to.be.undefined;
           expect(requestData.provider).to.be.undefined;
           expect(requestData.puid).to.be.undefined;
+          expect(requestData.ua).to.be.a('string');
 
           expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
           expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
@@ -777,6 +778,7 @@ describe('ID5 JS API', function () {
           expect(requestData.top).to.be.equal(1);
           expect(requestData.gdpr).to.exist;
           expect(requestData.gdpr_consent).to.be.undefined;
+          expect(requestData.ua).to.be.a('string');
 
           expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
           expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);

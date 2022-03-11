@@ -139,6 +139,7 @@ describe('The ID5 API', function() {
       expect(requestBody.u).to.equal('https://my-publisher-website.net/');
       expect(requestBody.rf).to.equal('https://my-publisher-website.net/');
       expect(requestBody.segments).to.deep.equal([{ destination: '22', ids: ['abc'] }]);
+      expect(requestBody.ua).to.be.a('string');
 
       // from integration.html
       expect(requestBody.gdpr_consent).to.equal(
