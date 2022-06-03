@@ -65,6 +65,7 @@ describe('The ID5 API', function() {
     }
 
     browser = await puppeteer.launch({
+      // headless: false,
       executablePath: chromePaths.chrome,
       // devtools: true,
       args,
