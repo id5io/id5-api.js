@@ -2,7 +2,7 @@ stages:
   - build
 
 build:
-  image: kekel87/node-chrome-firefox:1.5.0
+  image: registry.gitlab.com/id5-sync/infrastructure/ci-image-node-google-chrome:16.2.0-102.0.5005.61-1
   stage: build
   script:
     - npm install --global gulp-cli
