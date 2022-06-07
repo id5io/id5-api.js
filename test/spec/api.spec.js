@@ -96,39 +96,6 @@ describe('ID5 JS API', function () {
       resetAllInLocalStorage();
     });
 
-    describe('Legacy Response from Server without Privacy Data', function () {
-      let ajaxStub;
-      let response = JSON.parse(JSON_RESPONSE_ID5_CONSENT);
-      response.privacy = undefined;
-      response = JSON.stringify(response);
-
-      beforeEach(function () {
-        ajaxStub = sinon.stub(utils, 'ajax').callsFake(function (url, callbacks, data, options) {
-          callbacks.success(response);
-        });
-      });
-      afterEach(function () {
-        ajaxStub.restore();
-      });
-
-      it('should call server and handle response without privacy data', function () {
-        const id5Status = ID5.init({
-          ...defaultInitBypassConsent(),
-          allowLocalStorageWithoutConsentApi: true
-        });
-
-        sinon.assert.calledTwice(ajaxStub);
-        expect(ajaxStub.firstCall.args[0]).to.contain(ID5_LB_ENDPOINT);
-        expect(ajaxStub.secondCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
-        expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
-        expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
-        expect(id5Status.isFromCache()).to.be.false;
-        expect(id5Status.getUserIdAsEid()).to.be.eql(TEST_RESPONSE_EID);
-        expect(localStorage.getItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(encodeURIComponent(response));
-        expect(localStorage.getItemWithExpiration(TEST_PRIVACY_STORAGE_CONFIG)).to.be.null;
-      });
-    });
-
     describe('Consent on Request and Response', function () {
       let ajaxStub;
 
@@ -1236,6 +1203,106 @@ describe('ID5 JS API', function () {
         sinon.assert.notCalled(ajaxStub);
         expect(id5Status.getUserId()).to.be.undefined;
         expect(id5Status.getLinkType()).to.be.undefined;
+      });
+    });
+
+    describe('With User Agent hints enabled', function() {
+      let ajaxStub, uaDataStub;
+
+      beforeEach(function () {
+        ajaxStub = sinon.stub(utils, 'ajax').callsFake(function (url, callbacks, data, options) {
+          callbacks.success(JSON_RESPONSE_ID5_CONSENT);
+        });
+        uaDataStub = sinon.stub(ID5, 'gatherUaHints');
+      });
+
+      afterEach(function () {
+        ajaxStub.restore();
+        uaDataStub.restore();
+      });
+
+      it('should send the User Agent hints in the request', function(done) {
+        uaDataStub.resolves({
+          'architecture': 'x86',
+          'brands': [
+            {
+              'brand': ' Not A;Brand',
+              'version': '99'
+            },
+            {
+              'brand': 'Chromium',
+              'version': '101'
+            },
+            {
+              'brand': 'Froogle Chrome',
+              'version': '101'
+            }
+          ],
+          'fullVersionList': [
+            {
+              'brand': ' Not A;Brand',
+              'version': '99.0.0.0'
+            },
+            {
+              'brand': 'Chromium',
+              'version': '101.0.4951.64'
+            },
+            {
+              'brand': 'Froogle Chrome',
+              'version': '101.0.4951.64'
+            }
+          ],
+          'mobile': false,
+          'model': '',
+          'platform': 'Linux',
+          'platformVersion': '5.17.9'
+        });
+        const id5Status = ID5.init({
+          ...defaultInitBypassConsent(),
+          disableUaHints: false
+        });
+
+        id5Status.onAvailable(function() {
+          sinon.assert.calledTwice(ajaxStub);
+          const URL = ajaxStub.secondCall.args[0];
+          expect(URL).to.contain(ID5_FETCH_ENDPOINT);
+          const callData = JSON.parse(ajaxStub.secondCall.args[2]);
+          expect(callData.uaHints).to.be.an('object');
+          expect(callData.uaHints.architecture).to.equal('x86');
+          expect(callData.uaHints.brands).to.have.lengthOf(2); // Note ' Not A;Brand' gets filtered
+          expect(callData.uaHints.brands[0].brand).to.equal('Chromium');
+          expect(callData.uaHints.brands[0].version).to.equal('101');
+          expect(callData.uaHints.brands[1].brand).to.equal('Froogle Chrome');
+          expect(callData.uaHints.brands[1].version).to.equal('101');
+          expect(callData.uaHints.fullVersionList).to.have.lengthOf(2); // Note ' Not A;Brand' gets filtered
+          expect(callData.uaHints.fullVersionList[0].brand).to.equal('Chromium');
+          expect(callData.uaHints.fullVersionList[0].version).to.equal('101.0.4951.64');
+          expect(callData.uaHints.fullVersionList[1].brand).to.equal('Froogle Chrome');
+          expect(callData.uaHints.fullVersionList[1].version).to.equal('101.0.4951.64');
+          expect(callData.uaHints.mobile).to.be.false;
+          expect(callData.uaHints.model).to.equal('');
+          expect(callData.uaHints.platform).to.equal('Linux');
+          expect(callData.uaHints.platformVersion).to.equal('5.17.9');
+          done();
+        });
+      });
+
+
+      it('should not be blocked by an error in getHighEntropyValues()', function(done) {
+        uaDataStub.rejects("ERROR");
+        const id5Status = ID5.init({
+          ...defaultInitBypassConsent(),
+          disableUaHints: false
+        });
+
+        id5Status.onAvailable(function() {
+          sinon.assert.calledTwice(ajaxStub);
+          const URL = ajaxStub.secondCall.args[0]
+          expect(URL).to.contain(ID5_FETCH_ENDPOINT);
+          const callData = ajaxStub.secondCall.args[2]
+          expect(callData.uaHints).to.be.undefined;
+          done();
+        });
       });
     });
   });
