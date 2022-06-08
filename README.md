@@ -28,6 +28,8 @@ The ID5 API is designed to make accessing the ID5 Universal ID simple for publis
     - [Initialize the API](#initialize-the-api)
     - [Access the ID5 Universal ID](#access-the-id5-universal-id)
     - [Available Configuration Options](#available-configuration-options)
+      - [consentData Object](#consentdata-object)
+      - [Allowed Vendors Example](#allowed-vendors-example)
       - [PD Example](#pd-example)
       - [A/B Testing](#ab-testing)
     - [Available Methods and Variables](#available-methods-and-variables)
@@ -116,7 +118,7 @@ Here is an example of how integrating the ES6 module might look like:
 ```javascript
 import ID5 from '@id5io/id5-api.js'
 
-const status = ID5.init({ partner: 173 });
+const status = ID5.init({ partnerId: 173 });
 status.onAvailable((id5Status) => {
     console.log(id5Status.getUserId());
 });
