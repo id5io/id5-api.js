@@ -1267,22 +1267,22 @@ describe('ID5 JS API', function () {
           const URL = ajaxStub.secondCall.args[0];
           expect(URL).to.contain(ID5_FETCH_ENDPOINT);
           const callData = JSON.parse(ajaxStub.secondCall.args[2]);
-          expect(callData.uaHints).to.be.an('object');
-          expect(callData.uaHints.architecture).to.equal('x86');
-          expect(callData.uaHints.brands).to.have.lengthOf(2); // Note ' Not A;Brand' gets filtered
-          expect(callData.uaHints.brands[0].brand).to.equal('Chromium');
-          expect(callData.uaHints.brands[0].version).to.equal('101');
-          expect(callData.uaHints.brands[1].brand).to.equal('Froogle Chrome');
-          expect(callData.uaHints.brands[1].version).to.equal('101');
-          expect(callData.uaHints.fullVersionList).to.have.lengthOf(2); // Note ' Not A;Brand' gets filtered
-          expect(callData.uaHints.fullVersionList[0].brand).to.equal('Chromium');
-          expect(callData.uaHints.fullVersionList[0].version).to.equal('101.0.4951.64');
-          expect(callData.uaHints.fullVersionList[1].brand).to.equal('Froogle Chrome');
-          expect(callData.uaHints.fullVersionList[1].version).to.equal('101.0.4951.64');
-          expect(callData.uaHints.mobile).to.be.false;
-          expect(callData.uaHints.model).to.equal('');
-          expect(callData.uaHints.platform).to.equal('Linux');
-          expect(callData.uaHints.platformVersion).to.equal('5.17.9');
+          expect(callData.ua_hints).to.be.an('object');
+          expect(callData.ua_hints.architecture).to.equal('x86');
+          expect(callData.ua_hints.brands).to.have.lengthOf(2); // Note ' Not A;Brand' gets filtered
+          expect(callData.ua_hints.brands[0].brand).to.equal('Chromium');
+          expect(callData.ua_hints.brands[0].version).to.equal('101');
+          expect(callData.ua_hints.brands[1].brand).to.equal('Froogle Chrome');
+          expect(callData.ua_hints.brands[1].version).to.equal('101');
+          expect(callData.ua_hints.fullVersionList).to.have.lengthOf(2); // Note ' Not A;Brand' gets filtered
+          expect(callData.ua_hints.fullVersionList[0].brand).to.equal('Chromium');
+          expect(callData.ua_hints.fullVersionList[0].version).to.equal('101.0.4951.64');
+          expect(callData.ua_hints.fullVersionList[1].brand).to.equal('Froogle Chrome');
+          expect(callData.ua_hints.fullVersionList[1].version).to.equal('101.0.4951.64');
+          expect(callData.ua_hints.mobile).to.be.false;
+          expect(callData.ua_hints.model).to.equal('');
+          expect(callData.ua_hints.platform).to.equal('Linux');
+          expect(callData.ua_hints.platformVersion).to.equal('5.17.9');
           done();
         });
       });
