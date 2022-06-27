@@ -40,6 +40,9 @@ const MOCK_CORS_HEADERS = {
   'Access-Control-Allow-Origin': 'https://my-publisher-website.net',
   'Access-Control-Allow-Credentials': 'true'
 };
+const MOCK_LB_RESPONSE = {
+  'lb': 'LB_DATA'
+};
 
 // Note: do not use lambda syntax in describes. https://mochajs.org/#arrow-functions
 describe('The ID5 API', function() {
@@ -62,6 +65,7 @@ describe('The ID5 API', function() {
     }
 
     browser = await puppeteer.launch({
+      // headless: false,
       executablePath: chromePaths.chrome,
       // devtools: true,
       args,
@@ -120,6 +124,8 @@ describe('The ID5 API', function() {
     it('can succesfully retrieve an ID, store in browser and fire callback', async () => {
       const mockId5 = await server.post('https://id5-sync.com/g/v2/99.json')
         .thenJson(200, MOCK_FETCH_RESPONSE, MOCK_CORS_HEADERS);
+      const mockLbEndpoint = await server.get('https://lb.eu-1-id5-sync.com/lb/v1')
+        .thenJson(200, MOCK_LB_RESPONSE, MOCK_CORS_HEADERS);
       const mockDummyImage = await server.get('https://dummyimage.com/600x200')
         .thenReply(200, '');
       const page = await browser.newPage();
@@ -128,6 +134,8 @@ describe('The ID5 API', function() {
 
       const id5FetchRequests = await mockId5.getSeenRequests();
       expect(id5FetchRequests).to.have.lengthOf(1);
+      const lbRequests = await mockLbEndpoint.getSeenRequests();
+      expect(lbRequests).to.have.lengthOf(1);
 
       const requestBody = id5FetchRequests[0].body.json;
       expect(requestBody.partner).to.equal(99); // from integration.html
@@ -140,6 +148,8 @@ describe('The ID5 API', function() {
       expect(requestBody.rf).to.equal('https://my-publisher-website.net/');
       expect(requestBody.segments).to.deep.equal([{ destination: '22', ids: ['abc'] }]);
       expect(requestBody.ua).to.be.a('string');
+      expect(requestBody.extensions.lb).to.equal('LB_DATA'); // from MOCK_LB_RESPONSE
+      expect(requestBody.extensions.lbCDN).to.equal('%%LB_CDN%%'); // lbCDN substitution macro
 
       // from integration.html
       expect(requestBody.gdpr_consent).to.equal(
@@ -239,7 +249,7 @@ describe('The ID5 API', function() {
       expect(id5FetchRequests).to.have.lengthOf(1);
     });
 
-    it('calls the API endpoint to incrment metrics if no config detected', async () => {
+    it('calls the API endpoint to increment metrics if no config detected', async () => {
       const TEST_PAGE_PATH = path.join(SCRIPT_DIR, 'esp_no_config.html');
       await server.get('https://my-publisher-website.net')
         .thenFromFile(200, TEST_PAGE_PATH);
