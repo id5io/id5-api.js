@@ -105,7 +105,8 @@ export const JSON_RESPONSE_NO_ID5_CONSENT = JSON.stringify({
 export function defaultInit(partnerId = TEST_ID5_PARTNER_ID) {
   return {
     partnerId,
-    disableUaHints: true
+    disableUaHints: true,
+    disableLiveIntentIntegration: true,
   }
 }
 

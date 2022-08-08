@@ -19,6 +19,10 @@
     "PRIVACY": {
       "name": "id5id_privacy",
       "expiresDays": 30
+    },
+    "LIVE_INTENT": {
+      "name": "id5li",
+      "expiresDays": 90
     }
   },
   "LEGACY_COOKIE_NAMES": [
