@@ -37,5 +37,6 @@
       "other": false
     }
   },
-  "ID5_EIDS_SOURCE": "id5-sync.com"
+  "ID5_EIDS_SOURCE": "id5-sync.com",
+  "LIVE_INTENT_POLL_INTERVAL_MS": 500
 }
