@@ -131,11 +131,35 @@ export function resetAllInLocalStorage() {
 export function stubDelayedResponse(response) {
   return function (url, callbacks, data, options) {
     if (url.includes(ID5_LB_ENDPOINT)) {
-      callbacks.success()
+      callbacks.success();
     } else {
       setTimeout(() => {
-        callbacks.success(response)
+        callbacks.success(response);
       }, AJAX_RESPONSE_MS);
     }
   };
+}
+
+/**
+ * Performs a sequence of timeouts expressed with parameter "steps" using
+ * the specified clock
+ * @param {object} clock
+ * @param  {...object} steps objects made of {timeout: a numeric value, fn: a function to execute}
+ */
+export function execSequence(clock, ...steps) {
+  const rootFn = steps.reduceRight((acc, val, index) => {
+    return () => {
+      setTimeout(() => {
+        const storedIndex = index;
+        try {
+          val.fn();
+        } catch(origErr) {
+          throw new Error(`[Sequence step ${storedIndex}] ${origErr.message}`);
+        }
+        acc();
+      }, val.timeout);
+      clock.tick(val.timeout);
+    };
+  }, () => {});
+  rootFn();
 }
