@@ -3,6 +3,8 @@ import CONSTANTS from '../../lib/constants.json';
 import ID5 from '../../lib/id5-api';
 import * as utils from '../../lib/utils';
 import {
+  AJAX_RESPONSE_MS,
+  CALLBACK_TIMEOUT_MS,
   ID5_FETCH_ENDPOINT,
   ID5_LB_ENDPOINT,
   JSON_RESPONSE_ID5_CONSENT,
@@ -13,7 +15,8 @@ import {
   TEST_STORED_SIGNATURE,
   defaultInit,
   defaultInitBypassConsent,
-  stubDelayedResponse
+  stubDelayedResponse,
+  execSequence
 } from './test_utils';
 
 describe('A/B Testing', function () {
@@ -123,7 +126,7 @@ describe('A/B Testing', function () {
 
   describe('In Control Group', function() {
     let onAvailableSpy, onUpdateSpy, onRefreshSpy;
-    let ajaxStub;
+    let ajaxStub, clock;
 
     const JSON_ABTEST = JSON.stringify({
       'universal_uid': 'whateverID_AB_NORMAL',
@@ -147,10 +150,9 @@ describe('A/B Testing', function () {
         }
       }]
     };
-    const AJAX_RESPONSE_MS = 20;
-    const CALLBACK_TIMEOUT_MS = 30;
 
     beforeEach(function () {
+      clock = sinon.useFakeTimers(Date.now());
       onAvailableSpy = sinon.spy();
       onUpdateSpy = sinon.spy();
       onRefreshSpy = sinon.spy();
@@ -161,6 +163,7 @@ describe('A/B Testing', function () {
       onAvailableSpy.resetHistory();
       onUpdateSpy.resetHistory();
       onRefreshSpy.resetHistory();
+      clock.restore();
     });
 
     it('should not expose ID5.userId from a server response', function () {
@@ -196,7 +199,7 @@ describe('A/B Testing', function () {
     });
 
     it('should call onAvailable then onUpdate on server response before time-out', function(done) {
-      ajaxStub = sinon.stub(utils, 'ajax').callsFake(stubDelayedResponse(JSON_ABTEST, AJAX_RESPONSE_MS));
+      ajaxStub = sinon.stub(utils, 'ajax').callsFake(stubDelayedResponse(JSON_ABTEST));
       const id5Status = ID5.init(API_CONFIG);
       id5Status.onAvailable(onAvailableSpy, CALLBACK_TIMEOUT_MS).onUpdate(onUpdateSpy);
 
@@ -204,20 +207,27 @@ describe('A/B Testing', function () {
       expect(id5Status.getLinkType()).to.be.undefined;
       expect(id5Status.exposeUserId()).to.be.undefined;
 
-      setTimeout(() => {
-        sinon.assert.notCalled(onAvailableSpy);
-        sinon.assert.notCalled(onUpdateSpy);
-        setTimeout(() => {
+      execSequence(clock, {
+        timeout: AJAX_RESPONSE_MS,
+        fn: () => {
+          sinon.assert.notCalled(onAvailableSpy);
+          sinon.assert.notCalled(onUpdateSpy);
+        }
+      }, {
+        timeout: 1,
+        fn: () => {
           sinon.assert.calledOnce(onAvailableSpy);
           sinon.assert.calledOnce(onUpdateSpy);
           sinon.assert.callOrder(onAvailableSpy, onUpdateSpy);
-          setTimeout(() => {
-            sinon.assert.calledOnce(onAvailableSpy);
-            sinon.assert.calledOnce(onUpdateSpy);
-            done();
-          }, CALLBACK_TIMEOUT_MS - AJAX_RESPONSE_MS);
-        }, 1);
-      }, AJAX_RESPONSE_MS);
+        }
+      }, {
+        timeout: CALLBACK_TIMEOUT_MS + 1 - AJAX_RESPONSE_MS,
+        fn: () => {
+          sinon.assert.calledOnce(onAvailableSpy);
+          sinon.assert.calledOnce(onUpdateSpy);
+          done();
+        }
+      });
     });
 
     it('should call onAvailable then onUpdate on stored value right away', function(done) {
@@ -229,20 +239,26 @@ describe('A/B Testing', function () {
 
       sinon.assert.notCalled(onAvailableSpy);
       sinon.assert.notCalled(onUpdateSpy);
-      setTimeout(() => {
-        sinon.assert.calledOnce(onAvailableSpy);
-        sinon.assert.calledOnce(onUpdateSpy);
-        sinon.assert.callOrder(onAvailableSpy, onUpdateSpy);
-        expect(id5Status.getUserId()).to.be.equal('0');
-        expect(id5Status.getLinkType()).to.be.equal(0);
-        expect(id5Status.exposeUserId()).to.be.false;
-        expect(id5Status.getUserIdAsEid()).to.be.eql(TEST_RESPONSE_EID_AB_CONTROL_GROUP);
-        setTimeout(() => {
+
+      execSequence(clock, {
+        timeout: 1,
+        fn: () => {
+          sinon.assert.calledOnce(onAvailableSpy);
+          sinon.assert.calledOnce(onUpdateSpy);
+          sinon.assert.callOrder(onAvailableSpy, onUpdateSpy);
+          expect(id5Status.getUserId()).to.be.equal('0');
+          expect(id5Status.getLinkType()).to.be.equal(0);
+          expect(id5Status.exposeUserId()).to.be.false;
+          expect(id5Status.getUserIdAsEid()).to.be.eql(TEST_RESPONSE_EID_AB_CONTROL_GROUP);
+        }
+      }, {
+        timeout: CALLBACK_TIMEOUT_MS + 1,
+        fn: () => {
           sinon.assert.calledOnce(onAvailableSpy);
           sinon.assert.calledOnce(onUpdateSpy);
           done();
-        }, CALLBACK_TIMEOUT_MS);
-      }, 1);
+        }
+      });
     });
   });
 });
