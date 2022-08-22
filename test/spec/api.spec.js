@@ -697,7 +697,7 @@ describe('ID5 JS API', function () {
               expect(ajaxStub.secondCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
             });
 
-            it('should not call id5 servers if stored pd data matches current pd with consent override', function () {
+            it('should not call id5 servers if stored segments data matches current segments with consent override', function () {
               testClientStore.putHashedSegments(TEST_ID5_PARTNER_ID, testSegments);
 
               ID5.init({
