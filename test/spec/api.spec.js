@@ -6,33 +6,33 @@ import { version } from '../../generated/version.js';
 import ID5 from '../../lib/id5-api';
 import { API_TYPE, ConsentData, GRANT_TYPE, LocalStorageGrant } from '../../lib/consentManagement';
 import {
-  TEST_ID5_PARTNER_ID,
+  defaultInit,
+  defaultInitBypassConsent,
   ID5_FETCH_ENDPOINT,
   ID5_LB_ENDPOINT,
-  TEST_ID5ID_STORAGE_CONFIG,
-  TEST_ID5ID_STORAGE_CONFIG_EXPIRED,
-  TEST_LAST_STORAGE_CONFIG,
-  TEST_CONSENT_DATA_STORAGE_CONFIG,
-  TEST_PD_STORAGE_CONFIG,
-  TEST_NB_STORAGE_CONFIG,
-  TEST_PRIVACY_STORAGE_CONFIG,
-  TEST_PRIVACY_ALLOWED,
-  TEST_PRIVACY_DISALLOWED,
-  TEST_STORED_ID5ID,
-  TEST_STORED_LINK_TYPE,
-  STORED_JSON_LEGACY,
-  STORED_JSON,
-  TEST_RESPONSE_ID5ID,
-  TEST_RESPONSE_ID5ID_NO_CONSENT,
-  TEST_RESPONSE_LINK_TYPE,
-  TEST_RESPONSE_LINK_TYPE_NO_CONSENT,
-  TEST_RESPONSE_EID,
   JSON_RESPONSE_ID5_CONSENT,
   JSON_RESPONSE_NO_ID5_CONSENT,
   localStorage,
   resetAllInLocalStorage,
-  defaultInitBypassConsent,
-  defaultInit
+  STORED_JSON,
+  STORED_JSON_LEGACY,
+  TEST_CONSENT_DATA_STORAGE_CONFIG,
+  TEST_ID5_PARTNER_ID,
+  TEST_ID5ID_STORAGE_CONFIG,
+  TEST_ID5ID_STORAGE_CONFIG_EXPIRED,
+  TEST_LAST_STORAGE_CONFIG,
+  TEST_NB_STORAGE_CONFIG,
+  TEST_PD_STORAGE_CONFIG,
+  TEST_PRIVACY_ALLOWED,
+  TEST_PRIVACY_DISALLOWED,
+  TEST_PRIVACY_STORAGE_CONFIG,
+  TEST_RESPONSE_EID,
+  TEST_RESPONSE_ID5ID,
+  TEST_RESPONSE_ID5ID_NO_CONSENT,
+  TEST_RESPONSE_LINK_TYPE,
+  TEST_RESPONSE_LINK_TYPE_NO_CONSENT,
+  TEST_STORED_ID5ID,
+  TEST_STORED_LINK_TYPE
 } from './test_utils';
 
 let expect = require('chai').expect;
@@ -646,6 +646,71 @@ describe('ID5 JS API', function () {
             });
           });
         });
+
+        describe('Stored segments changes', function () {
+          before(function () {
+            testClientStore.clearHashedSegments(TEST_ID5_PARTNER_ID);
+          });
+          afterEach(function () {
+            testClientStore.clearHashedSegments(TEST_ID5_PARTNER_ID);
+          });
+
+          let testSegments = [{"destination": "ID5-1", "ids": ["123", "456"]}];
+
+          describe('With Consent Override', function () {
+            it('should not call id5 servers if no stored segments data with consent override', function () {
+              ID5.init({
+                ...defaultInitBypassConsent(),
+                refreshInSeconds: 1000,
+                segments: testSegments
+              });
+
+              sinon.assert.notCalled(ajaxStub);
+            });
+
+            it('should call id5 servers if empty stored segments data with consent override', function () {
+              testClientStore.putHashedSegments(TEST_ID5_PARTNER_ID, []);
+
+              ID5.init({
+                ...defaultInitBypassConsent(),
+                refreshInSeconds: 1000,
+                pd: 'requestpd'
+              });
+
+              sinon.assert.calledTwice(ajaxStub);
+              expect(ajaxStub.firstCall.args[0]).to.contain(ID5_LB_ENDPOINT);
+              expect(ajaxStub.secondCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
+            });
+
+            it('should call id5 servers if stored segments data does not match current segments with consent override', function () {
+              testClientStore.putHashedSegments(TEST_ID5_PARTNER_ID, testSegments);
+
+              let updatedTestSegments = [{...testSegments[0], "ids": testSegments[0].ids.concat("789")}]
+              ID5.init({
+                ...defaultInitBypassConsent(),
+                refreshInSeconds: 1000,
+                segments: updatedTestSegments
+              });
+
+              sinon.assert.calledTwice(ajaxStub);
+              expect(ajaxStub.firstCall.args[0]).to.contain(ID5_LB_ENDPOINT);
+              expect(ajaxStub.secondCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
+            });
+
+            it('should not call id5 servers if stored segments data matches current segments with consent override', function () {
+              testClientStore.putHashedSegments(TEST_ID5_PARTNER_ID, testSegments);
+
+              ID5.init({
+                ...defaultInitBypassConsent(),
+                refreshInSeconds: 1000,
+                segments: testSegments
+              });
+
+              sinon.assert.notCalled(ajaxStub);
+            });
+          });
+        });
+
       });
 
       describe('Handle Legacy Cookies with Consent Override', function () {
