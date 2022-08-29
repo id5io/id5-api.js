@@ -1370,5 +1370,60 @@ describe('ID5 JS API', function () {
         });
       });
     });
+
+    describe('With LiveIntent Integration enabled', function() {
+      let ajaxStub;
+
+      beforeEach(function () {
+        ajaxStub = sinon.stub(utils, 'ajax').callsFake(function (url, callbacks, data, options) {
+          callbacks.success(JSON_RESPONSE_ID5_CONSENT);
+        });
+      });
+
+      afterEach(function () {
+        ajaxStub.restore();
+        delete window.liQ;
+      });
+
+      it('should not be blocked because of missing LiveIntent library', function() {
+        const id5Status = ID5.init({
+          ...defaultInitBypassConsent(),
+          disableLiveIntentIntegration: false
+        });
+        sinon.assert.calledTwice(ajaxStub);
+        expect(ajaxStub.firstCall.args[0]).to.contain(ID5_LB_ENDPOINT);
+        expect(ajaxStub.secondCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
+      });
+
+      it('should not be blocked because of an error in the LiveIntent library', function() {
+        window.liQ = {
+          ready: true,
+          resolve: function() {
+            throw new Error('Test error');
+          }
+        };
+        const id5Status = ID5.init({
+          ...defaultInitBypassConsent(),
+          disableLiveIntentIntegration: false
+        });
+        sinon.assert.calledTwice(ajaxStub);
+        expect(ajaxStub.firstCall.args[0]).to.contain(ID5_LB_ENDPOINT);
+        expect(ajaxStub.secondCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
+      });
+
+      it('should not block when LiveIntent library is present', function() {
+        window.liQ = {
+          ready: true,
+          resolve: (callback) => callback()
+        };
+        const id5Status = ID5.init({
+          ...defaultInitBypassConsent(),
+          disableLiveIntentIntegration: false
+        });
+        sinon.assert.calledTwice(ajaxStub);
+        expect(ajaxStub.firstCall.args[0]).to.contain(ID5_LB_ENDPOINT);
+        expect(ajaxStub.secondCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
+      });
+    });
   });
 });
