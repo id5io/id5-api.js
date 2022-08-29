@@ -16,6 +16,10 @@
       "name": "id5id_cached_pd",
       "expiresDays": 30
     },
+    "SEGMENTS": {
+      "name": "id5id_cached_segments",
+      "expiresDays": 30
+    },
     "PRIVACY": {
       "name": "id5id_privacy",
       "expiresDays": 30
