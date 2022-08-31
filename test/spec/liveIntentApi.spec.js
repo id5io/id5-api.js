@@ -1,6 +1,7 @@
 import sinon from 'sinon';
 import CONSTANTS from '../../lib/constants.json'
 import { LiveIntentApi } from '../../lib/liveIntentApi';
+import {StorageConfig} from "../../lib/config.js";
 
 const chai = require('chai');
 const assert = chai.assert;
@@ -29,7 +30,7 @@ describe('ID5 LiveIntent integration API', function () {
   });
 
   it('polls window.liQ.ready in order to detect LiveIntent on the page', function(done) {
-    const liApi = new LiveIntentApi(windowObj, true, 0, localStorageStub);
+    const liApi = new LiveIntentApi(windowObj, true, 0, localStorageStub, new StorageConfig());
     let called = false;
 
     setTimeout(() => {
@@ -58,7 +59,7 @@ describe('ID5 LiveIntent integration API', function () {
       resolve: (callback) => callback({unifiedId: 'testLIVEINTENTid'})
     };
 
-    const liApi = new LiveIntentApi(windowObj, true, 0, localStorageStub);
+    const liApi = new LiveIntentApi(windowObj, true, 0, localStorageStub, new StorageConfig());
 
     setTimeout(() => {
       sinon.assert.calledOnce(localStorageStub.setItemWithExpiration);
@@ -89,7 +90,7 @@ describe('ID5 LiveIntent integration API', function () {
         })
       }
     }
-    const liApi = new LiveIntentApi(windowObj, true, 0, localStorageStub);
+    const liApi = new LiveIntentApi(windowObj, true, 0, localStorageStub, new StorageConfig());
     setTimeout(() => {
       expect(liApi.hasLiveIntentId()).to.be.true;
       expect(liApi.getLiveIntentId()).to.equal('TESTliveintentID');
