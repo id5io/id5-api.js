@@ -33,6 +33,7 @@ import {
   defaultInit,
   execSequence
 } from './test_utils';
+import {StorageConfig} from "../../lib/config.js";
 
 describe('Async Responses', function () {
   const SHORT_CALLBACK_TIMEOUT_MS = 10;
@@ -43,7 +44,8 @@ describe('Async Responses', function () {
 
   const testClientStore = new ClientStore(0,
     () => new LocalStorageGrant(true, GRANT_TYPE.FORCE_ALLOWED_BY_CONFIG, API_TYPE.NONE),
-    localStorage);
+    localStorage,
+    new StorageConfig());
   let clock;
 
   before(function () {

@@ -1,8 +1,57 @@
 import sinon from 'sinon';
 import { expect } from 'chai';
-import Config from '../../lib/config';
-
+import Config, {StorageConfig} from '../../lib/config';
+import {STORAGE_CONFIG} from '../../lib/constants.json'
 const utils = require('../../lib/utils');
+
+describe("Storage config", function () {
+  it('should return default config', function () {
+    const storageConfig = new StorageConfig(undefined);
+    function verifyConfig(actual, expected) {
+      expect(actual.name).is.eq(expected.name);
+      expect(actual.expiresDays).is.eq(expected.expiresDays);
+    }
+    verifyConfig(storageConfig.ID5, STORAGE_CONFIG.ID5);
+    verifyConfig(storageConfig.LAST, STORAGE_CONFIG.LAST);
+    verifyConfig(storageConfig.PD, STORAGE_CONFIG.PD);
+    verifyConfig(storageConfig.PRIVACY, STORAGE_CONFIG.PRIVACY);
+    verifyConfig(storageConfig.CONSENT_DATA, STORAGE_CONFIG.CONSENT_DATA);
+    verifyConfig(storageConfig.SEGMENTS, STORAGE_CONFIG.SEGMENTS);
+    verifyConfig(storageConfig.LIVE_INTENT, STORAGE_CONFIG.LIVE_INTENT);
+  });
+
+  it('should return configured expiration', function () {
+    const storageExpirationDays = 40;
+    const storageConfig = new StorageConfig(storageExpirationDays);
+    function verifyConfig(actual, expected) {
+      expect(actual.name).is.eq(expected.name);
+      expect(actual.expiresDays).is.eq(storageExpirationDays);
+    }
+    verifyConfig(storageConfig.ID5, STORAGE_CONFIG.ID5);
+    verifyConfig(storageConfig.LAST, STORAGE_CONFIG.LAST);
+    verifyConfig(storageConfig.PD, STORAGE_CONFIG.PD);
+    verifyConfig(storageConfig.PRIVACY, STORAGE_CONFIG.PRIVACY);
+    verifyConfig(storageConfig.CONSENT_DATA, STORAGE_CONFIG.CONSENT_DATA);
+    verifyConfig(storageConfig.SEGMENTS, STORAGE_CONFIG.SEGMENTS);
+    verifyConfig(storageConfig.LIVE_INTENT, STORAGE_CONFIG.LIVE_INTENT);
+  });
+
+  it('should apply minimum expiration', function () {
+    const storageExpirationDays = 0;
+    const storageConfig = new StorageConfig(storageExpirationDays);
+    function verifyConfig(actual, expected) {
+      expect(actual.name).is.eq(expected.name);
+      expect(actual.expiresDays).is.eq(1);
+    }
+    verifyConfig(storageConfig.ID5, STORAGE_CONFIG.ID5);
+    verifyConfig(storageConfig.LAST, STORAGE_CONFIG.LAST);
+    verifyConfig(storageConfig.PD, STORAGE_CONFIG.PD);
+    verifyConfig(storageConfig.PRIVACY, STORAGE_CONFIG.PRIVACY);
+    verifyConfig(storageConfig.CONSENT_DATA, STORAGE_CONFIG.CONSENT_DATA);
+    verifyConfig(storageConfig.SEGMENTS, STORAGE_CONFIG.SEGMENTS);
+    verifyConfig(storageConfig.LIVE_INTENT, STORAGE_CONFIG.LIVE_INTENT);
+  });
+});
 
 describe('config API', function () {
   beforeEach(function () {

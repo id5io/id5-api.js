@@ -35,6 +35,12 @@ export const TEST_NB_STORAGE_CONFIG = {
   name: `id5id_${TEST_ID5_PARTNER_ID}_nb`,
   expiresDays: 90
 };
+
+export const TEST_SEGMENT_STORAGE_CONFIG = {
+  name: `id5id_cached_segments_${TEST_ID5_PARTNER_ID}`,
+  expiresDays: 30
+}
+
 export const TEST_PRIVACY_STORAGE_CONFIG = {
   name: 'id5id_privacy',
   expiresDays: 30
@@ -119,6 +125,12 @@ export function defaultInitBypassConsent(partnerId = TEST_ID5_PARTNER_ID) {
 
 export const localStorage = new LocalStorage(window);
 
+export function getLocalStorageItemExpirationDays(key) {
+  let now = new Date();
+  let expirationTime = new Date(localStorage.getItem(key + '_exp'));
+  let durationMs = expirationTime - now;
+  return Math.ceil(durationMs / (60 * 60 * 24 * 1000));
+}
 
 export function resetAllInLocalStorage() {
   localStorage.removeItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG);
@@ -154,13 +166,14 @@ export function execSequence(clock, ...steps) {
         const storedIndex = index;
         try {
           val.fn();
-        } catch(origErr) {
+        } catch (origErr) {
           throw new Error(`[Sequence step ${storedIndex}] ${origErr.message}`);
         }
         acc();
       }, val.timeout);
       clock.tick(val.timeout);
     };
-  }, () => {});
+  }, () => {
+  });
   rootFn();
 }
