@@ -26,6 +26,7 @@ The ID5 API is designed to make accessing the ID5 Universal ID simple for publis
   - [Usage](#usage)
     - [Load the API javascript file](#load-the-api-javascript-file)
     - [Initialize the API](#initialize-the-api)
+    - [Initialize the API](#initialize-the-api-1)
     - [Access the ID5 Universal ID](#access-the-id5-universal-id)
     - [Available Configuration Options](#available-configuration-options)
       - [consentData Object](#consentdata-object)
@@ -88,12 +89,12 @@ Using our CDN has the advantage of patch updates being automatically deployed wi
 
 You may also choose to download the latest release (and host on your own CDN) in a pre-built, minified version from Github:
 
-* [https://github.com/id5io/id5-api.js/releases/download/v1.0.16/id5-api.js](https://github.com/id5io/id5-api.js/releases/download/v1.0.16/id5-api.js)
+* [https://github.com/id5io/id5-api.js/releases/download/v1.0.21/id5-api.js](https://github.com/id5io/id5-api.js/releases/download/v1.0.21/id5-api.js)
 
 Alternatively, we also publish the minified bundle to NPM:
 ```json
   "dependencies": {
-    "@id5io/id5-api.js": "^1.0.16"
+    "@id5io/id5-api.js": "^1.0.21"
   },
 ```
 After running `npm install` you can find the bundle at
@@ -137,7 +138,7 @@ id5Status.onAvailable((status) => {
   "author": "",
   "license": "Apache-2.0",
   "dependencies": {
-    "@id5io/id5-api.js": "^1.0.16"
+    "@id5io/id5-api.js": "^1.0.21"
   },
   "devDependencies": {
     "@babel/core": "^7.14.3",
@@ -221,6 +222,7 @@ The ID5 API script should be placed as high in the page as possible, but should 
 ```
 
 ### Initialize the API
+### Initialize the API
 
 After loading the script, you must initialize the API with the `ID5.init()` method. You may pass configuration options directly into the init method. The result of the `init()` method is a variable that you will use to access the ID5 ID or perform other actions. This variable must be unique to the page (or scoped appropriately) in order not avoid collisions with other instances of the API on the same page.
 
@@ -248,19 +250,20 @@ There are a few cases in which `getUserId()` may not be ready or have a value ye
 
 ### Available Configuration Options
 
-| Option Name | Scope | Type | Default Value | Description |
-| --- | --- | --- | --- | --- |
-| partnerId | Required | integer | | ID5 Partner ID, received after registration with ID5 |
-| debugBypassConsent | Optional | boolean | `false` | Bypass consent API and Local Storage access; *for debugging purpose only* |
+| Option Name                        | Scope | Type | Default Value | Description |
+|------------------------------------| --- | --- | --- | --- |
+| partnerId                          | Required | integer | | ID5 Partner ID, received after registration with ID5 |
+| debugBypassConsent                 | Optional | boolean | `false` | Bypass consent API and Local Storage access; *for debugging purpose only* |
 | allowLocalStorageWithoutConsentApi | Optional | boolean | `false` | Tell ID5 that consent has been given to read local storage |
-| cmpApi | Optional | string | `iab` | API to use CMP. As of today, either `'iab'` or `'static'` |
-| consentData | Optional, Required if `cmpApi` is `'static'` | object | | Consent data if `cmpApi` is `'static'`. Content is described below.
-| partnerUserId | Optional | string | | User ID of the platform if they are deploying this API on behalf of a publisher/advertiser, to be used for user syncing with ID5 |
-| pd | Optional | string | | Partner-supplied data used for linking ID5 IDs across domains. See [Passing Partner Data to ID5](https://support.id5.io/portal/en/kb/articles/passing-partner-data-to-id5) for details on generating the string |
-| refreshInSeconds | Optional | integer | `7200`<br>(2 hours) | Refresh period of first-party local storage |
-| abTesting | Optional | object | `{ enabled: false, controlGroupPct: 0 }` | Enables A/B testing of the ID5 ID. See [A/B Testing](#ab-testing) below for more details |
-| provider | Optional | string | `pubmatic-identity-hub` | An identifier provided by ID5 to technology partners who manage API deployments on behalf of their clients. Reach out to [ID5](mailto:support@id5.io) if you have questions about this parameter |
-| maxCascades | Optional | number | `8` | Defines the maximum number of cookie syncs that can occur when usersyncing for the user is required. A value of `-1` will disable cookie syncing altogether. Defaults to `8` if not specified |
+| cmpApi                             | Optional | string | `iab` | API to use CMP. As of today, either `'iab'` or `'static'` |
+| consentData                        | Optional, Required if `cmpApi` is `'static'` | object | | Consent data if `cmpApi` is `'static'`. Content is described below.
+| partnerUserId                      | Optional | string | | User ID of the platform if they are deploying this API on behalf of a publisher/advertiser, to be used for user syncing with ID5 |
+| pd                                 | Optional | string | | Partner-supplied data used for linking ID5 IDs across domains. See [Passing Partner Data to ID5](https://support.id5.io/portal/en/kb/articles/passing-partner-data-to-id5) for details on generating the string |
+| refreshInSeconds                   | Optional | integer | `7200`<br>(2 hours) | Refresh period of first-party local storage |
+| abTesting                          | Optional | object | `{ enabled: false, controlGroupPct: 0 }` | Enables A/B testing of the ID5 ID. See [A/B Testing](#ab-testing) below for more details |
+| provider                           | Optional | string | `pubmatic-identity-hub` | An identifier provided by ID5 to technology partners who manage API deployments on behalf of their clients. Reach out to [ID5](mailto:support@id5.io) if you have questions about this parameter |
+| maxCascades                        | Optional | number | `8` | Defines the maximum number of cookie syncs that can occur when usersyncing for the user is required. A value of `-1` will disable cookie syncing altogether. Defaults to `8` if not specified |
+| storageExpirationDays              | Optional | number | `90`  |  Number of days that the ID5 ID and associated metadata will be stored in local storage before expiring |
 | segments | Optional | array | | Used with platforms that don't support ingesting ID5 IDs in their client-side segment pixels. See below for details |
 
 #### consentData Object

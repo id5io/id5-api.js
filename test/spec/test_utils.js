@@ -35,6 +35,12 @@ export const TEST_NB_STORAGE_CONFIG = {
   name: `id5id_${TEST_ID5_PARTNER_ID}_nb`,
   expiresDays: 90
 };
+
+export const TEST_SEGMENT_STORAGE_CONFIG = {
+  name: `id5id_cached_segments_${TEST_ID5_PARTNER_ID}`,
+  expiresDays: 30
+}
+
 export const TEST_PRIVACY_STORAGE_CONFIG = {
   name: 'id5id_privacy',
   expiresDays: 30
@@ -105,7 +111,8 @@ export const JSON_RESPONSE_NO_ID5_CONSENT = JSON.stringify({
 export function defaultInit(partnerId = TEST_ID5_PARTNER_ID) {
   return {
     partnerId,
-    disableUaHints: true
+    disableUaHints: true,
+    disableLiveIntentIntegration: true,
   }
 }
 
@@ -118,6 +125,12 @@ export function defaultInitBypassConsent(partnerId = TEST_ID5_PARTNER_ID) {
 
 export const localStorage = new LocalStorage(window);
 
+export function getLocalStorageItemExpirationDays(key) {
+  let now = new Date();
+  let expirationTime = new Date(localStorage.getItem(key + '_exp'));
+  let durationMs = expirationTime - now;
+  return Math.ceil(durationMs / (60 * 60 * 24 * 1000));
+}
 
 export function resetAllInLocalStorage() {
   localStorage.removeItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG);
@@ -131,11 +144,36 @@ export function resetAllInLocalStorage() {
 export function stubDelayedResponse(response) {
   return function (url, callbacks, data, options) {
     if (url.includes(ID5_LB_ENDPOINT)) {
-      callbacks.success()
+      callbacks.success();
     } else {
       setTimeout(() => {
-        callbacks.success(response)
+        callbacks.success(response);
       }, AJAX_RESPONSE_MS);
     }
   };
+}
+
+/**
+ * Performs a sequence of timeouts expressed with parameter "steps" using
+ * the specified clock
+ * @param {object} clock
+ * @param  {...object} steps objects made of {timeout: a numeric value, fn: a function to execute}
+ */
+export function execSequence(clock, ...steps) {
+  const rootFn = steps.reduceRight((acc, val, index) => {
+    return () => {
+      setTimeout(() => {
+        const storedIndex = index;
+        try {
+          val.fn();
+        } catch (origErr) {
+          throw new Error(`[Sequence step ${storedIndex}] ${origErr.message}`);
+        }
+        acc();
+      }, val.timeout);
+      clock.tick(val.timeout);
+    };
+  }, () => {
+  });
+  rootFn();
 }
