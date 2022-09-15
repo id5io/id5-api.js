@@ -26,12 +26,14 @@ The ID5 API is designed to make accessing the ID5 Universal ID simple for publis
   - [Usage](#usage)
     - [Load the API javascript file](#load-the-api-javascript-file)
     - [Initialize the API](#initialize-the-api)
+    - [Initialize the API](#initialize-the-api-1)
     - [Access the ID5 Universal ID](#access-the-id5-universal-id)
     - [Available Configuration Options](#available-configuration-options)
       - [consentData Object](#consentdata-object)
       - [Allowed Vendors Example](#allowed-vendors-example)
       - [PD Example](#pd-example)
       - [A/B Testing](#ab-testing)
+      - [Segments](#segments)
     - [Available Methods and Variables](#available-methods-and-variables)
       - [EIDs Object Output](#eids-object-output)
     - [Examples](#examples)
@@ -61,12 +63,12 @@ Install the ID5 API after your CMP (if applicable), but as high in the `<head>` 
 <script>
   (function() {
     // TODO: modify with your own partnerId
-    // beware of scope of id5Status
-    var id5Status = ID5.init({partnerId: 173});
-
-    // ... do something ...
-
-    var myId5 = id5Status.getUserId();
+    // beware of scope of id5Status and myId5
+    var myId5;
+    var id5Status = ID5.init({partnerId: 173}).onAvailable(function(status) {;
+      // ... do something ...
+      myId5 = status.getUserId();
+    });
   })();
 </script>
 ```
@@ -118,9 +120,9 @@ Here is an example of how integrating the ES6 module might look like:
 ```javascript
 import ID5 from '@id5io/id5-api.js'
 
-const status = ID5.init({ partnerId: 173 });
-status.onAvailable((id5Status) => {
-    console.log(id5Status.getUserId());
+const id5Status = ID5.init({ partner: 173 });
+id5Status.onAvailable((status) => {
+    console.log(status.getUserId());
 });
 ```
 #### package.json
@@ -262,6 +264,7 @@ There are a few cases in which `getUserId()` may not be ready or have a value ye
 | provider                           | Optional | string | `pubmatic-identity-hub` | An identifier provided by ID5 to technology partners who manage API deployments on behalf of their clients. Reach out to [ID5](mailto:support@id5.io) if you have questions about this parameter |
 | maxCascades                        | Optional | number | `8` | Defines the maximum number of cookie syncs that can occur when usersyncing for the user is required. A value of `-1` will disable cookie syncing altogether. Defaults to `8` if not specified |
 | storageExpirationDays              | Optional | number | `90`  |  Number of days that the ID5 ID and associated metadata will be stored in local storage before expiring |
+| segments | Optional | array | | Used with platforms that don't support ingesting ID5 IDs in their client-side segment pixels. See below for details |
 
 #### consentData Object
 This object can contain one of the following properties:
@@ -310,6 +313,28 @@ The configuration object for `abTesting` contains two variables:
 | enabled | boolean | `false` | Set this to `true` to turn on this feature |
 | controlGroupPct | number | `0` | Must be a number between 0 and 1 (inclusive) and is used to determine the percentage of users that fall into the control group (and thus not exposing the ID5 ID). For example, a value of `0.20` will result in 20% of users without an ID5 ID and 80% with an ID. |
 
+#### Segments
+
+> **Note:** ID5 does not build segments or profile users. This feature enables brands or publishers to put users into segments they have already created in their platform of choice, when that platform does not support ingesting ID5 IDs in standard segment pixels yet.
+
+The Segments feature facilitates (re)targeting use cases for brands and publishers until their platforms complete their integration with ID5. Only certain destination platforms are supported and there are backend configurations that need to be made on both ID5's and the destination platform's systems before this feature can be used. Please reach out to your ID5 representative for more information and to get started.
+
+The `segments` array is a list of objects containing a `destination` and list of segment `ids` to add the user to.
+
+| Option Name | Scope | Type | Description |
+| --- | --- | --- | --- |
+| destination | Required | string | The [IAB GVL](https://iabeurope.eu/vendor-list-tcf-v2-0/) ID of the destination platform where the segments should be uploaded to |
+| ids | Required | array of strings | A list of segment ids/codes to add the user to in the destination platform |
+
+```javascript
+var id5Status = ID5.init({
+  partnerId: 173, // modify with your own partnerId
+  segments: [{
+    destination: '999',
+    ids: [ '12345', '67890' ]
+  }]
+});
+```
 
 ### Available Methods and Variables
 
