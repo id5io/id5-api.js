@@ -6,7 +6,6 @@ import {
   AJAX_RESPONSE_MS,
   CALLBACK_TIMEOUT_MS,
   ID5_FETCH_ENDPOINT,
-  ID5_LB_ENDPOINT,
   JSON_RESPONSE_ID5_CONSENT,
   JSON_RESPONSE_NO_ID5_CONSENT,
   localStorage,
@@ -31,9 +30,11 @@ import {
   resetAllInLocalStorage,
   defaultInitBypassConsent,
   defaultInit,
-  execSequence
+  execSequence,
+  ExtensionsPromiseStub
 } from './test_utils';
 import {StorageConfig} from "../../lib/config.js";
+import EXTENSIONS from "../../lib/extensions.js";
 
 describe('Async Responses', function () {
   const SHORT_CALLBACK_TIMEOUT_MS = 10;
@@ -47,18 +48,23 @@ describe('Async Responses', function () {
     localStorage,
     new StorageConfig());
   let clock;
+  let extensionsStub;
 
   before(function () {
     resetAllInLocalStorage();
   });
 
   beforeEach(function () {
+    extensionsStub = sinon.stub(EXTENSIONS, 'gather').callsFake(() => {
+      return new ExtensionsPromiseStub(this.currentTest)
+    })
     clock = sinon.useFakeTimers(Date.now());
   });
 
   afterEach(function () {
     resetAllInLocalStorage();
     clock.restore();
+    extensionsStub.restore();
   });
 
   describe('Callbacks with Single Instance', function () {
@@ -83,9 +89,9 @@ describe('Async Responses', function () {
       const id5Status = ID5.init(defaultInitBypassConsent())
       id5Status.onAvailable(onAvailableSpy).onUpdate(onUpdateSpy).onRefresh(onRefreshSpy);
 
-      sinon.assert.calledTwice(ajaxStub);
-      expect(ajaxStub.firstCall.args[0]).to.contain(ID5_LB_ENDPOINT);
-      expect(ajaxStub.secondCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
+      sinon.assert.calledOnce(extensionsStub);
+      sinon.assert.calledOnce(ajaxStub);
+      expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
       expect(id5Status.getUserId()).to.be.undefined;
       expect(id5Status.getLinkType()).to.be.undefined;
 
@@ -120,9 +126,9 @@ describe('Async Responses', function () {
           const id5Status = ID5.init(defaultInit());
           id5Status.onAvailable(onAvailableSpy, CALLBACK_TIMEOUT_MS).onUpdate(onUpdateSpy);
 
-          sinon.assert.calledTwice(ajaxStub);
-          expect(ajaxStub.firstCall.args[0]).to.contain(ID5_LB_ENDPOINT);
-          expect(ajaxStub.secondCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
+          sinon.assert.calledOnce(extensionsStub);
+          sinon.assert.calledOnce(ajaxStub);
+          expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
           expect(id5Status.getUserId()).to.be.undefined;
           expect(id5Status.getLinkType()).to.be.undefined;
 
@@ -160,9 +166,9 @@ describe('Async Responses', function () {
           const id5Status = ID5.init(defaultInit());
           id5Status.onAvailable(onAvailableSpy).onUpdate(onUpdateSpy);
 
-          sinon.assert.calledTwice(ajaxStub);
-          expect(ajaxStub.firstCall.args[0]).to.contain(ID5_LB_ENDPOINT);
-          expect(ajaxStub.secondCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
+          sinon.assert.calledOnce(extensionsStub);
+          sinon.assert.calledOnce(ajaxStub);
+          expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
           expect(id5Status.getUserId()).to.be.undefined;
           expect(id5Status.getLinkType()).to.be.undefined;
 
@@ -199,6 +205,7 @@ describe('Async Responses', function () {
           const id5Status = ID5.init(defaultInit());
           id5Status.onAvailable(onAvailableSpy, CALLBACK_TIMEOUT_MS).onUpdate(onUpdateSpy);
 
+          sinon.assert.notCalled(extensionsStub);
           sinon.assert.notCalled(ajaxStub);
           expect(id5Status.getUserId()).to.be.undefined;
           expect(id5Status.getLinkType()).to.be.undefined;
@@ -212,6 +219,7 @@ describe('Async Responses', function () {
           }, {
             timeout: CALLBACK_TIMEOUT_MS - AJAX_RESPONSE_MS,
             fn: () => {
+              sinon.assert.notCalled(extensionsStub);
               sinon.assert.notCalled(ajaxStub);
               sinon.assert.calledOnce(onAvailableSpy);
               sinon.assert.notCalled(onUpdateSpy);
@@ -233,11 +241,13 @@ describe('Async Responses', function () {
           const id5Status = ID5.init(defaultInit());
           id5Status.onAvailable(onAvailableSpy).onUpdate(onUpdateSpy);
 
+          sinon.assert.notCalled(extensionsStub);
           sinon.assert.notCalled(ajaxStub);
           expect(id5Status.getUserId()).to.be.undefined;
           expect(id5Status.getLinkType()).to.be.undefined;
 
           setTimeout(() => {
+            sinon.assert.notCalled(extensionsStub);
             sinon.assert.notCalled(ajaxStub);
             sinon.assert.notCalled(onAvailableSpy);
             sinon.assert.notCalled(onUpdateSpy);
@@ -261,6 +271,7 @@ describe('Async Responses', function () {
         const id5Status = ID5.init(defaultInit());
         id5Status.onAvailable(onAvailableSpy, CALLBACK_TIMEOUT_MS).onUpdate(onUpdateSpy);
 
+        sinon.assert.notCalled(extensionsStub);
         sinon.assert.notCalled(ajaxStub);
         execSequence(clock, {
           timeout: 1,
@@ -283,6 +294,7 @@ describe('Async Responses', function () {
         const id5Status = ID5.init(defaultInit());
         id5Status.onAvailable(onAvailableSpy).onUpdate(onUpdateSpy);
 
+        sinon.assert.notCalled(extensionsStub);
         sinon.assert.notCalled(ajaxStub);
         setTimeout(() => {
           sinon.assert.calledOnce(onAvailableSpy);
@@ -303,6 +315,7 @@ describe('Async Responses', function () {
         const id5Status = ID5.init(defaultInitBypassConsent());
         id5Status.onAvailable(onAvailableSpy, CALLBACK_TIMEOUT_MS).onUpdate(onUpdateSpy);
 
+        sinon.assert.notCalled(extensionsStub);
         sinon.assert.notCalled(ajaxStub);
 
         execSequence(clock, {
@@ -326,6 +339,7 @@ describe('Async Responses', function () {
         const id5Status = ID5.init(defaultInitBypassConsent());
         id5Status.onAvailable(onAvailableSpy).onUpdate(onUpdateSpy);
 
+        sinon.assert.notCalled(extensionsStub);
         sinon.assert.notCalled(ajaxStub);
         setTimeout(() => {
           sinon.assert.calledOnce(onAvailableSpy);
@@ -341,9 +355,9 @@ describe('Async Responses', function () {
         const id5Status = ID5.init(defaultInitBypassConsent());
         id5Status.onAvailable(onAvailableSpy, CALLBACK_TIMEOUT_MS).onUpdate(onUpdateSpy);
 
-        sinon.assert.calledTwice(ajaxStub);
-        expect(ajaxStub.firstCall.args[0]).to.contain(ID5_LB_ENDPOINT);
-        expect(ajaxStub.secondCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
+        sinon.assert.calledOnce(extensionsStub);
+        sinon.assert.calledOnce(ajaxStub);
+        expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
         expect(id5Status.getUserId()).to.be.undefined;
         expect(id5Status.getLinkType()).to.be.undefined;
 
@@ -381,9 +395,9 @@ describe('Async Responses', function () {
         const id5Status = ID5.init(defaultInitBypassConsent());
         id5Status.onAvailable(onAvailableSpy, SHORT_CALLBACK_TIMEOUT_MS).onUpdate(onUpdateSpy);
 
-        sinon.assert.calledTwice(ajaxStub);
-        expect(ajaxStub.firstCall.args[0]).to.contain(ID5_LB_ENDPOINT);
-        expect(ajaxStub.secondCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
+        sinon.assert.calledOnce(extensionsStub);
+        sinon.assert.calledOnce(ajaxStub);
+        expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
         expect(id5Status.getUserId()).to.be.undefined;
         expect(id5Status.getLinkType()).to.be.undefined;
 
@@ -427,9 +441,9 @@ describe('Async Responses', function () {
         });
         id5Status.onAvailable(onAvailableSpy, CALLBACK_TIMEOUT_MS).onUpdate(onUpdateSpy);
 
-        sinon.assert.calledTwice(ajaxStub);
-        expect(ajaxStub.firstCall.args[0]).to.contain(ID5_LB_ENDPOINT);
-        expect(ajaxStub.secondCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
+        sinon.assert.calledOnce(extensionsStub);
+        sinon.assert.calledOnce(ajaxStub);
+        expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
         expect(id5Status.getUserId()).to.be.equal(TEST_STORED_ID5ID);
         expect(id5Status.getLinkType()).to.be.equal(TEST_STORED_LINK_TYPE);
 
@@ -467,9 +481,9 @@ describe('Async Responses', function () {
         });
         id5Status.onAvailable(onAvailableSpy).onUpdate(onUpdateSpy).onRefresh(onRefreshSpy);
 
-        sinon.assert.calledTwice(ajaxStub);
-        expect(ajaxStub.firstCall.args[0]).to.contain(ID5_LB_ENDPOINT);
-        expect(ajaxStub.secondCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
+        sinon.assert.calledOnce(extensionsStub);
+        sinon.assert.calledOnce(ajaxStub);
+        expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
         expect(id5Status.getUserId()).to.be.equal(TEST_STORED_ID5ID);
         expect(id5Status.getLinkType()).to.be.equal(TEST_STORED_LINK_TYPE);
 
@@ -505,6 +519,7 @@ describe('Async Responses', function () {
           const id5Status = ID5.init(defaultInitBypassConsent());
           id5Status.onAvailable(onAvailableSpy, CALLBACK_TIMEOUT_MS).onUpdate(onUpdateSpy);
 
+          sinon.assert.notCalled(extensionsStub);
           sinon.assert.notCalled(ajaxStub);
 
           execSequence(clock, {
@@ -524,6 +539,7 @@ describe('Async Responses', function () {
 
               ID5.refreshId(id5Status).onRefresh(onRefreshSpy, CALLBACK_TIMEOUT_MS);
 
+              sinon.assert.notCalled(extensionsStub);
               sinon.assert.notCalled(ajaxStub);
             }
           }, {
@@ -553,6 +569,7 @@ describe('Async Responses', function () {
           const id5Status = ID5.init(defaultInitBypassConsent());
           id5Status.onAvailable(onAvailableSpy).onUpdate(onUpdateSpy);
 
+          sinon.assert.notCalled(extensionsStub);
           sinon.assert.notCalled(ajaxStub);
 
           execSequence(clock, {
@@ -565,6 +582,7 @@ describe('Async Responses', function () {
 
               ID5.refreshId(id5Status).onRefresh(onRefreshSpy);
 
+              sinon.assert.notCalled(extensionsStub);
               sinon.assert.notCalled(ajaxStub);
             }
           }, {
@@ -586,6 +604,7 @@ describe('Async Responses', function () {
           const id5Status = ID5.init(defaultInitBypassConsent());
           id5Status.onAvailable(onAvailableSpy, CALLBACK_TIMEOUT_MS).onUpdate(onUpdateSpy);
 
+          sinon.assert.notCalled(extensionsStub);
           sinon.assert.notCalled(ajaxStub);
 
           execSequence(clock, {
@@ -605,9 +624,9 @@ describe('Async Responses', function () {
 
               ID5.refreshId(id5Status, true).onRefresh(onRefreshSpy);
 
-              sinon.assert.calledTwice(ajaxStub);
-              expect(ajaxStub.firstCall.args[0]).to.contain(ID5_LB_ENDPOINT);
-              expect(ajaxStub.secondCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
+              sinon.assert.calledOnce(extensionsStub);
+              sinon.assert.calledOnce(ajaxStub);
+              expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
             }
           }, {
             timeout: 1,
@@ -643,6 +662,7 @@ describe('Async Responses', function () {
           const id5Status = ID5.init(defaultInitBypassConsent());
           id5Status.onAvailable(onAvailableSpy, SHORT_CALLBACK_TIMEOUT_MS);
 
+          sinon.assert.notCalled(extensionsStub);
           sinon.assert.notCalled(ajaxStub);
 
           execSequence(clock, {
@@ -660,9 +680,9 @@ describe('Async Responses', function () {
 
               ID5.refreshId(id5Status, true).onRefresh(onRefreshSpy, SHORT_CALLBACK_TIMEOUT_MS);
 
-              sinon.assert.calledTwice(ajaxStub);
-              expect(ajaxStub.firstCall.args[0]).to.contain(ID5_LB_ENDPOINT);
-              expect(ajaxStub.secondCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
+              sinon.assert.calledOnce(extensionsStub);
+              sinon.assert.calledOnce(ajaxStub);
+              expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
             }
           }, {
             timeout: SHORT_CALLBACK_TIMEOUT_MS + 1,
@@ -687,6 +707,7 @@ describe('Async Responses', function () {
           const id5Status = ID5.init(defaultInitBypassConsent());
           id5Status.onAvailable(onAvailableSpy);
 
+          sinon.assert.notCalled(extensionsStub);
           sinon.assert.notCalled(ajaxStub);
 
           execSequence(clock, {
@@ -697,9 +718,9 @@ describe('Async Responses', function () {
               expect(id5Status.getLinkType()).to.be.equal(TEST_STORED_LINK_TYPE);
 
               ID5.refreshId(id5Status, true).onRefresh(onRefreshSpy);
-              sinon.assert.calledTwice(ajaxStub);
-              expect(ajaxStub.firstCall.args[0]).to.contain(ID5_LB_ENDPOINT);
-              expect(ajaxStub.secondCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
+              sinon.assert.calledOnce(extensionsStub);
+              sinon.assert.calledOnce(ajaxStub);
+              expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
             }
           }, {
             timeout: LONG_TIMEOUT,
@@ -857,6 +878,7 @@ describe('Async Responses', function () {
 
         const id5Status = ID5.init(defaultInit());
 
+        sinon.assert.notCalled(extensionsStub);
         sinon.assert.notCalled(ajaxStub);
         expect(id5Status.getUserId()).to.be.undefined;
         expect(id5Status.getLinkType()).to.be.undefined;
@@ -876,6 +898,7 @@ describe('Async Responses', function () {
 
         const id5Status = ID5.init(defaultInit());
 
+        sinon.assert.notCalled(extensionsStub);
         sinon.assert.notCalled(ajaxStub);
         expect(id5Status.getUserId()).to.be.equal(TEST_STORED_ID5ID);
         expect(id5Status.getLinkType()).to.be.equal(TEST_STORED_LINK_TYPE);
@@ -894,6 +917,7 @@ describe('Async Responses', function () {
 
         const id5Status = ID5.init(defaultInitBypassConsent());
 
+        sinon.assert.notCalled(extensionsStub);
         sinon.assert.notCalled(ajaxStub);
         expect(id5Status.getUserId()).to.be.equal(TEST_STORED_ID5ID);
         expect(id5Status.getLinkType()).to.be.equal(TEST_STORED_LINK_TYPE);
@@ -909,9 +933,9 @@ describe('Async Responses', function () {
       it('should set userId after the response with no stored value, consent override', function (done) {
         const id5Status = ID5.init(defaultInitBypassConsent());
 
-        sinon.assert.calledTwice(ajaxStub);
-        expect(ajaxStub.firstCall.args[0]).to.contain(ID5_LB_ENDPOINT);
-        expect(ajaxStub.secondCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
+        sinon.assert.calledOnce(extensionsStub);
+        sinon.assert.calledOnce(ajaxStub);
+        expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
         expect(id5Status.getUserId()).to.be.undefined;
         expect(id5Status.getLinkType()).to.be.undefined;
 
@@ -930,9 +954,9 @@ describe('Async Responses', function () {
 
         const id5Status = ID5.init(defaultInit());
 
-        sinon.assert.calledTwice(ajaxStub);
-        expect(ajaxStub.firstCall.args[0]).to.contain(ID5_LB_ENDPOINT);
-        expect(ajaxStub.secondCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
+        sinon.assert.calledOnce(extensionsStub);
+        sinon.assert.calledOnce(ajaxStub);
+        expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
         expect(id5Status.getUserId()).to.be.undefined;
         expect(id5Status.getLinkType()).to.be.undefined;
 
@@ -954,9 +978,9 @@ describe('Async Responses', function () {
           refreshInSeconds: 10
         });
 
-        sinon.assert.calledTwice(ajaxStub);
-        expect(ajaxStub.firstCall.args[0]).to.contain(ID5_LB_ENDPOINT);
-        expect(ajaxStub.secondCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
+        sinon.assert.calledOnce(extensionsStub);
+        sinon.assert.calledOnce(ajaxStub);
+        expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
         expect(id5Status.getUserId()).to.be.equal(TEST_STORED_ID5ID);
         expect(id5Status.getLinkType()).to.be.equal(TEST_STORED_LINK_TYPE);
 
@@ -980,9 +1004,9 @@ describe('Async Responses', function () {
           refreshInSeconds: 10
         });
 
-        sinon.assert.calledTwice(ajaxStub);
-        expect(ajaxStub.firstCall.args[0]).to.contain(ID5_LB_ENDPOINT);
-        expect(ajaxStub.secondCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
+        sinon.assert.calledOnce(extensionsStub);
+        sinon.assert.calledOnce(ajaxStub);
+        expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
         expect(id5Status.getUserId()).to.be.equal(TEST_STORED_ID5ID);
         expect(id5Status.getLinkType()).to.be.equal(TEST_STORED_LINK_TYPE);
 
@@ -1008,9 +1032,9 @@ describe('Async Responses', function () {
       it('should set userId after the response with no stored value, consent override', function (done) {
         const id5Status = ID5.init(defaultInitBypassConsent());
 
-        sinon.assert.calledTwice(ajaxStub);
-        expect(ajaxStub.firstCall.args[0]).to.contain(ID5_LB_ENDPOINT);
-        expect(ajaxStub.secondCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
+        sinon.assert.calledOnce(extensionsStub);
+        sinon.assert.calledOnce(ajaxStub);
+        expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
         expect(id5Status.getUserId()).to.be.undefined;
         expect(id5Status.getLinkType()).to.be.undefined;
 
@@ -1029,9 +1053,9 @@ describe('Async Responses', function () {
 
         const id5Status = ID5.init(defaultInit());
 
-        sinon.assert.calledTwice(ajaxStub);
-        expect(ajaxStub.firstCall.args[0]).to.contain(ID5_LB_ENDPOINT);
-        expect(ajaxStub.secondCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
+        sinon.assert.calledOnce(extensionsStub);
+        sinon.assert.calledOnce(ajaxStub);
+        expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
         expect(id5Status.getUserId()).to.be.undefined;
         expect(id5Status.getLinkType()).to.be.undefined;
 
@@ -1052,9 +1076,9 @@ describe('Async Responses', function () {
           ...defaultInitBypassConsent(),
           refreshInSeconds: 10 });
 
-        sinon.assert.calledTwice(ajaxStub);
-        expect(ajaxStub.firstCall.args[0]).to.contain(ID5_LB_ENDPOINT);
-        expect(ajaxStub.secondCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
+        sinon.assert.calledOnce(extensionsStub);
+        sinon.assert.calledOnce(ajaxStub);
+        expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
         expect(id5Status.getUserId()).to.be.equal(TEST_STORED_ID5ID);
         expect(id5Status.getLinkType()).to.be.equal(TEST_STORED_LINK_TYPE);
 
@@ -1078,9 +1102,9 @@ describe('Async Responses', function () {
           refreshInSeconds: 10
         });
 
-        sinon.assert.calledTwice(ajaxStub);
-        expect(ajaxStub.firstCall.args[0]).to.contain(ID5_LB_ENDPOINT);
-        expect(ajaxStub.secondCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
+        sinon.assert.calledOnce(extensionsStub);
+        sinon.assert.calledOnce(ajaxStub);
+        expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
         expect(id5Status.getUserId()).to.be.equal(TEST_STORED_ID5ID);
         expect(id5Status.getLinkType()).to.be.equal(TEST_STORED_LINK_TYPE);
 
@@ -1108,9 +1132,9 @@ describe('Async Responses', function () {
           refreshInSeconds: 10
         });
 
-        sinon.assert.calledTwice(ajaxStub);
-        expect(ajaxStub.firstCall.args[0]).to.contain(ID5_LB_ENDPOINT);
-        expect(ajaxStub.secondCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
+        sinon.assert.calledOnce(extensionsStub);
+        sinon.assert.calledOnce(ajaxStub);
+        expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
         expect(id5Status.getUserId()).to.be.equal(TEST_STORED_ID5ID);
         expect(id5Status.getLinkType()).to.be.equal(TEST_STORED_LINK_TYPE);
         expect(localStorage.getItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(STORED_JSON);

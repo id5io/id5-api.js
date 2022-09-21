@@ -104,5 +104,8 @@
   },
   "directories": {
     "test": "test"
+  },
+  "dependencies": {
+    "promise-polyfill": "^8.2.3"
   }
 }
