@@ -108,6 +108,9 @@ const TEST_CONSENT_DATA_V2 = {
   }
 };
 
+const TCF_V2_STRING_WITHOUT_STORAGE_ACCESS_CONSENT = 'CPh8d-2Ph8d-2NRAAAENCZCAABoAAAAAAAAAAAAAAAAA.II7Nd_X__bX9n-_7_6ft0eY1f9_r37uQzDhfNs-8F3L_W_LwX32E7NF36tq4KmR4ku1bBIQNtHMnUDUmxaolVrzHsak2cpyNKJ_JkknsZe2dYGF9Pn9lD-YKZ7_5_9_f52T_9_9_-39z3_9f___dv_-__-vjf_599n_v9fV_78_Kf9______-____________8A';
+const TCF_V2_STRING_WITH_STORAGE_ACCESS_CONSENT = 'CPh8dhYPh8dhYJjAAAENCZCAAJHAAAAAAAAAAAAAAAAA.II7Nd_X__bX9n-_7_6ft0eY1f9_r37uQzDhfNs-8F3L_W_LwX32E7NF36tq4KmR4ku1bBIQNtHMnUDUmxaolVrzHsak2cpyNKJ_JkknsZe2dYGF9Pn9lD-YKZ7_5_9_f52T_9_9_-39z3_9f___dv_-__-vjf_599n_v9fV_78_Kf9______-____________8A';
+
 function newConsentManagement(localStorageMock) {
   return new ConsentManagement(0, localStorageMock, STORAGE_CONFIG);
 }
@@ -143,6 +146,66 @@ describe('Consent Management', function () {
   });
 
   describe('with static consent data', function () {
+
+    [
+      undefined,
+      {
+      },
+      {
+        gdprApplies: true
+      },
+      {
+        purpose: {},
+        gdprApplies: true
+      },
+      {
+        purpose: { something: 'wrong' },
+        gdprApplies: true
+      }
+    ].forEach((tcData) => {
+      it('should grant localStorage access when not fully decoded tcf v2 data received but consent encoded in tcstring', function () {
+        const consent = newConsentManagement(localStorageMock);
+        let tcStringWithStorageConsent = TCF_V2_STRING_WITH_STORAGE_ACCESS_CONSENT;
+        consent.requestConsent(false, 'static', {
+          getTCData: {
+            tcString: tcStringWithStorageConsent,
+            ...tcData
+          }
+        }, callbackSpy);
+
+        const localStorageGrant = consent.localStorageGrant(false, false);
+
+        expect(consent.consentData.api).to.equal(API_TYPE.TCF_V2);
+        expect(consent.consentData.gdprApplies).is.eq(tcData && tcData.gdprApplies);
+        expect(consent.consentData.consentString).is.eq(tcStringWithStorageConsent);
+        expect(consent.consentData.localStoragePurposeConsent).is.eq(true);
+        expect(localStorageGrant.allowed).is.eq(true);
+        expect(localStorageGrant.grantType).is.eq(GRANT_TYPE.CONSENT_API);
+        expect(localStorageGrant.api).is.eq(API_TYPE.TCF_V2);
+      });
+
+      it('should not grant localStorage access when not full decoded tcf v2 data received and consent not given in encoded tcstring', function () {
+        const consent = newConsentManagement(localStorageMock);
+        let tcStringWithStorageConsent = TCF_V2_STRING_WITHOUT_STORAGE_ACCESS_CONSENT;
+        consent.requestConsent(false, 'static', {
+          getTCData: {
+            tcString: tcStringWithStorageConsent,
+            ...tcData
+          }
+        }, callbackSpy);
+
+        const localStorageGrant = consent.localStorageGrant(false, false);
+
+        expect(consent.consentData.api).to.equal(API_TYPE.TCF_V2);
+        expect(consent.consentData.gdprApplies).is.eq(tcData && tcData.gdprApplies);
+        expect(consent.consentData.consentString).is.eq(tcStringWithStorageConsent);
+        expect(consent.consentData.localStoragePurposeConsent).is.eq(false);
+        expect(localStorageGrant.allowed).is.eq(false);
+        expect(localStorageGrant.grantType).is.eq(GRANT_TYPE.CONSENT_API);
+        expect(localStorageGrant.api).is.eq(API_TYPE.TCF_V2);
+      });
+    });
+
     it('should print a warning when static consentData has the wrong structure', function () {
       const consent = newConsentManagement(localStorageMock);
       consent.requestConsent(false, 'static', { wrong: 'structure' }, callbackSpy);
@@ -344,7 +407,7 @@ describe('Consent Management', function () {
 
       assert.calledOnce(callbackSpy);
       expect(consent.consentData.consentString).to.equal(TEST_CONSENT_DATA_V1.getConsentData.consentData);
-      expect(consent.consentData.vendorData.metadata).to.equal(TEST_CONSENT_DATA_V1.getVendorConsents.metadata);
+      expect(consent.consentData.localStoragePurposeConsent).to.equal(TEST_CONSENT_DATA_V1.getVendorConsents.purposeConsents['1']);
       expect(consent.consentData.gdprApplies).to.be.true;
       expect(consent.consentData.api).to.equal(API_TYPE.TCF_V1);
       expect(consent.consentData.hasCcpaString).to.be.false;
@@ -461,7 +524,7 @@ describe('Consent Management', function () {
         assert.calledOnce(callbackSpy);
         assert.calledOnce(cmpStub);
         expect(consent.consentData.consentString).to.equal(TEST_CONSENT_DATA_V2.getTCData.tcString);
-        expect(consent.consentData.vendorData.metadata).to.equal(TEST_CONSENT_DATA_V2.getTCData.metadata);
+        expect(consent.consentData.localStoragePurposeConsent).to.equal(TEST_CONSENT_DATA_V2.getTCData.purpose.consents['1']);
         expect(consent.consentData.gdprApplies).to.be.true;
       });
 
@@ -662,8 +725,9 @@ describe('Consent Management', function () {
       });
 
       [false, null, undefined, "xxx"].forEach(value => {
-        it(`disallows local storage when vendor purpose 1 has value ${value}`, function() {
+        it(`disallows local storage when vendor purpose 1 has value ${value} and no given consent in encoded string`, function() {
           const cloneTestData = clone(TEST_CONSENT_DATA_V2);
+          cloneTestData.getTCData.tcString = TCF_V2_STRING_WITHOUT_STORAGE_ACCESS_CONSENT
           cloneTestData.getTCData.purpose.consents['1'] = value;
           cmpStub.callsFake((command, version, callback) => {
             callback(cloneTestData.getTCData, true);
@@ -676,7 +740,25 @@ describe('Consent Management', function () {
           expect(localStorageGrant.grantType).to.equal(GRANT_TYPE.CONSENT_API);
           expect(localStorageGrant.api).to.equal(API_TYPE.TCF_V2);
           });
-      })
+      });
+
+      [null, undefined, "xxx"].forEach(value => {
+        it(`allows local storage when vendor purpose 1 is undefined or invalid but given consent is in encoded string`, function () {
+          const cloneTestData = clone(TEST_CONSENT_DATA_V2);
+          cloneTestData.getTCData.tcString = TCF_V2_STRING_WITH_STORAGE_ACCESS_CONSENT;
+          cloneTestData.getTCData.purpose.consents['1'] = value;
+          cmpStub.callsFake((command, version, callback) => {
+            callback(cloneTestData.getTCData, true);
+          });
+          const consent = newConsentManagement(localStorageMock);
+          consent.requestConsent(false, 'iab', undefined, callbackSpy);
+          const localStorageGrant = consent.localStorageGrant(false, false);
+
+          expect(localStorageGrant.allowed).to.be.true;
+          expect(localStorageGrant.grantType).to.equal(GRANT_TYPE.CONSENT_API);
+          expect(localStorageGrant.api).to.equal(API_TYPE.TCF_V2);
+        });
+      });
 
       it('allows local storage when not in GDPR jurisdiction', function() {
         const cloneTestData = clone(TEST_CONSENT_DATA_V2);
@@ -783,7 +865,7 @@ describe('Consent Management', function () {
         const consent = newConsentManagement(localStorageMock);
         consent.requestConsent(false, 'iab', undefined, (consentData) => {
           expect(consentData.consentString).to.equal(TEST_CONSENT_DATA_V1.getConsentData.consentData);
-          expect(consentData.vendorData.metadata).to.equal(TEST_CONSENT_DATA_V1.getVendorConsents.metadata);
+          expect(consentData.localStoragePurposeConsent).to.equal(TEST_CONSENT_DATA_V1.getVendorConsents.purposeConsents['1']);
           expect(consentData.gdprApplies).to.be.true;
           expect(consentData.api).to.equal(API_TYPE.TCF_V1);
           done();
@@ -822,7 +904,7 @@ describe('Consent Management', function () {
         const consent = newConsentManagement(localStorageMock);
         consent.requestConsent(false, 'iab', undefined, (consentData) => {
           expect(consentData.consentString).to.equal(TEST_CONSENT_DATA_V2.getTCData.tcString);
-          expect(consentData.vendorData.metadata).to.equal(TEST_CONSENT_DATA_V2.getTCData.metadata);
+          expect(consentData.localStoragePurposeConsent).to.equal(TEST_CONSENT_DATA_V2.getTCData.purpose.consents['1']);
           expect(consentData.gdprApplies).to.be.true;
           expect(consentData.api).to.equal(API_TYPE.TCF_V2);
           done();
