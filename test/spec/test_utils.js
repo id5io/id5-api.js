@@ -1,5 +1,6 @@
 import LocalStorage from '../../lib/localStorage.js';
 import CONSTANTS from '../../lib/constants.json';
+import sinon from "sinon";
 
 export const TEST_ID5_PARTNER_ID = 99;
 export const TEST_ID5_PARTNER_ID_ALT = 999;
@@ -190,4 +191,18 @@ export function execSequence(clock, ...steps) {
   }, () => {
   });
   rootFn();
+}
+
+/**
+ * Stubs __tcfapi successful call given consent
+ * @param consentData - given consent to return
+ * @return __tcfapi stub
+ */
+export function stubTcfApi(consentData) {
+  if (window['__tcfapi']['restore'] !== undefined) {
+    window.__tcfapi.restore()
+  }
+  return sinon.stub(window, '__tcfapi').callsFake((...args) => {
+    args[2](consentData, true);
+  });
 }

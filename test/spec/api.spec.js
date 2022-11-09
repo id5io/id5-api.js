@@ -6,8 +6,10 @@ import {version} from '../../generated/version.js';
 import ID5 from '../../lib/id5-api';
 import {API_TYPE, ConsentData, GRANT_TYPE, LocalStorageGrant} from '../../lib/consentManagement';
 import {
+  DEFAULT_EXTENSIONS,
   defaultInit,
-  defaultInitBypassConsent, DEFAULT_EXTENSIONS, getLocalStorageItemExpirationDays,
+  defaultInitBypassConsent,
+  getLocalStorageItemExpirationDays,
   ID5_FETCH_ENDPOINT,
   JSON_RESPONSE_ID5_CONSENT,
   JSON_RESPONSE_NO_ID5_CONSENT,
@@ -15,6 +17,7 @@ import {
   resetAllInLocalStorage,
   STORED_JSON,
   STORED_JSON_LEGACY,
+  stubTcfApi,
   TEST_CONSENT_DATA_STORAGE_CONFIG,
   TEST_ID5_PARTNER_ID,
   TEST_ID5ID_STORAGE_CONFIG,
@@ -38,6 +41,9 @@ import {StorageConfig} from "../../lib/config.js";
 import EXTENSIONS from "../../lib/extensions.js";
 
 let expect = require('chai').expect;
+
+const TCF_V2_STRING_WITH_STORAGE_CONSENT = 'CPh8b0RPh8b0RPXAAAENCZCAANoAAAAAAAAAAAAAAAAA.II7Nd_X__bX9n-_7_6ft0eY1f9_r37uQzDhfNs-8F3L_W_LwX32E7NF36tq4KmR4ku1bBIQNtHMnUDUmxaolVrzHsak2cpyNKJ_JkknsZe2dYGF9Pn9lD-YKZ7_5_9_f52T_9_9_-39z3_9f___dv_-__-vjf_599n_v9fV_78_Kf9______-____________8A';
+const TCF_V2_STRING_WITHOUT_STORAGE_CONSENT = 'CPh8cxGPh8cxGFpAAAENCZCAAAgAAAAAAAAAAAAAAAAA.II7Nd_X__bX9n-_7_6ft0eY1f9_r37uQzDhfNs-8F3L_W_LwX32E7NF36tq4KmR4ku1bBIQNtHMnUDUmxaolVrzHsak2cpyNKJ_JkknsZe2dYGF9Pn9lD-YKZ7_5_9_f52T_9_9_-39z3_9f___dv_-__-vjf_599n_v9fV_78_Kf9______-____________8A';
 
 describe('ID5 JS API', function () {
 
@@ -1252,9 +1258,7 @@ describe('ID5 JS API', function () {
             beforeEach(function () {
               window.__tcfapi = function () {
               };
-              cmpStub = sinon.stub(window, '__tcfapi').callsFake((...args) => {
-                args[2](testConsentDataFromCmp.getTCData, true);
-              });
+              cmpStub = stubTcfApi(testConsentDataFromCmp.getTCData)
             });
 
             afterEach(function () {
@@ -1274,6 +1278,171 @@ describe('ID5 JS API', function () {
                 sinon.assert.calledOnce(extensionsStub);
                 sinon.assert.calledOnce(ajaxStub);
                 expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
+                done();
+              });
+            });
+
+            it('should call id5 servers with tc string if gdprApplies and given decoded consent', function (done) {
+              cmpStub = stubTcfApi({
+                  gdprApplies: true,
+                  tcString: 'cmpconsentstring',
+                  eventStatus: 'tcloaded',
+                  apiVersion: 2,
+                  purpose: {
+                    consents: {
+                      '1': true
+                    }
+                  }
+                }
+              )
+              ID5.init({
+                ...defaultInit(),
+                refreshInSeconds: 1000
+              }).onAvailable(function () {
+
+                sinon.assert.calledOnce(extensionsStub);
+                sinon.assert.calledOnce(ajaxStub);
+                expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
+                const requestData = JSON.parse(ajaxStub.firstCall.args[2]);
+                expect(requestData.gdpr_consent).is.eq('cmpconsentstring');
+                expect(requestData.gdpr).is.eq(1);
+                done();
+              });
+            });
+
+            it('should call id5 servers with tc string if gdprApplies and given encoded consent', function (done) {
+              cmpStub = stubTcfApi({
+                  gdprApplies: true,
+                  tcString: TCF_V2_STRING_WITH_STORAGE_CONSENT,
+                  eventStatus: 'tcloaded',
+                  apiVersion: 2,
+                }
+              )
+              ID5.init({
+                ...defaultInit(),
+                refreshInSeconds: 1000
+              }).onAvailable(function () {
+
+                sinon.assert.calledOnce(extensionsStub);
+                sinon.assert.calledOnce(ajaxStub);
+                expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
+                const requestData = JSON.parse(ajaxStub.firstCall.args[2]);
+                expect(requestData.gdpr_consent).is.eq(TCF_V2_STRING_WITH_STORAGE_CONSENT);
+                expect(requestData.gdpr).is.eq(1);
+                done();
+              });
+            });
+
+            it('should not call id5 servers with tc string if gdprApplies and storage consent not given - encoded', function () {
+              let tcString = TCF_V2_STRING_WITHOUT_STORAGE_CONSENT;
+              cmpStub = stubTcfApi({
+                  gdprApplies: true,
+                  tcString: tcString,
+                  eventStatus: 'tcloaded',
+                  apiVersion: 2,
+                }
+              )
+              ID5.init({
+                ...defaultInit(),
+                refreshInSeconds: 1000
+              });
+
+              sinon.assert.notCalled(extensionsStub);
+              sinon.assert.notCalled(ajaxStub);
+
+            });
+
+            it('should not call id5 servers with tc string if gdprApplies and storage consent not given - decoded', function () {
+              let tcString = TCF_V2_STRING_WITH_STORAGE_CONSENT;
+              cmpStub = stubTcfApi({
+                  gdprApplies: true,
+                  tcString: tcString,
+                  eventStatus: 'tcloaded',
+                  apiVersion: 2,
+                  purpose: {
+                    consents: {
+                      '1': false
+                    }
+                  }
+                }
+              )
+              ID5.init({
+                ...defaultInit(),
+                refreshInSeconds: 1000
+              });
+
+              sinon.assert.notCalled(extensionsStub);
+              sinon.assert.notCalled(ajaxStub);
+
+            });
+
+            it('should call id5 servers with tc string if gdprApplies is false', function (done) {
+              cmpStub = stubTcfApi({
+                  gdprApplies: false,
+                  tcString: 'cmpconsentstring',
+                  eventStatus: 'tcloaded',
+                  apiVersion: 2,
+                }
+              )
+              ID5.init({
+                ...defaultInit(),
+                refreshInSeconds: 1000
+              }).onAvailable(function () {
+
+                sinon.assert.calledOnce(extensionsStub);
+                sinon.assert.calledOnce(ajaxStub);
+                expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
+                const requestData = JSON.parse(ajaxStub.firstCall.args[2]);
+                expect(requestData.gdpr_consent).is.eq('cmpconsentstring');
+                expect(requestData.gdpr).is.eq(0);
+                done();
+              });
+            });
+
+            it('should call id5 servers with tc string if gdprApplies is undefined and given decoded consent ', function (done) {
+              cmpStub = stubTcfApi({
+                  tcString: 'cmpconsentstring',
+                  eventStatus: 'tcloaded',
+                  apiVersion: 2,
+                  purpose: {
+                    consents: {
+                      '1': true
+                    }
+                  }
+                }
+              )
+              ID5.init({
+                ...defaultInit(),
+                refreshInSeconds: 1000
+              }).onAvailable(function () {
+
+                sinon.assert.calledOnce(extensionsStub);
+                sinon.assert.calledOnce(ajaxStub);
+                expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
+                const requestData = JSON.parse(ajaxStub.firstCall.args[2]);
+                expect(requestData.gdpr_consent).is.eq('cmpconsentstring');
+                expect(requestData.gdpr).is.eq(undefined);
+                done();
+              });
+            });
+
+            it('should call id5 servers with tc string if only encoded string available with storage access given consent', function (done) {
+              cmpStub = stubTcfApi({
+                  tcString: TCF_V2_STRING_WITH_STORAGE_CONSENT,
+                  eventStatus: 'tcloaded',
+                  apiVersion: 2,
+                }
+              )
+              ID5.init({
+                ...defaultInit(),
+                refreshInSeconds: 1000
+              }).onAvailable(function () {
+                sinon.assert.calledOnce(extensionsStub);
+                sinon.assert.calledOnce(ajaxStub);
+                expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
+                const requestData = JSON.parse(ajaxStub.firstCall.args[2]);
+                expect(requestData.gdpr_consent).is.eq(TCF_V2_STRING_WITH_STORAGE_CONSENT);
+                expect(requestData.gdpr).is.eq(undefined);
                 done();
               });
             });
