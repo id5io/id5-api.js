@@ -728,6 +728,25 @@ describe('ID5 JS API', function () {
                 done();
               });
             });
+
+            [
+              undefined,
+              null,
+              ''
+            ].forEach((pdValue) => {
+              it(`should not call id5 servers if stored pd is present but current is [${pdValue}]`, function (done) {
+                testClientStore.putHashedPd(TEST_ID5_PARTNER_ID, 'storedpd');
+                ID5.init({
+                  ...defaultInitBypassConsent(),
+                  refreshInSeconds: 1000,
+                  pd: pdValue
+                }).onAvailable(function () {
+                  sinon.assert.notCalled(extensionsStub);
+                  sinon.assert.notCalled(ajaxStub);
+                  done();
+                });
+              });
+            });
           });
 
           describe('With Consent From Privacy Storage', function () {
