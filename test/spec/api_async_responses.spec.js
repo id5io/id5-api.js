@@ -33,8 +33,9 @@ import {
   execSequence,
   ExtensionsPromiseStub
 } from './test_utils';
-import {StorageConfig} from "../../lib/config.js";
-import EXTENSIONS from "../../lib/extensions.js";
+import {StorageConfig} from "../../lib/config";
+import EXTENSIONS from "../../lib/extensions";
+import {API_TYPE, GRANT_TYPE, LocalStorageGrant} from "../../lib/consentManagement.js";
 
 describe('Async Responses', function () {
   const SHORT_CALLBACK_TIMEOUT_MS = 10;
@@ -658,7 +659,6 @@ describe('Async Responses', function () {
         });
 
         it('should call onRefresh from refresh after timeout set if server response takes too long', function (done) {
-          // ID5.debug = true;
           const id5Status = ID5.init(defaultInitBypassConsent());
           id5Status.onAvailable(onAvailableSpy, SHORT_CALLBACK_TIMEOUT_MS);
 

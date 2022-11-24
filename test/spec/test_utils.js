@@ -142,6 +142,14 @@ export function defaultInitBypassConsent(partnerId = TEST_ID5_PARTNER_ID) {
   }
 }
 
+export function defaultInitBypassConsentWithPd(partnerId = TEST_ID5_PARTNER_ID) {
+  return {
+    ...defaultInit(partnerId),
+    debugBypassConsent: true,
+    pd: 'pdvalue'
+  }
+}
+
 export const localStorage = new LocalStorage(window);
 
 export function getLocalStorageItemExpirationDays(key) {
