@@ -8,7 +8,7 @@ import {API_TYPE, ConsentData, GRANT_TYPE, LocalStorageGrant} from '../../lib/co
 import {
   DEFAULT_EXTENSIONS,
   defaultInit,
-  defaultInitBypassConsent,
+  defaultInitBypassConsent, defaultInitBypassConsentWithPd,
   getLocalStorageItemExpirationDays,
   ID5_FETCH_ENDPOINT,
   JSON_RESPONSE_ID5_CONSENT,
@@ -45,6 +45,15 @@ let expect = require('chai').expect;
 const TCF_V2_STRING_WITH_STORAGE_CONSENT = 'CPh8b0RPh8b0RPXAAAENCZCAANoAAAAAAAAAAAAAAAAA.II7Nd_X__bX9n-_7_6ft0eY1f9_r37uQzDhfNs-8F3L_W_LwX32E7NF36tq4KmR4ku1bBIQNtHMnUDUmxaolVrzHsak2cpyNKJ_JkknsZe2dYGF9Pn9lD-YKZ7_5_9_f52T_9_9_-39z3_9f___dv_-__-vjf_599n_v9fV_78_Kf9______-____________8A';
 const TCF_V2_STRING_WITHOUT_STORAGE_CONSENT = 'CPh8cxGPh8cxGFpAAAENCZCAAAgAAAAAAAAAAAAAAAAA.II7Nd_X__bX9n-_7_6ft0eY1f9_r37uQzDhfNs-8F3L_W_LwX32E7NF36tq4KmR4ku1bBIQNtHMnUDUmxaolVrzHsak2cpyNKJ_JkknsZe2dYGF9Pn9lD-YKZ7_5_9_f52T_9_9_-39z3_9f___dv_-__-vjf_599n_v9fV_78_Kf9______-____________8A';
 
+function stubExtensions() {
+  return sinon.stub(EXTENSIONS, 'gather').resolves(DEFAULT_EXTENSIONS);
+}
+
+function resetExtensionsStub(extensionsStub) {
+  extensionsStub.restore()
+  return stubExtensions()
+}
+
 describe('ID5 JS API', function () {
 
   const testClientStore = new ClientStore(0,
@@ -56,7 +65,7 @@ describe('ID5 JS API', function () {
 
   beforeEach(function () {
     ID5.debug = false;
-    extensionsStub = sinon.stub(EXTENSIONS, 'gather').resolves(DEFAULT_EXTENSIONS);
+    extensionsStub = stubExtensions();
   });
 
   afterEach(function () {
@@ -156,7 +165,7 @@ describe('ID5 JS API', function () {
             expect(id5Status.getUserIdAsEid()).to.be.eql(TEST_RESPONSE_EID);
             expect(localStorage.getItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(encodeURIComponent(JSON_RESPONSE_ID5_CONSENT));
             expect(localStorage.getItemWithExpiration(TEST_PRIVACY_STORAGE_CONFIG)).to.be.eq(TEST_PRIVACY_ALLOWED);
-            expect(localStorage.getItemWithExpiration(TEST_PD_STORAGE_CONFIG)).to.be.equal(utils.cyrb53Hash(''));
+            expect(localStorage.getItemWithExpiration(TEST_PD_STORAGE_CONFIG)).to.be.null;
             done();
           });
         });
@@ -236,7 +245,7 @@ describe('ID5 JS API', function () {
         it('should use configured storage expiration time', function (done) {
           const customStorageExpirationDays = 10;
           ID5.init({
-            ...defaultInitBypassConsent(),
+            ...defaultInitBypassConsentWithPd(),
             storageExpirationDays: customStorageExpirationDays
           }).onAvailable(function () {
             expect(getLocalStorageItemExpirationDays(TEST_ID5ID_STORAGE_CONFIG.name)).to.be.eq(customStorageExpirationDays);
@@ -250,7 +259,7 @@ describe('ID5 JS API', function () {
         });
 
         it('should use default storage expiration time', function (done) {
-          ID5.init(defaultInitBypassConsent())
+          ID5.init(defaultInitBypassConsentWithPd())
             .onAvailable(function () {
               expect(getLocalStorageItemExpirationDays(TEST_ID5ID_STORAGE_CONFIG.name)).to.be.eq(TEST_ID5ID_STORAGE_CONFIG.expiresDays);
               expect(getLocalStorageItemExpirationDays(TEST_LAST_STORAGE_CONFIG.name)).to.be.eq(TEST_LAST_STORAGE_CONFIG.expiresDays);
@@ -265,7 +274,7 @@ describe('ID5 JS API', function () {
         it('should use minimum storage expiration time', function (done) {
           const customStorageExpirationDays = 0;
           ID5.init({
-            ...defaultInitBypassConsent(),
+            ...defaultInitBypassConsentWithPd(),
             storageExpirationDays: customStorageExpirationDays
           }).onAvailable(function () {
             expect(getLocalStorageItemExpirationDays(TEST_ID5ID_STORAGE_CONFIG.name)).to.be.eq(1);
@@ -673,14 +682,16 @@ describe('ID5 JS API', function () {
           });
 
           describe('With Consent Override', function () {
-            it('should not call id5 servers if no stored pd data with consent override', function (done) {
+            it('should call id5 servers if no stored pd data with consent override', function (done) {
               ID5.init({
                 ...defaultInitBypassConsent(),
                 refreshInSeconds: 1000,
                 pd: 'requestpd'
               }).onAvailable(function () {
-                sinon.assert.notCalled(extensionsStub);
-                sinon.assert.notCalled(ajaxStub);
+                sinon.assert.calledOnce(extensionsStub);
+                sinon.assert.calledOnce(ajaxStub);
+                expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
+                expect(testClientStore.getHashedPd(TEST_ID5_PARTNER_ID)).to.be.equal(ClientStore.makeStoredHash('requestpd'))
                 done();
               });
             });
@@ -696,6 +707,7 @@ describe('ID5 JS API', function () {
                 sinon.assert.calledOnce(extensionsStub);
                 sinon.assert.calledOnce(ajaxStub);
                 expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
+                expect(testClientStore.getHashedPd(TEST_ID5_PARTNER_ID)).to.be.equal(ClientStore.makeStoredHash('requestpd'))
                 done();
               });
             });
@@ -711,6 +723,7 @@ describe('ID5 JS API', function () {
                 sinon.assert.calledOnce(extensionsStub);
                 sinon.assert.calledOnce(ajaxStub);
                 expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
+                expect(testClientStore.getHashedPd(TEST_ID5_PARTNER_ID)).to.be.equal(ClientStore.makeStoredHash('requestpd'))
                 done();
               });
             });
@@ -725,6 +738,7 @@ describe('ID5 JS API', function () {
               }).onAvailable(function () {
                 sinon.assert.notCalled(extensionsStub);
                 sinon.assert.notCalled(ajaxStub);
+                expect(testClientStore.getHashedPd(TEST_ID5_PARTNER_ID)).to.be.equal(ClientStore.makeStoredHash('storedpd'))
                 done();
               });
             });
@@ -743,6 +757,7 @@ describe('ID5 JS API', function () {
                 }).onAvailable(function () {
                   sinon.assert.notCalled(extensionsStub);
                   sinon.assert.notCalled(ajaxStub);
+                  expect(testClientStore.getHashedPd(TEST_ID5_PARTNER_ID)).to.be.equal(ClientStore.makeStoredHash('storedpd'))
                   done();
                 });
               });
@@ -758,10 +773,10 @@ describe('ID5 JS API', function () {
                 refreshInSeconds: 1000,
                 pd: 'requestpd'
               }).onAvailable(function () {
-
                 sinon.assert.calledOnce(extensionsStub);
                 sinon.assert.calledOnce(ajaxStub);
                 expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
+                expect(testClientStore.getHashedPd(TEST_ID5_PARTNER_ID)).to.be.equal(ClientStore.makeStoredHash('requestpd'))
                 done();
               });
             });
@@ -774,10 +789,10 @@ describe('ID5 JS API', function () {
                 refreshInSeconds: 1000,
                 pd: 'requestpd'
               }).onAvailable(function () {
-
                 sinon.assert.calledOnce(extensionsStub);
                 sinon.assert.calledOnce(ajaxStub);
                 expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
+                expect(testClientStore.getHashedPd(TEST_ID5_PARTNER_ID)).to.be.equal(ClientStore.makeStoredHash('requestpd'))
                 done();
               });
             });
@@ -790,9 +805,9 @@ describe('ID5 JS API', function () {
                 refreshInSeconds: 1000,
                 pd: 'storedpd'
               }).onAvailable(function () {
-
                 sinon.assert.notCalled(extensionsStub);
                 sinon.assert.notCalled(ajaxStub);
+                expect(testClientStore.getHashedPd(TEST_ID5_PARTNER_ID)).to.be.equal(ClientStore.makeStoredHash('storedpd'))
                 done();
               });
             });
@@ -1072,6 +1087,10 @@ describe('ID5 JS API', function () {
             expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
             expect(localStorage.getItemWithExpiration(TEST_PD_STORAGE_CONFIG)).to.be.null;
             expect(localStorage.getItemWithExpiration(TEST_CONSENT_DATA_STORAGE_CONFIG)).to.be.null;
+
+            // reset stubs before next calls
+            extensionsStub = resetExtensionsStub(extensionsStub);
+            ajaxStub.reset()
 
             ID5.refreshId(id5Status).onRefresh(function () {
 
