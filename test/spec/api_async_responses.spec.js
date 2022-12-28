@@ -1157,6 +1157,19 @@ describe('Async Responses', function () {
         }, LONG_TIMEOUT);
         clock.tick(LONG_TIMEOUT);
       });
+
+      it.only('should set the cached response before invoking "onAvailable"', function (done) {
+        var status = ID5.init({
+          ...defaultInitBypassConsent()
+        }).onAvailable(function (id5Status) {
+          sinon.assert.calledOnce(ajaxStub);
+
+          expect(id5Status.clientStore.getResponse().universal_uid).to.be.eq(id5Status.getUserId());
+          done()
+        });
+        expect(status.clientStore.getResponse()).to.be.null
+        clock.tick(LONG_TIMEOUT);
+      })
     });
   });
 });
