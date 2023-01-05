@@ -102,11 +102,11 @@ describe('The ID5 API', function() {
 
   beforeEach(async () => {
     // The API under test
-    await server.get('https://cdn.id5-sync.com/api/integration/id5-api.js')
+    await server.forGet('https://cdn.id5-sync.com/api/integration/id5-api.js')
       .thenFromFile(200, ID5_API_JS_FILE);
-    await server.get('https://cdn.id5-sync.com/api/integration/esp.js')
+    await server.forGet('https://cdn.id5-sync.com/api/integration/esp.js')
       .thenFromFile(200, ID5_ESP_JS_FILE);
-    await server.get('/favicon.ico').thenReply(204);
+    await server.forGet('/favicon.ico').thenReply(204);
     await startBrowser();
   });
 
@@ -117,8 +117,11 @@ describe('The ID5 API', function() {
   describe('when included directly in the publishers page', function() {
     beforeEach(async () => {
       const TEST_PAGE_PATH = path.join(SCRIPT_DIR, 'integration.html');
-      await server.get('https://my-publisher-website.net')
+      await server.forGet('https://my-publisher-website.net')
         .thenFromFile(200, TEST_PAGE_PATH);
+      const TEST_REFERER_PAGE_PATH = path.join(SCRIPT_DIR, 'referer.html');
+      await server.forGet('https://referer-page.com')
+        .thenFromFile(200, TEST_REFERER_PAGE_PATH);
     });
 
     afterEach(async () => {
@@ -126,16 +129,16 @@ describe('The ID5 API', function() {
     });
 
     it('can succesfully retrieve an ID, store in browser and fire callback', async () => {
-      const mockId5 = await server.post('https://id5-sync.com/g/v2/99.json')
+      const mockId5 = await server.forPost('https://id5-sync.com/g/v2/99.json')
         .thenJson(200, MOCK_FETCH_RESPONSE, MOCK_CORS_HEADERS);
-      const mockLbEndpoint = await server.get('https://lb.eu-1-id5-sync.com/lb/v1')
+      const mockLbEndpoint = await server.forGet('https://lb.eu-1-id5-sync.com/lb/v1')
         .thenJson(200, MOCK_LB_RESPONSE, MOCK_CORS_HEADERS);
-      const mockLbsEndpoint = await server.get('https://lbs.eu-1-id5-sync.com/lbs/v1')
+      const mockLbsEndpoint = await server.forGet('https://lbs.eu-1-id5-sync.com/lbs/v1')
         .thenJson(200, MOCK_LBS_RESPONSE, MOCK_CORS_HEADERS);
-      const mockDummyImage = await server.get('https://dummyimage.com/600x200')
+      const mockDummyImage = await server.forGet('https://dummyimage.com/600x200')
         .thenReply(200, '');
       const page = await browser.newPage();
-      await page.goto('https://my-publisher-website.net');
+      await page.goto('https://referer-page.com');
       await page.waitForSelector('p#done');
 
       const id5FetchRequests = await mockId5.getSeenRequests();
@@ -145,7 +148,7 @@ describe('The ID5 API', function() {
       const lbsRequests = await mockLbsEndpoint.getSeenRequests();
       expect(lbsRequests).to.have.lengthOf(1);
 
-      const requestBody = id5FetchRequests[0].body.json;
+      const requestBody = await id5FetchRequests[0].body.getJson();
       expect(requestBody.partner).to.equal(99); // from integration.html
       expect(requestBody.v).to.equal(version);
       expect(requestBody.id5cdn).to.equal(true);
@@ -153,7 +156,9 @@ describe('The ID5 API', function() {
       expect(requestBody.localStorage).to.equal(1);
       expect(requestBody.o).to.equal('api');
       expect(requestBody.u).to.equal('https://my-publisher-website.net/');
-      expect(requestBody.rf).to.equal('https://my-publisher-website.net/');
+      expect(requestBody.tml).to.equal('https://my-publisher-website.net/');
+      expect(requestBody.cu).to.equal('https://www.id5.io/');
+      expect(requestBody.ref).to.equal('https://referer-page.com/');
       expect(requestBody.segments).to.deep.equal([{ destination: '22', ids: ['abc'] }]);
       expect(requestBody.ua).to.be.a('string');
       expect(requestBody.extensions.lb).to.equal('LB_DATA'); // from MOCK_LB_RESPONSE
@@ -203,8 +208,8 @@ describe('The ID5 API', function() {
     beforeEach(async () => {
       const TEST_PAGE_PATH = path.join(SCRIPT_DIR, 'nonFriendlyIframeTop.html');
       const TEST_IFRAME_PATH = path.join(SCRIPT_DIR, 'nonFriendlyIframeContent.html');
-      await server.get('https://my-iframe-website.net').thenFromFile(200, TEST_PAGE_PATH);
-      await server.get('https://non-friendly-stuff.com').thenFromFile(200, TEST_IFRAME_PATH);
+      await server.forGet('https://my-iframe-website.net').thenFromFile(200, TEST_PAGE_PATH);
+      await server.forGet('https://non-friendly-stuff.com').thenFromFile(200, TEST_IFRAME_PATH);
     });
 
     afterEach(async () => {
@@ -212,9 +217,9 @@ describe('The ID5 API', function() {
     });
 
     it('reports it cannot use localStorage but detects referrer', async () => {
-      const mockId5 = await server.post('https://id5-sync.com/g/v2/99.json')
+      const mockId5 = await server.forPost('https://id5-sync.com/g/v2/99.json')
         .thenJson(200, MOCK_FETCH_RESPONSE, NON_FRIENDLY_MOCK_CORS_HEADERS);
-      await server.get('https://dummyimage.com/600x200').thenReply(200, '');
+      await server.forGet('https://dummyimage.com/600x200').thenReply(200, '');
       const page = await browser.newPage();
       await page.goto('https://my-iframe-website.net');
       const frame = page.mainFrame().childFrames()[0];
@@ -225,10 +230,10 @@ describe('The ID5 API', function() {
       const id5SyncRequests = await mockId5.getSeenRequests();
       expect(id5SyncRequests).to.have.lengthOf(1);
 
-      const requestBody = id5SyncRequests[0].body.json;
+      const requestBody = await id5SyncRequests[0].body.getJson();
       expect(requestBody.top).to.equal(1);
       expect(requestBody.localStorage).to.equal(0);
-      expect(requestBody.rf).to.equal('https://my-iframe-website.net/');
+      expect(requestBody.tml).to.equal('https://my-iframe-website.net/');
 
       // Check there is no id5 stuff in the iframe local storage
       const id5idRaw = await frame.evaluate(() => localStorage.getItem('id5id'));
@@ -243,9 +248,9 @@ describe('The ID5 API', function() {
 
     it('can integrate succesfully with google ESP', async () => {
       const TEST_PAGE_PATH = path.join(SCRIPT_DIR, 'esp.html');
-      await server.get('https://my-publisher-website.net')
+      await server.forGet('https://my-publisher-website.net')
         .thenFromFile(200, TEST_PAGE_PATH);
-      const mockId5 = await server.post('https://id5-sync.com/g/v2/99.json')
+      const mockId5 = await server.forPost('https://id5-sync.com/g/v2/99.json')
         .thenJson(200, MOCK_FETCH_RESPONSE, MOCK_CORS_HEADERS);
       const page = await browser.newPage();
       await page.goto('https://my-publisher-website.net');
@@ -260,9 +265,9 @@ describe('The ID5 API', function() {
 
     it('calls the API endpoint to increment metrics if no config detected', async () => {
       const TEST_PAGE_PATH = path.join(SCRIPT_DIR, 'esp_no_config.html');
-      await server.get('https://my-publisher-website.net')
+      await server.forGet('https://my-publisher-website.net')
         .thenFromFile(200, TEST_PAGE_PATH);
-      const mockId5 = await server.get('https://id5-sync.com/api/esp/increment')
+      const mockId5 = await server.forGet('https://id5-sync.com/api/esp/increment')
         .thenReply(204, undefined, MOCK_CORS_HEADERS);
       const page = await browser.newPage();
       await page.goto('https://my-publisher-website.net');
