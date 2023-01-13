@@ -149,7 +149,7 @@ describe('ID5 JS API', function () {
             expect(requestData.o).to.be.equal('api');
             expect(requestData.v).to.be.equal(version);
             expect(requestData.pd).to.be.undefined;
-            expect(requestData.rf).to.include('http://localhost');
+            expect(requestData.tml).to.include('http://localhost');
             expect(requestData.top).to.be.equal(1);
             expect(requestData.gdpr).to.exist;
             expect(requestData.gdpr_consent).to.be.undefined;
@@ -1058,7 +1058,8 @@ describe('ID5 JS API', function () {
             expect(requestData.o).to.be.equal('api');
             expect(requestData.v).to.be.equal(version);
             expect(requestData.pd).to.be.undefined;
-            expect(requestData.rf).to.include('http://localhost');
+            expect(requestData.ref).to.be.null;
+            expect(requestData.tml).to.include('http://localhost');
             expect(requestData.top).to.be.equal(1);
             expect(requestData.gdpr).to.exist;
             expect(requestData.gdpr_consent).to.be.undefined;

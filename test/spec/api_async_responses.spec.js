@@ -1158,7 +1158,7 @@ describe('Async Responses', function () {
         clock.tick(LONG_TIMEOUT);
       });
 
-      it.only('should set the cached response before invoking "onAvailable"', function (done) {
+      it('should set the cached response before invoking "onAvailable"', function (done) {
         var status = ID5.init({
           ...defaultInitBypassConsent()
         }).onAvailable(function (id5Status) {

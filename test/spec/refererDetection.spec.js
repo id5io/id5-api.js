@@ -18,7 +18,7 @@ const mocks = {
 };
 
 describe('referer detection', () => {
-  it('should return referer details in nested friendly iframes', function() {
+  it('should return topmostLocation details in nested friendly iframes', function() {
     // Fake window object to test friendly iframes
     // - Main page http://example.com/page.html
     // - - Iframe1 http://example.com/iframe1.html
@@ -40,7 +40,8 @@ describe('referer detection', () => {
     const getRefererInfo = detectReferer(mockIframe2WinObject);
     let result = getRefererInfo();
     let expectedResult = {
-      referer: 'http://example.com/page.html',
+      ref: 'http://example.com/page.html',
+      topmostLocation: 'http://example.com/page.html',
       reachedTop: true,
       numIframes: 2,
       stack: [
@@ -53,7 +54,7 @@ describe('referer detection', () => {
     expect(result).to.deep.equal(expectedResult);
   });
 
-  it('should return referer details in nested cross domain iframes', function() {
+  it('should return topmostLocation details in nested cross domain iframes', function() {
     // Fake window object to test cross domain iframes.
     // - Main page http://example.com/page.html
     // - - Iframe1 http://aaa.com/iframe1.html
@@ -72,7 +73,8 @@ describe('referer detection', () => {
     const getRefererInfo = detectReferer(mockIframe2WinObject);
     let result = getRefererInfo();
     let expectedResult = {
-      referer: 'http://aaa.com/iframe1.html',
+      topmostLocation: 'http://aaa.com/iframe1.html',
+      ref: null,
       reachedTop: false,
       numIframes: 2,
       stack: [
