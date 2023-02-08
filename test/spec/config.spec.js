@@ -153,6 +153,27 @@ describe('config API', function () {
     expect(config.getOptions().blah).to.be.undefined;
   });
 
+  it('allows partnerId to be a string', function() {
+    const config = new Config(0, { partnerId: "44" });
+    expect(config.getProvidedOptions().partnerId).to.equal("44");
+    expect(config.getOptions().partnerId).to.equal(44);
+  });
+
+  [
+    'not an int',
+    '-13',
+    '76.223',
+    {},
+    [],
+    () => {}
+  ].forEach((partnerId) => {
+    it('does not allow partnerId to be an invalid value', function() {
+      expect(() => {
+        const config = new Config(0, { partnerId });
+      }).to.throw;
+    });
+  });
+
   describe('Set and Get Config', function () {
     it('should have user-defined config and final config available', function () {
       const config = new Config(0, { partnerId: 44, debugBypassConsent: true, refreshInSeconds: 10 });
@@ -167,7 +188,7 @@ describe('config API', function () {
       expect(config.getOptions().refreshInSeconds).to.be.equal(10);
     });
 
-    it('should update providedConfig and config with setConfig()', function () {
+    it('should update providedConfig and config with updOptions()', function () {
       const config = new Config(0, { partnerId: 44, debugBypassConsent: true });
       expect(config.getOptions().pd).to.be.undefined;
 
@@ -175,6 +196,14 @@ describe('config API', function () {
 
       expect(config.getOptions().pd).to.be.equal('newpd');
       expect(config.getProvidedOptions().pd).to.be.equal('newpd');
+    });
+
+    it('should disallow to update partner ID', function () {
+      expect(() => {
+        const config = new Config(0, { partnerId: 44, debugBypassConsent: true });
+        config.updOptions({ partnerId: 55 });
+
+      }).to.throw;
     });
   });
 
