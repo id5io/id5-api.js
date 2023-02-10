@@ -8,7 +8,6 @@ export const ID5_FETCH_ENDPOINT = `https://id5-sync.com/g/v2/${TEST_ID5_PARTNER_
 export const ID5_CALL_ENDPOINT = `https://id5-sync.com/i/${TEST_ID5_PARTNER_ID}`;
 export const ID5_SYNC_ENDPOINT = `https://id5-sync.com/s/${TEST_ID5_PARTNER_ID}`;
 export const ID5_LB_ENDPOINT = `https://lb.eu-1-id5-sync.com/lb/v1`;
-export const ID5_LBS_ENDPOINT = `https://lbs.eu-1-id5-sync.com/lbs/v1`;
 
 export const AJAX_RESPONSE_MS = 20;
 export const CALLBACK_TIMEOUT_MS = 30;
@@ -112,7 +111,6 @@ export const JSON_RESPONSE_NO_ID5_CONSENT = JSON.stringify({
 
 export const DEFAULT_EXTENSIONS = {
   lb: 'lbValue',
-  lbs: 'lbsValue',
   lbCDN: '%%LB_CDN%%'
 }
 
