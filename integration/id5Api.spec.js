@@ -44,10 +44,6 @@ const MOCK_LB_RESPONSE = {
   'lb': 'LB_DATA'
 };
 
-const MOCK_LBS_RESPONSE = {
-  'lbs': 'LBS_DATA'
-};
-
 // Note: do not use lambda syntax in describes. https://mochajs.org/#arrow-functions
 describe('The ID5 API', function() {
   let browser, server, CONSTANTS, profileDir, caFingerprint;
@@ -133,8 +129,6 @@ describe('The ID5 API', function() {
         .thenJson(200, MOCK_FETCH_RESPONSE, MOCK_CORS_HEADERS);
       const mockLbEndpoint = await server.forGet('https://lb.eu-1-id5-sync.com/lb/v1')
         .thenJson(200, MOCK_LB_RESPONSE, MOCK_CORS_HEADERS);
-      const mockLbsEndpoint = await server.forGet('https://lbs.eu-1-id5-sync.com/lbs/v1')
-        .thenJson(200, MOCK_LBS_RESPONSE, MOCK_CORS_HEADERS);
       const mockDummyImage = await server.forGet('https://dummyimage.com/600x200')
         .thenReply(200, '');
       const page = await browser.newPage();
@@ -145,8 +139,6 @@ describe('The ID5 API', function() {
       expect(id5FetchRequests).to.have.lengthOf(1);
       const lbRequests = await mockLbEndpoint.getSeenRequests();
       expect(lbRequests).to.have.lengthOf(1);
-      const lbsRequests = await mockLbsEndpoint.getSeenRequests();
-      expect(lbsRequests).to.have.lengthOf(1);
 
       const requestBody = await id5FetchRequests[0].body.getJson();
       expect(requestBody.partner).to.equal(99); // from integration.html
@@ -162,7 +154,6 @@ describe('The ID5 API', function() {
       expect(requestBody.segments).to.deep.equal([{ destination: '22', ids: ['abc'] }]);
       expect(requestBody.ua).to.be.a('string');
       expect(requestBody.extensions.lb).to.equal('LB_DATA'); // from MOCK_LB_RESPONSE
-      expect(requestBody.extensions.lbs).to.equal('LBS_DATA'); // from MOCK_LBS_RESPONSE
       expect(requestBody.extensions.lbCDN).to.equal('%%LB_CDN%%'); // lbCDN substitution macro
 
       // from integration.html
