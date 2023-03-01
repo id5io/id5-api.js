@@ -1,6 +1,6 @@
 import sinon from 'sinon';
 import CONSTANTS from '../../lib/constants.json'
-import { LiveIntentApi } from '../../lib/liveIntentApi';
+import { LiveIntentApi } from '../../lib/liveIntentApi.js';
 import {StorageConfig} from "../../lib/config.js";
 
 const chai = require('chai');
