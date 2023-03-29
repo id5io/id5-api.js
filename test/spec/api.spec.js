@@ -170,7 +170,7 @@ describe('ID5 JS API', function () {
           });
         });
 
-        it('should have specified values on the request', function (done) {
+        it('should have specified values from config object on the request', function (done) {
           const id5Status = ID5.init({...defaultInitBypassConsent(), att: 1});
 
           id5Status.onAvailable(function () {
