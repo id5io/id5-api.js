@@ -1,6 +1,6 @@
 {
   "name": "@id5io/id5-api.js",
-  "version": "1.0.31",
+  "version": "1.0.31-pre",
   "description": "The ID5 API is designed to make accessing the ID5 Universal ID simple for publishers, advertisers, and their ad tech vendors. The ID5 Universal ID is a shared, neutral identifier that publishers, advertisers, and ad tech platforms can use to recognise users even in environments where 3rd party cookies are not available. For more information, visit https://id5.io/universal-id.",
   "homepage": "https://id5.io/",
   "exports": "./lib/id5-api.js",
