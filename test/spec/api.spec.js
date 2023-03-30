@@ -170,6 +170,21 @@ describe('ID5 JS API', function () {
           });
         });
 
+        it('should have specified values from config object on the request', function (done) {
+          const id5Status = ID5.init({...defaultInitBypassConsent(), att: 1});
+
+          id5Status.onAvailable(function () {
+            sinon.assert.calledOnce(extensionsStub);
+            sinon.assert.calledOnce(ajaxStub);
+            expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
+
+            const requestData = JSON.parse(ajaxStub.firstCall.args[2]);
+            expect(requestData.att).to.be.equal(1);
+
+            done();
+          });
+        });
+
         it('should drop some erratic segments and inform server-side about the dropping', function (done) {
           const id5Status = ID5.init({
             ...defaultInitBypassConsent(),
