@@ -35,7 +35,7 @@ import {
   TEST_RESPONSE_LINK_TYPE_NO_CONSENT,
   TEST_SEGMENT_STORAGE_CONFIG,
   TEST_STORED_ID5ID,
-  TEST_STORED_LINK_TYPE
+  TEST_STORED_LINK_TYPE, TEST_STORED_SIGNATURE
 } from './test_utils';
 import {StorageConfig} from "../../lib/config.js";
 import EXTENSIONS from "../../lib/extensions.js";
@@ -410,6 +410,40 @@ describe('ID5 JS API', function () {
             expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
             expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
             expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
+            const requestData = JSON.parse(ajaxStub.firstCall.args[2]);
+            expect(requestData.used_refresh_in_seconds).to.be.eq(10);
+            expect(requestData.provided_options.refresh_in_seconds).to.be.eq(10);
+            done();
+          });
+        });
+
+
+        it('should request new value if stored older than cache max age from response ', function (done) {
+          localStorage.setItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG, encodeURIComponent(JSON.stringify({
+            universal_uid: TEST_STORED_ID5ID,
+            cascade_needed: false,
+            signature: TEST_STORED_SIGNATURE,
+            link_type: TEST_STORED_LINK_TYPE,
+            privacy: JSON.parse(TEST_PRIVACY_ALLOWED),
+            cache_control: {
+              max_age_sec: 11
+            }
+          })));
+          localStorage.setItemWithExpiration(TEST_LAST_STORAGE_CONFIG, new Date(Date.now() - (8000 * 1000)).toUTCString());
+
+          const id5Status = ID5.init({
+            ...defaultInitBypassConsent()
+          });
+
+          id5Status.onAvailable(function () {
+            sinon.assert.calledOnce(extensionsStub);
+            sinon.assert.calledOnce(ajaxStub);
+            expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
+            expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
+            expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
+            const requestData = JSON.parse(ajaxStub.firstCall.args[2]);
+            expect(requestData.used_refresh_in_seconds).to.be.eq(11);
+            expect(requestData.provided_options.refresh_in_seconds).to.be.eq(undefined);
             done();
           });
         });

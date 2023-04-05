@@ -16,6 +16,7 @@ import {
   localStorage,
   DEFAULT_EXTENSIONS
 } from './test_utils';
+import {expect} from "chai";
 
 describe('Refresh ID Fetch Handling', function () {
   let ajaxStub;
@@ -98,6 +99,10 @@ describe('Refresh ID Fetch Handling', function () {
         sinon.assert.calledOnce(ajaxStub);
         expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
 
+        const requestData = JSON.parse(ajaxStub.firstCall.args[2]);
+        expect(requestData.used_refresh_in_seconds).to.be.eq(50);
+        expect(requestData.provided_options.refresh_in_seconds).to.be.eq(50);
+
         extensionsStub.resetHistory();
         ajaxStub.restore();
         ajaxStub = sinon.stub(utils, 'ajax').callsFake(function (url, callbacks, data, options) {
@@ -122,6 +127,9 @@ describe('Refresh ID Fetch Handling', function () {
         sinon.assert.calledOnce(extensionsStub);
         sinon.assert.calledOnce(ajaxStub);
         expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
+        const requestData = JSON.parse(ajaxStub.firstCall.args[2]);
+        expect(requestData.provided_options.refresh_in_seconds).to.be.eq(undefined);
+        expect(requestData.used_refresh_in_seconds).to.be.eq(7200);
 
         extensionsStub.resetHistory();
         ajaxStub.restore();
