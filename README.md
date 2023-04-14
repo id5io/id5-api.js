@@ -121,7 +121,7 @@ Here is an example of how integrating the ES6 module might look like:
 ```javascript
 import ID5 from '@id5io/id5-api.js'
 
-const id5Status = ID5.init({ partner: 173 });
+const id5Status = ID5.init({ partnerId: 173 });
 id5Status.onAvailable((status) => {
     console.log(status.getUserId());
 });
@@ -279,7 +279,7 @@ This object can contain one of the following properties:
 Note that in case `cmpApi` is `'static'` and the `consentData` object is either undefined or empty, the request is treated as not restricted by any privacy law until the ID5 server determines that the request is subject to restrictions. In such a case, not having received any consent information, the request will be treated as non-consented.
 
 #### Static Consent Example
-Here's an example of using a static `tcString` to share the consent preferences. We will use the static `tcString` the same way we would use one collected from the `cmpApi`. 
+Here's an example of using a static `tcString` to share the consent preferences. We will use the static `tcString` the same way we would use one collected from the `cmpApi`.
 ```javascript
     var id5Status = ID5.init({
         partnerId: 173, // modify with your own partnerId
