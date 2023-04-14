@@ -29,6 +29,7 @@ The ID5 API is designed to make accessing the ID5 ID simple for publishers, adve
     - [Access the ID5 ID](#access-the-id5-id)
     - [Available Configuration Options](#available-configuration-options)
       - [consentData Object](#consentdata-object)
+      - [Static Consent Example](#static-consent-example)
       - [Allowed Vendors Example](#allowed-vendors-example)
       - [PD Example](#pd-example)
       - [A/B Testing](#ab-testing)
@@ -276,6 +277,22 @@ This object can contain one of the following properties:
   - the ID5 partner ID in the form "ID5-xxx" with xxx being the ID. Eg. "ID5-478" (ask your ID5 representative if you'd like to use this method)
 
 Note that in case `cmpApi` is `'static'` and the `consentData` object is either undefined or empty, the request is treated as not restricted by any privacy law until the ID5 server determines that the request is subject to restrictions. In such a case, not having received any consent information, the request will be treated as non-consented.
+
+#### Static Consent Example
+Here's an example of using a static `tcString` to share the consent preferences. We will use the static `tcString` the same way we would use one collected from the `cmpApi`. 
+```javascript
+    var id5Status = ID5.init({
+        partnerId: 173, // modify with your own partnerId
+        refreshInSeconds: 15,
+        cmpApi: 'static',
+        consentData: {
+            getTCData: {
+                gdprApplies: true,
+                tcString: "CPBZjR9PBZjR9AKAZAENBMCsAP_AAH_AAAqIHWtf_X_fb39j-_59_9t0eY1f9_7_v-0zjhfds-8Nyf_X_L8X42M7vF36pq4KuR4Eu3LBIQFlHOHUTUmw6okVrTPsak2Mr7NKJ7LEinMbe2dYGHtfn9VTuZKYr97s___z__-__v__79f_r-3_3_vp9X---_e_V3dgdYASYal8BFmJY4Ek0aVQogQhXEh0AoAKKEYWiawgJXBTsrgI9QQMAEBqAjAiBBiCjFgEAAAAASURASAHggEQBEAgABACpAQgAIkAQWAFgYBAAKAaFgBFAEIEhBkcFRymBARItFBPJWAJRd7GGEIZRYAUCj-iowEAAAAA.cAAAAAAAAAAA",
+            }
+        }
+    });
+```
 
 #### Allowed Vendors Example
 Here's an example of using Allowed Vendors to share that consent was received for ID5 (GVL ID `131`), a platform with GVL ID `3`, and a brand with ID5 partner number `5`:
