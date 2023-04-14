@@ -120,7 +120,7 @@ Here is an example of how integrating the ES6 module might look like:
 ```javascript
 import ID5 from '@id5io/id5-api.js'
 
-const id5Status = ID5.init({ partner: 173 });
+const id5Status = ID5.init({ partnerId: 173 });
 id5Status.onAvailable((status) => {
     console.log(status.getUserId());
 });
