@@ -165,7 +165,6 @@ describe('A/B Testing', function () {
         atype: 1,
         id: '0',
         ext: {
-          linkType: 0,
           abTestingControlGroup: true
         }
       }]
