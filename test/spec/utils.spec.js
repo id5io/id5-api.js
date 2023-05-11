@@ -298,4 +298,93 @@ describe('Utils', function () {
       }, 100);
     });
   });
+
+  describe('deepEqual', () => {
+    it('should return true for equal objects', () => {
+      const obj1 = {
+        name: 'John',
+        age: 30,
+        address: {
+          street: '123 Main St',
+        },
+        hobbies: ['swimming']
+      };
+      const obj2 = {
+        name: 'John',
+        age: 30,
+        address: {
+          street: '123 Main St',
+        },
+        hobbies: ['swimming']
+      };
+      expect(utils.deepEqual(obj1, obj2)).to.be.true;
+    });
+
+    it('should return false for objects with different properties', () => {
+      const obj1 = {
+        name: 'John1',
+        age: 30,
+      };
+      const obj2 = {
+        name: 'John2',
+        age: 30,
+      };
+      expect(utils.deepEqual(obj1, obj2)).to.be.false;
+    });
+
+    it('should return false for objects with different nested properties', () => {
+      const obj1 = {
+        address: {
+          street: '123 Main St',
+        },
+      };
+      const obj2 = {
+        address: {
+          street: '123 Other St',
+        },
+      };
+      expect(utils.deepEqual(obj1, obj2)).to.be.false;
+    });
+
+    it('should return true for null objects', () => {
+      const obj1 = null;
+      const obj2 = null;
+      expect(utils.deepEqual(obj1, obj2)).to.be.true;
+    });
+
+    it('should return true for objects with null values', () => {
+      const obj1 = {
+        age: null
+      };
+      const obj2 = {
+        age: null
+      };
+      expect(utils.deepEqual(obj1, obj2)).to.be.true;
+    });
+
+    it('should return true for objects with different property order', () => {
+      const obj1 = {
+        name: 'John',
+        age: 30,
+      };
+      const obj2 = {
+        age: 30,
+        name: 'John',
+      };
+      expect(utils.deepEqual(obj1, obj2)).to.be.true;
+    });
+
+    it('should return false for objects with different property set', () => {
+      const obj1 = {
+        name: 'John',
+        age: 30,
+      };
+      const obj2 = {
+        age: 30,
+        name: 'John',
+        surname: 'Doe',
+      };
+      expect(utils.deepEqual(obj1, obj2)).to.be.false;
+    });
+  });
 });
