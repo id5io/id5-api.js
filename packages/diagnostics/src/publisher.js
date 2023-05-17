@@ -28,7 +28,7 @@ export class MeasurementsPublisher {
       return globalThis.fetch(this.url, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'text/plain'
         },
         body: JSON.stringify({
           measurements: measurements
