@@ -7,6 +7,8 @@ import {Counter, Summary, Timer} from '../../src/meters.js';
 chai.should();
 chai.use(sinonChai);
 
+const GLOBAL_THIS = typeof global !== 'undefined' ? global : window
+
 const NAME_A = 'a.b.c';
 const NAME_B = 'd.c.e';
 const TAGS = {
@@ -368,7 +370,7 @@ describe('Registry', function () {
 
     // given
     let meterRegistry = new MeterRegistry();
-    let setTimeoutStub = sinon.stub(globalThis, 'setTimeout');
+    let setTimeoutStub = sinon.stub(GLOBAL_THIS, 'setTimeout');
 
     try {
       // when
