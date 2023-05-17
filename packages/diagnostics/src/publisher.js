@@ -30,6 +30,7 @@ export class MeasurementsPublisher {
         headers: {
           'Content-Type': 'text/plain'
         },
+        mode: 'no-cors',
         body: JSON.stringify({
           measurements: measurements
         })
