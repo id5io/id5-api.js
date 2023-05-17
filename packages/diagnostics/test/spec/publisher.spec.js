@@ -79,7 +79,7 @@ describe('Publisher', function () {
     return publisher.publish(measurements).then(() => {
       fetchStub.should.have.been.calledWith(URL, {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'},
+        headers: {'Content-Type': 'text/plain'},
         body: '{"measurements":[' +
           '{"name":"a.b.c","type":"TIMER","tags":{"a":"A"},"values":[{"value":0.1,"timestamp":1},{"value":0.2,"timestamp":2}]},' +
           '{"name":"tags.to.stringify","type":"COUNTER","tags":{"b":"1","y":"{\\"s\\":2}"},"values":[{"value":10.1,"timestamp":1},{"value":20.2,"timestamp":2}]}' +
