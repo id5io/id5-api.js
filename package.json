@@ -107,6 +107,7 @@
     "test": "test"
   },
   "dependencies": {
+    "@id5io/diagnostics": "*",
     "promise-polyfill": "^8.2.3"
   },
   "workspaces": [
