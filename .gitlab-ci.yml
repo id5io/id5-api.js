@@ -5,7 +5,7 @@ variables:
   CACHE_FALLBACK_KEY: master
 
 build:
-  image: registry.gitlab.com/id5-sync/infrastructure/ci-image-node-google-chrome:16.2.0-102.0.5005.61-1
+  image: registry.gitlab.com/id5-sync/infrastructure/ci-image-node-google-chrome:id-7570-node-18.4-ci-docker-image
   stage: build
   script:
     - npm install --global gulp-cli
