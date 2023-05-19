@@ -1,6 +1,10 @@
-import {Counter, MeterType, Summary, Timer} from '../../src/meters.js';
+import {Counter, MeterType, Summary, TimeMeasurement, Timer} from '../../src/meters.js';
 import sinon from 'sinon';
-import {expect} from 'chai';
+import chai, {expect} from 'chai';
+import sinonChai from "sinon-chai";
+
+chai.should();
+chai.use(sinonChai);
 
 describe('Meters', function () {
   let perfNowStub;
@@ -17,6 +21,42 @@ describe('Meters', function () {
     dateStub.restore();
   });
 
+  describe('TimeMeasurement', function (){
+
+    it('should measure elapsed ms time and record', function () {
+      // given
+
+      let timer = new Timer('name');
+      let recordStub = sinon.stub(timer, 'record');
+
+      // when
+      perfNowStub.returns(123.234);
+      let tm = new TimeMeasurement(timer);
+      perfNowStub.returns(234.872);
+      let elapsedTime = tm.record();
+
+      // then
+      elapsedTime.should.be.eq(111); // 234 - 123
+      recordStub.should.be.calledWith(elapsedTime);
+    });
+
+    it('should measure elapsed ms time and record in provided timer', function () {
+      // given
+      let timer = new Timer('name');
+      let recordStub = sinon.stub(timer, 'record');
+
+      // when
+      perfNowStub.returns(123.234);
+      let tm = new TimeMeasurement();
+      perfNowStub.returns(234.872);
+      let elapsedTime = tm.record(timer);
+
+      // then
+      elapsedTime.should.be.eq(111); // 234 - 123
+      recordStub.should.be.calledWith(elapsedTime);
+    });
+
+  });
   describe('Timer', function () {
     it('should create timer', function () {
       // when
@@ -65,7 +105,7 @@ describe('Meters', function () {
       // when
       let endTime = 10.876542;
       perfNowStub.returns(endTime);
-      timerMeasure.stop();
+      timerMeasure.record();
 
       // then
       expect(timer.values).is.deep.equal([{

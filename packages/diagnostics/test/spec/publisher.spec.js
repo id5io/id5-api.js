@@ -7,6 +7,7 @@ chai.should();
 chai.use(sinonChai);
 
 const URL = 'http://measurements.url';
+
 describe('Publisher', function () {
   let fetchStub;
   let publisher;
