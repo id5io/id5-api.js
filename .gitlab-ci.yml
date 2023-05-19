@@ -10,8 +10,7 @@ build:
   script:
     - npm install --global gulp-cli
     - npm ci
-    - npm run build --workspaces
-    - npm run build
+    - npm run build:all
   artifacts:
     paths:
       - build/

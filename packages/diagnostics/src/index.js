@@ -25,6 +25,10 @@ export class Id5CommonTags {
   }
 }
 
+export function startTimeMeasurement() {
+  return new TimeMeasurement();
+}
+
 export class Id5CommonMetrics {
   /**
    * @type {MeterRegistry}
@@ -39,16 +43,23 @@ export class Id5CommonMetrics {
     return this.timer('id5.api.instance.load.delay', tags);
   }
 
-  fetchCallTime(tags = {}) {
-    return this.timer('id5.api.fetch.call.time', tags);
+  fetchCallTime(status, tags = {}) {
+    return this.timer('id5.api.fetch.call.time', {
+      status: status,
+      ...tags
+    });
+  }
+
+  fetchFailureCallTime(tags = {}) {
+    return this.fetchCallTime('fail', tags);
+  }
+
+  fetchSuccessfulCallTime(tags = {}) {
+    return this.fetchCallTime('success', tags);
   }
 
   extensionsCallTime(tags = {}) {
     return this.timer('id5.api.extensions.call.time', tags);
-  }
-
-  fetchErrorCount(tags = {}) {
-    return this.counter('id5.api.fetch.error.count', tags);
   }
 
   consentRequestTime(requestType, tags = {}) {
