@@ -60,7 +60,7 @@ export class MeterRegistry {
    * @return {Array<Measurement>}
    */
   getAllMeasurements() {
-    return Array.from(this.registry, ([k, meter]) => ({
+    return Array.from(this.registry, ([_, meter]) => ({
       name: meter.name,
       type: meter.type,
       tags: meter.tags,
@@ -70,12 +70,14 @@ export class MeterRegistry {
     });
   }
 
+  /**
+   * Resets all already collected measurements for each meter registered
+   */
   reset() {
-    this.registry.forEach((value, key) => value.reset());
+    this.registry.forEach((value, _) => value.reset());
   }
 
   /**
-   *
    * @param {object} commonTags - tags to add
    */
   addCommonTags(commonTags) {
@@ -115,10 +117,8 @@ export class MeterRegistry {
    */
   publish(publisher = m => m) {
     return Promise.resolve(this.getAllMeasurements())
-      .then(measurements => {
-        this.reset();
-        return publisher(measurements);
-      });
+      .then(publisher)
+      .then((_) => this.reset());
   }
 
   /**

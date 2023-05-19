@@ -7,15 +7,14 @@ chai.should();
 chai.use(sinonChai);
 
 const URL = 'http://measurements.url';
-const GLOBAL_THIS = (typeof global !== 'undefined') ? global : window;
 
 describe('Publisher', function () {
   let fetchStub;
   let publisher;
 
   beforeEach(function () {
-    fetchStub = sinon.stub(GLOBAL_THIS, 'fetch');
-    fetchStub.returns(Promise.resolve(new GLOBAL_THIS.Response(null, {
+    fetchStub = sinon.stub(globalThis, 'fetch');
+    fetchStub.returns(Promise.resolve(new globalThis.Response(null, {
       status: 202
     })));
     publisher = new MeasurementsPublisher(URL);

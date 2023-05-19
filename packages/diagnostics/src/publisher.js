@@ -1,9 +1,7 @@
 
 const DEFAULT_URL = 'https://diagnostics.id5-sync.com/measurements';
 
-const GLOBAL_THIS = (typeof global !== 'undefined') ? global : window;
-
-export const IS_PUBLISHING_SUPPORTED = GLOBAL_THIS !== undefined && GLOBAL_THIS.Promise !== undefined && GLOBAL_THIS.fetch !== undefined;
+export const IS_PUBLISHING_SUPPORTED = typeof Promise !== 'undefined' && typeof fetch !== 'undefined';
 
 export class MeasurementsPublisher {
   constructor(url) {
@@ -26,7 +24,7 @@ export class MeasurementsPublisher {
 
     if (measurements && measurements.length > 0) {
       measurements.forEach(measurement => stringifyTags(measurement.tags));
-      return GLOBAL_THIS.fetch(this.url, {
+      return fetch(this.url, {
         method: 'POST',
         headers: {
           'Content-Type': 'text/plain'

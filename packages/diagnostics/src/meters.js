@@ -66,15 +66,19 @@ export class Timer extends Meter {
 }
 
 export class TimeMeasurement {
-  constructor(timer) {
+  constructor(timer = undefined) {
     this.timer = timer;
     this.startTime = performance.now();
   }
 
-  stop() {
+  record(timer = undefined) {
     let endTime = performance.now();
     let durationMillis = (endTime - this.startTime) | 0;
-    this.timer.record(durationMillis);
+    let meterToRecord = timer || this.timer;
+    if (meterToRecord) {
+      meterToRecord.record(durationMillis);
+    }
+    return durationMillis;
   }
 }
 

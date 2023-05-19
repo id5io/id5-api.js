@@ -46,7 +46,7 @@ describe('Diagnostics', function () {
 
     let timeMeasure = timer.startMeasurement();
     await sleepMs(10);
-    timeMeasure.stop();
+    timeMeasure.record();
 
     // counter
     counter.inc();
@@ -144,6 +144,6 @@ describe('Diagnostics', function () {
   });
 
   function sleepMs(ms) {
-    return new Promise((resolve, reject) => setTimeout(resolve, ms));
+    return new Promise((resolve, _) => setTimeout(resolve, ms));
   }
 });
