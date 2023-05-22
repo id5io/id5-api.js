@@ -18,18 +18,17 @@ export function startTimeMeasurement() {
 }
 
 export function partnerTag(partnerId) {
-  return {partner: partnerId}
+  return {partner: partnerId};
 }
 
 export class Id5CommonMetrics extends MeterRegistry {
-
   constructor(source, version, partnerId = undefined, tags = undefined) {
     super({
       source: source,
       version: version,
       ...partnerTag(partnerId),
       ...tags
-    })
+    });
   }
 
   loadDelayTimer(tags = {}) {
