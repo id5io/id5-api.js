@@ -13,72 +13,53 @@ export function createPublisher(sampleRate, url) {
   };
 }
 
-export class Id5CommonTags {
-  source;
-  partner;
-  version;
-
-  constructor(source, version, partner = undefined) {
-    this.source = source;
-    this.version = version;
-    this.partner = partner;
-  }
-}
-
 export function startTimeMeasurement() {
   return new TimeMeasurement();
 }
 
-export class Id5CommonMetrics {
-  /**
-   * @type {MeterRegistry}
-   */
-  registry;
+export function partnerTag(partnerId) {
+  return {partner: partnerId}
+}
 
-  constructor(registry) {
-    this.registry = registry;
+export class Id5CommonMetrics extends MeterRegistry {
+
+  constructor(source, version, partnerId = undefined, tags = undefined) {
+    super({
+      source: source,
+      version: version,
+      ...partnerTag(partnerId),
+      ...tags
+    })
   }
 
-  loadDelay(tags = {}) {
+  loadDelayTimer(tags = {}) {
     return this.timer('id5.api.instance.load.delay', tags);
   }
 
-  fetchCallTime(status, tags = {}) {
+  fetchCallTimer(status, tags = {}) {
     return this.timer('id5.api.fetch.call.time', {
       status: status,
       ...tags
     });
   }
 
-  fetchFailureCallTime(tags = {}) {
-    return this.fetchCallTime('fail', tags);
+  fetchFailureCallTimer(tags = {}) {
+    return this.fetchCallTimer('fail', tags);
   }
 
-  fetchSuccessfulCallTime(tags = {}) {
-    return this.fetchCallTime('success', tags);
+  fetchSuccessfulCallTimer(tags = {}) {
+    return this.fetchCallTimer('success', tags);
   }
 
-  extensionsCallTime(tags = {}) {
+  extensionsCallTimer(tags = {}) {
     return this.timer('id5.api.extensions.call.time', tags);
   }
 
-  consentRequestTime(requestType, tags = {}) {
+  consentRequestTimer(requestType, tags = {}) {
     return this.timer('id5.api.consent.request.time', {requestType: requestType, ...tags});
   }
 
-  invocationCount(tags = {}) {
+  invocationCounter(tags = {}) {
     return this.counter('id5.api.invocation.count', tags);
-  }
-
-  timer(name, tags = {}) {
-    return this.registry.timer(name, tags);
-  }
-
-  counter(name, tags = {}) {
-    return this.registry.counter(name, tags);
-  }
-
-  summary(name, tags = {}) {
-    return this.registry.summary(name, tags);
   }
 }

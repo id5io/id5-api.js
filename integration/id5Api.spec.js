@@ -3,13 +3,12 @@ import chromePaths from 'chrome-paths';
 import mockttp from 'mockttp';
 import tmp from 'tmp-promise';
 import path from 'path';
-import { fileURLToPath } from 'url';
-import chai, { expect } from 'chai';
-import { version } from '../generated/version.js';
+import {fileURLToPath} from 'url';
+import chai, {expect} from 'chai';
+import {version} from '../generated/version.js';
 import chaiDateTime from 'chai-datetime';
-import { readFile } from 'fs/promises';
+import {readFile} from 'fs/promises';
 import isDocker from 'is-docker';
-
 /**
  * If you want to debug in the browser, you can use "devtools: true" in
  * the launch configuration and block the browser using
@@ -45,13 +44,13 @@ const MOCK_LB_RESPONSE = {
 };
 
 // Note: do not use lambda syntax in describes. https://mochajs.org/#arrow-functions
-describe('The ID5 API', function() {
+describe('The ID5 API', function () {
   let browser, server, CONSTANTS, profileDir, caFingerprint;
 
   this.timeout(30000);
 
   async function startBrowser() {
-    profileDir = await tmp.dir({ unsafeCleanup: true });
+    profileDir = await tmp.dir({unsafeCleanup: true});
     const args = [
       `--proxy-server=localhost:${server.port}`,
       `--ignore-certificate-errors-spki-list=${caFingerprint}`,
@@ -110,7 +109,7 @@ describe('The ID5 API', function() {
     await stopBrowser();
   });
 
-  describe('when included directly in the publishers page', function() {
+  describe('when included directly in the publishers page', function () {
     beforeEach(async () => {
       const TEST_PAGE_PATH = path.join(SCRIPT_DIR, 'integration.html');
       await server.forGet('https://my-publisher-website.net')
@@ -151,7 +150,7 @@ describe('The ID5 API', function() {
       expect(requestBody.tml).to.equal('https://my-publisher-website.net/');
       expect(requestBody.cu).to.equal('https://www.id5.io/');
       expect(requestBody.ref).to.equal('https://referer-page.com/');
-      expect(requestBody.segments).to.deep.equal([{ destination: '22', ids: ['abc'] }]);
+      expect(requestBody.segments).to.deep.equal([{destination: '22', ids: ['abc']}]);
       expect(requestBody.ua).to.be.a('string');
       expect(requestBody.extensions.lb).to.equal('LB_DATA'); // from MOCK_LB_RESPONSE
       expect(requestBody.extensions.lbCDN).to.equal('%%LB_CDN%%'); // lbCDN substitution macro
@@ -190,7 +189,7 @@ describe('The ID5 API', function() {
     });
   });
 
-  describe('in a non-friendly iframe', function() {
+  describe('in a non-friendly iframe', function () {
     const NON_FRIENDLY_MOCK_CORS_HEADERS = {
       'Access-Control-Allow-Origin': 'https://non-friendly-stuff.com',
       'Access-Control-Allow-Credentials': 'true'
@@ -232,7 +231,7 @@ describe('The ID5 API', function() {
     });
   });
 
-  describe('esp.js', function() {
+  describe('esp.js', function () {
     afterEach(async () => {
       await server.reset();
     });
@@ -266,11 +265,110 @@ describe('The ID5 API', function() {
       await page.evaluate(async () => {
         try {
           await window.googletag.encryptedSignalProviders[0].collectorFunction();
-        } catch (ignore) {}
+        } catch (ignore) {
+        }
       });
       const id5Requests = await mockId5.getSeenRequests();
       expect(id5Requests).to.have.lengthOf(1);
       expect(id5Requests[0].url).to.equal('https://id5-sync.com/api/esp/increment?counter=no-config');
     });
   });
+
+  describe('Diagnostics', function () {
+    afterEach(async () => {
+      await server.reset();
+    });
+
+    it('should publish measurements after fixed delay', async () => {
+      const TEST_PAGE_PATH = path.join(SCRIPT_DIR, 'diagnostics.html');
+      await server.forGet('https://my-publisher-website.net')
+        .thenFromFile(200, TEST_PAGE_PATH);
+      await server.forGet('https://lb.eu-1-id5-sync.com/lb/v1')
+        .thenJson(200, MOCK_LB_RESPONSE, MOCK_CORS_HEADERS);
+      await server.forPost('https://id5-sync.com/g/v2/99.json')
+        .thenJson(200, MOCK_FETCH_RESPONSE, MOCK_CORS_HEADERS);
+      await server.forGet('https://dummyimage.com/600x200')
+        .thenReply(200, '');
+      const diagnosticsEndpoint = await server.forPost('https://diagnostics.id5-sync.com/measurements')
+        .thenJson(202, '', MOCK_CORS_HEADERS);
+      const page = await browser.newPage();
+      await page.goto('https://my-publisher-website.net');
+
+      return awaitRequestAt(diagnosticsEndpoint)
+        .then(diagnosticsRequests => {
+          expect(diagnosticsRequests).has.lengthOf(1);
+          return diagnosticsRequests[0].body.getJson();
+        })
+        .then(onlyRequest => {
+          expect(onlyRequest.measurements.length).is.eq(5);
+
+          verifyMeasurement(onlyRequest.measurements[0], 'id5.api.instance.load.delay', 'TIMER');
+          verifyMeasurement(onlyRequest.measurements[1], 'id5.api.invocation.count', 'COUNTER');
+          verifyMeasurement(onlyRequest.measurements[2], 'id5.api.consent.request.time', 'TIMER', {requestType: 'static'});
+          verifyMeasurement(onlyRequest.measurements[3], 'id5.api.extensions.call.time', 'TIMER');
+          verifyMeasurement(onlyRequest.measurements[4], 'id5.api.fetch.call.time', 'TIMER', {status: 'success'});
+        });
+    });
+
+    it('should publish measurements before unload', async () => {
+      const TEST_PAGE_PATH = path.join(SCRIPT_DIR, 'diagnostics_on_unload.html');
+      await server.forGet('https://my-publisher-website.net')
+        .thenFromFile(200, TEST_PAGE_PATH);
+      await server.forGet('https://lb.eu-1-id5-sync.com/lb/v1')
+        .thenJson(200, MOCK_LB_RESPONSE, MOCK_CORS_HEADERS);
+      let fetchEndpoint = await server.forPost('https://id5-sync.com/g/v2/99.json')
+        .thenJson(200, MOCK_FETCH_RESPONSE, MOCK_CORS_HEADERS);
+      await server.forGet('https://dummyimage.com/600x200')
+        .thenReply(200, '');
+      const diagnosticsEndpoint = await server.forPost('https://diagnostics.id5-sync.com/measurements')
+        .thenJson(202, '', MOCK_CORS_HEADERS);
+      const page = await browser.newPage();
+      await page.goto('https://my-publisher-website.net');
+      await awaitRequestAt(fetchEndpoint);
+      await page.reload();
+      return awaitRequestAt(diagnosticsEndpoint)
+        .then(diagnosticsRequests => {
+          expect(diagnosticsRequests).has.lengthOf(1);
+          return diagnosticsRequests[0].body.getJson();
+        })
+        .then(onlyRequest => {
+          expect(onlyRequest.measurements.length).is.eq(5);
+
+          verifyMeasurement(onlyRequest.measurements[0], 'id5.api.instance.load.delay', 'TIMER');
+          verifyMeasurement(onlyRequest.measurements[1], 'id5.api.invocation.count', 'COUNTER');
+          verifyMeasurement(onlyRequest.measurements[2], 'id5.api.consent.request.time', 'TIMER', {requestType: 'static'});
+          verifyMeasurement(onlyRequest.measurements[3], 'id5.api.extensions.call.time', 'TIMER');
+          verifyMeasurement(onlyRequest.measurements[4], 'id5.api.fetch.call.time', 'TIMER', {status: 'success'});
+        });
+    });
+  });
+
+  function verifyMeasurement(measurement, name, type, tags = {}) {
+    expect(measurement.name).is.eq(name);
+    expect(measurement.type).is.eq(type);
+    expect(measurement.tags).is.deep.eq({
+      version: version,
+      partner: '99',
+      source: 'api',
+      tml: 'https://my-publisher-website.net/',
+      ...tags
+    });
+    expect(measurement.values.length).is.eq(1);
+    expect(measurement.values[0].value).is.not.eq(null);
+    expect(measurement.values[0].timestamp).is.not.eq(null);
+  }
+
+  function awaitRequestAt(endpoint) {
+    return new Promise((resolve, reject) => {
+      let waitForRequest = async function () {
+        let requests = await endpoint.getSeenRequests();
+        if (requests && requests.length > 0) {
+          return resolve(requests);
+        } else {
+          setTimeout(waitForRequest, 100);
+        }
+      };
+      waitForRequest();
+    });
+  }
 });
