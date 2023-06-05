@@ -28,7 +28,9 @@ describe('Refresh ID Fetch Handling', function () {
     'universal_uid': TEST_REFRESH_RESPONSE_ID5ID,
     'cascade_needed': false,
     'signature': TEST_REFRESH_RESPONSE_SIGNATURE,
-    'link_type': TEST_REFRESH_RESPONSE_LINK_TYPE
+    'ext': {
+      'linkType': TEST_REFRESH_RESPONSE_LINK_TYPE
+    }
   });
 
   before(function () {

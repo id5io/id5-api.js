@@ -29,11 +29,13 @@ const MOCK_FETCH_RESPONSE = {
   'id5_consent': true,
   'universal_uid': 'ID5-ZHMOQ99ulpk687Fd9xVwzxMsYtkQIJnI-qm3iWdtww!ID5*LTzsUTSrz4juTlKvKoO0brhnjXyuZIGHv44Iqf4TzN0AAGwYr9heNFf7GF6QAMRq',
   'signature': 'ID5_AQo_xCuSjJ3KsW8cOsbHs1d3AvFDad0XrupUgd5LBsLV0v0pXmrYt0AbE_8WeU_nRC2Bbmif8GPKtcHFpAl4wLo',
-  'link_type': 2,
   'cascade_needed': false,
   'privacy': {
     'jurisdiction': 'gdpr',
     'id5_consent': true
+  },
+  'ext': {
+    'linkType': 2
   }
 };
 const MOCK_CORS_HEADERS = {
