@@ -423,7 +423,9 @@ describe('ID5 JS API', function () {
             universal_uid: TEST_STORED_ID5ID,
             cascade_needed: false,
             signature: TEST_STORED_SIGNATURE,
-            link_type: TEST_STORED_LINK_TYPE,
+            ext: {
+              linkType: TEST_STORED_LINK_TYPE
+            },
             privacy: JSON.parse(TEST_PRIVACY_ALLOWED),
             cache_control: {
               max_age_sec: 11
