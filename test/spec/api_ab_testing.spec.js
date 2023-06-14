@@ -17,7 +17,7 @@ import {
   stubDelayedResponse,
   execSequence,
   ExtensionsPromiseStub,
-  DEFAULT_EXTENSIONS
+  DEFAULT_EXTENSIONS, TEST_RESPONSE_LINK_TYPE
 } from './test_utils';
 import EXTENSIONS from "../../lib/extensions.js";
 
@@ -80,10 +80,11 @@ describe('A/B Testing', function () {
       'universal_uid': 'whateverID_AB_NORMAL',
       'cascade_needed': false,
       'signature': TEST_STORED_SIGNATURE,
-      'link_type': 1,
       'privacy': JSON.parse(TEST_PRIVACY_ALLOWED),
       'ab_testing': {
         'result': 'normal'
+      }, 'ext': {
+        'linkType': 1
       }
     });
     const ENCODED_STORED_JSON_ABSTEST = encodeURIComponent(JSON_ABTEST);
@@ -149,7 +150,9 @@ describe('A/B Testing', function () {
       'universal_uid': 'whateverID_AB_NORMAL',
       'cascade_needed': false,
       'signature': TEST_STORED_SIGNATURE,
-      'link_type': 1,
+      'ext': {
+        'linkType': 1
+      },
       'privacy': JSON.parse(TEST_PRIVACY_ALLOWED),
       'ab_testing': {
         'result': 'control'
@@ -162,7 +165,6 @@ describe('A/B Testing', function () {
         atype: 1,
         id: '0',
         ext: {
-          linkType: 0,
           abTestingControlGroup: true
         }
       }]
