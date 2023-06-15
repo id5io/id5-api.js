@@ -7,6 +7,25 @@ import Tags from './tags.js';
  * @property {number} value
  */
 
+class Registry {
+  has(key) {
+    return this[key] !== undefined;
+  }
+
+  set(key, value) {
+    this[key] = value;
+    return this;
+  }
+
+  get(key) {
+    return this[key];
+  }
+
+  values() {
+    return Object.entries(this).map(([_, value]) => value);
+  }
+}
+
 /**
  * @typedef {Object} Measurement
  * @property {string} name - measurement name
@@ -15,9 +34,9 @@ import Tags from './tags.js';
  */
 export class MeterRegistry {
   /**
-   * @type {Map<string, Meter>}
+   * @type {Registry}
    */
-  registry;
+  _registry;
 
   /**
    *
@@ -36,7 +55,7 @@ export class MeterRegistry {
    * @param {Object} [commonTags] - common tags, default unknown
    */
   constructor(commonTags = undefined) {
-    this.registry = new Map();
+    this._registry = new Registry();
     this.commonTags = Tags.from(commonTags);
   }
 
@@ -49,10 +68,10 @@ export class MeterRegistry {
   getOrCreate(name, tags, createFn) {
     let mergedTags = {...tags, ...this.commonTags};
     const key = `${name}[${Tags.toString(mergedTags)}]`;
-    if (!this.registry.has(key)) {
-      this.registry.set(key, createFn(name, mergedTags));
+    if (!this._registry.has(key)) {
+      this._registry.set(key, createFn(name, mergedTags));
     }
-    return this.registry.get(key);
+    return this._registry.get(key);
   }
 
   /**
@@ -60,12 +79,14 @@ export class MeterRegistry {
    * @return {Array<Measurement>}
    */
   getAllMeasurements() {
-    return Array.from(this.registry, ([_, meter]) => ({
-      name: meter.name,
-      type: meter.type,
-      tags: meter.tags,
-      values: meter.values
-    })).filter(function (m) {
+    return this._registry.values().map(meter => {
+      return {
+        name: meter.name,
+        type: meter.type,
+        tags: meter.tags,
+        values: meter.values
+      };
+    }).filter(function (m) {
       return m.values && m.values.length > 0;
     });
   }
@@ -74,7 +95,7 @@ export class MeterRegistry {
    * Resets all already collected measurements for each meter registered
    */
   reset() {
-    this.registry.forEach((value, _) => value.reset());
+    Array.from(this._registry.values()).forEach(meter => meter.reset());
   }
 
   /**
