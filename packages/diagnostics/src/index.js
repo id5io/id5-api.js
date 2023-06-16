@@ -58,7 +58,7 @@ export class Id5CommonMetrics extends MeterRegistry {
     return this.timer('id5.api.consent.request.time', {requestType: requestType, ...tags});
   }
 
-  invocationCounter(tags = {}) {
-    return this.counter('id5.api.invocation.count', tags);
+  invocationCountSummary(tags = {}) {
+    return this.summary('id5.api.invocation.count', tags);
   }
 }

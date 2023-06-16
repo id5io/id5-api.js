@@ -305,7 +305,7 @@ describe('The ID5 API', function () {
           expect(onlyRequest.measurements.length).is.eq(5);
 
           verifyMeasurement(onlyRequest.measurements[0], 'id5.api.instance.load.delay', 'TIMER');
-          verifyMeasurement(onlyRequest.measurements[1], 'id5.api.invocation.count', 'COUNTER');
+          verifyMeasurement(onlyRequest.measurements[1], 'id5.api.invocation.count', 'SUMMARY');
           verifyMeasurement(onlyRequest.measurements[2], 'id5.api.consent.request.time', 'TIMER', {requestType: 'static'});
           verifyMeasurement(onlyRequest.measurements[3], 'id5.api.extensions.call.time', 'TIMER');
           verifyMeasurement(onlyRequest.measurements[4], 'id5.api.fetch.call.time', 'TIMER', {status: 'success'});
@@ -337,7 +337,7 @@ describe('The ID5 API', function () {
           expect(onlyRequest.measurements.length).is.eq(5);
 
           verifyMeasurement(onlyRequest.measurements[0], 'id5.api.instance.load.delay', 'TIMER');
-          verifyMeasurement(onlyRequest.measurements[1], 'id5.api.invocation.count', 'COUNTER');
+          verifyMeasurement(onlyRequest.measurements[1], 'id5.api.invocation.count', 'SUMMARY');
           verifyMeasurement(onlyRequest.measurements[2], 'id5.api.consent.request.time', 'TIMER', {requestType: 'static'});
           verifyMeasurement(onlyRequest.measurements[3], 'id5.api.extensions.call.time', 'TIMER');
           verifyMeasurement(onlyRequest.measurements[4], 'id5.api.fetch.call.time', 'TIMER', {status: 'success'});
