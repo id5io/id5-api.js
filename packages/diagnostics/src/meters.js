@@ -47,21 +47,31 @@ export class Timer extends Meter {
   }
 
   startMeasurement() {
-    return new TimeMeasurement(this);
+    try {
+      return new TimeMeasurement(this);
+    } catch (e) {
+      return undefined;
+    }
   }
 
   record(value) {
-    this.values.push({
-      value: value,
-      timestamp: Date.now()
-    });
+    try {
+      this.values.push({
+        value: value,
+        timestamp: Date.now()
+      });
+    } catch (e) {
+    }
   }
 
   /**
    * Records the time elapsed since Performance.timeOrigin (the time when navigation has started in window contexts, or the time when the worker is run in Worker and ServiceWorker contexts).
    */
   recordNow() {
-    this.record(performance?.now() | 0);
+    try {
+      this.record(performance?.now() | 0);
+    } catch (e) {
+    }
   }
 }
 
@@ -72,13 +82,17 @@ export class TimeMeasurement {
   }
 
   record(timer = undefined) {
-    let endTime = performance.now();
-    let durationMillis = (endTime - this.startTime) | 0;
-    let meterToRecord = timer || this.timer;
-    if (meterToRecord) {
-      meterToRecord.record(durationMillis);
+    try {
+      let endTime = performance.now();
+      let durationMillis = (endTime - this.startTime) | 0;
+      let meterToRecord = timer || this.timer;
+      if (meterToRecord) {
+        meterToRecord.record(durationMillis);
+      }
+      return durationMillis;
+    } catch (e) {
+      return undefined;
     }
-    return durationMillis;
   }
 }
 
@@ -88,11 +102,14 @@ export class Counter extends Meter {
   }
 
   inc(value = 1.0) {
-    if (this.values.length === 0) {
-      this.values.push({value: value, timestamp: Date.now()});
-    } else {
-      this.values[0].value += value;
-      this.values[0].timestamp = Date.now();
+    try {
+      if (this.values.length === 0) {
+        this.values.push({value: value, timestamp: Date.now()});
+      } else {
+        this.values[0].value += value;
+        this.values[0].timestamp = Date.now();
+      }
+    } catch (e) {
     }
   }
 }
@@ -103,9 +120,12 @@ export class Summary extends Meter {
   }
 
   record(value) {
-    this.values.push({
-      value: value,
-      timestamp: Date.now()
-    });
+    try {
+      this.values.push({
+        value: value,
+        timestamp: Date.now()
+      });
+    } catch (e) {
+    }
   }
 }
