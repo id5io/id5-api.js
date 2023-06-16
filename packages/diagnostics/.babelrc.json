@@ -1,0 +1,22 @@
+{
+  "presets": [
+    [
+      "@babel/preset-env",
+      {
+        "targets": {
+          "browsers": [
+            "chrome >= 61",
+            "safari >=8",
+            "edge >= 14",
+            "ff >= 57",
+            "ie >= 10",
+            "ios >= 8"
+          ]
+        }
+      }
+    ]
+  ],
+  "plugins": [
+    "@babel/plugin-transform-object-assign"
+  ]
+}
