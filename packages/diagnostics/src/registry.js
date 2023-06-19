@@ -163,9 +163,9 @@ export class MeterRegistry {
    * @param {function(Array<Measurement>) : Promise|any} publisher - publisher function, default noop
    * @return {MeterRegistry}
    */
-  schedulePublishOnUnload(publisher) {
+  schedulePublishBeforeUnload(publisher) {
     let registry = this;
-    addEventListener('unload', () => registry.publish(publisher));
+    addEventListener('beforeunload', () => registry.publish(publisher));
     return this;
   }
 }

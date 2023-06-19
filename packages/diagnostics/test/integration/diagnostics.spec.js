@@ -1,8 +1,8 @@
-import {createPublisher, MeterRegistry, Id5CommonTags} from '@id5io/diagnostics';
+import {createPublisher, MeterRegistry, partnerTag} from '@id5io/diagnostics';
 import mockttp from 'mockttp';
 import {expect} from 'chai';
 
-const COMMON_TAGS = new Id5CommonTags('api', '1.1.1', 123);
+const COMMON_TAGS = {source: 'api', version: '1.1.1', ...partnerTag(123)};
 
 describe('Diagnostics', function () {
   /**
@@ -32,7 +32,7 @@ describe('Diagnostics', function () {
 
   it('should collect and publish measurements', async () => {
     // given
-    let timer = registry.timer('timer.name' );
+    let timer = registry.timer('timer.name');
     let counter = registry.counter('counter.name');
     let summary = registry.summary('summary.name', {
       leader: true
