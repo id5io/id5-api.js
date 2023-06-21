@@ -243,7 +243,7 @@ describe('config API', function () {
       publishingDisabled: false,
       publishAfterLoadInMsec: 30000,
       publishBeforeWindowUnload: true,
-      publishingSampleRatio: 0.001
+      publishingSampleRatio: 0.01
     };
     [
       {

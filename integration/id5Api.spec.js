@@ -15,6 +15,7 @@ import isDocker from 'is-docker';
  * await browser.waitForTarget(() => false, { timeout: 0 });
  * Also increase the timeout for the tests to a very large value.
  */
+const _DEBUG = false;
 
 chai.use(chaiDateTime);
 
@@ -38,8 +39,18 @@ const MOCK_FETCH_RESPONSE = {
   }
 };
 const MOCK_CORS_HEADERS = {
-  'Access-Control-Allow-Origin': 'https://my-publisher-website.net',
-  'Access-Control-Allow-Credentials': 'true'
+  'Access-Control-Allow-Origin': 'https://my-publisher-website.net', 'Access-Control-Allow-Credentials': 'true'
+};
+const jsonWithCorsAllowed = (payload, status = 200) => {
+  return (request) => {
+    return {
+      status: status,
+      headers: {
+        'Access-Control-Allow-Origin': request.headers['origin'], 'Access-Control-Allow-Credentials': 'true'
+      },
+      json: payload
+    };
+  };
 };
 const MOCK_LB_RESPONSE = {
   'lb': 'LB_DATA'
@@ -49,7 +60,7 @@ const MOCK_LB_RESPONSE = {
 describe('The ID5 API', function () {
   let browser, server, CONSTANTS, profileDir, caFingerprint;
 
-  this.timeout(30000);
+  this.timeout((_DEBUG ? 300 : 30) * 1000);
 
   async function startBrowser() {
     profileDir = await tmp.dir({unsafeCleanup: true});
@@ -58,7 +69,7 @@ describe('The ID5 API', function () {
       `--ignore-certificate-errors-spki-list=${caFingerprint}`,
       `--user-data-dir=${profileDir.path}`,
       '--no-first-run',
-      '--disable-features=site-per-process',
+      '--disable-features=site-per-process'
     ];
 
     if (isDocker()) {
@@ -66,10 +77,7 @@ describe('The ID5 API', function () {
     }
 
     browser = await puppeteer.launch({
-      // headless: false,
-      executablePath: chromePaths.chrome,
-      // devtools: true,
-      args,
+      headless: !_DEBUG, executablePath: chromePaths.chrome, devtools: _DEBUG, args,
     });
   }
 
@@ -79,14 +87,12 @@ describe('The ID5 API', function () {
   }
 
   before(async () => {
-    CONSTANTS = JSON.parse(await readFile(path.join(SCRIPT_DIR,
-      '..', 'lib', 'constants.json')));
+    CONSTANTS = JSON.parse(await readFile(path.join(SCRIPT_DIR, '..', 'lib', 'constants.json')));
 
     // Create a proxy server with a self-signed HTTPS CA certificate:
     const https = await mockttp.generateCACertificate();
     server = mockttp.getLocal({
-      https,
-      // debug: true
+      https, debug: _DEBUG
     });
     caFingerprint = mockttp.generateSPKIFingerprint(https.cert);
 
@@ -187,7 +193,8 @@ describe('The ID5 API', function () {
       const dummyImageRequests = await mockDummyImage.getSeenRequests();
       expect(dummyImageRequests).to.have.lengthOf(1);
       expect(dummyImageRequests[0].url).to.equal(
-        'https://dummyimage.com/600x200?text=' + MOCK_FETCH_RESPONSE.universal_uid);
+        'https://dummyimage.com/600x200?text=' + MOCK_FETCH_RESPONSE.universal_uid
+      );
     });
   });
 
@@ -296,19 +303,29 @@ describe('The ID5 API', function () {
       const page = await browser.newPage();
       await page.goto('https://my-publisher-website.net');
 
-      return awaitRequestAt(diagnosticsEndpoint)
+      return expectRequestAt(diagnosticsEndpoint)
         .then(diagnosticsRequests => {
           expect(diagnosticsRequests).has.lengthOf(1);
           return diagnosticsRequests[0].body.getJson();
         })
         .then(onlyRequest => {
-          expect(onlyRequest.measurements.length).is.eq(5);
-
-          verifyMeasurement(onlyRequest.measurements[0], 'id5.api.instance.load.delay', 'TIMER');
-          verifyMeasurement(onlyRequest.measurements[1], 'id5.api.invocation.count', 'SUMMARY');
-          verifyMeasurement(onlyRequest.measurements[2], 'id5.api.consent.request.time', 'TIMER', {requestType: 'static'});
-          verifyMeasurement(onlyRequest.measurements[3], 'id5.api.extensions.call.time', 'TIMER');
-          verifyMeasurement(onlyRequest.measurements[4], 'id5.api.fetch.call.time', 'TIMER', {status: 'success'});
+          expect(onlyRequest.metadata).is.not.eq(undefined);
+          expect(onlyRequest.metadata.sampling).is.eq(1);
+          expect(onlyRequest.metadata.trigger).is.eq('fixed-time');
+          expect(onlyRequest.metadata.fixed_time_msec).is.eq(3000);
+          expect(onlyRequest.measurements.length).is.eq(6);
+          const commonTags = {version: version, partner: '99', source: 'api', tml: 'https://my-publisher-website.net/'};
+          verifyContainsMeasurementWithTags(onlyRequest.measurements, 'id5.api.instance.load.delay', 'TIMER', commonTags);
+          verifyContainsMeasurementWithTags(onlyRequest.measurements, 'id5.api.invocation.count', 'SUMMARY', commonTags);
+          verifyContainsMeasurementWithTags(onlyRequest.measurements, 'id5.api.consent.request.time', 'TIMER', {
+            ...commonTags,
+            requestType: 'static'
+          });
+          verifyContainsMeasurementWithTags(onlyRequest.measurements, 'id5.api.extensions.call.time', 'TIMER', commonTags);
+          verifyContainsMeasurementWithTags(onlyRequest.measurements, 'id5.api.fetch.call.time', 'TIMER', {
+            ...commonTags,
+            status: 'success'
+          });
         });
     });
 
@@ -326,45 +343,158 @@ describe('The ID5 API', function () {
         .thenJson(202, '', MOCK_CORS_HEADERS);
       const page = await browser.newPage();
       await page.goto('https://my-publisher-website.net');
-      await awaitRequestAt(fetchEndpoint);
+      await expectRequestAt(fetchEndpoint);
       await page.reload();
-      return awaitRequestAt(diagnosticsEndpoint)
+      return expectRequestAt(diagnosticsEndpoint)
         .then(diagnosticsRequests => {
           expect(diagnosticsRequests).has.lengthOf(1);
           return diagnosticsRequests[0].body.getJson();
         })
         .then(onlyRequest => {
-          expect(onlyRequest.measurements.length).is.eq(5);
-
-          verifyMeasurement(onlyRequest.measurements[0], 'id5.api.instance.load.delay', 'TIMER');
-          verifyMeasurement(onlyRequest.measurements[1], 'id5.api.invocation.count', 'SUMMARY');
-          verifyMeasurement(onlyRequest.measurements[2], 'id5.api.consent.request.time', 'TIMER', {requestType: 'static'});
-          verifyMeasurement(onlyRequest.measurements[3], 'id5.api.extensions.call.time', 'TIMER');
-          verifyMeasurement(onlyRequest.measurements[4], 'id5.api.fetch.call.time', 'TIMER', {status: 'success'});
+          expect(onlyRequest.metadata).is.not.eq(undefined);
+          expect(onlyRequest.metadata.sampling).is.eq(1);
+          expect(onlyRequest.metadata.trigger).is.eq('beforeunload');
+          expect(onlyRequest.measurements.length).is.eq(6);
+          const commonTags = {version: version, partner: '99', source: 'api', tml: 'https://my-publisher-website.net/'};
+          verifyContainsMeasurementWithTags(onlyRequest.measurements, 'id5.api.instance.load.delay', 'TIMER', commonTags);
+          verifyContainsMeasurementWithTags(onlyRequest.measurements, 'id5.api.invocation.count', 'SUMMARY', commonTags);
+          verifyContainsMeasurementWithTags(onlyRequest.measurements, 'id5.api.consent.request.time', 'TIMER', {
+            ...commonTags,
+            requestType: 'static'
+          });
+          verifyContainsMeasurementWithTags(onlyRequest.measurements, 'id5.api.extensions.call.time', 'TIMER', commonTags);
+          verifyContainsMeasurementWithTags(onlyRequest.measurements, 'id5.api.fetch.call.time', 'TIMER', {
+            ...commonTags,
+            status: 'success'
+          });
         });
     });
   });
 
-  function verifyMeasurement(measurement, name, type, tags = {}) {
-    expect(measurement.name).is.eq(name);
-    expect(measurement.type).is.eq(type);
-    expect(measurement.tags).is.deep.eq({
-      version: version,
-      partner: '99',
-      source: 'api',
-      tml: 'https://my-publisher-website.net/',
-      ...tags
+  describe('with multiplexing enabled', function () {
+    let electionNotifyEndpoint;
+    let diagnosticsEndpoint;
+    beforeEach(async () => {
+      const INDEX_PAGE_PATH = path.join(SCRIPT_DIR, 'resources', 'multiplexing', 'index.html');
+      const NF_FRAME_PAGE_PATH = path.join(SCRIPT_DIR, 'resources', 'multiplexing', 'single-integration.html');
+      const F_FRAME_PAGE_PATH = path.join(SCRIPT_DIR, 'resources', 'multiplexing', 'multiple-integrations.html');
+
+      await server.forGet('https://my-publisher-website.net')
+        .thenFromFile(200, INDEX_PAGE_PATH);
+      await server.forGet('https://my-publisher-website.net/multiple-integrations.html')
+        .thenFromFile(200, F_FRAME_PAGE_PATH);
+      await server.forGet('https://non-friendly-stuff.com')
+        .thenFromFile(200, NF_FRAME_PAGE_PATH);
+      await server.forGet('https://lb.eu-1-id5-sync.com/lb/v1')
+        .thenCallback(jsonWithCorsAllowed(MOCK_LB_RESPONSE));
+      await server.forPost('https://id5-sync.com/g/v2/99.json')
+        .thenCallback(jsonWithCorsAllowed(MOCK_FETCH_RESPONSE));
+      await server.forGet('https://dummyimage.com/600x200')
+        .thenCallback(jsonWithCorsAllowed(''));
+      diagnosticsEndpoint = await server.forPost('https://diagnostics.id5-sync.com/measurements')
+        .thenCallback(jsonWithCorsAllowed('', 202));
+      electionNotifyEndpoint = await server.forPost('https://instances.log/on-election')
+        .thenCallback(jsonWithCorsAllowed('', 202));
     });
-    expect(measurement.values.length).is.eq(1);
-    expect(measurement.values[0].value).is.not.eq(null);
-    expect(measurement.values[0].timestamp).is.not.eq(null);
+
+    afterEach(async () => {
+      await server.reset();
+    });
+
+    it('all integrations eventually should get to know each other and elect the same leader', async () => {
+      const page = await browser.newPage();
+      await page.goto('https://my-publisher-website.net');
+
+      // each instance calls endpoint and post details once leader elected
+      return expectRequestsAt(electionNotifyEndpoint, 4)
+        .then((requests) => {
+          expect(requests).has.length(4);
+          return Promise.all(requests.map(rq => rq.body.getJson()));
+        })
+        .then(instances => {
+          const allIds = new Set(instances.map(i => i.id));
+          // expect all ids are unique
+          expect(allIds).has.length(4);
+
+          // expect all has the same leader
+          let leader = instances[0].leader;
+          // eslint-disable-next-line no-unused-expressions
+          expect(allIds).to.be.not.empty;
+          expect(instances[1].leader).to.be.eq(leader);
+          expect(instances[2].leader).to.be.eq(leader);
+          expect(instances[3].leader).to.be.eq(leader);
+
+          expect(new Set(instances.map(i => i.role))).to.be.deep.eq(new Set(['leader', 'follower']));
+          for (const i of instances) {
+            expect(i.role).to.be.eq(i.id === leader ? 'leader' : 'follower');
+            // knows each instance
+            expect(new Set([i.id, ...i.knownInstances])).is.deep.eq(allIds);
+          }
+        });
+    });
+
+    it('leader election and messaging metrics are collected', async () => {
+      const page = await browser.newPage();
+      await page.goto('https://my-publisher-website.net');
+
+      await expectRequestAt(electionNotifyEndpoint);
+      await page.reload();
+
+      // each instance publishes diagnostics
+      return expectRequestsAt(diagnosticsEndpoint, 4)
+        .then(diagnosticsRequests => {
+          expect(diagnosticsRequests).has.lengthOf(4);
+          return Promise.all(diagnosticsRequests.map(rq => rq.body.getJson()));
+        })
+        .then(instancesRequests => {
+          for (const request of instancesRequests) {
+            // each instance provides
+            verifyContainsMeasurementWithValues(request.measurements, 'id5.api.instance.count', 'COUNTER', [4]);
+            verifyContainsMeasurement(request.measurements, 'id5.api.instance.message.delivery.time', 'TIMER');
+            verifyContainsMeasurement(request.measurements, 'id5.api.instance.join.delay.time', 'TIMER');
+          }
+        });
+    });
+  });
+
+  function verifyContainsMeasurementWithTags(measurements, name, type, tags = {}) {
+    let measurement = verifyContainsMeasurement(measurements, name, type);
+    expect(measurement.tags).is.deep.eq({
+      version: version, partner: '99', source: 'api', tml: 'https://my-publisher-website.net/', ...tags
+    });
+    expect(measurement.values.length).is.gte(1);
+    for (const v of measurement.values) {
+      expect(v.value).is.not.eq(null);
+      expect(v.timestamp).is.not.eq(null);
+    }
   }
 
-  function awaitRequestAt(endpoint) {
+  function verifyContainsMeasurement(measurements, name, type) {
+    let names = measurements.map(x => x.name);
+    expect(names).to.include(name);
+    let measurement = measurements.find(m => m.name === name);
+    expect(measurement).is.not.eq(undefined);
+    expect(measurement.type).is.eq(type);
+    return measurement;
+  }
+
+  function verifyContainsMeasurementWithValues(measurements, name, type, values) {
+    let measurement = verifyContainsMeasurement(measurements, name, type);
+    expect(measurement.values.length).is.gte(values.length);
+    for (const expectedValue of values) {
+      expect(measurement.values.find(v => v.value === expectedValue)).is.not.eq(undefined);
+    }
+  }
+
+  function expectRequestAt(endpoint) {
+    return expectRequestsAt(endpoint, 1);
+  }
+
+  function expectRequestsAt(endpoint, minCount = 1) {
     return new Promise((resolve, reject) => {
       let waitForRequest = async function () {
         let requests = await endpoint.getSeenRequests();
-        if (requests && requests.length > 0) {
+        if (requests && requests.length >= minCount) {
           return resolve(requests);
         } else {
           setTimeout(waitForRequest, 100);

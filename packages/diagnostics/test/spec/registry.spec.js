@@ -290,6 +290,25 @@ describe('Registry', function () {
     expect(meterRegistry.getAllMeasurements().length).is.eq(0);
   });
 
+  it('should publish with metadata', async () => {
+    // given
+    let publisher = sinon.stub();
+    let meterRegistry = new MeterRegistry({});
+
+    meterRegistry.timer('1', {}).record(1);
+
+    let allMeasurements = meterRegistry.getAllMeasurements();
+
+    let md = {x: 1};
+    // when
+    await meterRegistry.publish(publisher, md);
+
+    // then
+    expect(allMeasurements.length).is.eq(1);
+    publisher.should.have.been.calledWith(allMeasurements, md);
+    expect(meterRegistry.getAllMeasurements().length).is.eq(0);
+  });
+
   it('should return all non empty measurements', function () {
     // given
     let meterRegistry = new MeterRegistry();

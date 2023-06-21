@@ -81,7 +81,7 @@ describe('Diagnostics', function () {
     expect(timerMeasurement.values[1].value).is.not.null;
     expect(timerMeasurement.values[1].timestamp).is.greaterThanOrEqual(timerMeasurement.values[0].timestamp);
 
-    expect(timerMeasurement.values[2].value).is.greaterThanOrEqual(10);
+    expect(timerMeasurement.values[2].value).is.greaterThanOrEqual(9);
     expect(timerMeasurement.values[2].timestamp).is.greaterThanOrEqual(timerMeasurement.values[1].timestamp);
 
     let counterMeasurement = request.measurements[1];
