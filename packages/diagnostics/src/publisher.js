@@ -1,14 +1,14 @@
-
 const DEFAULT_URL = 'https://diagnostics.id5-sync.com/measurements';
 
 export const IS_PUBLISHING_SUPPORTED = typeof Promise !== 'undefined' && typeof fetch !== 'undefined';
 
 export class MeasurementsPublisher {
-  constructor(url) {
+  constructor(url, metadata = undefined) {
     this.url = url || DEFAULT_URL;
+    this._metadata = metadata;
   }
 
-  publish(measurements) {
+  publish(measurements, metadata = undefined) {
     let stringifyTags = function (tagsObj) {
       Object.keys(tagsObj).forEach(function (key) {
         let currentValue = tagsObj[key];
@@ -31,6 +31,10 @@ export class MeasurementsPublisher {
         },
         mode: 'no-cors',
         body: JSON.stringify({
+          metadata: {
+            ...this._metadata,
+            ...metadata
+          },
           measurements: measurements
         })
       });

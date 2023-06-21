@@ -1,0 +1,242 @@
+import {expect} from 'chai';
+import {CrossInstanceMessenger, Id5Message, Id5MessageFactory} from "../../src/messaging.js";
+import sinon from "sinon";
+
+class Hello {
+}
+
+describe('Id5MessageFactory', function () {
+  let factory;
+  let senderId = crypto.randomUUID();
+  let NOW = 123.456;
+  let clockStub;
+
+  beforeEach(function () {
+    factory = new Id5MessageFactory(senderId);
+    clockStub = sinon.stub(performance, "now");
+
+    clockStub.returns(NOW)
+  });
+
+  afterEach(function () {
+    clockStub.restore();
+  });
+
+  it(`should create broadcast message`, function () {
+    // given
+    let payload = new Hello();
+    let expectedMsg = {
+      _isId5Message: true,
+      id: 1,
+      src: senderId,
+      timestamp: NOW,
+      dst: undefined,
+      request: undefined,
+      type: payload.constructor.name,
+      payload: payload
+    }
+
+    // when
+    let msg = factory.createBroadcastMessage(payload)
+
+
+    // then
+    expect(msg).is.deep.eq(expectedMsg);
+  });
+
+  it(`should create response message`, function () {
+    // given
+    let responsePayload = {
+      a: 'A'
+    };
+    let requestMsg = new Id5Message(5678.1234, "request_source_id", undefined, 777, new Hello(), Hello.constructor.name);
+
+    let expectedMsg = {
+      _isId5Message: true,
+      id: 1,
+      src: senderId,
+      timestamp: NOW,
+      dst: "request_source_id",
+      request: requestMsg,
+      type: responsePayload.constructor.name,
+      payload: responsePayload
+    }
+
+    // when
+    let msg = factory.createResponse(requestMsg, responsePayload)
+
+    // then
+    expect(msg).is.deep.eq(expectedMsg);
+  });
+
+  it(`should create unicast message`, function () {
+    // given
+    let payload = {
+      a: 'A'
+    };
+    let dst = 10;
+
+    let expectedMsg = {
+      _isId5Message: true,
+      id: 1,
+      src: senderId,
+      timestamp: NOW,
+      dst: dst,
+      request: undefined,
+      type: payload.constructor.name,
+      payload: payload
+    }
+
+    // when
+    let msg = factory.createUnicastMessage(dst, payload)
+
+    // then
+    expect(msg).is.deep.eq(expectedMsg);
+  });
+});
+
+describe('CrossInstanceMessenger', function () {
+  it('should send & receive id5 broadcast message', async () => {
+
+    // given
+    let messengerA = new CrossInstanceMessenger('a', window);
+
+    let messengerB = new CrossInstanceMessenger('b', window);
+
+    let receivedByA = new Promise((resolve, reject) => {
+      messengerA.onMessageReceived((message) => {
+        resolve(message)
+      });
+      setTimeout(reject, 1000);
+    });
+
+    let receivedByB = new Promise((resolve, reject) => {
+      messengerB.onMessageReceived((message) => {
+        resolve(message);
+      })
+      setTimeout(reject, 1000);
+    });
+
+    // when
+    messengerA.broadcastMessage(new Hello());
+    messengerB.broadcastMessage(new Hello());
+
+    // then
+    return Promise.all([
+      receivedByA.then(msg => {
+        expect(msg.src).is.eq('b');
+      }),
+      receivedByB.then(msg => {
+        expect(msg.src).is.eq('a');
+      })]
+    );
+  });
+
+  it('should receive and respond to message', async () => {
+
+    // given
+    let sender = new CrossInstanceMessenger('a', window);
+
+    let responder = new CrossInstanceMessenger('b', window);
+
+    let receivedBySender = new Promise((resolve, reject) => {
+      sender.onMessageReceived((message) => {
+        resolve(message);
+      });
+    });
+
+    // when
+    responder.onMessageReceived((message) => {
+      responder.sendResponseMessage(message, {
+        request: message.payload,
+      }, message.type + '-response');
+    });
+
+    sender.broadcastMessage({some: 'Content'}, 'AD_HOC_MESSAGE');
+
+    // then
+    return receivedBySender.then(msg => {
+        expect(msg.src).is.eq(responder._id);
+        expect(msg.id).is.not.eq(undefined);
+        expect(msg.dst).is.eq(sender._id);
+        expect(msg.type).is.eq('AD_HOC_MESSAGE-response');
+        expect(msg.payload).is.deep.eq({
+          request: {some: 'Content'},
+        });
+        expect(msg.request).is.not.eq(undefined);
+      }
+    );
+  });
+
+  it('should ignore non id5 message', async () => {
+
+    // given
+    let messengerA = new CrossInstanceMessenger('a', window);
+    let messageFactory = new Id5MessageFactory('b');
+    let messages = [];
+    let firstId5Message = messageFactory.createBroadcastMessage(new Hello());
+    let secondId5Message = messageFactory.createBroadcastMessage('END', 'END');
+    let receivedId5Message = new Promise((resolve, _) => {
+      messengerA.onMessageReceived((message) => {
+        if (message.payload === 'END') {
+          resolve(message)
+        }
+        messages.push(message);
+      });
+    });
+
+    // when
+    window.postMessage('NON_ID5_MESSAGE', '*');
+    window.postMessage(firstId5Message, '*');
+    window.postMessage('ANOTHER_NON_ID5_MESSAGE', '*')
+    window.postMessage(secondId5Message, '*');
+
+    // then
+    return receivedId5Message.then(_ => {
+      // only id5 messages received
+      expect(messages).to.be.deep.eq([firstId5Message, secondId5Message]);
+    });
+  });
+
+  it('should send & receive id5 unicast message', async () => {
+
+    // given
+    let messengerA = new CrossInstanceMessenger('a', window);
+    let messengerB = new CrossInstanceMessenger('b', window);
+    let messengerC = new CrossInstanceMessenger('c', window)
+
+
+    let receivedByA = new Promise((resolve, reject) => {
+      messengerA.onMessageReceived((message) => {
+        resolve(message)
+      });
+      setTimeout(reject, 1000);
+    });
+
+    let receivedByB = new Promise((resolve, reject) => {
+      messengerB.onMessageReceived((message) => {
+        resolve(message);
+      })
+      setTimeout(reject, 1000);
+    });
+
+    // when
+    messengerC.unicastMessage('a', 'MESSAGE_TO_A');
+    messengerC.unicastMessage('b', 'MESSAGE_TO_B');
+
+    // then
+    return Promise.all([
+      receivedByA.then(msg => {
+        expect(msg.src).is.eq('c');
+        expect(msg.dst).is.eq('a')
+        expect(msg.payload).is.eq('MESSAGE_TO_A')
+      }),
+      receivedByB.then(msg => {
+        expect(msg.src).is.eq('c');
+        expect(msg.dst).is.eq('b');
+        expect(msg.payload).is.eq('MESSAGE_TO_B');
+      })]
+    );
+  });
+
+});

@@ -6,7 +6,9 @@ export {MeterRegistry, Timer, Counter, Summary, TimeMeasurement};
 
 export function createPublisher(sampleRate, url) {
   if (Math.random() < sampleRate && IS_PUBLISHING_SUPPORTED) {
-    return (m) => new MeasurementsPublisher(url).publish(m);
+    return (m, md) => new MeasurementsPublisher(url, {
+      sampling: sampleRate
+    }).publish(m, md);
   }
   return (m) => {
     return m;
@@ -60,5 +62,27 @@ export class Id5CommonMetrics extends MeterRegistry {
 
   invocationCountSummary(tags = {}) {
     return this.summary('id5.api.invocation.count', tags);
+  }
+
+  /**
+   *
+   * @param instanceId
+   * @param tags
+   * @return {Counter|Meter}
+   */
+  instanceCounter(instanceId, tags = {}) {
+    return this.counter('id5.api.instance.count', {instanceId: instanceId, ...tags});
+  }
+
+  instanceJoinDelayTimer(tags = {}) {
+    return this.timer('id5.api.instance.join.delay.time', tags);
+  }
+
+  instanceLateJoinCounter(instanceId, tags = {}) {
+    return this.counter('id5.api.instance.lateJoin.count', {instanceId: instanceId, ...tags});
+  }
+
+  instanceMsgDeliveryTimer(tags = {}) {
+    return this.timer('id5.api.instance.message.delivery.time', tags);
   }
 }

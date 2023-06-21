@@ -135,10 +135,11 @@ export class MeterRegistry {
   /**
    * @return {Promise}
    * @param {function(Array<Measurement>) : Promise|any} publisher - publisher function, default noop
+   * @param {Object} metadata - optional data to pass to publisher, default undefined
    */
-  publish(publisher = m => m) {
+  publish(publisher = m => m, metadata = undefined) {
     return Promise.resolve(this.getAllMeasurements())
-      .then(publisher)
+      .then(m => publisher(m, metadata))
       .then((_) => this.reset());
   }
 
@@ -152,7 +153,10 @@ export class MeterRegistry {
       let registry = this;
       setTimeout(() => {
         registry._scheduled = false;
-        return registry.publish(publisher);
+        return registry.publish(publisher, {
+          trigger: 'fixed-time',
+          fixed_time_msec: msec
+        });
       }, msec);
       this._scheduled = true;
     }
@@ -165,7 +169,9 @@ export class MeterRegistry {
    */
   schedulePublishBeforeUnload(publisher) {
     let registry = this;
-    addEventListener('beforeunload', () => registry.publish(publisher));
+    addEventListener('beforeunload', () => registry.publish(publisher, {
+      trigger: 'beforeunload'
+    }));
     return this;
   }
 }

@@ -1,6 +1,7 @@
 # Built Files
 node_modules/
 build/
+generated/
 
 *.iml
 .idea/
@@ -9,5 +10,3 @@ build/
 .idea_modules/
 
 .DS_Store
-
-/generated/
