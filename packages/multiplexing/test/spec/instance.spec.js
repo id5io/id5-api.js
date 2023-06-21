@@ -6,6 +6,7 @@ import * as chai from "chai";
 import {generateId} from "karma/common/util.js";
 import {Id5CommonMetrics} from "@id5io/diagnostics";
 import sinonChai from 'sinon-chai';
+import {NoopLogger} from "../../src/index.js";
 
 chai.use(sinonChai);
 
@@ -92,8 +93,10 @@ describe('Leader election', () => {
 describe('ID5 instance', function () {
   let metrics;
   let createdInstances;
+  let generateIdStub;
+  let logger = NoopLogger; // for debug purposes assign console `let logger = console`
   let createInstance = (...args) => {
-    const instance = new ID5Integration.Instance(...args);
+    const instance = new ID5Integration.Instance(window, ...args, logger);
     createdInstances.push(instance);
     return instance;
   }
@@ -103,13 +106,16 @@ describe('ID5 instance', function () {
     metrics = new Id5CommonMetrics('api', '1');
   });
   afterEach(function () {
+    if (generateIdStub) {
+      generateIdStub.restore();
+    }
     createdInstances.forEach(instance => instance.deregister());
   })
 
   it('should create instance ', function () {
-    let generateIdStub = sinon.stub(Utils, 'generateId');
 
     // given
+    generateIdStub = sinon.stub(Utils, 'generateId');
     let id = crypto.randomUUID();
     generateIdStub.returns(id);
 
@@ -119,13 +125,14 @@ describe('ID5 instance', function () {
     // then
     expect(instance.properties).is.deep.eq({
       id: id,
-      version: '1.0.0',
+      version: '1.0.1',
       source: 'api',
       sourceVersion: '1.3.5',
-      sourceConfiguration: {some: "property"}
+      sourceConfiguration: {some: "property"},
+      href: window.location.href,
+      domain: window.location.hostname
     });
     expect(instance.role).is.eq(ID5Integration.Role.UNKNOWN);
-    generateIdStub.restore();
   });
 
   it('registered instances should eventually know each other and elect the same leader', function (done) {
@@ -139,9 +146,9 @@ describe('ID5 instance', function () {
     let instance3 = createInstance('api', '3', {}, metrics);
 
     // when
-    instance1.register(window, electionDelayMsec);
-    instance2.register(window, electionDelayMsec);
-    instance3.register(window, electionDelayMsec);
+    instance1.register(electionDelayMsec);
+    instance2.register(electionDelayMsec);
+    instance3.register(electionDelayMsec);
 
     setTimeout(() => {
       // then
@@ -179,8 +186,8 @@ describe('ID5 instance', function () {
     instance1.on(ID5Integration.Event.ID5_INSTANCE_JOINED, thirdCallback);
 
     // when
-    instance1.register(window,100);
-    instance2.register(window, 100);
+    instance1.register(100);
+    instance2.register(100);
 
     setTimeout(() => {
       // then
@@ -211,8 +218,8 @@ describe('ID5 instance', function () {
     instance1.on(ID5Integration.Event.ID5_MESSAGE_RECEIVED, thirdCallback);
 
     // when
-    instance1.register(window, 100);
-    instance2.register(window, 100);
+    instance1.register(100);
+    instance2.register(100);
 
 
     setTimeout(() => {
@@ -248,8 +255,8 @@ describe('ID5 instance', function () {
     instance2.on(ID5Integration.Event.ID5_LEADER_ELECTED, instance2Callback);
 
     // when
-    instance1.register(window, 100);
-    instance2.register(window, 100);
+    instance1.register(100);
+    instance2.register(100);
 
 
     setTimeout(() => {

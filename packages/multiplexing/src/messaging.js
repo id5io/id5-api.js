@@ -1,3 +1,5 @@
+import {NoopLogger} from './logger.js';
+
 export const DST_BROADCAST = undefined;
 
 export class Id5Message {
@@ -65,10 +67,10 @@ export class CrossInstanceMessenger {
   _messageFactory;
   /**
    *
-   * @type {function}
+   * @type {Logger}
    * @private
    */
-  _log; // TODO adpat to id5-api logging
+  _log;
 
   /**
    *
@@ -77,13 +79,10 @@ export class CrossInstanceMessenger {
    */
   _onMessageCallBackFunction = undefined;
 
-  constructor(id, window, logger = () => {
-  }) {
+  constructor(id, window, logger = NoopLogger) {
     this._id = id;
     this._messageFactory = new Id5MessageFactory(this._id);
-    this._log = function (msg) {
-      logger(msg);
-    };
+    this._log = logger;
     this._window = window;
     this._register();
   }
@@ -100,11 +99,11 @@ export class CrossInstanceMessenger {
       let msg = event.data;
       if (msg !== undefined && msg._isId5Message) { // is ID5 message
         if (event.data.src === messenger._id) { // is loopback message
-          messenger._log(`Ignore loopback msg`);
+          messenger._log.debug(`Ignore loopback msg`);
           return;
         }
         if (event.data.dst !== undefined && event.data.dst !== messenger._id) {
-          messenger._log(`Ignore msg not to me`);
+          messenger._log.debug(`Ignore msg not to me`);
           return;
         }
         if (messenger._onMessageCallBackFunction && typeof messenger._onMessageCallBackFunction === 'function') {
@@ -132,15 +131,18 @@ export class CrossInstanceMessenger {
     this._onMessageCallBackFunction = onMessageCallback;
   }
 
-  broadcastMessage(payload, type = payload.constructor.name) {
+  broadcastMessage(payload, type) {
+    this._log.debug('Broadcasting message', type, payload);
     this._postMessage(this._messageFactory.createBroadcastMessage(payload, type));
   }
 
   sendResponseMessage(receivedMessage, payload, type = payload.constructor.name) {
+    this._log.debug('Sending response message', receivedMessage, type, payload);
     this._postMessage(this._messageFactory.createResponse(receivedMessage, payload, type));
   }
 
   unicastMessage(dst, payload, type = payload.constructor.name) {
+    this._log.debug('Sending response to', dst, type, payload);
     this._postMessage(this._messageFactory.createUnicastMessage(dst, payload, type));
   }
 
@@ -156,7 +158,7 @@ export class CrossInstanceMessenger {
       } catch (e) {
         // avoid accessing `wnd` properties even for logging
         // they may not be accessible from current window and throw another exception
-        messenger._log('Could not post message to window', e);
+        messenger._log.error('Could not post message to window', e);
       }
     };
 
@@ -170,7 +172,7 @@ export class CrossInstanceMessenger {
           }
         }
       } catch (e) {
-        messenger._log('Could not broadcast message', e);
+        messenger._log.error('Could not broadcast message', e);
       }
     };
     broadcastMessage(messenger._window.top);
