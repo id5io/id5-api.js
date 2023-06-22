@@ -23,13 +23,88 @@ export class Properties {
   source;
   sourceVersion;
   sourceConfiguration;
+  href;
+  domain;
 
-  constructor(id, version, source, sourceVersion, sourceConfiguration) {
+  constructor(id, version, source, sourceVersion, sourceConfiguration, location) {
     this.id = id;
     this.version = version;
     this.source = source;
     this.sourceVersion = sourceVersion;
     this.sourceConfiguration = sourceConfiguration;
+    this.href = location?.href;
+    this.domain = location?.hostname;
+  }
+}
+
+class UniqCounter {
+  _knownValues = [];
+  /**
+   * @type {Counter}
+   * @private
+   */
+  _counter;
+
+  /**
+   * @param {Counter}counter
+   */
+  constructor(counter) {
+    this._counter = counter;
+  }
+
+  add(value) {
+    if (value && this._knownValues.indexOf(value) === -1) {
+      this._counter.inc();
+      this._knownValues.push(value);
+    }
+  }
+}
+
+class InstancesCounters {
+  /**
+   * @type {Counter}
+   * @private
+   */
+  _instancesCounter;
+  /**
+   * @type {UniqCounter}
+   * @private
+   */
+  _domainsCounter;
+  /**
+   * @type {UniqCounter}
+   * @private
+   */
+  _windowsCounter;
+  /**
+   * @type {UniqCounter}
+   * @private
+   */
+  _partnersCounter;
+
+  /**
+   *
+   * @param {Id5CommonMetrics} metrics
+   * @param {Properties} properties
+   */
+  constructor(metrics, properties) {
+    let id = properties.id;
+    this._instancesCounter = metrics.instanceCounter(properties.id);
+    this._windowsCounter = new UniqCounter(metrics.instanceUniqWindowsCounter(id));
+    this._partnersCounter = new UniqCounter(metrics.instanceUniqPartnersCounter(id));
+    this._domainsCounter = new UniqCounter(metrics.instanceUniqueDomainsCounter(id));
+    this.addInstance(properties);
+  }
+
+  /**
+   *
+   * @param {Properties} properties
+   */
+  addInstance(properties) {
+    this._instancesCounter.inc();
+    this._partnersCounter.add(properties?.sourceConfiguration?.options?.partnerId);
+    this._domainsCounter.add(properties?.domain);
+    this._windowsCounter.add(properties?.href);
   }
 }
 
@@ -57,6 +132,12 @@ export class Instance {
   _callbacks = new Map();
 
   /**
+   * @type {InstancesCounters}
+   * @private
+   */
+  _instanceCounters;
+
+  /**
    * // TODO replace with object for future compatibility changes
    * @param source
    * @param sourceVersion
@@ -64,25 +145,28 @@ export class Instance {
    * @param {Id5CommonMetrics} metrics
    * @param {Logger} logger
    */
-  constructor(source, sourceVersion, configuration, metrics, logger = NoopLogger) {
+  constructor(window, source, sourceVersion, configuration, metrics, logger = NoopLogger) {
     const id = Utils.generateId();
     this.properties = new Properties(
       id,
       version,
       source,
       sourceVersion,
-      configuration);
+      configuration,
+      window.location);
     this.role = Role.UNKNOWN;
     this._metrics = metrics;
-    this._metrics.instanceCounter(id).inc();
+    this._instanceCounters = new InstancesCounters(metrics, this.properties);
     this._loadTime = performance.now();
-    this._logger = (logger === undefined) ? new NamedLogger(`Instance(id=${id})`, logger) : NoopLogger;
+    this._logger = (logger !== undefined) ? new NamedLogger(`Instance(id=${id})`, logger) : NoopLogger;
     this._logger.debug('Instance created');
+    this._window = window;
   }
 
-  register(window, electionDelayMSec = 3000) {
+  register(electionDelayMSec = 3000) {
     let instance = this;
-    this._messenger = new CrossInstanceMessenger(instance.properties.id, window);
+    let window = instance._window;
+    this._messenger = new CrossInstanceMessenger(instance.properties.id, window, instance._logger);
     this._messenger.onMessageReceived((message) => {
       let deliveryTimeMsec = (performance.now() - message.timestamp) | 0;
       instance._metrics.instanceMsgDeliveryTimer().record(deliveryTimeMsec);
@@ -106,7 +190,7 @@ export class Instance {
       instance._doFireEvent(Event.ID5_LEADER_ELECTED, instance.role, instance._leader);
       instance._logger.debug('Leader elected', leader.id, 'my role', instance.role);
     }, electionDelayMSec);
-    this._messenger.broadcastMessage(new HelloMessage(this.properties), HelloMessage.TYPE);
+    instance._messenger.broadcastMessage(new HelloMessage(instance.properties), HelloMessage.TYPE);
     if (window.__id5_instances === undefined) {
       window.__id5_instances = [];
     }
@@ -114,6 +198,7 @@ export class Instance {
   }
 
   deregister() {
+    let window = this._window;
     let globalId5Instances = window.__id5_instances;
     if (globalId5Instances !== undefined) {
       globalId5Instances.splice(globalId5Instances.indexOf(this), 1);
@@ -142,7 +227,7 @@ export class Instance {
   _addInstance(instanceProperties) {
     if (!this._knownInstances.get(instanceProperties.id)) {
       this._knownInstances.set(instanceProperties.id, instanceProperties);
-      this._metrics.instanceCounter(this.properties.id).inc();
+      this._instanceCounters.addInstance(instanceProperties);
       this._metrics.instanceJoinDelayTimer().record((performance.now() - this._loadTime) | 0);
       if (this._leader !== undefined) {
         this._metrics.instanceLateJoinCounter(this.properties.id).inc();
@@ -198,7 +283,7 @@ electLeader(instances) {
 }
 
 class HelloMessage {
-  static TYPE = HelloMessage.constructor.name;
+  static TYPE = 'HelloMessage';
   instance;
 
   constructor(instanceProperties) {

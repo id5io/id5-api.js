@@ -65,13 +65,43 @@ export class Id5CommonMetrics extends MeterRegistry {
   }
 
   /**
-   *
-   * @param instanceId
+   * Counting number of unique instances discovered
+   * @param instanceId - unique instance id tag to make sure instances sharing window/meter registry  will count independently
    * @param tags
    * @return {Counter|Meter}
    */
   instanceCounter(instanceId, tags = {}) {
     return this.counter('id5.api.instance.count', {instanceId: instanceId, ...tags});
+  }
+
+  /**
+   * Counting number of unique domains discovered
+   * @param instanceId - unique instance id tag to make sure instances sharing window/meter registry  will count independently
+   * @param tags - optional tags
+   * @return {Counter|Meter}
+   */
+  instanceUniqueDomainsCounter(instanceId, tags = {}) {
+    return this.counter('id5.api.instance.domains.count', {instanceId: instanceId, ...tags});
+  }
+
+  /**
+   * Counting number of unique windows discovered
+   * @param instanceId
+   * @param tags
+   * @return {Counter|Meter}
+   */
+  instanceUniqWindowsCounter(instanceId, tags = {}) {
+    return this.counter('id5.api.instance.windows.count', {instanceId: instanceId, ...tags});
+  }
+
+  /**
+   * Counting number of unique partners discovered
+   * @param instanceId
+   * @param tags
+   * @return {Counter|Meter}
+   */
+  instanceUniqPartnersCounter(instanceId, tags = {}) {
+    return this.counter('id5.api.instance.partners.count', {instanceId: instanceId, ...tags});
   }
 
   instanceJoinDelayTimer(tags = {}) {

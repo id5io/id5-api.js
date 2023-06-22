@@ -313,7 +313,7 @@ describe('The ID5 API', function () {
           expect(onlyRequest.metadata.sampling).is.eq(1);
           expect(onlyRequest.metadata.trigger).is.eq('fixed-time');
           expect(onlyRequest.metadata.fixed_time_msec).is.eq(3000);
-          expect(onlyRequest.measurements.length).is.eq(6);
+          expect(onlyRequest.measurements.length).is.eq(9);
           const commonTags = {version: version, partner: '99', source: 'api', tml: 'https://my-publisher-website.net/'};
           verifyContainsMeasurementWithTags(onlyRequest.measurements, 'id5.api.instance.load.delay', 'TIMER', commonTags);
           verifyContainsMeasurementWithTags(onlyRequest.measurements, 'id5.api.invocation.count', 'SUMMARY', commonTags);
@@ -354,7 +354,7 @@ describe('The ID5 API', function () {
           expect(onlyRequest.metadata).is.not.eq(undefined);
           expect(onlyRequest.metadata.sampling).is.eq(1);
           expect(onlyRequest.metadata.trigger).is.eq('beforeunload');
-          expect(onlyRequest.measurements.length).is.eq(6);
+          expect(onlyRequest.measurements.length).is.eq(9);
           const commonTags = {version: version, partner: '99', source: 'api', tml: 'https://my-publisher-website.net/'};
           verifyContainsMeasurementWithTags(onlyRequest.measurements, 'id5.api.instance.load.delay', 'TIMER', commonTags);
           verifyContainsMeasurementWithTags(onlyRequest.measurements, 'id5.api.invocation.count', 'SUMMARY', commonTags);
@@ -388,6 +388,8 @@ describe('The ID5 API', function () {
       await server.forGet('https://lb.eu-1-id5-sync.com/lb/v1')
         .thenCallback(jsonWithCorsAllowed(MOCK_LB_RESPONSE));
       await server.forPost('https://id5-sync.com/g/v2/99.json')
+        .thenCallback(jsonWithCorsAllowed(MOCK_FETCH_RESPONSE));
+      await server.forPost('https://id5-sync.com/g/v2/98.json')
         .thenCallback(jsonWithCorsAllowed(MOCK_FETCH_RESPONSE));
       await server.forGet('https://dummyimage.com/600x200')
         .thenCallback(jsonWithCorsAllowed(''));
@@ -450,6 +452,9 @@ describe('The ID5 API', function () {
           for (const request of instancesRequests) {
             // each instance provides
             verifyContainsMeasurementWithValues(request.measurements, 'id5.api.instance.count', 'COUNTER', [4]);
+            verifyContainsMeasurementWithValues(request.measurements, 'id5.api.instance.domains.count', 'COUNTER', [2]);
+            verifyContainsMeasurementWithValues(request.measurements, 'id5.api.instance.windows.count', 'COUNTER', [3]);
+            verifyContainsMeasurementWithValues(request.measurements, 'id5.api.instance.partners.count', 'COUNTER', [2]);
             verifyContainsMeasurement(request.measurements, 'id5.api.instance.message.delivery.time', 'TIMER');
             verifyContainsMeasurement(request.measurements, 'id5.api.instance.join.delay.time', 'TIMER');
           }
