@@ -125,7 +125,7 @@ describe('ID5 instance', function () {
     // then
     expect(instance.properties).is.deep.eq({
       id: id,
-      version: '1.0.1',
+      version: '1.0.2',
       source: 'api',
       sourceVersion: '1.3.5',
       sourceConfiguration: {some: "property"},
