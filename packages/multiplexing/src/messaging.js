@@ -107,6 +107,7 @@ export class CrossInstanceMessenger {
           return;
         }
         if (messenger._onMessageCallBackFunction && typeof messenger._onMessageCallBackFunction === 'function') {
+          // TODO add window from msg was received - response will not have to broadcast
           messenger._onMessageCallBackFunction(msg);
         }
       }
@@ -147,24 +148,30 @@ export class CrossInstanceMessenger {
   }
 
   /**
+   * @param {Window} wnd
+   * @param {Id5Message} msg
+   * @private
+   */
+  _postToWindow(wnd, msg) {
+    try {
+      wnd.postMessage(msg, '*');
+    } catch (e) {
+      // avoid accessing `wnd` properties even for logging
+      // they may not be accessible from current window and throw another exception
+      this._log.error('Could not post message to window', e);
+    }
+  };
+
+  /**
    * @param {Id5Message} msg
    * @private
    */
   _postMessage(msg) {
     let messenger = this;
-    let postToWindow = function (wnd) {
-      try {
-        wnd.postMessage(msg, '*');
-      } catch (e) {
-        // avoid accessing `wnd` properties even for logging
-        // they may not be accessible from current window and throw another exception
-        messenger._log.error('Could not post message to window', e);
-      }
-    };
 
     let broadcastMessage = function (wnd) {
       try {
-        postToWindow(wnd, msg);
+        messenger._postToWindow(wnd, msg);
         let wndChildren = wnd.frames;
         if (wndChildren) {
           for (let i = 0; i < wndChildren.length; i++) {

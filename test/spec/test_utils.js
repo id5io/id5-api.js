@@ -1,6 +1,7 @@
 import LocalStorage from '../../lib/localStorage.js';
 import CONSTANTS from '../../lib/constants.json';
 import sinon from "sinon";
+import multiplexing from "@id5io/multiplexing";
 
 export const TEST_ID5_PARTNER_ID = 99;
 export const TEST_ID5_PARTNER_ID_ALT = 999;
@@ -219,4 +220,27 @@ export function stubTcfApi(consentData) {
   return sinon.stub(window, '__tcfapi').callsFake((...args) => {
     args[2](consentData, true);
   });
+}
+
+export class MultiplexingStub {
+
+  constructor() {
+    this.realCreate = multiplexing.createInstance;
+    this.stubCreate = sinon.stub(multiplexing, multiplexing.createInstance.name)
+  }
+
+  returnsInstance(instance) {
+    this.stubCreate.returns(instance);
+  }
+
+  interceptInstance(interceptor) {
+    const thisStub = this;
+    this.stubCreate.callsFake((...args)=> {
+      return interceptor(thisStub.realCreate(...args));
+    })
+  }
+
+  restore() {
+    this.stubCreate.restore()
+  }
 }

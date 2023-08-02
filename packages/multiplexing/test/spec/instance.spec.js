@@ -6,7 +6,8 @@ import * as chai from "chai";
 import {generateId} from "karma/common/util.js";
 import {Id5CommonMetrics} from "@id5io/diagnostics";
 import sinonChai from 'sinon-chai';
-import {NoopLogger} from "../../src/index.js";
+import {NoopLogger} from "../../src/logger.js";
+import {version} from "../../generated/version.js";
 
 chai.use(sinonChai);
 
@@ -95,8 +96,13 @@ describe('ID5 instance', function () {
   let createdInstances;
   let generateIdStub;
   let logger = NoopLogger; // for debug purposes assign console `let logger = console`
-  let createInstance = (...args) => {
-    const instance = new ID5Integration.Instance(window, ...args, logger);
+  let createInstance = (source, sourceVersion, sourceConfig, fetchIdData, metrics) => {
+    const instance = new ID5Integration.Instance(window,{
+      source: source,
+      sourceVersion: sourceVersion,
+      sourceConfiguration: sourceConfig,
+      fetchIdData: fetchIdData
+    }, metrics, logger);
     createdInstances.push(instance);
     return instance;
   }
@@ -120,15 +126,16 @@ describe('ID5 instance', function () {
     generateIdStub.returns(id);
 
     // when
-    let instance = createInstance('api', '1.3.5', {some: "property"}, metrics);
+    let instance = createInstance('api', '1.3.5', {some: "property"}, {partnerId: 99}, metrics);
 
     // then
     expect(instance.properties).is.deep.eq({
       id: id,
-      version: '1.0.2',
+      version: version,
       source: 'api',
       sourceVersion: '1.3.5',
       sourceConfiguration: {some: "property"},
+      fetchIdData: {partnerId: 99},
       href: window.location.href,
       domain: window.location.hostname
     });
@@ -140,10 +147,10 @@ describe('ID5 instance', function () {
     let electionDelayMsec = 100;
 
 
-    let unregisteredInstance = createInstance('api', '1', {}, metrics);
-    let instance1 = createInstance('api', '1', {}, metrics);
-    let instance2 = createInstance('api', '2', {}, metrics);
-    let instance3 = createInstance('api', '3', {}, metrics);
+    let unregisteredInstance = createInstance('api', '1', {}, {}, metrics);
+    let instance1 = createInstance('api', '1', {}, {}, metrics);
+    let instance2 = createInstance('api', '2', {}, {}, metrics);
+    let instance3 = createInstance('api', '3', {}, {}, metrics);
 
     // when
     instance1.register(electionDelayMsec);
@@ -175,8 +182,8 @@ describe('ID5 instance', function () {
   it('should call listeners when instance joined to party', function (done) {
 
     // given
-    let instance1 = createInstance('api', '1', {}, metrics);
-    let instance2 = createInstance('api', '2', {}, metrics);
+    let instance1 = createInstance('api', '1', {}, {}, metrics);
+    let instance2 = createInstance('api', '2', {}, {}, metrics);
 
     let firstCallback = sinon.stub();
     let failingCallback = sinon.stub().throws('BOOM!');
@@ -207,8 +214,8 @@ describe('ID5 instance', function () {
   it('should call listeners when message received', function (done) {
 
     // given
-    let instance1 = createInstance('api', '1', {}, metrics);
-    let instance2 = createInstance('api', '2', {}, metrics);
+    let instance1 = createInstance('api', '1', {}, {}, metrics);
+    let instance2 = createInstance('api', '2', {}, {}, metrics);
 
     let firstCallback = sinon.stub();
     let failingCallback = sinon.stub().throws('BOOM!');
@@ -241,8 +248,8 @@ describe('ID5 instance', function () {
   it('should call listeners when leader elected', function (done) {
 
     // given
-    let instance1 = createInstance('api', '1', {}, metrics);
-    let instance2 = createInstance('api', '2', {}, metrics);
+    let instance1 = createInstance('api', '1', {}, {}, metrics);
+    let instance2 = createInstance('api', '2', {}, {}, metrics);
 
     let firstCallback = sinon.stub();
     let failingCallback = sinon.stub().throws('BOOM!');

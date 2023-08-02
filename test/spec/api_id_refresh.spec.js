@@ -14,9 +14,10 @@ import {
   defaultInit,
   defaultInitBypassConsent,
   localStorage,
-  DEFAULT_EXTENSIONS
+  DEFAULT_EXTENSIONS, MultiplexingStub
 } from './test_utils';
 import {expect} from "chai";
+import multiplexing from '@id5io/multiplexing';
 
 describe('Refresh ID Fetch Handling', function () {
   let ajaxStub;
@@ -55,13 +56,18 @@ describe('Refresh ID Fetch Handling', function () {
   });
 
   describe('No Force Fetch', function () {
-    let getIdSpy;
+    let getIdSpy, multiplexingStub;
 
     beforeEach(function () {
-      getIdSpy = sinon.spy(ID5, 'getId');
+      multiplexingStub = new MultiplexingStub();
+      multiplexingStub.interceptInstance(instance => {
+        getIdSpy = sinon.spy(instance, '_getId')
+        return instance;
+      })
     });
     afterEach(function () {
-      ID5.getId.restore();
+      multiplexingStub.restore();
+      getIdSpy.restore();
     });
 
     it('should not call ID5 with no config changes', function (done) {
@@ -176,7 +182,8 @@ describe('Refresh ID Fetch Handling', function () {
         localStorage.removeItemWithExpiration(TEST_CONSENT_DATA_STORAGE_CONFIG);
       });
       beforeEach(function () {
-        window.__tcfapi = function () {};
+        window.__tcfapi = function () {
+        };
         cmpStub = sinon.stub(window, '__tcfapi').callsFake((...args) => {
           args[2](testConsentDataFromCmp.getTCData, true);
         });
@@ -228,7 +235,8 @@ describe('Refresh ID Fetch Handling', function () {
 
           cmpStub.restore();
           delete window.__tcfapi;
-          window.__tcfapi = function () {};
+          window.__tcfapi = function () {
+          };
           cmpStub = sinon.stub(window, '__tcfapi').callsFake((...args) => {
             args[2]({
               gdprApplies: true,
@@ -260,13 +268,18 @@ describe('Refresh ID Fetch Handling', function () {
   });
 
   describe('Force Fetch', function () {
-    let getIdSpy;
+    let getIdSpy, multiplexingStub;
 
     beforeEach(function () {
-      getIdSpy = sinon.spy(ID5, 'getId');
+      multiplexingStub = new MultiplexingStub();
+      multiplexingStub.interceptInstance(instance => {
+        getIdSpy = sinon.spy(instance, '_getId')
+        return instance;
+      })
     });
     afterEach(function () {
-      ID5.getId.restore();
+      multiplexingStub.restore();
+      getIdSpy.restore();
     });
 
     it('should call ID5 with no other reason to refresh', function (done) {

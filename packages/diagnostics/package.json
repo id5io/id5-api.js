@@ -12,6 +12,9 @@
     "lint": "gulp lint",
     "build": "gulp build"
   },
+  "engines": {
+    "node": ">=18.4"
+  },
   "keywords": [],
   "author": "id5.io",
   "license": "Apache-2.0",
