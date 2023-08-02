@@ -3,8 +3,6 @@ import CONSTANTS from '../../lib/constants.json';
 import ID5 from '../../lib/id5-api';
 import * as utils from '../../lib/utils';
 import {
-  AJAX_RESPONSE_MS,
-  CALLBACK_TIMEOUT_MS,
   ID5_FETCH_ENDPOINT,
   JSON_RESPONSE_ID5_CONSENT,
   localStorage,
@@ -14,10 +12,8 @@ import {
   TEST_STORED_SIGNATURE,
   defaultInit,
   defaultInitBypassConsent,
-  stubDelayedResponse,
-  execSequence,
   ExtensionsPromiseStub,
-  DEFAULT_EXTENSIONS, TEST_RESPONSE_LINK_TYPE
+  DEFAULT_EXTENSIONS
 } from './test_utils';
 import EXTENSIONS from "../../lib/extensions.js";
 
@@ -171,7 +167,6 @@ describe('A/B Testing', function () {
     };
 
     beforeEach(function () {
-      clock = sinon.useFakeTimers(Date.now());
       extensionsStub = sinon.stub(EXTENSIONS, 'gather').callsFake(function () {
         return new ExtensionsPromiseStub();
       });
@@ -186,102 +181,43 @@ describe('A/B Testing', function () {
       onAvailableSpy.resetHistory();
       onUpdateSpy.resetHistory();
       onRefreshSpy.resetHistory();
-      clock.restore();
     });
 
-    it('should not expose ID5.userId from a server response', function () {
-      ajaxStub = sinon.stub(utils, 'ajax').callsFake(function(url, callbacks, data, options) {
+    it('should not expose ID5.userId from a server response', function (done) {
+      ajaxStub = sinon.stub(utils, 'ajax').callsFake(function (url, callbacks, data, options) {
         callbacks.success(JSON_ABTEST);
       });
       const id5Status = ID5.init(API_CONFIG);
+      id5Status.onAvailable(function () {
+        sinon.assert.calledOnce(extensionsStub);
+        sinon.assert.calledOnce(ajaxStub);
+        expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
+        expect(id5Status.getUserId()).to.be.equal('0');
+        expect(id5Status.getLinkType()).to.be.equal(0);
+        expect(localStorage.getItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(encodeURIComponent(JSON_ABTEST));
+        expect(id5Status.exposeUserId()).to.be.false;
+        expect(id5Status.getUserIdAsEid()).to.be.eql(TEST_RESPONSE_EID_AB_CONTROL_GROUP);
+        done();
+      });
 
-      sinon.assert.calledOnce(extensionsStub);
-      sinon.assert.calledOnce(ajaxStub);
-      expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
-      expect(id5Status.getUserId()).to.be.equal('0');
-      expect(id5Status.getLinkType()).to.be.equal(0);
-      expect(localStorage.getItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(encodeURIComponent(JSON_ABTEST));
-      expect(id5Status.exposeUserId()).to.be.false;
-      expect(id5Status.getUserIdAsEid()).to.be.eql(TEST_RESPONSE_EID_AB_CONTROL_GROUP);
     });
 
-    it('should not expose ID5.userId from a stored response', function () {
-      ajaxStub = sinon.stub(utils, 'ajax').callsFake(function(url, callbacks, data, options) {
+    it('should not expose ID5.userId from a stored response', function (done) {
+      ajaxStub = sinon.stub(utils, 'ajax').callsFake(function (url, callbacks, data, options) {
         callbacks.success(JSON_ABTEST);
       });
       localStorage.setItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG, ENCODED_STORED_JSON_ABSTEST);
       localStorage.setItemWithExpiration(TEST_LAST_STORAGE_CONFIG, new Date().toUTCString());
 
       const id5Status = ID5.init(API_CONFIG);
-
-      sinon.assert.notCalled(extensionsStub);
-      sinon.assert.notCalled(ajaxStub);
-      expect(id5Status.getUserId()).to.be.equal('0');
-      expect(id5Status.getLinkType()).to.be.equal(0);
-      expect(id5Status.exposeUserId()).to.be.false;
-      expect(id5Status.getUserIdAsEid()).to.be.eql(TEST_RESPONSE_EID_AB_CONTROL_GROUP);
-    });
-
-    it('should call onAvailable then onUpdate on server response before time-out', function(done) {
-      ajaxStub = sinon.stub(utils, 'ajax').callsFake(stubDelayedResponse(JSON_ABTEST));
-      const id5Status = ID5.init(API_CONFIG);
-      id5Status.onAvailable(onAvailableSpy, CALLBACK_TIMEOUT_MS).onUpdate(onUpdateSpy);
-
-      expect(id5Status.getUserId()).to.be.undefined;
-      expect(id5Status.getLinkType()).to.be.undefined;
-      expect(id5Status.exposeUserId()).to.be.undefined;
-
-      execSequence(clock, {
-        timeout: AJAX_RESPONSE_MS,
-        fn: () => {
-          sinon.assert.notCalled(onAvailableSpy);
-          sinon.assert.notCalled(onUpdateSpy);
-        }
-      }, {
-        timeout: 1,
-        fn: () => {
-          sinon.assert.calledOnce(onAvailableSpy);
-          sinon.assert.calledOnce(onUpdateSpy);
-          sinon.assert.callOrder(onAvailableSpy, onUpdateSpy);
-        }
-      }, {
-        timeout: CALLBACK_TIMEOUT_MS + 1 - AJAX_RESPONSE_MS,
-        fn: () => {
-          sinon.assert.calledOnce(onAvailableSpy);
-          sinon.assert.calledOnce(onUpdateSpy);
-          done();
-        }
-      });
-    });
-
-    it('should call onAvailable then onUpdate on stored value right away', function(done) {
-      localStorage.setItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG, ENCODED_STORED_JSON_ABSTEST);
-      localStorage.setItemWithExpiration(TEST_LAST_STORAGE_CONFIG, new Date().toUTCString());
-      ajaxStub = sinon.stub(utils, 'ajax').callsFake(stubDelayedResponse(JSON_ABTEST));
-      const id5Status = ID5.init(API_CONFIG);
-      id5Status.onAvailable(onAvailableSpy, CALLBACK_TIMEOUT_MS).onUpdate(onUpdateSpy);
-
-      sinon.assert.notCalled(onAvailableSpy);
-      sinon.assert.notCalled(onUpdateSpy);
-
-      execSequence(clock, {
-        timeout: 1,
-        fn: () => {
-          sinon.assert.calledOnce(onAvailableSpy);
-          sinon.assert.calledOnce(onUpdateSpy);
-          sinon.assert.callOrder(onAvailableSpy, onUpdateSpy);
-          expect(id5Status.getUserId()).to.be.equal('0');
-          expect(id5Status.getLinkType()).to.be.equal(0);
-          expect(id5Status.exposeUserId()).to.be.false;
-          expect(id5Status.getUserIdAsEid()).to.be.eql(TEST_RESPONSE_EID_AB_CONTROL_GROUP);
-        }
-      }, {
-        timeout: CALLBACK_TIMEOUT_MS + 1,
-        fn: () => {
-          sinon.assert.calledOnce(onAvailableSpy);
-          sinon.assert.calledOnce(onUpdateSpy);
-          done();
-        }
+      id5Status.onAvailable(function () {
+        sinon.assert.notCalled(extensionsStub);
+        sinon.assert.notCalled(ajaxStub);
+        expect(id5Status.getUserId()).to.be.equal('0');
+        expect(id5Status.getLinkType()).to.be.equal(0);
+        expect(id5Status.exposeUserId()).to.be.false;
+        expect(id5Status.getUserIdAsEid()).to.be.eql(TEST_RESPONSE_EID_AB_CONTROL_GROUP);
+        done();
       });
     });
   });

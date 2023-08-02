@@ -30,7 +30,7 @@ describe('Extensions', function () {
       }
     });
 
-    return EXTENSIONS.gather(1)
+    return EXTENSIONS.gather()
       .then(response => {
         verifyExtensionsCalled();
         expect(response).to.be.deep.equal({
@@ -45,7 +45,7 @@ describe('Extensions', function () {
       callbacks.error("BOOM")
     });
 
-    return EXTENSIONS.gather(1)
+    return EXTENSIONS.gather()
       .then(response => {
         verifyExtensionsCalled();
         expect(response).to.be.deep.equal({

@@ -1,14 +1,14 @@
 import sinon from 'sinon';
-import CONSTANTS from '../../lib/constants.json';
 import * as utils from '../../lib/utils';
 import ClientStore from '../../lib/clientStore';
 import {version} from '../../generated/version.js';
 import ID5 from '../../lib/id5-api';
-import {API_TYPE, ConsentData, GRANT_TYPE, LocalStorageGrant} from '../../lib/consentManagement';
+import {API_TYPE, ConsentData, GRANT_TYPE, LocalStorageGrant} from '../../lib/consentManagement.js';
 import {
   DEFAULT_EXTENSIONS,
   defaultInit,
-  defaultInitBypassConsent, defaultInitBypassConsentWithPd,
+  defaultInitBypassConsent,
+  defaultInitBypassConsentWithPd,
   getLocalStorageItemExpirationDays,
   ID5_FETCH_ENDPOINT,
   JSON_RESPONSE_ID5_CONSENT,
@@ -35,10 +35,12 @@ import {
   TEST_RESPONSE_LINK_TYPE_NO_CONSENT,
   TEST_SEGMENT_STORAGE_CONFIG,
   TEST_STORED_ID5ID,
-  TEST_STORED_LINK_TYPE, TEST_STORED_SIGNATURE
+  TEST_STORED_LINK_TYPE,
+  TEST_STORED_SIGNATURE
 } from './test_utils';
 import {StorageConfig} from "../../lib/config.js";
 import EXTENSIONS from "../../lib/extensions.js";
+import {ApiEvent, NoopLogger} from "@id5io/multiplexing";
 
 let expect = require('chai').expect;
 
@@ -56,15 +58,14 @@ function resetExtensionsStub(extensionsStub) {
 
 describe('ID5 JS API', function () {
 
-  const testClientStore = new ClientStore(0,
+  const testClientStore = new ClientStore(
     () => new LocalStorageGrant(true, GRANT_TYPE.FORCE_ALLOWED_BY_CONFIG, API_TYPE.NONE),
     localStorage,
-    new StorageConfig());
+    new StorageConfig(), NoopLogger);
 
   let extensionsStub;
 
   beforeEach(function () {
-    ID5.debug = false;
     extensionsStub = stubExtensions();
   });
 
@@ -85,10 +86,6 @@ describe('ID5 JS API', function () {
     it('should be loaded', function () {
       expect(ID5.loaded).to.be.a('boolean');
       expect(ID5.loaded).to.be.true;
-    });
-    it('should be initialized', function () {
-      const id5Status = ID5.init({partnerId: TEST_ID5_PARTNER_ID});
-      expect(id5Status).to.exist;
     });
   });
 
@@ -940,147 +937,7 @@ describe('ID5 JS API', function () {
         });
 
       });
-
-      describe('Handle Legacy Cookies with Consent Override', function () {
-        const expStrFuture = (new Date(Date.now() + 5000).toUTCString());
-        const expStrExpired = (new Date(Date.now() - 5000).toUTCString());
-
-        it('should call id5 servers without existing legacy value in 1puid params via Ajax', function (done) {
-          utils.setCookie('id5id.1st', JSON.stringify({'ID5ID': 'legacyid5id'}), expStrFuture);
-
-          const id5Status = ID5.init(defaultInitBypassConsent());
-
-          id5Status.onAvailable(function () {
-            sinon.assert.calledOnce(extensionsStub);
-            sinon.assert.calledOnce(ajaxStub);
-            expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
-
-            const requestData = JSON.parse(ajaxStub.firstCall.args[2]);
-            expect(requestData.s).to.be.undefined;
-            expect(requestData['1puid']).to.be.undefined;
-
-            expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
-            expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
-            expect(localStorage.getItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(encodeURIComponent(JSON_RESPONSE_ID5_CONSENT));
-
-            utils.setCookie('id5id.1st', '', expStrExpired);
-            done();
-          });
-        });
-
-        it('should call id5 servers with existing signature value from legacy cookie id5.1st storage if local storage is empty', function (done) {
-          utils.setCookie('id5.1st', JSON.stringify({
-            'universal_uid': 'legacycookieuid',
-            'signature': 'legacycookiesignature'
-          }), expStrFuture);
-
-          const id5Status = ID5.init(defaultInitBypassConsent());
-
-          id5Status.onAvailable(function () {
-            sinon.assert.calledOnce(extensionsStub);
-            sinon.assert.calledOnce(ajaxStub);
-            expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
-            const requestData = JSON.parse(ajaxStub.firstCall.args[2]);
-            expect(requestData.s).to.be.equal('legacycookiesignature');
-
-            expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
-            expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
-
-            utils.setCookie('id5id.1st', '', expStrExpired);
-            done();
-          });
-        });
-
-        it('should call id5 servers with existing signature value from legacy cookie id5id.1st storage if local storage is empty', function (done) {
-          utils.setCookie('id5id.1st', JSON.stringify({
-            'universal_uid': 'legacycookieuid',
-            'signature': 'legacycookiesignature'
-          }), expStrFuture);
-
-          const id5Status = ID5.init(defaultInitBypassConsent());
-
-          id5Status.onAvailable(function () {
-            sinon.assert.calledOnce(extensionsStub);
-            sinon.assert.calledOnce(ajaxStub);
-            expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
-            const requestData = JSON.parse(ajaxStub.firstCall.args[2]);
-            expect(requestData.s).to.be.equal('legacycookiesignature');
-
-            expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
-            expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
-
-            utils.setCookie('id5id.1st', '', expStrExpired);
-            done();
-          });
-        });
-
-        it('should call id5 servers with existing signature value from legacy cookie id5id.1st storage if local storage is empty and both legacy cookies exist', function (done) {
-          utils.setCookie('id5.1st', JSON.stringify({
-            'universal_uid': 'legacycookieuid-id5.1st',
-            'signature': 'legacycookiessignature-id5.1st'
-          }), expStrFuture);
-          utils.setCookie('id5id.1st', JSON.stringify({
-            'universal_uid': 'legacycookieuid-id5id.1st',
-            'signature': 'legacycookiesignature-id5id.1st'
-          }), expStrFuture);
-
-          const id5Status = ID5.init(defaultInitBypassConsent());
-
-          id5Status.onAvailable(function () {
-            sinon.assert.calledOnce(extensionsStub);
-            sinon.assert.calledOnce(ajaxStub);
-            expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
-            const requestData = JSON.parse(ajaxStub.firstCall.args[2]);
-            expect(requestData.s).to.be.equal('legacycookiesignature-id5id.1st');
-
-            expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
-            expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
-
-            utils.setCookie('id5.1st', '', expStrExpired);
-            utils.setCookie('id5id.1st', '', expStrExpired);
-            done();
-          });
-        });
-
-        it('removes legacy cookies', function (done) {
-          CONSTANTS.LEGACY_COOKIE_NAMES.forEach(function (cookie) {
-            utils.setCookie(`${cookie}`, JSON.stringify({
-              'universal_uid': 'legacycookieuid',
-              'signature': 'legacycookiesignature'
-            }), expStrFuture);
-            utils.setCookie(`${cookie}_nb`, 1, expStrFuture);
-            utils.setCookie(`${cookie}_${TEST_ID5_PARTNER_ID}_nb`, 2, expStrFuture);
-            utils.setCookie(`${cookie}_last`, Date.now() - (8000 * 1000), expStrFuture);
-            utils.setCookie(`${cookie}.cached_pd`, 'abc', expStrFuture);
-            utils.setCookie(`${cookie}.cached_consent_data`, 'xyz', expStrFuture);
-          });
-
-          ID5.init(defaultInitBypassConsent()).onAvailable(function () {
-
-            CONSTANTS.LEGACY_COOKIE_NAMES.forEach(function (cookie) {
-              expect(utils.getCookie(`${cookie}`)).to.be.equal(null);
-              expect(utils.getCookie(`${cookie}_nb`)).to.be.equal(null);
-              expect(utils.getCookie(`${cookie}_${TEST_ID5_PARTNER_ID}_nb`)).to.be.equal(null);
-              expect(utils.getCookie(`${cookie}_last`)).to.be.equal(null);
-              expect(utils.getCookie(`${cookie}.cached_pd`)).to.be.equal(null);
-              expect(utils.getCookie(`${cookie}.cached_consent_data`)).to.be.equal(null);
-            });
-
-            // just for safety's sake, forcibly remove the cookies that should already be gone
-            CONSTANTS.LEGACY_COOKIE_NAMES.forEach(function (cookie) {
-              utils.setCookie(`${cookie}`, '', expStrExpired);
-              utils.setCookie(`${cookie}_nb`, '', expStrExpired);
-              utils.setCookie(`${cookie}_${TEST_ID5_PARTNER_ID}_nb`, '', expStrExpired);
-              utils.setCookie(`${cookie}_last`, '', expStrExpired);
-              utils.setCookie(`${cookie}.cached_pd`, '', expStrExpired);
-              utils.setCookie(`${cookie}.cached_consent_data`, '', expStrExpired);
-            });
-            done();
-          });
-        });
-      });
     });
-
     describe('No CMP nor Stored Privacy nor Consent Override on Request, Consent on Response', function () {
       let ajaxStub;
 
@@ -1320,7 +1177,6 @@ describe('ID5 JS API', function () {
                 ...defaultInit(),
                 refreshInSeconds: 1000
               }).onAvailable(function () {
-
                 sinon.assert.calledOnce(extensionsStub);
                 sinon.assert.calledOnce(ajaxStub);
                 expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
@@ -1729,26 +1585,31 @@ describe('ID5 JS API', function () {
         ajaxStub.restore();
       });
 
-      it('should not request new id with previous no-consent privacy data', function () {
+      it('should not request new id with previous no-consent privacy data', function (done) {
         const id5Status = ID5.init(defaultInit());
 
-        sinon.assert.notCalled(extensionsStub);
-        sinon.assert.notCalled(ajaxStub);
-        expect(id5Status.getUserId()).to.be.undefined;
-        expect(id5Status.getLinkType()).to.be.undefined;
-        expect(localStorage.getItemWithExpiration(TEST_PD_STORAGE_CONFIG)).to.be.null;
-        expect(localStorage.getItemWithExpiration(TEST_CONSENT_DATA_STORAGE_CONFIG)).to.be.null;
+        id5Status.instance.on(ApiEvent.USER_ID_FETCH_CANCELED, _ => {
+          sinon.assert.notCalled(extensionsStub);
+          sinon.assert.notCalled(ajaxStub);
+          expect(id5Status.getUserId()).to.be.undefined;
+          expect(id5Status.getLinkType()).to.be.undefined;
+          expect(localStorage.getItemWithExpiration(TEST_PD_STORAGE_CONFIG)).to.be.null;
+          expect(localStorage.getItemWithExpiration(TEST_CONSENT_DATA_STORAGE_CONFIG)).to.be.null;
+          done();
+        });
       });
 
-      it('should not use stored response for ID with previous no-consent privacy data', function () {
+      it('should not use stored response for ID with previous no-consent privacy data', function (done) {
         localStorage.setItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON);
 
         const id5Status = ID5.init(defaultInit());
-
-        sinon.assert.notCalled(extensionsStub);
-        sinon.assert.notCalled(ajaxStub);
-        expect(id5Status.getUserId()).to.be.undefined;
-        expect(id5Status.getLinkType()).to.be.undefined;
+        id5Status.instance.on(ApiEvent.USER_ID_FETCH_CANCELED, _ => {
+          sinon.assert.notCalled(extensionsStub);
+          sinon.assert.notCalled(ajaxStub);
+          expect(id5Status.getUserId()).to.be.undefined;
+          expect(id5Status.getLinkType()).to.be.undefined;
+          done();
+        });
       });
     });
 

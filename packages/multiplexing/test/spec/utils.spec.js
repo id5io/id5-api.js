@@ -1,7 +1,6 @@
 import {expect} from 'chai';
 import {semanticVersionCompare} from "../../src/utils.js";
 
-
 describe('Semantic Version Comparator', function () {
 
   [

@@ -5,7 +5,7 @@
 import _ from 'lodash';
 import webpackConf from './webpack.conf.js';
 import path from 'path';
-import { constants as karmaConstants } from 'karma';
+import {constants as karmaConstants} from 'karma';
 import isDocker from 'is-docker';
 
 function newWebpackConfig(codeCoverage) {
@@ -20,10 +20,17 @@ function newWebpackConfig(codeCoverage) {
       exclude: /(node_modules)|(test)|(build)/,
       use: {
         loader: 'istanbul-instrumenter-loader',
-        options: { esModules: true }
+        options: {esModules: true}
       },
       test: /\.js$/
-    })
+    });
+  }
+
+  // update babel-loader
+  for (let rule of webpackConfig.module.rules) {
+    if (rule.loader === 'babel-loader') {
+      rule.options.presets.push({'plugins': ['@babel/plugin-transform-runtime']})
+    }
   }
   return webpackConfig;
 }
@@ -61,12 +68,12 @@ function setBrowsers(karmaConf) {
   }
 }
 
-export default function(codeCoverage, watchMode, file) {
+export default function (codeCoverage, watchMode, file) {
   var webpackConfig = newWebpackConfig(codeCoverage);
 
   var files = file ? ['test/helpers/id5-apiGlobal.js', file] : [
     'test/test_index.js',
-    { pattern: 'test/pages/1x1.png', watched: false, included: false, served: true }
+    {pattern: 'test/pages/1x1.png', watched: false, included: false, served: true}
   ];
 
   var config = {

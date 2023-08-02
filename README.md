@@ -197,10 +197,10 @@ $ npm install
 - `gulp-cli 2.3.x` or greater; install using `npm install --global gulp-cli`
 - `Google chrome 90` or greater
 
-Build for production and/or development with gulp
+Build for production and/or development
 
 ```bash
-$ gulp build
+$ npm run build:all
 ```
 
 The resulting minified javascript file will be available in `build/dist/id5-api.js`
@@ -474,6 +474,16 @@ To run the unit tests
 $ gulp test
 ```
 
+Test all including dependencies
+```bash
+$ npm run test:all
+```
+
+Run integrations tests
+```bash
+$ gulp inttest
+```
+
 To generate and view the code coverage reports
 
 ```bash
@@ -483,13 +493,33 @@ $ gulp view-coverage
 
 Build and run the project locally with
 
-```
+```bash
 $ gulp serve
 ```
 
 This runs `lint` and `test`, then starts a web server at `http://localhost:9999` serving from the project root. Navigate to your example implementation to test, and if your `id5-api.js` file is sourced from the `./build/dev` directory you will have sourcemaps available in your browser's developer tools.
 
 As you make code changes, the bundles will be rebuilt and the page reloaded automatically.
+
+Build all dependencies only
+```bash
+$ npm run build -ws
+```
+
+Test all dependencies only
+```bash
+$ npm test -ws
+```
+
+Test dependency libray only (i.e packages/mutiplexing)
+```bash
+$ cd packages/multiplexing
+$ npm test
+```
+or 
+```bash
+$ npm test -w=packages/multiplexing
+```
 
 ## Prebid.js
 

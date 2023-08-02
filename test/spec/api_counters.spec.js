@@ -18,6 +18,7 @@ import {
   DEFAULT_EXTENSIONS
 } from './test_utils';
 import EXTENSIONS from "../../lib/extensions.js";
+import {ApiEvent} from "@id5io/multiplexing";
 
 describe('Counters', function () {
   let ajaxStub;
@@ -71,16 +72,18 @@ describe('Counters', function () {
     });
   });
 
-  it('should not increment counter when not calling ID5 servers if no existing ID in local storage', function () {
+  it('should not increment counter when not calling ID5 servers if no existing ID in local storage', function (done) {
     localStorage.setItemWithExpiration(TEST_NB_STORAGE_CONFIG, 5);
     localStorage.setItemWithExpiration(TEST_PRIVACY_STORAGE_CONFIG, TEST_PRIVACY_DISALLOWED);
 
-    ID5.init(defaultInit());
-
-    sinon.assert.notCalled(extensionsStub);
-    sinon.assert.notCalled(ajaxStub);
-    const nb = parseInt(localStorage.getItemWithExpiration(TEST_NB_STORAGE_CONFIG));
-    expect(nb).to.be.equal(5);
+    const id5Status = ID5.init(defaultInit());
+    id5Status.instance.on(ApiEvent.USER_ID_FETCH_CANCELED, details => {
+      sinon.assert.notCalled(extensionsStub);
+      sinon.assert.notCalled(ajaxStub);
+      const nb = parseInt(localStorage.getItemWithExpiration(TEST_NB_STORAGE_CONFIG));
+      expect(nb).to.be.equal(5);
+      done();
+    })
   });
 
   it('should reset counter to 0 after calling ID5 servers if ID in local storage with a previous counter', function (done) {

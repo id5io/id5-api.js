@@ -18,11 +18,30 @@ export const Event = Object.freeze({
 const SUPPORTED_EVENTS = Object.freeze(Object.values(Event));
 
 export class Properties {
+  /**
+   * @type {string} unique instance id
+   */
   id;
+  /**
+   * @type {string} multiplexing lib version which this instance was loaded with
+   */
   version;
+  /**
+   * @type {string} source where this instance were loaded from (api/pbjs other)
+   */
   source;
+  /**
+   * @type {string} source lib version which this instance were loaded with (i.e. id5-api.js version 1.0.22)
+   */
   sourceVersion;
+  /**
+   * @type {Object} source specific configuration options
+   */
   sourceConfiguration;
+  /**
+   * @type {FetchIdData} instance data required call fetch on its behalf
+   */
+  fetchIdData;
   href;
   domain;
 
@@ -93,7 +112,6 @@ class InstancesCounters {
     this._windowsCounter = new UniqCounter(metrics.instanceUniqWindowsCounter(id));
     this._partnersCounter = new UniqCounter(metrics.instanceUniqPartnersCounter(id));
     this._domainsCounter = new UniqCounter(metrics.instanceUniqueDomainsCounter(id));
-    this.addInstance(properties);
   }
 
   /**
@@ -102,13 +120,16 @@ class InstancesCounters {
    */
   addInstance(properties) {
     this._instancesCounter.inc();
-    this._partnersCounter.add(properties?.sourceConfiguration?.options?.partnerId);
+    this._partnersCounter.add(properties?.fetchIdData?.partnerId | properties?.sourceConfiguration?.options?.partnerId);
     this._domainsCounter.add(properties?.domain);
     this._windowsCounter.add(properties?.href);
   }
 }
 
 export class Instance {
+  /**
+   * @type {Properties}
+   */
   properties;
   /**
    * @type {CrossInstanceMessenger}
@@ -138,34 +159,52 @@ export class Instance {
   _instanceCounters;
 
   /**
-   * // TODO replace with object for future compatibility changes
-   * @param source
-   * @param sourceVersion
-   * @param configuration
-   * @param {Id5CommonMetrics} metrics
-   * @param {Logger} logger
+   * @typedef {Object} InstanceConfiguration
+   * @property {string} source - source lib where it was initialized from
+   * @property {string} sourceVersion source lib version
+   * @property {string} sourceConfiguration source lib specific configuration
+   * @property {FetchIdData}  fetchIdData instance data required to call Fetch
    */
-  constructor(window, source, sourceVersion, configuration, metrics, logger = NoopLogger) {
+
+  /**
+   * @param {Window} wnd
+   * @param {InstanceConfiguration} configuration
+   * @param {Logger} logger
+   * @param {MeterRegistry} metrics
+   */
+  constructor(wnd, configuration, metrics, logger = NoopLogger) {
     const id = Utils.generateId();
-    this.properties = new Properties(
-      id,
-      version,
-      source,
-      sourceVersion,
-      configuration,
-      window.location);
+    this.properties = {
+      id: id,
+      version: version,
+      href: wnd.location?.href,
+      domain: wnd.location?.hostname
+    };
+    this.updateConfig(configuration);
     this.role = Role.UNKNOWN;
     this._metrics = metrics;
     this._instanceCounters = new InstancesCounters(metrics, this.properties);
     this._loadTime = performance.now();
     this._logger = (logger !== undefined) ? new NamedLogger(`Instance(id=${id})`, logger) : NoopLogger;
     this._logger.debug('Instance created');
-    this._window = window;
+    this._window = wnd;
+  }
+
+  /**
+   *
+   * @param {InstanceConfiguration} configuration
+   */
+  updateConfig(configuration) {
+    this.properties.source = configuration.source;
+    this.properties.sourceVersion = configuration.sourceVersion;
+    this.properties.sourceConfiguration = configuration.sourceConfiguration;
+    this.properties.fetchIdData = configuration.fetchIdData;
   }
 
   register(electionDelayMSec = 3000) {
     let instance = this;
     let window = instance._window;
+    instance._instanceCounters.addInstance(instance.properties);
     this._messenger = new CrossInstanceMessenger(instance.properties.id, window, instance._logger);
     this._messenger.onMessageReceived((message) => {
       let deliveryTimeMsec = (performance.now() - message.timestamp) | 0;
@@ -176,6 +215,7 @@ export class Instance {
           let hello = message.payload;
           instance._addInstance(hello.instance);
           if (message.dst === DST_BROADCAST) { // this init message , so respond back to introduce myself
+            // TODO if already leader elected let new instance know it's late joiner
             instance._messenger.sendResponseMessage(message, new HelloMessage(instance.properties), HelloMessage.TYPE);
           }
       }
