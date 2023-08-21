@@ -1,9 +1,4 @@
 /**
- * @typedef ConsentData
- * @property
- */
-
-/**
  * @typedef FetchRequestData
  * @property {number} partnerId
  * @property {ConsentData} consentData
@@ -37,6 +32,7 @@
 /**
  * FetchIdData data
  * @typedef {Object} FetchIdData
+ * @property {string} integrationId - unique multiplexing integration id
  * @property {string} origin
  * @property {string} originVersion
  * @property {number} partnerId
@@ -44,14 +40,14 @@
  * @property {boolean} isLocalStorageAvailable
  * @property {boolean} isUsingCdn
  * @property {number} att - Indication of whether the event came from an Apple ATT event (value of 1 is yes)
- * @property {Object} uaHints - user agent high entropy values
- * @property {string} liveIntentId
- * @property {AbTestConfig} abTesting
+ * @property {Object} [uaHints] - user agent high entropy values
+ * @property {string} [liveIntentId]
+ * @property {AbTestConfig} [abTesting]
  * @property {string} [pd] - Partner Data that can be passed to help with cross-domain reconciliation of the ID5 ID
  * @property {string} [partnerUserId] - User ID for the platform deploying the API, to be stored by ID5 for further cookie matching if provided
  * @property {string} [provider] - Defines who is deploying the API on behalf of the partner. A hard-coded value that will be provided by ID5 when applicable
  * @property {Array<Segment>} [segments] - A list of segments to push to partners.
- * @property {Array<Segment>} [invalidSegmentsCount] - Monitoring server side for excluded invalid segments
+ * @property {number} [invalidSegmentsCount] - Monitoring server side for excluded invalid segments
  * @property {number} [refreshInSeconds] - Default operating uid refresh time in seconds
  * @property {number} [providedRefreshInSeconds] - Configured uid refresh time in seconds
  */

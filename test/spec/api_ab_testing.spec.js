@@ -15,7 +15,7 @@ import {
   ExtensionsPromiseStub,
   DEFAULT_EXTENSIONS
 } from './test_utils';
-import EXTENSIONS from "../../lib/extensions.js";
+import {EXTENSIONS} from '@id5io/multiplexing';
 
 describe('A/B Testing', function () {
   let ajaxStub;
@@ -62,7 +62,7 @@ describe('A/B Testing', function () {
         sinon.assert.calledOnce(extensionsStub);
         sinon.assert.calledOnce(ajaxStub);
         expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
-        const requestData = JSON.parse(ajaxStub.firstCall.args[2]);
+        const requestData = JSON.parse(ajaxStub.firstCall.args[2]).requests[0];
         expect(requestData.ab_testing).to.be.an('object');
         expect(requestData.ab_testing.enabled).to.be.true;
         expect(requestData.ab_testing.control_group_pct).to.equal(0.5);

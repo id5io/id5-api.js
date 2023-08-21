@@ -1,6 +1,5 @@
 import sinon from 'sinon';
 import * as utils from '../../lib/utils';
-import EXTENSIONS from "../../lib/extensions.js";
 import ID5 from '../../lib/id5-api';
 import {
   TEST_ID5ID_STORAGE_CONFIG,
@@ -17,7 +16,7 @@ import {
   DEFAULT_EXTENSIONS, MultiplexingStub
 } from './test_utils';
 import {expect} from "chai";
-import multiplexing from '@id5io/multiplexing';
+import {EXTENSIONS} from '@id5io/multiplexing';
 
 describe('Refresh ID Fetch Handling', function () {
   let ajaxStub;
@@ -107,7 +106,7 @@ describe('Refresh ID Fetch Handling', function () {
         sinon.assert.calledOnce(ajaxStub);
         expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
 
-        const requestData = JSON.parse(ajaxStub.firstCall.args[2]);
+        const requestData = JSON.parse(ajaxStub.firstCall.args[2]).requests[0];
         expect(requestData.used_refresh_in_seconds).to.be.eq(50);
         expect(requestData.provided_options.refresh_in_seconds).to.be.eq(50);
 
@@ -135,7 +134,7 @@ describe('Refresh ID Fetch Handling', function () {
         sinon.assert.calledOnce(extensionsStub);
         sinon.assert.calledOnce(ajaxStub);
         expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
-        const requestData = JSON.parse(ajaxStub.firstCall.args[2]);
+        const requestData = JSON.parse(ajaxStub.firstCall.args[2]).requests[0];
         expect(requestData.provided_options.refresh_in_seconds).to.be.eq(undefined);
         expect(requestData.used_refresh_in_seconds).to.be.eq(7200);
 
@@ -151,7 +150,7 @@ describe('Refresh ID Fetch Handling', function () {
           expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
           sinon.assert.calledTwice(getIdSpy);
 
-          const requestData = JSON.parse(ajaxStub.firstCall.args[2]);
+          const requestData = JSON.parse(ajaxStub.firstCall.args[2]).requests[0];
           expect(requestData.pd).to.be.equal('abcdefg');
 
           expect(id5Status.getUserId()).to.be.equal(TEST_REFRESH_RESPONSE_ID5ID);

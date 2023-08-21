@@ -1,7 +1,7 @@
-import sinon from "sinon";
-import * as utils from "../../lib/utils.js";
-import {ID5_LB_ENDPOINT} from "./test_utils.js";
-import EXTENSIONS from "../../lib/extensions.js";
+import {expect} from 'chai';
+import sinon from 'sinon';
+import * as utils from "../../../../lib/utils.js";
+import {ID5_LB_ENDPOINT, EXTENSIONS} from "../../src/extensions.js";
 
 
 describe('Extensions', function () {

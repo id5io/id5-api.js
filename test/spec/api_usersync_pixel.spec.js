@@ -15,7 +15,7 @@ import {
   defaultInitBypassConsent,
   DEFAULT_EXTENSIONS
 } from './test_utils';
-import EXTENSIONS from "../../lib/extensions.js";
+import {EXTENSIONS} from '@id5io/multiplexing';
 
 describe('Fire Usersync Pixel', function () {
   let ajaxStub;
@@ -115,7 +115,7 @@ describe('Fire Usersync Pixel', function () {
         sinon.assert.calledOnce(ajaxStub);
         expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
         sinon.assert.calledOnce(syncStub);
-        expect(JSON.parse(ajaxStub.firstCall.args[2]).puid).to.be.equal('abc123');
+        expect(JSON.parse(ajaxStub.firstCall.args[2]).requests[0].puid).to.be.equal('abc123');
         expect(syncStub.args[0][0]).to.contain(`${ID5_SYNC_ENDPOINT}/8.gif`);
         expect(syncStub.args[0][0]).to.contain('puid=abc123');
         expect(syncStub.args[0][0]).to.not.contain('fs=');

@@ -1,6 +1,6 @@
 import {expect} from 'chai';
 import {CrossInstanceMessenger, Id5Message, Id5MessageFactory} from "../../src/messaging.js";
-import sinon from "sinon";
+import sinon from 'sinon';
 
 class Hello {
 }

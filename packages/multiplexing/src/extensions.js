@@ -1,8 +1,10 @@
-import {ajax} from './utils.js';
+import {ajax} from '../../../lib/utils.js';
 import Promise from './promise.js';
-import {NoopLogger} from '@id5io/multiplexing';
+import {NoopLogger} from './logger.js';
 
-class Extensions {
+export const ID5_LB_ENDPOINT = `https://lb.eu-1-id5-sync.com/lb/v1`;
+
+export class Extensions {
   /**
    * @typedef {Object} ExtensionsData
    */
@@ -16,9 +18,6 @@ class Extensions {
     const DEFAULT_RESPONSE = {
       lbCDN: '%%LB_CDN%%' // lbCDN substitution macro
     };
-
-    const LB_URL = 'https://lb.eu-1-id5-sync.com/lb/v1';
-
     const parseResponse = function (url, response) {
       try {
         return JSON.parse(response);
@@ -45,7 +44,7 @@ class Extensions {
     };
 
     return Promise.allSettled([
-      submitExtensionCall(LB_URL)
+      submitExtensionCall(ID5_LB_ENDPOINT)
     ]).then((results) => {
       let extensions = DEFAULT_RESPONSE;
       results.forEach(result => {
@@ -61,5 +60,4 @@ class Extensions {
   }
 }
 
-const EXTENSIONS = new Extensions();
-export default EXTENSIONS;
+export const EXTENSIONS = new Extensions();

@@ -56,6 +56,8 @@ const MOCK_LB_RESPONSE = {
   'lb': 'LB_DATA'
 };
 
+const FETCH_ENDPOINT = 'https://id5-sync.com/gm/v2';
+
 // Note: do not use lambda syntax in describes. https://mochajs.org/#arrow-functions
 describe('The ID5 API', function () {
   let browser, server, CONSTANTS, profileDir, caFingerprint;
@@ -132,7 +134,7 @@ describe('The ID5 API', function () {
     });
 
     it('can succesfully retrieve an ID, store in browser and fire callback', async () => {
-      const mockId5 = await server.forPost('https://id5-sync.com/g/v2/99.json')
+      const mockId5 = await server.forPost(FETCH_ENDPOINT)
         .thenJson(200, MOCK_FETCH_RESPONSE, MOCK_CORS_HEADERS);
       const mockLbEndpoint = await server.forGet('https://lb.eu-1-id5-sync.com/lb/v1')
         .thenJson(200, MOCK_LB_RESPONSE, MOCK_CORS_HEADERS);
@@ -147,7 +149,7 @@ describe('The ID5 API', function () {
       const lbRequests = await mockLbEndpoint.getSeenRequests();
       expect(lbRequests).to.have.lengthOf(1);
 
-      const requestBody = await id5FetchRequests[0].body.getJson();
+      const requestBody = (await id5FetchRequests[0].body.getJson()).requests[0];
       expect(requestBody.partner).to.equal(99); // from integration.html
       expect(requestBody.v).to.equal(version);
       expect(requestBody.id5cdn).to.equal(true);
@@ -216,7 +218,7 @@ describe('The ID5 API', function () {
     });
 
     it('reports it cannot use localStorage but detects referrer', async () => {
-      const mockId5 = await server.forPost('https://id5-sync.com/g/v2/99.json')
+      const mockId5 = await server.forPost(FETCH_ENDPOINT)
         .thenJson(200, MOCK_FETCH_RESPONSE, NON_FRIENDLY_MOCK_CORS_HEADERS);
       await server.forGet('https://dummyimage.com/600x200').thenReply(200, '');
       const page = await browser.newPage();
@@ -229,7 +231,7 @@ describe('The ID5 API', function () {
       const id5SyncRequests = await mockId5.getSeenRequests();
       expect(id5SyncRequests).to.have.lengthOf(1);
 
-      const requestBody = await id5SyncRequests[0].body.getJson();
+      const requestBody = (await id5SyncRequests[0].body.getJson()).requests[0];
       expect(requestBody.top).to.equal(1);
       expect(requestBody.localStorage).to.equal(0);
       expect(requestBody.tml).to.equal('https://my-iframe-website.net/');
@@ -249,7 +251,7 @@ describe('The ID5 API', function () {
       const TEST_PAGE_PATH = path.join(SCRIPT_DIR, 'esp.html');
       await server.forGet('https://my-publisher-website.net')
         .thenFromFile(200, TEST_PAGE_PATH);
-      const mockId5 = await server.forPost('https://id5-sync.com/g/v2/99.json')
+      const mockId5 = await server.forPost(FETCH_ENDPOINT)
         .thenJson(200, MOCK_FETCH_RESPONSE, MOCK_CORS_HEADERS);
       const page = await browser.newPage();
       await page.goto('https://my-publisher-website.net');
@@ -294,7 +296,7 @@ describe('The ID5 API', function () {
         .thenFromFile(200, TEST_PAGE_PATH);
       await server.forGet('https://lb.eu-1-id5-sync.com/lb/v1')
         .thenJson(200, MOCK_LB_RESPONSE, MOCK_CORS_HEADERS);
-      await server.forPost('https://id5-sync.com/g/v2/99.json')
+      await server.forPost(FETCH_ENDPOINT)
         .thenJson(200, MOCK_FETCH_RESPONSE, MOCK_CORS_HEADERS);
       await server.forGet('https://dummyimage.com/600x200')
         .thenReply(200, '');
@@ -313,19 +315,28 @@ describe('The ID5 API', function () {
           expect(onlyRequest.metadata.sampling).is.eq(1);
           expect(onlyRequest.metadata.trigger).is.eq('fixed-time');
           expect(onlyRequest.metadata.fixed_time_msec).is.eq(3000);
-          expect(onlyRequest.measurements.length).is.eq(9);
+          expect(onlyRequest.measurements.length).is.eq(11);
           const commonTags = {version: version, partner: '99', source: 'api', tml: 'https://my-publisher-website.net/'};
           verifyContainsMeasurementWithTags(onlyRequest.measurements, 'id5.api.instance.load.delay', 'TIMER', commonTags);
           verifyContainsMeasurementWithTags(onlyRequest.measurements, 'id5.api.invocation.count', 'SUMMARY', commonTags);
           verifyContainsMeasurementWithTags(onlyRequest.measurements, 'id5.api.consent.request.time', 'TIMER', {
             ...commonTags,
             requestType: 'static',
-            success: 'true'
+            success: 'true',
+            apiType: 'TCFv2'
+          });
+          verifyContainsMeasurementWithTags(onlyRequest.measurements, 'id5.api.fetch.consent.wait.time', 'TIMER', {
+            ...commonTags,
+            cachedResponseUsed: false
           });
           verifyContainsMeasurementWithTags(onlyRequest.measurements, 'id5.api.extensions.call.time', 'TIMER', commonTags);
           verifyContainsMeasurementWithTags(onlyRequest.measurements, 'id5.api.fetch.call.time', 'TIMER', {
             ...commonTags,
             status: 'success'
+          });
+          verifyContainsMeasurementWithTags(onlyRequest.measurements, 'id5.api.userid.provisioning.delay', 'TIMER', {
+            ...commonTags,
+            cachedResponseUsed: false
           });
         });
     });
@@ -336,7 +347,7 @@ describe('The ID5 API', function () {
         .thenFromFile(200, TEST_PAGE_PATH);
       await server.forGet('https://lb.eu-1-id5-sync.com/lb/v1')
         .thenJson(200, MOCK_LB_RESPONSE, MOCK_CORS_HEADERS);
-      let fetchEndpoint = await server.forPost('https://id5-sync.com/g/v2/99.json')
+      let fetchEndpoint = await server.forPost(FETCH_ENDPOINT)
         .thenJson(200, MOCK_FETCH_RESPONSE, MOCK_CORS_HEADERS);
       await server.forGet('https://dummyimage.com/600x200')
         .thenReply(200, '');
@@ -355,19 +366,28 @@ describe('The ID5 API', function () {
           expect(onlyRequest.metadata).is.not.eq(undefined);
           expect(onlyRequest.metadata.sampling).is.eq(1);
           expect(onlyRequest.metadata.trigger).is.eq('beforeunload');
-          expect(onlyRequest.measurements.length).is.eq(9);
+          expect(onlyRequest.measurements.length).is.eq(11);
           const commonTags = {version: version, partner: '99', source: 'api', tml: 'https://my-publisher-website.net/'};
           verifyContainsMeasurementWithTags(onlyRequest.measurements, 'id5.api.instance.load.delay', 'TIMER', commonTags);
           verifyContainsMeasurementWithTags(onlyRequest.measurements, 'id5.api.invocation.count', 'SUMMARY', commonTags);
           verifyContainsMeasurementWithTags(onlyRequest.measurements, 'id5.api.consent.request.time', 'TIMER', {
             ...commonTags,
             requestType: 'static',
-            success: 'true'
+            success: 'true',
+            apiType: 'TCFv2'
+          });
+          verifyContainsMeasurementWithTags(onlyRequest.measurements, 'id5.api.fetch.consent.wait.time', 'TIMER', {
+            ...commonTags,
+            cachedResponseUsed: false
           });
           verifyContainsMeasurementWithTags(onlyRequest.measurements, 'id5.api.extensions.call.time', 'TIMER', commonTags);
           verifyContainsMeasurementWithTags(onlyRequest.measurements, 'id5.api.fetch.call.time', 'TIMER', {
             ...commonTags,
             status: 'success'
+          });
+          verifyContainsMeasurementWithTags(onlyRequest.measurements, 'id5.api.userid.provisioning.delay', 'TIMER', {
+            ...commonTags,
+            cachedResponseUsed: false
           });
         });
     });
@@ -389,9 +409,7 @@ describe('The ID5 API', function () {
         .thenFromFile(200, NF_FRAME_PAGE_PATH);
       await server.forGet('https://lb.eu-1-id5-sync.com/lb/v1')
         .thenCallback(jsonWithCorsAllowed(MOCK_LB_RESPONSE));
-      await server.forPost('https://id5-sync.com/g/v2/99.json')
-        .thenCallback(jsonWithCorsAllowed(MOCK_FETCH_RESPONSE));
-      await server.forPost('https://id5-sync.com/g/v2/98.json')
+      await server.forPost(FETCH_ENDPOINT)
         .thenCallback(jsonWithCorsAllowed(MOCK_FETCH_RESPONSE));
       await server.forGet('https://dummyimage.com/600x200')
         .thenCallback(jsonWithCorsAllowed(''));

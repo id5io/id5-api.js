@@ -1,13 +1,13 @@
 import * as ID5Integration from '../../src/instance.js';
 import {expect} from 'chai';
 import * as Utils from '../../src/utils.js'
-import sinon from "sinon";
-import * as chai from "chai";
-import {generateId} from "karma/common/util.js";
-import {Id5CommonMetrics} from "@id5io/diagnostics";
+import sinon from 'sinon';
+import * as chai from 'chai';
+import {generateId} from 'karma/common/util.js';
+import {Id5CommonMetrics} from '@id5io/diagnostics';
 import sinonChai from 'sinon-chai';
-import {NoopLogger} from "../../src/logger.js";
-import {version} from "../../generated/version.js";
+import {NoopLogger} from '../../src/logger.js';
+import {version} from '../../generated/version.js';
 
 chai.use(sinonChai);
 
@@ -126,7 +126,7 @@ describe('ID5 instance', function () {
     generateIdStub.returns(id);
 
     // when
-    let instance = createInstance('api', '1.3.5', {some: "property"}, {partnerId: 99}, metrics);
+    let instance = createInstance('api', '1.3.5', {some: 'property'}, {partnerId: 99}, metrics);
 
     // then
     expect(instance.properties).is.deep.eq({
@@ -134,7 +134,7 @@ describe('ID5 instance', function () {
       version: version,
       source: 'api',
       sourceVersion: '1.3.5',
-      sourceConfiguration: {some: "property"},
+      sourceConfiguration: {some: 'property'},
       fetchIdData: {partnerId: 99},
       href: window.location.href,
       domain: window.location.hostname

@@ -1,9 +1,9 @@
 import {expect} from 'chai';
-import sinon from "sinon";
-import {ApiEvent, ApiEventsDispatcher} from "../../src/apiEvent.js";
-import {NoopLogger} from "../../src/logger.js";
-import chai from "chai";
-import sinonChai from "sinon-chai";
+import sinon from 'sinon';
+import {ApiEvent, ApiEventsDispatcher} from '../../src/apiEvent.js';
+import {NoopLogger} from '../../src/logger.js';
+import chai from 'chai';
+import sinonChai from 'sinon-chai';
 
 chai.use(sinonChai);
 
@@ -41,7 +41,6 @@ describe('ApiEventsDispatcher', function () {
     expect(handlerA).to.have.been.calledWith(payloadA);
     expect(handlerB).to.have.been.calledOnce;
     expect(handlerB).to.have.been.calledWith(payloadB);
-    // when
   });
 
   it(`should call all handlers when event emitted`, function () {

@@ -1,5 +1,5 @@
 import {expect} from "chai";
-import {LazyValue} from "../../lib/promise.js";
+import {LazyValue} from "../../src/promise.js";
 
 describe('LazyValue', function () {
   it('should return value when settled', async () => {

@@ -111,8 +111,7 @@
   },
   "dependencies": {
     "@id5io/diagnostics": "*",
-    "@id5io/multiplexing": "*",
-    "promise-polyfill": "^8.2.3"
+    "@id5io/multiplexing": "*"
   },
   "workspaces": [
     "packages/diagnostics",
