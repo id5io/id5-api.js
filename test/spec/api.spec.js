@@ -3,7 +3,6 @@ import * as utils from '../../lib/utils';
 import ClientStore from '../../lib/clientStore';
 import {version} from '../../generated/version.js';
 import ID5 from '../../lib/id5-api';
-import {API_TYPE, ConsentData, GRANT_TYPE, LocalStorageGrant} from '../../lib/consentManagement.js';
 import {
   DEFAULT_EXTENSIONS,
   defaultInit,
@@ -39,8 +38,7 @@ import {
   TEST_STORED_SIGNATURE
 } from './test_utils';
 import {StorageConfig} from "../../lib/config.js";
-import EXTENSIONS from "../../lib/extensions.js";
-import {ApiEvent, NoopLogger} from "@id5io/multiplexing";
+import {EXTENSIONS, ConsentData, API_TYPE, GRANT_TYPE, LocalStorageGrant, ApiEvent, NoopLogger} from "@id5io/multiplexing";
 
 let expect = require('chai').expect;
 
@@ -140,7 +138,7 @@ describe('ID5 JS API', function () {
             expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
             expect(ajaxStub.firstCall.args[3].withCredentials).to.be.true;
 
-            const requestData = JSON.parse(ajaxStub.firstCall.args[2]);
+            const requestData = JSON.parse(ajaxStub.firstCall.args[2]).requests[0];
             expect(requestData.partner).to.be.equal(TEST_ID5_PARTNER_ID);
             expect(requestData.s).to.be.undefined;
             expect(requestData.o).to.be.equal('api');
@@ -175,7 +173,7 @@ describe('ID5 JS API', function () {
             sinon.assert.calledOnce(ajaxStub);
             expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
 
-            const requestData = JSON.parse(ajaxStub.firstCall.args[2]);
+            const requestData = JSON.parse(ajaxStub.firstCall.args[2]).requests[0];
             expect(requestData.att).to.be.equal(1);
 
             done();
@@ -196,7 +194,7 @@ describe('ID5 JS API', function () {
             sinon.assert.calledOnce(ajaxStub);
             expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
 
-            const requestData = JSON.parse(ajaxStub.firstCall.args[2]);
+            const requestData = JSON.parse(ajaxStub.firstCall.args[2]).requests[0];
             expect(requestData.segments).to.deep.equal([
               {destination: '22', ids: ['abc']}]);
             expect(requestData._invalid_segments).to.equal(1);
@@ -227,7 +225,7 @@ describe('ID5 JS API', function () {
             sinon.assert.calledOnce(ajaxStub);
             expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
 
-            const requestData = JSON.parse(ajaxStub.firstCall.args[2]);
+            const requestData = JSON.parse(ajaxStub.firstCall.args[2]).requests[0];
             expect(requestData.pd).to.be.equal('pubdata');
             expect(requestData.provider).to.be.equal('test-provider');
             expect(requestData.puid).to.be.equal('abc');
@@ -245,7 +243,7 @@ describe('ID5 JS API', function () {
             sinon.assert.calledOnce(ajaxStub);
             expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
 
-            const requestData = JSON.parse(ajaxStub.firstCall.args[2]);
+            const requestData = JSON.parse(ajaxStub.firstCall.args[2]).requests[0];
             expect(requestData.features).to.be.undefined;
             done()
           });
@@ -407,7 +405,7 @@ describe('ID5 JS API', function () {
             expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
             expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
             expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
-            const requestData = JSON.parse(ajaxStub.firstCall.args[2]);
+            const requestData = JSON.parse(ajaxStub.firstCall.args[2]).requests[0];
             expect(requestData.used_refresh_in_seconds).to.be.eq(10);
             expect(requestData.provided_options.refresh_in_seconds).to.be.eq(10);
             done();
@@ -440,7 +438,7 @@ describe('ID5 JS API', function () {
             expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
             expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
             expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
-            const requestData = JSON.parse(ajaxStub.firstCall.args[2]);
+            const requestData = JSON.parse(ajaxStub.firstCall.args[2]).requests[0];
             expect(requestData.used_refresh_in_seconds).to.be.eq(11);
             expect(requestData.provided_options.refresh_in_seconds).to.be.eq(undefined);
             done();
@@ -960,7 +958,7 @@ describe('ID5 JS API', function () {
             expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
             expect(ajaxStub.firstCall.args[3].withCredentials).to.be.true;
 
-            const requestData = JSON.parse(ajaxStub.firstCall.args[2]);
+            const requestData = JSON.parse(ajaxStub.firstCall.args[2]).requests[0];
             expect(requestData.partner).to.be.equal(TEST_ID5_PARTNER_ID);
             expect(requestData.s).to.be.undefined;
             expect(requestData.o).to.be.equal('api');
@@ -1249,7 +1247,7 @@ describe('ID5 JS API', function () {
                 sinon.assert.calledOnce(extensionsStub);
                 sinon.assert.calledOnce(ajaxStub);
                 expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
-                const requestData = JSON.parse(ajaxStub.firstCall.args[2]);
+                const requestData = JSON.parse(ajaxStub.firstCall.args[2]).requests[0];
                 expect(requestData.gdpr_consent).is.eq('cmpconsentstring');
                 expect(requestData.gdpr).is.eq(1);
                 done();
@@ -1272,7 +1270,7 @@ describe('ID5 JS API', function () {
                 sinon.assert.calledOnce(extensionsStub);
                 sinon.assert.calledOnce(ajaxStub);
                 expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
-                const requestData = JSON.parse(ajaxStub.firstCall.args[2]);
+                const requestData = JSON.parse(ajaxStub.firstCall.args[2]).requests[0];
                 expect(requestData.gdpr_consent).is.eq(TCF_V2_STRING_WITH_STORAGE_CONSENT);
                 expect(requestData.gdpr).is.eq(1);
                 done();
@@ -1338,7 +1336,7 @@ describe('ID5 JS API', function () {
                 sinon.assert.calledOnce(extensionsStub);
                 sinon.assert.calledOnce(ajaxStub);
                 expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
-                const requestData = JSON.parse(ajaxStub.firstCall.args[2]);
+                const requestData = JSON.parse(ajaxStub.firstCall.args[2]).requests[0];
                 expect(requestData.gdpr_consent).is.eq('cmpconsentstring');
                 expect(requestData.gdpr).is.eq(0);
                 done();
@@ -1365,7 +1363,7 @@ describe('ID5 JS API', function () {
                 sinon.assert.calledOnce(extensionsStub);
                 sinon.assert.calledOnce(ajaxStub);
                 expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
-                const requestData = JSON.parse(ajaxStub.firstCall.args[2]);
+                const requestData = JSON.parse(ajaxStub.firstCall.args[2]).requests[0];
                 expect(requestData.gdpr_consent).is.eq('cmpconsentstring');
                 expect(requestData.gdpr).is.eq(undefined);
                 done();
@@ -1386,7 +1384,7 @@ describe('ID5 JS API', function () {
                 sinon.assert.calledOnce(extensionsStub);
                 sinon.assert.calledOnce(ajaxStub);
                 expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
-                const requestData = JSON.parse(ajaxStub.firstCall.args[2]);
+                const requestData = JSON.parse(ajaxStub.firstCall.args[2]).requests[0];
                 expect(requestData.gdpr_consent).is.eq(TCF_V2_STRING_WITH_STORAGE_CONSENT);
                 expect(requestData.gdpr).is.eq(undefined);
                 done();
@@ -1674,7 +1672,7 @@ describe('ID5 JS API', function () {
           sinon.assert.calledOnce(ajaxStub);
           const URL = ajaxStub.firstCall.args[0];
           expect(URL).to.contain(ID5_FETCH_ENDPOINT);
-          const callData = JSON.parse(ajaxStub.firstCall.args[2]);
+          const callData = JSON.parse(ajaxStub.firstCall.args[2]).requests[0];
           expect(callData.ua_hints).to.be.an('object');
           expect(callData.ua_hints.architecture).to.equal('x86');
           expect(callData.ua_hints.brands).to.have.lengthOf(2); // Note ' Not A;Brand' gets filtered

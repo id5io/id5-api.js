@@ -17,8 +17,7 @@ import {
   defaultInitBypassConsent,
   DEFAULT_EXTENSIONS
 } from './test_utils';
-import EXTENSIONS from "../../lib/extensions.js";
-import {ApiEvent} from "@id5io/multiplexing";
+import {EXTENSIONS, ApiEvent} from "@id5io/multiplexing";
 
 describe('Counters', function () {
   let ajaxStub;
@@ -96,7 +95,7 @@ describe('Counters', function () {
       sinon.assert.calledOnce(extensionsStub);
       sinon.assert.calledOnce(ajaxStub);
       expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
-      const requestPayload = JSON.parse(ajaxStub.firstCall.args[2]);
+      const requestPayload = JSON.parse(ajaxStub.firstCall.args[2]).requests[0];
       expect(requestPayload.nbPage).to.be.equal(5);
 
       const nb = parseInt(localStorage.getItemWithExpiration(TEST_NB_STORAGE_CONFIG));
@@ -113,7 +112,7 @@ describe('Counters', function () {
       sinon.assert.calledOnce(extensionsStub);
       sinon.assert.calledOnce(ajaxStub);
       expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
-      const requestPayload = JSON.parse(ajaxStub.firstCall.args[2]);
+      const requestPayload = JSON.parse(ajaxStub.firstCall.args[2]).requests[0];
       expect(requestPayload.nbPage).to.be.equal(0);
 
       const nb = parseInt(localStorage.getItemWithExpiration(TEST_NB_STORAGE_CONFIG));
@@ -130,7 +129,7 @@ describe('Counters', function () {
       sinon.assert.calledOnce(extensionsStub);
       sinon.assert.calledOnce(ajaxStub);
       expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
-      const requestPayload = JSON.parse(ajaxStub.firstCall.args[2]);
+      const requestPayload = JSON.parse(ajaxStub.firstCall.args[2]).requests[0];
       expect(requestPayload.nbPage).to.be.equal(5);
 
       const nb = parseInt(localStorage.getItemWithExpiration(TEST_NB_STORAGE_CONFIG));
@@ -145,7 +144,7 @@ describe('Counters', function () {
       sinon.assert.calledOnce(extensionsStub);
       sinon.assert.calledOnce(ajaxStub);
       expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
-      const requestPayload = JSON.parse(ajaxStub.firstCall.args[2]);
+      const requestPayload = JSON.parse(ajaxStub.firstCall.args[2]).requests[0];
       expect(requestPayload.nbPage).to.be.equal(0);
 
       const nb = parseInt(localStorage.getItemWithExpiration(TEST_NB_STORAGE_CONFIG));

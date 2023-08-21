@@ -115,4 +115,11 @@ export class Id5CommonMetrics extends MeterRegistry {
   instanceMsgDeliveryTimer(tags = {}) {
     return this.timer('id5.api.instance.message.delivery.time', tags);
   }
+
+  userIdProvisioningDelayTimer(fromCache, tags = {}) {
+    return this.timer('id5.api.userid.provisioning.delay', {
+      cachedResponseUsed: fromCache,
+      ...tags
+    });
+  }
 }

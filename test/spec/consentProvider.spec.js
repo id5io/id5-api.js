@@ -5,9 +5,8 @@ import sinonChai from 'sinon-chai';
 chai.should();
 chai.use(sinonChai);
 import {ConsentDataProvider} from '../../lib/consentProvider.js';
-import {API_TYPE, GRANT_TYPE} from "../../lib/consentManagement.js";
 import clone from 'clone';
-import {NoopLogger} from "@id5io/multiplexing";
+import {API_TYPE, GRANT_TYPE, NoopLogger} from "@id5io/multiplexing";
 
 const TEST_CONSENT_DATA_V1 = {
     getConsentData: {

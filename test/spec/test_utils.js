@@ -5,10 +5,9 @@ import multiplexing from "@id5io/multiplexing";
 
 export const TEST_ID5_PARTNER_ID = 99;
 export const TEST_ID5_PARTNER_ID_ALT = 999;
-export const ID5_FETCH_ENDPOINT = `https://id5-sync.com/g/v2/${TEST_ID5_PARTNER_ID}.json`;
+export const ID5_FETCH_ENDPOINT = `https://id5-sync.com/gm/v2`;
 export const ID5_CALL_ENDPOINT = `https://id5-sync.com/i/${TEST_ID5_PARTNER_ID}`;
 export const ID5_SYNC_ENDPOINT = `https://id5-sync.com/s/${TEST_ID5_PARTNER_ID}`;
-export const ID5_LB_ENDPOINT = `https://lb.eu-1-id5-sync.com/lb/v1`;
 
 export const AJAX_RESPONSE_MS = 20;
 export const CALLBACK_TIMEOUT_MS = 30;
