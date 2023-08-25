@@ -54,6 +54,34 @@ export class Id5MessageFactory {
   }
 }
 
+export class HelloMessage {
+  static TYPE = 'HelloMessage';
+  instance;
+
+  constructor(instanceProperties) {
+    this.instance = instanceProperties;
+  }
+}
+
+export const MethodCallTarget = Object.freeze({
+  THIS: "this",
+  LEADER: "leader",
+  FOLLOWER: "follower"
+});
+
+export class ProxyMethodCallMessage {
+  static TYPE = "RemoteMethodCallMessage";
+  target;
+  methodName;
+  methodArguments;
+
+  constructor(target, methodName, methodArguments) {
+    this.target = target;
+    this.methodName = methodName;
+    this.methodArguments = methodArguments;
+  }
+}
+
 export class CrossInstanceMessenger {
   /**
    * @type {string}
@@ -183,5 +211,9 @@ export class CrossInstanceMessenger {
       }
     };
     broadcastMessage(messenger._window.top);
+  }
+
+  callProxyMethod(dst, target, name, args) {
+    this.unicastMessage(dst, new ProxyMethodCallMessage(target, name, args), ProxyMethodCallMessage.TYPE);
   }
 }

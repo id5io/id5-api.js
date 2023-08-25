@@ -1,13 +1,16 @@
 import * as ID5Integration from '../../src/instance.js';
+import * as chai from 'chai';
 import {expect} from 'chai';
 import * as Utils from '../../src/utils.js'
 import sinon from 'sinon';
-import * as chai from 'chai';
 import {generateId} from 'karma/common/util.js';
 import {Id5CommonMetrics} from '@id5io/diagnostics';
 import sinonChai from 'sinon-chai';
 import {NoopLogger} from '../../src/logger.js';
 import {version} from '../../generated/version.js';
+import {MultiplexingEvent} from "../../src/apiEvent.js";
+import {UidFetcher} from "../../src/fetch.js";
+import {ConsentManagement} from "../../src/index.js";
 
 chai.use(sinonChai);
 
@@ -102,7 +105,7 @@ describe('ID5 instance', function () {
       sourceVersion: sourceVersion,
       sourceConfiguration: sourceConfig,
       fetchIdData: fetchIdData
-    }, metrics, logger);
+    }, metrics, logger, sinon.createStubInstance(UidFetcher), sinon.createStubInstance(ConsentManagement));
     createdInstances.push(instance);
     return instance;
   }
@@ -153,27 +156,27 @@ describe('ID5 instance', function () {
     let instance3 = createInstance('api', '3', {}, {}, metrics);
 
     // when
-    instance1.register(electionDelayMsec);
-    instance2.register(electionDelayMsec);
-    instance3.register(electionDelayMsec);
+    instance1.init(electionDelayMsec);
+    instance2.init(electionDelayMsec);
+    instance3.init(electionDelayMsec);
 
     setTimeout(() => {
       // then
       let expectedLeader = instance3.properties;
       expect(instance1.role).is.eq(ID5Integration.Role.FOLLOWER);
-      expect(instance1._leader).is.deep.eq(expectedLeader);
+      expect(instance1._leaderInstance).is.deep.eq(expectedLeader);
       expect(Array.from(instance1._knownInstances.values())).to.deep.eq([instance2.properties, instance3.properties]);
 
       expect(instance2.role).is.eq(ID5Integration.Role.FOLLOWER);
-      expect(instance2._leader).is.deep.eq(expectedLeader);
+      expect(instance2._leaderInstance).is.deep.eq(expectedLeader);
       expect(Array.from(instance2._knownInstances.values())).to.deep.eq([instance1.properties, instance3.properties]);
 
       expect(instance3.role).is.eq(ID5Integration.Role.LEADER); // newest source version
-      expect(instance3._leader).is.deep.eq(expectedLeader);
+      expect(instance3._leaderInstance).is.deep.eq(expectedLeader);
       expect(Array.from(instance3._knownInstances.values())).to.deep.eq([instance1.properties, instance2.properties]);
 
       expect(unregisteredInstance.role).is.eq(ID5Integration.Role.UNKNOWN);
-      expect(unregisteredInstance._leader).is.eq(undefined);
+      expect(unregisteredInstance._leaderInstance).is.eq(undefined);
       expect(unregisteredInstance._knownInstances).to.have.length(0);
       done();
     }, electionDelayMsec + 50);
@@ -188,13 +191,13 @@ describe('ID5 instance', function () {
     let firstCallback = sinon.stub();
     let failingCallback = sinon.stub().throws('BOOM!');
     let thirdCallback = sinon.stub();
-    instance1.on(ID5Integration.Event.ID5_INSTANCE_JOINED, firstCallback);
-    instance1.on(ID5Integration.Event.ID5_INSTANCE_JOINED, failingCallback);
-    instance1.on(ID5Integration.Event.ID5_INSTANCE_JOINED, thirdCallback);
+    instance1.on(MultiplexingEvent.ID5_INSTANCE_JOINED, firstCallback);
+    instance1.on(MultiplexingEvent.ID5_INSTANCE_JOINED, failingCallback);
+    instance1.on(MultiplexingEvent.ID5_INSTANCE_JOINED, thirdCallback);
 
     // when
-    instance1.register(100);
-    instance2.register(100);
+    instance1.init(100);
+    instance2.init(100);
 
     setTimeout(() => {
       // then
@@ -220,13 +223,13 @@ describe('ID5 instance', function () {
     let firstCallback = sinon.stub();
     let failingCallback = sinon.stub().throws('BOOM!');
     let thirdCallback = sinon.stub();
-    instance1.on(ID5Integration.Event.ID5_MESSAGE_RECEIVED, firstCallback);
-    instance1.on(ID5Integration.Event.ID5_MESSAGE_RECEIVED, failingCallback);
-    instance1.on(ID5Integration.Event.ID5_MESSAGE_RECEIVED, thirdCallback);
+    instance1.on(MultiplexingEvent.ID5_MESSAGE_RECEIVED, firstCallback);
+    instance1.on(MultiplexingEvent.ID5_MESSAGE_RECEIVED, failingCallback);
+    instance1.on(MultiplexingEvent.ID5_MESSAGE_RECEIVED, thirdCallback);
 
     // when
-    instance1.register(100);
-    instance2.register(100);
+    instance1.init(100);
+    instance2.init(100);
 
 
     setTimeout(() => {
@@ -254,16 +257,16 @@ describe('ID5 instance', function () {
     let firstCallback = sinon.stub();
     let failingCallback = sinon.stub().throws('BOOM!');
     let thirdCallback = sinon.stub();
-    instance1.on(ID5Integration.Event.ID5_LEADER_ELECTED, firstCallback);
-    instance1.on(ID5Integration.Event.ID5_LEADER_ELECTED, failingCallback);
-    instance1.on(ID5Integration.Event.ID5_LEADER_ELECTED, thirdCallback);
+    instance1.on(MultiplexingEvent.ID5_LEADER_ELECTED, firstCallback);
+    instance1.on(MultiplexingEvent.ID5_LEADER_ELECTED, failingCallback);
+    instance1.on(MultiplexingEvent.ID5_LEADER_ELECTED, thirdCallback);
 
     let instance2Callback = sinon.stub();
-    instance2.on(ID5Integration.Event.ID5_LEADER_ELECTED, instance2Callback);
+    instance2.on(MultiplexingEvent.ID5_LEADER_ELECTED, instance2Callback);
 
     // when
-    instance1.register(100);
-    instance2.register(100);
+    instance1.init(100);
+    instance2.init(100);
 
 
     setTimeout(() => {

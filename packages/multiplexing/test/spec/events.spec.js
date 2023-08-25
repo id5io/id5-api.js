@@ -1,6 +1,6 @@
 import {expect} from 'chai';
 import sinon from 'sinon';
-import {ApiEvent, ApiEventsDispatcher} from '../../src/apiEvent.js';
+import {ApiEvent, ApiEventsDispatcher, MultiplexingEvent} from '../../src/apiEvent.js';
 import {NoopLogger} from '../../src/logger.js';
 import chai from 'chai';
 import sinonChai from 'sinon-chai';
@@ -75,5 +75,31 @@ describe('ApiEventsDispatcher', function () {
     // then
     expect(handlerA).to.have.been.calledWith(payload);
     expect(handlerB).to.have.been.calledWith(payload);
+  });
+
+  it(`should allow only  supported events`, function () {
+    // given
+    const event = 'Unsupported event';
+    const handler = sinon.stub();
+    dispatcher.on(event, handler);
+
+    // when
+    dispatcher.emit(event, 1);
+
+    // then
+    expect(handler).to.have.not.been.called;
+  });
+
+  it(`should support events with multi-args callbacks`, function () {
+    // given
+    const event = MultiplexingEvent.ID5_LEADER_ELECTED;
+    const handler = sinon.stub();
+    dispatcher.on(event, handler);
+
+    // when
+    dispatcher.emit(event, 1, {a: 2}, '3rd argument');
+
+    // then
+    expect(handler).to.have.been.calledWith(1, {a: 2}, '3rd argument');
   });
 });

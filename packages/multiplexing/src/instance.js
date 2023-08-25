@@ -1,21 +1,22 @@
-import {CrossInstanceMessenger, DST_BROADCAST} from './messaging.js';
+import {
+  CrossInstanceMessenger,
+  DST_BROADCAST,
+  HelloMessage,
+  MethodCallTarget,
+  ProxyMethodCallMessage
+} from './messaging.js';
 import * as Utils from './utils.js';
 import {version} from '../generated/version.js';
 import {NamedLogger, NoopLogger} from './logger.js';
+import {AwaitedLeader, Leader, LeaderProxy} from "./leader.js";
+import {ApiEventsDispatcher, MultiplexingEvent} from "./apiEvent.js";
+import {DirectFollower, ProxyFollower} from "./follower.js";
 
 export const Role = Object.freeze({
   UNKNOWN: 'unknown',
   LEADER: 'leader',
   FOLLOWER: 'follower'
 });
-
-export const Event = Object.freeze({
-  ID5_MESSAGE_RECEIVED: 'message',
-  ID5_INSTANCE_JOINED: 'instance-joined',
-  ID5_LEADER_ELECTED: 'leader-elected'
-});
-
-const SUPPORTED_EVENTS = Object.freeze(Object.values(Event));
 
 export class Properties {
   /**
@@ -136,8 +137,18 @@ export class Instance {
    * @private
    */
   _messenger;
+  /**
+   *
+   * @type {Map<string, Properties>}
+   * @private
+   */
   _knownInstances = new Map();
   role;
+  _leaderInstance;
+  /**
+   * @type LeaderApi
+   * @private
+   */
   _leader;
   /**
    * @type {Id5CommonMetrics}
@@ -149,8 +160,6 @@ export class Instance {
    * @private
    */
   _logger;
-
-  _callbacks = new Map();
 
   /**
    * @type {InstancesCounters}
@@ -170,9 +179,9 @@ export class Instance {
    * @param {Window} wnd
    * @param {InstanceConfiguration} configuration
    * @param {Logger} logger
-   * @param {MeterRegistry} metrics
+   * @param {Id5CommonMetrics} metrics
    */
-  constructor(wnd, configuration, metrics, logger = NoopLogger) {
+  constructor(wnd, configuration, metrics, logger = NoopLogger, uidFetcher, consentManager) {
     const id = Utils.generateId();
     this.properties = {
       id: id,
@@ -180,14 +189,22 @@ export class Instance {
       href: wnd.location?.href,
       domain: wnd.location?.hostname
     };
-    this.updateConfig(configuration);
+    this.updateConfig({
+      ...configuration,
+      sourceWindow: wnd
+    });
     this.role = Role.UNKNOWN;
     this._metrics = metrics;
     this._instanceCounters = new InstancesCounters(metrics, this.properties);
     this._loadTime = performance.now();
     this._logger = (logger !== undefined) ? new NamedLogger(`Instance(id=${id})`, logger) : NoopLogger;
-    this._logger.debug('Instance created');
     this._window = wnd;
+    this._leader = new AwaitedLeader();
+    this._dispatcher = new ApiEventsDispatcher(this._logger);
+    this._uidFetcher = uidFetcher;
+    this._consentManager = consentManager;
+    this._singletonMode = true;
+    this._follower = new DirectFollower(this.properties, this._dispatcher);
   }
 
   /**
@@ -201,7 +218,7 @@ export class Instance {
     this.properties.fetchIdData = configuration.fetchIdData;
   }
 
-  register(electionDelayMSec = 3000) {
+  init(electionDelayMSec = 3000) {
     let instance = this;
     let window = instance._window;
     instance._instanceCounters.addInstance(instance.properties);
@@ -212,29 +229,82 @@ export class Instance {
       instance._logger.debug('Message received', message);
       switch (message.type) {
         case HelloMessage.TYPE:
-          let hello = message.payload;
-          instance._addInstance(hello.instance);
-          if (message.dst === DST_BROADCAST) { // this init message , so respond back to introduce myself
-            // TODO if already leader elected let new instance know it's late joiner
-            instance._messenger.sendResponseMessage(message, new HelloMessage(instance.properties), HelloMessage.TYPE);
-          }
+          let hello = new HelloMessage();
+          Object.assign(hello, message.payload);
+          instance._handleHelloMessage(hello, message);
+          break;
+        case ProxyMethodCallMessage.TYPE:
+          let pmc = new ProxyMethodCallMessage();
+          Object.assign(pmc, message.payload);
+          instance._handleProxyMethodCall(pmc);
+          break;
       }
-      instance._doFireEvent(Event.ID5_MESSAGE_RECEIVED, message);
+      instance._doFireEvent(MultiplexingEvent.ID5_MESSAGE_RECEIVED, message);
     });
+    const electionDelay = instance._singletonMode ? 0 : electionDelayMSec;
     setTimeout(() => {
       let instances = Array.from(instance._knownInstances.values());
       instances.push(instance.properties);
       let leader = electLeader(instances);
-      instance._leader = leader;
+      instance._leaderInstance = leader;
       instance.role = (leader.id === instance.properties.id) ? Role.LEADER : Role.FOLLOWER;
-      instance._doFireEvent(Event.ID5_LEADER_ELECTED, instance.role, instance._leader);
+      instance._doFireEvent(MultiplexingEvent.ID5_LEADER_ELECTED, instance.role, instance._leaderInstance);
       instance._logger.debug('Leader elected', leader.id, 'my role', instance.role);
-    }, electionDelayMSec);
+      if (this._singletonMode) {
+      } else if (instance.role === Role.LEADER) {
+        const proxyFollowers = Array.from(this._knownInstances.values()).map(instance => new ProxyFollower(instance, this._messenger));
+        instance._actAsLeader([this._follower, ...proxyFollowers]); // leader for itself and others
+      } else if (instance.role === Role.FOLLOWER) {
+        instance._assignLeader(new LeaderProxy(this._messenger, leader.id)); // remote leader
+      }
+    }, electionDelay);
     instance._messenger.broadcastMessage(new HelloMessage(instance.properties), HelloMessage.TYPE);
     if (window.__id5_instances === undefined) {
       window.__id5_instances = [];
     }
     window.__id5_instances.push(this);
+  }
+
+  /**
+   * @param {FetchIdData} fetchIdData
+   * @param {Object} [configuration] - additional instance specific configuration
+   */
+  register(fetchIdData, configuration = {}) {
+    try {
+      this.updateConfig({
+        source: fetchIdData.origin,
+        sourceVersion: fetchIdData.originVersion,
+        sourceConfiguration: configuration,
+        fetchIdData: fetchIdData
+      });
+      this.init();
+      this._actAsLeader([this._follower]);
+    } catch (e) {
+      this._logger.error('Failed to register integration instance', e);
+    }
+    return this;
+  }
+
+  _handleHelloMessage(hello, message) {
+    const instance = this;
+    instance._addInstance(hello.instance);
+    if (message.dst === DST_BROADCAST) { // this init message , so respond back to introduce myself
+      // TODO if already leader elected let new instance know it's late joiner
+      instance._messenger.sendResponseMessage(message, new HelloMessage(instance.properties), HelloMessage.TYPE);
+    }
+  }
+
+  _handleProxyMethodCall(pmc) {
+    const instance = this;
+    if (pmc.target === MethodCallTarget.LEADER
+      && instance.role === Role.LEADER) // current role is leader
+    {
+      instance._leader[pmc.methodName](pmc.methodArguments);
+    } else if (pmc.target === MethodCallTarget.FOLLOWER) {
+      instance._follower[pmc.methodName](pmc.methodArguments);
+    } else if (pmc.target === MethodCallTarget.THIS) {
+      instance[pmc.methodName](pmc.methodArguments);
+    }
   }
 
   deregister() {
@@ -248,19 +318,8 @@ export class Instance {
     }
   }
 
-  getRole() {
-    return this.role;
-  }
-
   on(event, callback) {
-    if (event !== undefined && SUPPORTED_EVENTS.includes(event)) {
-      let eventCallbacks = this._callbacks.get(event);
-      if (eventCallbacks) {
-        eventCallbacks.push(callback);
-      } else {
-        this._callbacks.set(event, [callback]);
-      }
-    }
+    this._dispatcher.on(event, callback);
     return this;
   }
 
@@ -269,25 +328,45 @@ export class Instance {
       this._knownInstances.set(instanceProperties.id, instanceProperties);
       this._instanceCounters.addInstance(instanceProperties);
       this._metrics.instanceJoinDelayTimer().record((performance.now() - this._loadTime) | 0);
-      if (this._leader !== undefined) {
+      if (this._leaderInstance !== undefined) {
         this._metrics.instanceLateJoinCounter(this.properties.id).inc();
       }
       this._logger.debug('Instance joined', instanceProperties.id);
-      this._doFireEvent(Event.ID5_INSTANCE_JOINED, instanceProperties);
+      this._doFireEvent(MultiplexingEvent.ID5_INSTANCE_JOINED, instanceProperties);
     }
   }
 
   _doFireEvent(event, ...args) {
-    const eventListeners = this._callbacks.get(event);
-    if (eventListeners) {
-      eventListeners.forEach(listener => {
-        try {
-          listener(...args);
-        } catch (e) {
-          this._logger.error('Failed to call event listener', event, e);
-        }
-      });
+    this._dispatcher.emit(event, ...args);
+  }
+
+  _actAsLeader(followers) {
+    const leader = new Leader(this._uidFetcher, this._consentManager, followers, this._logger);
+    this._assignLeader(leader);
+    leader.start();
+  }
+
+  _assignLeader(newLeader) {
+    let oldLeader = this._leader;
+    oldLeader.onLeaderChange(newLeader);
+    this._leader = newLeader;
+  }
+
+  updateConsent(consentData) {
+    this._leader.updateConsent(consentData);
+  }
+
+  updateFetchIdData(fetchIdDataUpdate) {
+    const properties = this.properties;
+    const updatedData = {
+      ...properties.fetchIdData,
+      ...fetchIdDataUpdate
     }
+    this._leader.updateFetchIdData(properties.id, updatedData);
+  }
+
+  refreshUid(options) {
+    this._leader.refreshUid(options);
   }
 }
 
@@ -296,9 +375,7 @@ export class Instance {
  * @param {Array<Properties>} instances
  * @returns {Properties} leader instance
  */
-export function
-
-electLeader(instances) {
+export function electLeader(instances) {
   if (!instances || instances.length === 0) {
     return undefined;
   }
@@ -320,13 +397,4 @@ electLeader(instances) {
   });
 
   return ordered[0];
-}
-
-class HelloMessage {
-  static TYPE = 'HelloMessage';
-  instance;
-
-  constructor(instanceProperties) {
-    this.instance = instanceProperties;
-  }
 }

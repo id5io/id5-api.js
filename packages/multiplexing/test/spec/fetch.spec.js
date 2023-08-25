@@ -145,7 +145,7 @@ describe('UidFetcher', function () {
     store = sinon.createStubInstance(Store);
     extensions = sinon.createStubInstance(Extensions);
     metrics = new Id5CommonMetrics(origin, originVersion);
-    fetcher = new UidFetcher(dispatcher, consentManager, store, metrics, log, extensions);
+    fetcher = new UidFetcher(consentManager, store, metrics, log, extensions);
 
     consentManager.localStorageGrant.returns(LOCAL_STORAGE_GRANT_ALLOWED_BY_API);
     consentManager.getConsentData.resolves(CONSENT_DATA_GDPR_ALLOWED);
@@ -300,7 +300,7 @@ describe('UidFetcher', function () {
 
         // when
         const userIdPromise = dispatcher.when(ApiEvent.USER_ID_READY);
-        fetcher.getId(inputFetchData)
+        fetcher.getId(dispatcher, inputFetchData)
 
         // then
         return userIdPromise.then(data => {
@@ -365,7 +365,7 @@ describe('UidFetcher', function () {
         const userIdPromise = dispatcher.when(ApiEvent.USER_ID_READY);
 
         // when
-        fetcher.getId([firstInstanceData, secondInstanceData])
+        fetcher.getId(dispatcher, [firstInstanceData, secondInstanceData])
 
         // then
         return userIdPromise.then(data => {
@@ -410,7 +410,7 @@ describe('UidFetcher', function () {
       // when
       const userIdPromise = dispatcher.when(ApiEvent.USER_ID_READY);
 
-      fetcher.getId([DEFAULT_FETCH_DATA]);
+      fetcher.getId(dispatcher, [DEFAULT_FETCH_DATA]);
 
       // then
       return userIdPromise.then(fromCacheData => {
@@ -465,7 +465,7 @@ describe('UidFetcher', function () {
         // when
         const userIdFromCachePromise = dispatcher.when(ApiEvent.USER_ID_READY);
 
-        fetcher.getId([DEFAULT_FETCH_DATA]);
+        fetcher.getId(dispatcher, [DEFAULT_FETCH_DATA]);
 
         // then
         return userIdFromCachePromise.then(fromCacheData => {
@@ -530,7 +530,7 @@ describe('UidFetcher', function () {
         // when
         const userIdPromise = dispatcher.when(ApiEvent.USER_ID_READY);
 
-        fetcher.getId([DEFAULT_FETCH_DATA]);
+        fetcher.getId(dispatcher, [DEFAULT_FETCH_DATA]);
 
         // then
         return userIdPromise.then(data => {
@@ -577,7 +577,7 @@ describe('UidFetcher', function () {
       // when
       const userIdPromise = dispatcher.when(ApiEvent.USER_ID_READY);
 
-      fetcher.getId([DEFAULT_FETCH_DATA]);
+      fetcher.getId(dispatcher, [DEFAULT_FETCH_DATA]);
 
       // then
       return userIdPromise.then(data => {

@@ -1,11 +1,11 @@
 import {
   isDefined,
   isPlainObject
-} from './utils.js';
-import CONSTANTS from './constants.json';
-import {API_TYPE, GRANT_TYPE, LocalStorageGrant, LazyValue, ConsentManager} from '@id5io/multiplexing';
+} from '../../../lib/utils.js';
+import CONSTANTS from '../../../lib/constants.json';
+import {LazyValue} from './promise.js';
+import {API_TYPE, GRANT_TYPE, LocalStorageGrant, ConsentManager} from './consent.js';
 
-// TODO this class should go to multiplexing - it's used in UidFetcher
 export class ConsentManagement extends ConsentManager {
   /** @type LazyValue<ConsentData>} */
   _consentDataHolder;

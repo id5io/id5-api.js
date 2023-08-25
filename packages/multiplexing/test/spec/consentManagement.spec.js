@@ -4,11 +4,12 @@ import sinonChai from 'sinon-chai';
 
 chai.should();
 chai.use(sinonChai);
-import {ConsentManagement} from '../../lib/consentManagement.js';
-import * as utils from '../../lib/utils.js';
-import CONSTANTS from '../../lib/constants.json';
-import {StorageConfig} from "../../lib/config.js";
-import {ConsentData, API_TYPE, GRANT_TYPE, LocalStorageGrant, NoopLogger} from "@id5io/multiplexing";
+import {ConsentManagement} from '../../src/consentManagement.js';
+import * as utils from '../../../../lib/utils.js';
+import CONSTANTS from '../../../../lib/constants.json';
+import {StorageConfig} from "../../../../lib/config.js";
+import {ConsentData, API_TYPE, GRANT_TYPE, LocalStorageGrant} from '../../src/consent.js';
+import {NoopLogger} from '../../src/logger.js';
 
 const STORAGE_CONFIG = new StorageConfig();
 

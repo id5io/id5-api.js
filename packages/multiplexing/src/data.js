@@ -13,6 +13,18 @@
  */
 
 /**
+ * @type FetchId5UidCanceled
+ * @property {string} reason
+ */
+
+/**
+ * @type CascadePixelCall
+ * @property {number} partnerId
+ * @property {string} consentString
+ * @property {boolean} gdprApplies
+ * @property {string} userId
+ */
+/**
  * Referer info
  * @typedef {Object} RefererInfo
  * @property {string} topmostLocation - detected top url
@@ -50,6 +62,8 @@
  * @property {number} [invalidSegmentsCount] - Monitoring server side for excluded invalid segments
  * @property {number} [refreshInSeconds] - Default operating uid refresh time in seconds
  * @property {number} [providedRefreshInSeconds] - Configured uid refresh time in seconds
+ * @property {boolean} [canDoCascade]
+ * @property {boolean} [isTopWindow]
  */
 
 /**
