@@ -54,7 +54,7 @@
         }
     );
 
-    const instance1 = id5Status1.instance._instance;
+    const instance1 = id5Status1.instance;
     instance1.on('leader-elected', leaderElectionCallback(instance1));
 
 
@@ -81,7 +81,7 @@
             segments: [{destination: '22', ids: ['abc']}]
         }
     );
-    const instance2 = id5Status2.instance._instance;
+    const instance2 = id5Status2.instance;
     instance2.on('leader-elected', leaderElectionCallback(instance2));
 
 </script>

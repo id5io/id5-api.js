@@ -1,5 +1,5 @@
 import {ajax, isDefined, isGlobalTrace, isStr, objectEntries} from '../../../lib/utils.js';
-import {ApiEventsDispatcher, ApiEvent} from './apiEvent.js';
+import {ApiEvent} from './apiEvent.js';
 import {startTimeMeasurement} from '@id5io/diagnostics';
 
 const HOST = 'https://id5-sync.com';
@@ -257,11 +257,11 @@ export class UidFetcher {
   }
 
   /**
-   *
+   * @param {ApiEventsDispatcher} dispatcher
    * @param {array<FetchIdData>} fetchIdData
-   * @param cachedResponseUsed
+   * @param {boolean} cachedResponseUsed
    * @param {ConsentData} consentData
-   * @param fetchTimeMeasurement
+   * @param {TimeMeasurement} fetchTimeMeasurement
    * @return {(function(*): void)|*}
    */
   handleSuccessfulFetchResponse(dispatcher, fetchIdData, cachedResponseUsed, consentData, fetchTimeMeasurement) {

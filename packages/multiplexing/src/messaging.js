@@ -64,13 +64,13 @@ export class HelloMessage {
 }
 
 export const MethodCallTarget = Object.freeze({
-  THIS: "this",
-  LEADER: "leader",
-  FOLLOWER: "follower"
+  THIS: 'this',
+  LEADER: 'leader',
+  FOLLOWER: 'follower'
 });
 
 export class ProxyMethodCallMessage {
-  static TYPE = "RemoteMethodCallMessage";
+  static TYPE = 'RemoteMethodCallMessage';
   target;
   methodName;
   methodArguments;
@@ -214,6 +214,7 @@ export class CrossInstanceMessenger {
   }
 
   callProxyMethod(dst, target, name, args) {
+    this._log.info('Calling ProxyMethodCall', {target, name, args});
     this.unicastMessage(dst, new ProxyMethodCallMessage(target, name, args), ProxyMethodCallMessage.TYPE);
   }
 }

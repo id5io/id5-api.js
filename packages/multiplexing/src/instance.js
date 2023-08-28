@@ -8,9 +8,9 @@ import {
 import * as Utils from './utils.js';
 import {version} from '../generated/version.js';
 import {NamedLogger, NoopLogger} from './logger.js';
-import {AwaitedLeader, Leader, LeaderProxy} from "./leader.js";
-import {ApiEventsDispatcher, MultiplexingEvent} from "./apiEvent.js";
-import {DirectFollower, ProxyFollower} from "./follower.js";
+import {AwaitedLeader, Leader, LeaderProxy} from './leader.js';
+import {ApiEventsDispatcher, MultiplexingEvent} from './apiEvent.js';
+import {DirectFollower, ProxyFollower} from './follower.js';
 
 export const Role = Object.freeze({
   UNKNOWN: 'unknown',
@@ -45,6 +45,10 @@ export class Properties {
   fetchIdData;
   href;
   domain;
+  /**
+   *@type {boolean} indicates if instance operates in singleton mode or not
+   */
+  singletonMode;
 
   constructor(id, version, source, sourceVersion, sourceConfiguration, location) {
     this.id = id;
@@ -173,13 +177,16 @@ export class Instance {
    * @property {string} sourceVersion source lib version
    * @property {string} sourceConfiguration source lib specific configuration
    * @property {FetchIdData}  fetchIdData instance data required to call Fetch
+   * @property {boolean} singletonMode if true indicates that this instance does not want to participate to multiplexing and acts for itself
    */
 
   /**
    * @param {Window} wnd
    * @param {InstanceConfiguration} configuration
-   * @param {Logger} logger
    * @param {Id5CommonMetrics} metrics
+   * @param {Logger} logger
+   * @param {UidFetcher} uidFetcher
+   * @param {ConsentManager} consentManager
    */
   constructor(wnd, configuration, metrics, logger = NoopLogger, uidFetcher, consentManager) {
     const id = Utils.generateId();
@@ -199,11 +206,10 @@ export class Instance {
     this._loadTime = performance.now();
     this._logger = (logger !== undefined) ? new NamedLogger(`Instance(id=${id})`, logger) : NoopLogger;
     this._window = wnd;
-    this._leader = new AwaitedLeader();
+    this._leader = new AwaitedLeader(); // AwaitedLeader buffers request to leader in case some events happened before leader is elected (i.e. consent update)
     this._dispatcher = new ApiEventsDispatcher(this._logger);
     this._uidFetcher = uidFetcher;
     this._consentManager = consentManager;
-    this._singletonMode = true;
     this._follower = new DirectFollower(this.properties, this._dispatcher);
   }
 
@@ -212,10 +218,21 @@ export class Instance {
    * @param {InstanceConfiguration} configuration
    */
   updateConfig(configuration) {
-    this.properties.source = configuration.source;
-    this.properties.sourceVersion = configuration.sourceVersion;
-    this.properties.sourceConfiguration = configuration.sourceConfiguration;
-    this.properties.fetchIdData = configuration.fetchIdData;
+    if (configuration.source) {
+      this.properties.source = configuration.source;
+    }
+    if (configuration.sourceVersion) {
+      this.properties.sourceVersion = configuration.sourceVersion;
+    }
+    if (configuration.sourceConfiguration) {
+      this.properties.sourceConfiguration = configuration.sourceConfiguration;
+    }
+    if (configuration.fetchIdData) {
+      this.properties.fetchIdData = configuration.fetchIdData;
+    }
+    if (configuration.singletonMode !== undefined) {
+      this.properties.singletonMode = (configuration.singletonMode === true);
+    }
   }
 
   init(electionDelayMSec = 3000) {
@@ -241,23 +258,12 @@ export class Instance {
       }
       instance._doFireEvent(MultiplexingEvent.ID5_MESSAGE_RECEIVED, message);
     });
-    const electionDelay = instance._singletonMode ? 0 : electionDelayMSec;
-    setTimeout(() => {
-      let instances = Array.from(instance._knownInstances.values());
-      instances.push(instance.properties);
-      let leader = electLeader(instances);
-      instance._leaderInstance = leader;
-      instance.role = (leader.id === instance.properties.id) ? Role.LEADER : Role.FOLLOWER;
-      instance._doFireEvent(MultiplexingEvent.ID5_LEADER_ELECTED, instance.role, instance._leaderInstance);
-      instance._logger.debug('Leader elected', leader.id, 'my role', instance.role);
-      if (this._singletonMode) {
-      } else if (instance.role === Role.LEADER) {
-        const proxyFollowers = Array.from(this._knownInstances.values()).map(instance => new ProxyFollower(instance, this._messenger));
-        instance._actAsLeader([this._follower, ...proxyFollowers]); // leader for itself and others
-      } else if (instance.role === Role.FOLLOWER) {
-        instance._assignLeader(new LeaderProxy(this._messenger, leader.id)); // remote leader
-      }
-    }, electionDelay);
+    if (instance.properties.singletonMode === true) {
+      // to provision uid ASAP
+      instance._actAsLeader([this._follower]);
+    } else {
+      instance._scheduleLeaderElection(electionDelayMSec);
+    }
     instance._messenger.broadcastMessage(new HelloMessage(instance.properties), HelloMessage.TYPE);
     if (window.__id5_instances === undefined) {
       window.__id5_instances = [];
@@ -267,18 +273,19 @@ export class Instance {
 
   /**
    * @param {FetchIdData} fetchIdData
-   * @param {Object} [configuration] - additional instance specific configuration
+   * @param {Object} [sourceConfiguration] - additional instance specific configuration
+   * @param {boolean} [singletonMode] - allow to registeer instance in singleton mode
    */
-  register(fetchIdData, configuration = {}) {
+  register(fetchIdData, sourceConfiguration = {}, singletonMode = false) {
     try {
       this.updateConfig({
         source: fetchIdData.origin,
         sourceVersion: fetchIdData.originVersion,
-        sourceConfiguration: configuration,
-        fetchIdData: fetchIdData
+        sourceConfiguration: sourceConfiguration,
+        fetchIdData: fetchIdData,
+        singletonMode: singletonMode
       });
       this.init();
-      this._actAsLeader([this._follower]);
     } catch (e) {
       this._logger.error('Failed to register integration instance', e);
     }
@@ -296,9 +303,9 @@ export class Instance {
 
   _handleProxyMethodCall(pmc) {
     const instance = this;
-    if (pmc.target === MethodCallTarget.LEADER
-      && instance.role === Role.LEADER) // current role is leader
-    {
+    instance._logger.info('Received ProxyMethodCall', JSON.stringify(pmc));
+    if (pmc.target === MethodCallTarget.LEADER &&
+      instance.role === Role.LEADER) {
       instance._leader[pmc.methodName](pmc.methodArguments);
     } else if (pmc.target === MethodCallTarget.FOLLOWER) {
       instance._follower[pmc.methodName](pmc.methodArguments);
@@ -361,12 +368,33 @@ export class Instance {
     const updatedData = {
       ...properties.fetchIdData,
       ...fetchIdDataUpdate
-    }
+    };
     this._leader.updateFetchIdData(properties.id, updatedData);
   }
 
   refreshUid(options) {
     this._leader.refreshUid(options);
+  }
+
+  _scheduleLeaderElection(electionDelay) {
+    const instance = this;
+    setTimeout(() => {
+      let instances = Array.from(instance._knownInstances.values());
+      instances.push(instance.properties);
+      let leader = electLeader(instances);
+      instance._leaderInstance = leader;
+      instance.role = (leader.id === instance.properties.id) ? Role.LEADER : Role.FOLLOWER;
+      instance._doFireEvent(MultiplexingEvent.ID5_LEADER_ELECTED, instance.role, instance._leaderInstance);
+      instance._logger.debug('Leader elected', leader.id, 'my role', instance.role);
+      if (instance.role === Role.LEADER) {
+        const proxyFollowers = Array.from(this._knownInstances.values())
+          .filter(instance => !instance.singletonMode) // exclude all instances operating in singleton mode
+          .map(instance => new ProxyFollower(instance, this._messenger));
+        instance._actAsLeader([this._follower, ...proxyFollowers]); // leader for itself and others
+      } else if (instance.role === Role.FOLLOWER) {
+        instance._assignLeader(new LeaderProxy(this._messenger, leader.id)); // remote leader
+      }
+    }, electionDelay);
   }
 }
 

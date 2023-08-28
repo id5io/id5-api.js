@@ -100,7 +100,7 @@ describe('ID5 instance', function () {
   let generateIdStub;
   let logger = NoopLogger; // for debug purposes assign console `let logger = console`
   let createInstance = (source, sourceVersion, sourceConfig, fetchIdData, metrics) => {
-    const instance = new ID5Integration.Instance(window,{
+    const instance = new ID5Integration.Instance(window, {
       source: source,
       sourceVersion: sourceVersion,
       sourceConfiguration: sourceConfig,
@@ -143,6 +143,78 @@ describe('ID5 instance', function () {
       domain: window.location.hostname
     });
     expect(instance.role).is.eq(ID5Integration.Role.UNKNOWN);
+  });
+
+  [
+    [
+      {
+        singletonMode: true,
+        fetchIdData: {
+          partnerId: 11,
+          pd: 'a1'
+        }
+      },
+      {
+        fetchIdData: {
+          partnerId: 11,
+          pd: 'a1'
+        },
+        singletonMode: true
+      }
+    ],
+    [
+      {
+        source: 'newSource',
+        sourceVersion: '3.5.8'
+      },
+      {
+        source: 'newSource',
+        sourceVersion: '3.5.8'
+      }
+    ],
+    [
+      {
+        sourceConfiguration: {
+          p1: '1',
+          p2: 2
+        }
+      },
+      {
+        sourceConfiguration: {
+          p1: '1',
+          p2: 2
+        }
+      }
+    ]
+  ].forEach(([config, expectedOverride]) => {
+    it(`should update instance configuration ${JSON.stringify(config)}`, function () {
+
+      // given
+      generateIdStub = sinon.stub(Utils, 'generateId');
+      let id = crypto.randomUUID();
+      generateIdStub.returns(id);
+
+      const initialConfig = {
+        id: id,
+        version: version,
+        source: 'api',
+        sourceVersion: '1.3.5',
+        sourceConfiguration: {some: 'property'},
+        fetchIdData: {partnerId: 99},
+        href: window.location.href,
+        domain: window.location.hostname
+      }
+
+      // when
+      let instance = createInstance(initialConfig.source, initialConfig.sourceVersion, initialConfig.sourceConfiguration, initialConfig.fetchIdData, metrics);
+
+      instance.updateConfig(config)
+      // then
+      expect(instance.properties).is.deep.eq({
+        ...initialConfig,
+        ...expectedOverride
+      });
+    });
   });
 
   it('registered instances should eventually know each other and elect the same leader', function (done) {

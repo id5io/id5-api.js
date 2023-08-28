@@ -1,13 +1,10 @@
-import {ApiEvent, ApiEventsDispatcher} from './apiEvent.js';
-import {Properties} from './instance.js';
-import {CrossInstanceMessenger, MethodCallTarget, ProxyMethodCallMessage} from './messaging.js';
-
+import {ApiEvent} from './apiEvent.js';
+import {MethodCallTarget} from './messaging.js';
 
 /**
  * @interface
  */
 export class Follower {
-
   /**
    * @type {Properties}
    * @private
@@ -17,7 +14,6 @@ export class Follower {
   constructor(properties) {
     this._instanceProperties = properties;
   }
-
 
   getId() {
     return this._instanceProperties.id;
@@ -33,11 +29,10 @@ export class Follower {
 
   updateFetchIdData(newFetchIdData) {
     const oldData = this._instanceProperties.fetchIdData;
-    const mergedData = {
+    this._instanceProperties.fetchIdData = {
       ...oldData,
       ...newFetchIdData
-    }
-    this._instanceProperties.fetchIdData = mergedData;
+    };
   }
 
   /**
@@ -69,7 +64,6 @@ export class Follower {
 }
 
 export class DirectFollower extends Follower {
-
   /**
    * @type {ApiEventsDispatcher}
    * @private
@@ -81,13 +75,12 @@ export class DirectFollower extends Follower {
     this._dispatcher = dispatcher;
   }
 
-
   notifyUidReady(uid) {
     this._dispatcher.emit(ApiEvent.USER_ID_READY, uid);
   }
 
   notifyFetchUidCanceled(cancelInfo) {
-    this._dispatcher.emit(ApiEvent.USER_ID_FETCH_CANCELED, cancelInfo)
+    this._dispatcher.emit(ApiEvent.USER_ID_FETCH_CANCELED, cancelInfo);
   }
 
   notifyCascadeNeeded(cascadeData) {
@@ -103,9 +96,8 @@ export class ProxyFollower extends Follower {
   _messenger;
 
   /**
-   *
+   * @param {Properties} properties - leader instance properties
    * @param {CrossInstanceMessenger} messenger
-   * @param {String} leaderInstanceId
    */
   constructor(properties, messenger) {
     super(properties);
@@ -120,14 +112,14 @@ export class ProxyFollower extends Follower {
   }
 
   notifyUidReady(uid) {
-    this._callProxy(this.notifyUidReady.name, uid);
+    this._callProxy('notifyUidReady', uid);
   }
 
   notifyFetchUidCanceled(cancelInfo) {
-    this._callProxy(this.notifyFetchUidCanceled.name, cancelInfo);
+    this._callProxy('notifyFetchUidCanceled', cancelInfo);
   }
 
   notifyCascadeNeeded(cascadeData) {
-    this._callProxy(this.notifyCascadeNeeded.name, cascadeData);
+    this._callProxy('notifyCascadeNeeded', cascadeData);
   }
 }

@@ -314,7 +314,7 @@ describe('The ID5 API', function () {
           expect(onlyRequest.metadata).is.not.eq(undefined);
           expect(onlyRequest.metadata.sampling).is.eq(1);
           expect(onlyRequest.metadata.trigger).is.eq('fixed-time');
-          expect(onlyRequest.metadata.fixed_time_msec).is.eq(3000);
+          expect(onlyRequest.metadata.fixed_time_msec).is.eq(3100);
           expect(onlyRequest.measurements.length).is.eq(11);
           const commonTags = {version: version, partner: '99', source: 'api', tml: 'https://my-publisher-website.net/'};
           verifyContainsMeasurementWithTags(onlyRequest.measurements, 'id5.api.instance.load.delay', 'TIMER', commonTags);

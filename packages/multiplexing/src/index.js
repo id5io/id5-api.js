@@ -1,4 +1,3 @@
-import {ApiEventsDispatcher} from './apiEvent.js';
 import {UidFetcher} from './fetch.js';
 import {Instance as MultiplexInstance} from './instance.js';
 import {Store} from './store.js';
@@ -8,12 +7,12 @@ export {default as Promise, LazyValue} from './promise.js';
 export {EXTENSIONS} from './extensions.js';
 export * from './logger.js';
 export * from './consent.js';
-export {ConsentManagement} from './consentManagement.js'
-export {ApiEventsDispatcher, ApiEvent} from './apiEvent.js';
+export {ConsentManagement} from './consentManagement.js';
+export {ApiEventsDispatcher, ApiEvent, MultiplexingEvent} from './apiEvent.js';
 
 class MultiplexingRegistry {
   createInstance(wnd, logger, metrics, consentManager, clientStore) {
-    return new MultiplexInstance(wnd, {}, metrics, logger, new UidFetcher(consentManager, new Store(clientStore), metrics, logger, EXTENSIONS), consentManager)
+    return new MultiplexInstance(wnd, {}, metrics, logger, new UidFetcher(consentManager, new Store(clientStore), metrics, logger, EXTENSIONS), consentManager);
   }
 }
 

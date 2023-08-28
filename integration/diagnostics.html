@@ -25,7 +25,7 @@
             refreshInSeconds: 5,
             cmpApi: 'static',
             diagnostics: {
-                publishAfterLoadInMsec: 3000,
+                publishAfterLoadInMsec: 3100, // >3000ms (default election time) to make sure all mx metrics are sent out
                 publishingSampleRatio: 1,
                 publishOnWindowUnload: false
             },

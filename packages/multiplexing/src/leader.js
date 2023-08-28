@@ -1,7 +1,6 @@
-import {UidFetcher} from './fetch.js';
 import {ApiEvent, ApiEventsDispatcher} from './apiEvent.js';
-import {Logger, NoopLogger} from './logger.js';
-import {CrossInstanceMessenger, MethodCallTarget} from './messaging.js';
+import {NoopLogger} from './logger.js';
+import {MethodCallTarget} from './messaging.js';
 
 /**
  * @interface
@@ -25,7 +24,6 @@ export class LeaderApi {
 }
 
 export class Leader extends LeaderApi {
-
   /**
    * @type Array<Follower>
    * @private
@@ -58,7 +56,9 @@ export class Leader extends LeaderApi {
 
   /**
    * @param {UidFetcher} fetcher
-   * @param Array{Follower} followers
+   * @param {ConsentManager} consentManager
+   * @param {Array<Follower>} followers
+   * @param {Logger} logger
    */
   constructor(fetcher, consentManager, followers, logger = NoopLogger) {
     super();
@@ -109,7 +109,7 @@ export class Leader extends LeaderApi {
       return {
         ...follower.getFetchIdData(),
         integrationId: follower.getId()
-      }
+      };
     });
     this._fetcher.getId(this._dispatcher, fetchIds, forceRefresh);
   }
@@ -163,45 +163,38 @@ export class LeaderProxy extends LeaderApi {
   }
 
   updateConsent(consentData) {
-    this._sendToLeader(this.updateConsent.name, [consentData]);
+    this._sendToLeader('updateConsent', [consentData]);
   }
 
   refreshUid(options) {
-    this._sendToLeader(this.refreshUid.name, [options]);
+    this._sendToLeader('refreshUid', [options]);
   }
 
   updateFetchIdData(instanceId, fetchIdData) {
-    this._sendToLeader(this.updateFetchIdData.name, [instanceId, fetchIdData]);
+    this._sendToLeader('updateFetchIdData', [instanceId, fetchIdData]);
   }
 }
 
-
 export class AwaitedLeader extends LeaderApi {
-
   _callsQueue = [];
 
-  constructor() {
-    super();
-  }
-
-
   updateConsent(consentData) {
-    this._add(this.updateConsent.name, [consentData]);
+    this._add('updateConsent', [consentData]);
   }
 
   updateFetchIdData(instanceId, fetchIdData) {
-    this._add(this.updateFetchIdData.name, [instanceId, fetchIdData]);
+    this._add('updateFetchIdData', [instanceId, fetchIdData]);
   }
 
   refreshUid(refreshOptions) {
-    this._add(this.refreshUid.name, [refreshOptions]);
+    this._add('refreshUid', [refreshOptions]);
   }
 
   _add(name, args) {
     this._callsQueue.push({
-      name,
-      args
-    })
+      name: name,
+      args: args
+    });
   }
 
   /**
