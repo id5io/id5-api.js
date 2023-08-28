@@ -1,6 +1,6 @@
 import {ApiEvent, ApiEventsDispatcher} from './apiEvent.js';
 import {NoopLogger} from './logger.js';
-import {MethodCallTarget} from './messaging.js';
+import {ProxyMethodCallTarget} from './messaging.js';
 
 /**
  * @interface
@@ -70,10 +70,12 @@ export class Leader extends LeaderApi {
     this._dispatcher.on(ApiEvent.USER_ID_READY, uid => leader._handleUidReady(uid));
     this._dispatcher.on(ApiEvent.USER_ID_FETCH_CANCELED, cancel => leader._handleCancel(cancel));
     this._dispatcher.on(ApiEvent.CASCADE_NEEDED, cascade => leader._handleCascade(cascade));
+    this._log = logger;
   }
 
   _handleUidReady(uid) {
     for (const follower of this._followers) {
+      this._log.debug('Notify uid ready.', 'Follower:', follower.getId(), 'Uid:', uid);
       follower.notifyUidReady(uid);
     }
   }
@@ -126,13 +128,18 @@ export class Leader extends LeaderApi {
   }
 
   updateConsent(consentData) {
-    // TODO check if changed , maybe retrigger getId ???
+    // TODO check if changed , maybe re-trigger getId ???
     this._consentManager.setConsentData(consentData);
   }
 
   updateFetchIdData(instanceId, fetchIdData) {
     const toUpdate = this._followers.find(instance => instance.getId() === instanceId);
     toUpdate.updateFetchIdData(fetchIdData);
+  }
+
+  addFollower(follower) {
+    this._log.debug('Added follower', follower.getId());
+    this._followers.push(follower);
   }
 }
 
@@ -159,7 +166,7 @@ export class LeaderProxy extends LeaderApi {
    * @private
    */
   _sendToLeader(methodName, args) {
-    this._messenger.callProxyMethod(this._leaderInstanceId, MethodCallTarget.LEADER, methodName, args);
+    this._messenger.callProxyMethod(this._leaderInstanceId, ProxyMethodCallTarget.LEADER, methodName, args);
   }
 
   updateConsent(consentData) {

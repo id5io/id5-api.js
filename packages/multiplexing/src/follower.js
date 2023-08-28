@@ -1,5 +1,5 @@
 import {ApiEvent} from './apiEvent.js';
-import {MethodCallTarget} from './messaging.js';
+import {ProxyMethodCallTarget} from './messaging.js';
 
 /**
  * @interface
@@ -108,18 +108,18 @@ export class ProxyFollower extends Follower {
    * @private
    */
   _callProxy(methodName, args) {
-    this._messenger.callProxyMethod(this.getId(), MethodCallTarget.FOLLOWER, methodName, args);
+    this._messenger.callProxyMethod(this.getId(), ProxyMethodCallTarget.FOLLOWER, methodName, args);
   }
 
   notifyUidReady(uid) {
-    this._callProxy('notifyUidReady', uid);
+    this._callProxy('notifyUidReady', [uid]);
   }
 
   notifyFetchUidCanceled(cancelInfo) {
-    this._callProxy('notifyFetchUidCanceled', cancelInfo);
+    this._callProxy('notifyFetchUidCanceled', [cancelInfo]);
   }
 
   notifyCascadeNeeded(cascadeData) {
-    this._callProxy('notifyCascadeNeeded', cascadeData);
+    this._callProxy('notifyCascadeNeeded', [cascadeData]);
   }
 }

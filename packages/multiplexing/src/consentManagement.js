@@ -4,7 +4,7 @@ import {
 } from '../../../lib/utils.js';
 import CONSTANTS from '../../../lib/constants.json';
 import {LazyValue} from './promise.js';
-import {API_TYPE, GRANT_TYPE, LocalStorageGrant, ConsentManager} from './consent.js';
+import {API_TYPE, GRANT_TYPE, LocalStorageGrant, ConsentManager, ConsentData} from './consent.js';
 
 export class ConsentManagement extends ConsentManager {
   /** @type LazyValue<ConsentData>} */
@@ -105,7 +105,9 @@ export class ConsentManagement extends ConsentManager {
   }
 
   setConsentData(consentData) {
-    this._consentDataHolder.set(consentData);
+    this._log.debug('Set consent data', consentData);
+    let consent = Object.assign(new ConsentData(), consentData); // this may be delivered by remote follower serialized , so need to reassign
+    this._consentDataHolder.set(consent);
   }
 
   getConsentData() {

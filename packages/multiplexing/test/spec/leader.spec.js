@@ -2,7 +2,7 @@ import * as chai from 'chai';
 import {expect} from 'chai';
 import sinon from 'sinon';
 import sinonChai from 'sinon-chai';
-import {CrossInstanceMessenger, MethodCallTarget, ProxyMethodCallMessage} from '../../src/messaging.js';
+import {CrossInstanceMessenger, ProxyMethodCallTarget} from '../../src/messaging.js';
 import {AwaitedLeader, LeaderApi, LeaderProxy} from '../../src/leader.js';
 
 chai.use(sinonChai);
@@ -31,7 +31,7 @@ describe('LeaderProxy', function () {
     leaderProxy.updateConsent(consentData);
 
     // then
-    expect(messenger.callProxyMethod).to.have.been.calledWith(leaderId, MethodCallTarget.LEADER, 'updateConsent', [consentData]);
+    expect(messenger.callProxyMethod).to.have.been.calledWith(leaderId, ProxyMethodCallTarget.LEADER, 'updateConsent', [consentData]);
   });
 
   it('should sent message to call refreshUid', function () {
@@ -42,7 +42,7 @@ describe('LeaderProxy', function () {
     leaderProxy.refreshUid(forceFetch);
 
     // then
-    expect(messenger.callProxyMethod).to.have.been.calledWith(leaderId, MethodCallTarget.LEADER,'refreshUid', [forceFetch]);
+    expect(messenger.callProxyMethod).to.have.been.calledWith(leaderId, ProxyMethodCallTarget.LEADER,'refreshUid', [forceFetch]);
   });
 
   it('should sent message to call fetchDataUpdate', function () {
@@ -53,7 +53,7 @@ describe('LeaderProxy', function () {
     leaderProxy.updateFetchIdData('id', fetchData);
 
     // then
-    expect(messenger.callProxyMethod).to.have.been.calledWith(leaderId, MethodCallTarget.LEADER,'updateFetchIdData', ['id', fetchData]);
+    expect(messenger.callProxyMethod).to.have.been.calledWith(leaderId, ProxyMethodCallTarget.LEADER,'updateFetchIdData', ['id', fetchData]);
   });
 });
 

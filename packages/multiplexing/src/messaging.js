@@ -63,8 +63,7 @@ export class HelloMessage {
   }
 }
 
-export const MethodCallTarget = Object.freeze({
-  THIS: 'this',
+export const ProxyMethodCallTarget = Object.freeze({
   LEADER: 'leader',
   FOLLOWER: 'follower'
 });
@@ -79,6 +78,30 @@ export class ProxyMethodCallMessage {
     this.target = target;
     this.methodName = methodName;
     this.methodArguments = methodArguments;
+  }
+}
+
+export class ProxyMethodCallHandler {
+  _targets = {};
+
+  /**
+   *
+   * @param {string} target
+   * @param {Object} targetObject
+   */
+  register(target, targetObject) {
+    this._targets[target] = targetObject;
+  }
+
+  /**
+   *
+   * @param {ProxyMethodCallMessage} proxyMethodCallMessage
+   */
+  handle(proxyMethodCallMessage) {
+    const target = this._targets[proxyMethodCallMessage.target];
+    if (target) {
+      target[proxyMethodCallMessage.methodName](...proxyMethodCallMessage.methodArguments);
+    }
   }
 }
 
@@ -171,7 +194,7 @@ export class CrossInstanceMessenger {
   }
 
   unicastMessage(dst, payload, type = payload.constructor.name) {
-    this._log.debug('Sending response to', dst, type, payload);
+    this._log.debug('Sending message to', dst, type, payload);
     this._postMessage(this._messageFactory.createUnicastMessage(dst, payload, type));
   }
 

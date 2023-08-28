@@ -347,7 +347,7 @@ describe('The ID5 API', function () {
         .thenFromFile(200, TEST_PAGE_PATH);
       await server.forGet('https://lb.eu-1-id5-sync.com/lb/v1')
         .thenJson(200, MOCK_LB_RESPONSE, MOCK_CORS_HEADERS);
-      let fetchEndpoint = await server.forPost(FETCH_ENDPOINT)
+      const fetchEndpoint = await server.forPost(FETCH_ENDPOINT)
         .thenJson(200, MOCK_FETCH_RESPONSE, MOCK_CORS_HEADERS);
       await server.forGet('https://dummyimage.com/600x200')
         .thenReply(200, '');
@@ -396,6 +396,7 @@ describe('The ID5 API', function () {
   describe('with multiplexing enabled', function () {
     let electionNotifyEndpoint;
     let diagnosticsEndpoint;
+    let fetchEndpoint;
     beforeEach(async () => {
       const INDEX_PAGE_PATH = path.join(SCRIPT_DIR, 'resources', 'multiplexing', 'index.html');
       const NF_FRAME_PAGE_PATH = path.join(SCRIPT_DIR, 'resources', 'multiplexing', 'single-integration.html');
@@ -409,7 +410,7 @@ describe('The ID5 API', function () {
         .thenFromFile(200, NF_FRAME_PAGE_PATH);
       await server.forGet('https://lb.eu-1-id5-sync.com/lb/v1')
         .thenCallback(jsonWithCorsAllowed(MOCK_LB_RESPONSE));
-      await server.forPost(FETCH_ENDPOINT)
+      fetchEndpoint = await server.forPost(FETCH_ENDPOINT)
         .thenCallback(jsonWithCorsAllowed(MOCK_FETCH_RESPONSE));
       await server.forGet('https://dummyimage.com/600x200')
         .thenCallback(jsonWithCorsAllowed(''));
@@ -426,7 +427,6 @@ describe('The ID5 API', function () {
     it('all integrations eventually should get to know each other and elect the same leader', async () => {
       const page = await browser.newPage();
       await page.goto('https://my-publisher-website.net');
-
       // each instance calls endpoint and post details once leader elected
       return expectRequestsAt(electionNotifyEndpoint, 4)
         .then((requests) => {
@@ -452,6 +452,15 @@ describe('The ID5 API', function () {
             // knows each instance
             expect(new Set([i.id, ...i.knownInstances])).is.deep.eq(allIds);
           }
+          return expectRequestAt(fetchEndpoint)
+            .then(multiFetchRequests => {
+              expect(multiFetchRequests).has.length(1);
+              return multiFetchRequests[0].body.getJson();
+            })
+            .then(requestBody => {
+              expect(requestBody.requests).has.length(4);
+              expect(new Set(requestBody.requests.map(rq => rq.requestId))).is.eql(allIds);
+            });
         });
     });
 

@@ -2,7 +2,8 @@ import {
   CrossInstanceMessenger,
   DST_BROADCAST,
   HelloMessage,
-  MethodCallTarget,
+  ProxyMethodCallTarget,
+  ProxyMethodCallHandler,
   ProxyMethodCallMessage
 } from './messaging.js';
 import * as Utils from './utils.js';
@@ -170,6 +171,11 @@ export class Instance {
    * @private
    */
   _instanceCounters;
+  /**
+   * @type {ProxyMethodCallHandler}
+   * @private
+   */
+  _proxyMethodCallHandler;
 
   /**
    * @typedef {Object} InstanceConfiguration
@@ -211,6 +217,7 @@ export class Instance {
     this._uidFetcher = uidFetcher;
     this._consentManager = consentManager;
     this._follower = new DirectFollower(this.properties, this._dispatcher);
+    this._proxyMethodCallHandler = new ProxyMethodCallHandler();
   }
 
   /**
@@ -260,7 +267,7 @@ export class Instance {
     });
     if (instance.properties.singletonMode === true) {
       // to provision uid ASAP
-      instance._actAsLeader([this._follower]);
+      instance._actAsLeader(true);
     } else {
       instance._scheduleLeaderElection(electionDelayMSec);
     }
@@ -274,7 +281,7 @@ export class Instance {
   /**
    * @param {FetchIdData} fetchIdData
    * @param {Object} [sourceConfiguration] - additional instance specific configuration
-   * @param {boolean} [singletonMode] - allow to registeer instance in singleton mode
+   * @param {boolean} [singletonMode] - allow to register instance in singleton mode
    */
   register(fetchIdData, sourceConfiguration = {}, singletonMode = false) {
     try {
@@ -304,14 +311,7 @@ export class Instance {
   _handleProxyMethodCall(pmc) {
     const instance = this;
     instance._logger.info('Received ProxyMethodCall', JSON.stringify(pmc));
-    if (pmc.target === MethodCallTarget.LEADER &&
-      instance.role === Role.LEADER) {
-      instance._leader[pmc.methodName](pmc.methodArguments);
-    } else if (pmc.target === MethodCallTarget.FOLLOWER) {
-      instance._follower[pmc.methodName](pmc.methodArguments);
-    } else if (pmc.target === MethodCallTarget.THIS) {
-      instance[pmc.methodName](pmc.methodArguments);
-    }
+    instance._proxyMethodCallHandler.handle(pmc);
   }
 
   deregister() {
@@ -347,10 +347,21 @@ export class Instance {
     this._dispatcher.emit(event, ...args);
   }
 
-  _actAsLeader(followers) {
-    const leader = new Leader(this._uidFetcher, this._consentManager, followers, this._logger);
+  _actAsLeader(singletonMode = false) {
+    const leader = new Leader(this._uidFetcher, this._consentManager, [this._follower], this._logger);
+    if (!singletonMode) {
+      Array.from(this._knownInstances.values())
+        .filter(instance => !instance.singletonMode) // exclude all instances operating in singleton mode
+        .map(instance => leader.addFollower(new ProxyFollower(instance, this._messenger)));
+      this._proxyMethodCallHandler.register(ProxyMethodCallTarget.LEADER, leader);
+    }
     this._assignLeader(leader);
     leader.start();
+  }
+
+  _followRemoteLeader(leaderInstance) {
+    this._assignLeader(new LeaderProxy(this._messenger, leaderInstance.id)); // remote leader
+    this._proxyMethodCallHandler.register(ProxyMethodCallTarget.FOLLOWER, this._follower);
   }
 
   _assignLeader(newLeader) {
@@ -387,12 +398,9 @@ export class Instance {
       instance._doFireEvent(MultiplexingEvent.ID5_LEADER_ELECTED, instance.role, instance._leaderInstance);
       instance._logger.debug('Leader elected', leader.id, 'my role', instance.role);
       if (instance.role === Role.LEADER) {
-        const proxyFollowers = Array.from(this._knownInstances.values())
-          .filter(instance => !instance.singletonMode) // exclude all instances operating in singleton mode
-          .map(instance => new ProxyFollower(instance, this._messenger));
-        instance._actAsLeader([this._follower, ...proxyFollowers]); // leader for itself and others
+        instance._actAsLeader();
       } else if (instance.role === Role.FOLLOWER) {
-        instance._assignLeader(new LeaderProxy(this._messenger, leader.id)); // remote leader
+        instance._followRemoteLeader(leader);
       }
     }, electionDelay);
   }
