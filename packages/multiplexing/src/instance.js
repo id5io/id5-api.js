@@ -2,9 +2,9 @@ import {
   CrossInstanceMessenger,
   DST_BROADCAST,
   HelloMessage,
-  ProxyMethodCallTarget,
   ProxyMethodCallHandler,
-  ProxyMethodCallMessage
+  ProxyMethodCallMessage,
+  ProxyMethodCallTarget
 } from './messaging.js';
 import * as Utils from './utils.js';
 import {version} from '../generated/version.js';
@@ -299,12 +299,17 @@ export class Instance {
     return this;
   }
 
+  /**
+   *
+   * @param {HelloMessage} hello
+   * @param message
+   * @private
+   */
   _handleHelloMessage(hello, message) {
     const instance = this;
-    instance._addInstance(hello.instance);
+    instance._addInstance(hello);
     if (message.dst === DST_BROADCAST) { // this init message , so respond back to introduce myself
-      // TODO if already leader elected let new instance know it's late joiner
-      instance._messenger.sendResponseMessage(message, new HelloMessage(instance.properties), HelloMessage.TYPE);
+      instance._messenger.sendResponseMessage(message, new HelloMessage(instance.properties, instance._leaderInstance), HelloMessage.TYPE);
     }
   }
 
@@ -330,16 +335,39 @@ export class Instance {
     return this;
   }
 
-  _addInstance(instanceProperties) {
-    if (!this._knownInstances.get(instanceProperties.id)) {
-      this._knownInstances.set(instanceProperties.id, instanceProperties);
-      this._instanceCounters.addInstance(instanceProperties);
+  /**
+   *
+   * @param {HelloMessage} hello
+   * @private
+   */
+  _addInstance(hello) {
+    const joiningInstance = hello.instance;
+    if (!this._knownInstances.get(joiningInstance.id)) {
+      this._knownInstances.set(joiningInstance.id, joiningInstance);
+      this._instanceCounters.addInstance(joiningInstance);
       this._metrics.instanceJoinDelayTimer().record((performance.now() - this._loadTime) | 0);
-      if (this._leaderInstance !== undefined) {
+      if (this.role !== Role.UNKNOWN) {
         this._metrics.instanceLateJoinCounter(this.properties.id).inc();
+        if (this.role === Role.LEADER) {
+          if (!joiningInstance.singletonMode) {
+            this._leader.addFollower(new ProxyFollower(joiningInstance, this._messenger));
+          }
+        }
+      } else {
+        const providedLeader = hello.leaderInstance;
+        if (providedLeader !== undefined) {
+          if (this._scheduledElection !== undefined) {
+            clearTimeout(this._scheduledElection);
+            this._scheduledElection = undefined;
+            this._onLeaderElected(providedLeader);
+            // TODO what if another instance will provide another leader instance
+            // TODO what if it will never get HELLO from leader
+            // TODO should accept only if hello.leader === hello.instance -> this may guarantee that  leader will join follower ?
+          }
+        }
       }
-      this._logger.debug('Instance joined', instanceProperties.id);
-      this._doFireEvent(MultiplexingEvent.ID5_INSTANCE_JOINED, instanceProperties);
+      this._logger.debug('Instance joined', joiningInstance.id);
+      this._doFireEvent(MultiplexingEvent.ID5_INSTANCE_JOINED, joiningInstance);
     }
   }
 
@@ -389,20 +417,27 @@ export class Instance {
 
   _scheduleLeaderElection(electionDelay) {
     const instance = this;
-    setTimeout(() => {
-      let instances = Array.from(instance._knownInstances.values());
-      instances.push(instance.properties);
-      let leader = electLeader(instances);
-      instance._leaderInstance = leader;
-      instance.role = (leader.id === instance.properties.id) ? Role.LEADER : Role.FOLLOWER;
-      instance._doFireEvent(MultiplexingEvent.ID5_LEADER_ELECTED, instance.role, instance._leaderInstance);
-      instance._logger.debug('Leader elected', leader.id, 'my role', instance.role);
-      if (instance.role === Role.LEADER) {
-        instance._actAsLeader();
-      } else if (instance.role === Role.FOLLOWER) {
-        instance._followRemoteLeader(leader);
+    instance._scheduledElection = setTimeout(() => {
+      if (instance._scheduledElection) { // if not canceled
+        let instances = Array.from(instance._knownInstances.values());
+        instances.push(instance.properties);
+        instance._onLeaderElected(electLeader(instances));
+        instance._scheduledElection = undefined;
       }
     }, electionDelay);
+  }
+
+  _onLeaderElected(leader) {
+    const instance = this;
+    instance._leaderInstance = leader;
+    instance.role = (leader.id === instance.properties.id) ? Role.LEADER : Role.FOLLOWER;
+    instance._logger.debug('Leader elected', leader.id, 'my role', instance.role);
+    if (instance.role === Role.LEADER) {
+      instance._actAsLeader();
+    } else if (instance.role === Role.FOLLOWER) {
+      instance._followRemoteLeader(leader);
+    }
+    instance._doFireEvent(MultiplexingEvent.ID5_LEADER_ELECTED, instance.role, instance._leaderInstance);
   }
 }
 

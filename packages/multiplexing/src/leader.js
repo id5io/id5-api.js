@@ -21,6 +21,13 @@ export class LeaderApi {
 
   onLeaderChange(newLeader) {
   }
+
+  /**
+   *
+   * @param {Follower} follower
+   */
+  addFollower(follower) {
+  }
 }
 
 export class Leader extends LeaderApi {
@@ -54,6 +61,8 @@ export class Leader extends LeaderApi {
    */
   _consentManager;
 
+  _lastUid;
+
   /**
    * @param {UidFetcher} fetcher
    * @param {ConsentManager} consentManager
@@ -78,6 +87,7 @@ export class Leader extends LeaderApi {
       this._log.debug('Notify uid ready.', 'Follower:', follower.getId(), 'Uid:', uid);
       follower.notifyUidReady(uid);
     }
+    this._lastUid = uid;
   }
 
   /**
@@ -117,6 +127,7 @@ export class Leader extends LeaderApi {
   }
 
   start() {
+    // TODO handle in progress
     this._getId(false);
   }
 
@@ -139,6 +150,10 @@ export class Leader extends LeaderApi {
 
   addFollower(follower) {
     this._log.debug('Added follower', follower.getId());
+    if (this._lastUid) { // late joiner
+      // if redy just notify follower
+      follower.notifyUidReady(this._lastUid);
+    }
     this._followers.push(follower);
   }
 }

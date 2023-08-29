@@ -57,9 +57,11 @@ export class Id5MessageFactory {
 export class HelloMessage {
   static TYPE = 'HelloMessage';
   instance;
+  leaderInstance;
 
-  constructor(instanceProperties) {
-    this.instance = instanceProperties;
+  constructor(instance, leaderInstance = undefined) {
+    this.instance = instance;
+    this.leaderInstance = leaderInstance;
   }
 }
 
