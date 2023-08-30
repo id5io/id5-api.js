@@ -159,14 +159,14 @@ describe('UidFetcher', function () {
     ajaxStub.restore();
   });
 
-  describe('Calls multi fetch', function () {
-    const storedDataState = Object.assign(new StoredDataState(), {
-      nb: {},
-      refreshInSeconds: 7200
-    });
+  describe('calls multi fetch when no state is saved in cache', function () {
+    let storedDataState;
 
     beforeEach(function () {
-      storedDataState.nb = {};
+      storedDataState = Object.assign(new StoredDataState(), {
+        nb: {},
+        refreshInSeconds: 7200
+      });
       store.getStoredDataState.returns(storedDataState)
     });
 
@@ -175,80 +175,7 @@ describe('UidFetcher', function () {
       ['with pd', {pd: 'PD_DATA'}, {pd: 'PD_DATA'}],
       ['with partnerUserId', {partnerUserId: '1234567'}, {puid: '1234567'}],
       ['with provider', {provider: 'some_provider'}, {provider: 'some_provider'}],
-      ['with ua hints', {
-        uaHints: {
-          'architecture': 'x86',
-          'brands': [
-            {
-              'brand': ' Not A;Brand',
-              'version': '99'
-            },
-            {
-              'brand': 'Chromium',
-              'version': '101'
-            },
-            {
-              'brand': 'Froogle Chrome',
-              'version': '101'
-            }
-          ],
-          'fullVersionList': [
-            {
-              'brand': ' Not A;Brand',
-              'version': '99.0.0.0'
-            },
-            {
-              'brand': 'Chromium',
-              'version': '101.0.4951.64'
-            },
-            {
-              'brand': 'Froogle Chrome',
-              'version': '101.0.4951.64'
-            }
-          ],
-          'mobile': false,
-          'model': '',
-          'platform': 'Linux',
-          'platformVersion': '5.17.9'
-        }
-      }, {
-        ua_hints: {
-          'architecture': 'x86',
-          'brands': [
-            {
-              'brand': ' Not A;Brand',
-              'version': '99'
-            },
-            {
-              'brand': 'Chromium',
-              'version': '101'
-            },
-            {
-              'brand': 'Froogle Chrome',
-              'version': '101'
-            }
-          ],
-          'fullVersionList': [
-            {
-              'brand': ' Not A;Brand',
-              'version': '99.0.0.0'
-            },
-            {
-              'brand': 'Chromium',
-              'version': '101.0.4951.64'
-            },
-            {
-              'brand': 'Froogle Chrome',
-              'version': '101.0.4951.64'
-            }
-          ],
-          'mobile': false,
-          'model': '',
-          'platform': 'Linux',
-          'platformVersion': '5.17.9'
-        }
-      },
-      ],
+      ['with ua hints', { uaHints: buildTestUaHints() }, { ua_hints: buildTestUaHints() } ],
       ['with abTesting', {abTesting: {enabled: true, controlGroupPct: 0.5}}, {
         ab_testing: {
           enabled: true,
@@ -284,7 +211,7 @@ describe('UidFetcher', function () {
         }
       }]
     ].forEach(([description, data, expectedInRequest]) => {
-      it(`should call fetch with single request (${description})`, async () => {
+      it(`should correctly use parameters to create the fetch request body (${description})`, async () => {
         // given
         /**
          * @type {FetchIdData}
@@ -304,18 +231,19 @@ describe('UidFetcher', function () {
 
         // then
         return userIdPromise.then(data => {
-          expect(store.getStoredDataState).to.have.been.calledTwice;
-          expect(store.getStoredDataState.firstCall.args).to.be.eql([inputFetchData]);
-          expect(store.getStoredDataState.secondCall.args).to.be.eql([inputFetchData, CONSENT_DATA_GDPR_ALLOWED]);
           expect(store.storeRequestData).to.have.been.calledWith(CONSENT_DATA_GDPR_ALLOWED, inputFetchData);
+
           expect(consentManager.setStoredPrivacy).to.have.been.calledWith(PRIVACY_DATA_RETURNED);
+
           expectHttpPOST(ajaxStub.firstCall, `https://id5-sync.com/gm/v2`, {
             requests: [
               expectedRequestFor(fetchData, CONSENT_DATA_GDPR_ALLOWED, DEFAULT_EXTENSIONS, nbPage, storedDataState, expectedInRequest)
             ]
           });
+
           expect(store.storeResponse).to.have.been.calledWith(inputFetchData, FETCH_RESPONSE_STRING, false);
           expect(store.incNbs).to.have.not.been.called;
+
           expect(data.timestamp).is.not.null;
           expect(data.timestamp).is.not.undefined;
           expect(data.isFromCache).is.false;
@@ -323,7 +251,7 @@ describe('UidFetcher', function () {
         });
       });
 
-      it(`should call fetch with multiple requests (${description})`, async () => {
+      it(`should call fetch with multiple requests and correct parameters (${description})`, async () => {
         // given
         /**
          * @type {FetchIdData}
@@ -370,14 +298,17 @@ describe('UidFetcher', function () {
         // then
         return userIdPromise.then(data => {
           expect(consentManager.setStoredPrivacy).to.have.been.calledWith(PRIVACY_DATA_RETURNED);
+
           expect(store.storeRequestData).to.have.been.calledWith(CONSENT_DATA_GDPR_ALLOWED, [firstInstanceData, secondInstanceData]);
           expect(store.storeResponse).to.have.been.calledWith([firstInstanceData, secondInstanceData], FETCH_RESPONSE_STRING, false);
+
           expectHttpPOST(ajaxStub.firstCall, `https://id5-sync.com/gm/v2`, {
             requests: [
               expectedRequestFor(firstInstanceData, CONSENT_DATA_GDPR_ALLOWED, DEFAULT_EXTENSIONS, nbPage1, storedDataState),
               expectedRequestFor(secondInstanceData, CONSENT_DATA_GDPR_ALLOWED, DEFAULT_EXTENSIONS, nbPage2, storedDataState, expectedInRequest)
             ]
           });
+
           expect(data.timestamp).is.not.null;
           expect(data.timestamp).is.not.undefined;
           expect(data.isFromCache).is.false;
@@ -387,8 +318,8 @@ describe('UidFetcher', function () {
     });
   });
 
-  describe('Response from cache', function () {
-    it(`should provide from cache and don't refresh if not needed`, function () {
+  describe('when previous response is in cache', function () {
+    it(`should provide from cache and don't refresh when all freshness conditions are met`, function () {
       // given
       const stateStub = sinon.createStubInstance(StoredDataState);
 
@@ -414,42 +345,36 @@ describe('UidFetcher', function () {
 
       // then
       return userIdPromise.then(fromCacheData => {
+        expect(extensions.gather).to.have.not.been.called;
+        expect(ajaxStub).to.have.not.been.called;
+
         expect(fromCacheData.timestamp).is.eq(stateStub.storedDateTime);
         expect(fromCacheData.isFromCache).is.true;
         expect(fromCacheData.responseObj).is.eql(stateStub.storedResponse);
-        expect(extensions.gather).to.have.not.been.called;
-        expect(ajaxStub).to.have.not.been.called;
+
         expect(store.incNbs).to.have.been.calledWith([DEFAULT_FETCH_DATA], stateStub);
-        expect(store.getStoredDataState).to.have.been.calledTwice;
-        expect(store.getStoredDataState.firstCall.args).to.be.eql([[DEFAULT_FETCH_DATA]]);
-        expect(store.getStoredDataState.secondCall.args).to.be.eql([[DEFAULT_FETCH_DATA], CONSENT_DATA_GDPR_ALLOWED]);
         expect(store.storeRequestData).to.have.been.calledWith(CONSENT_DATA_GDPR_ALLOWED, [DEFAULT_FETCH_DATA]);
+
         expect(consentManager.setStoredPrivacy).to.have.not.been.called;
       })
     });
 
     [
-      {
-        responseComplete: true, refreshRequired: true, consentHasChanged: false
-      },
-      {
-        responseComplete: true, refreshRequired: false, consentHasChanged: true
-      },
-      {
-        responseComplete: false, refreshRequired: false, consentHasChanged: false
-      }
-    ].forEach(cacheState => {
-      it(`should provide from cache and then  refresh (${JSON.stringify(cacheState)})`, function () {
+      { desc: 'refresh required', responseComplete: true, refreshRequired: true, consentHasChanged: false },
+      { desc: 'consent changed', responseComplete: true, refreshRequired: false, consentHasChanged: true },
+      { desc: 'response incomplete', responseComplete: false, refreshRequired: false, consentHasChanged: false }
+    ].forEach(testCase => {
+      it(`should provide from cache and then trigger a refresh when ${testCase.desc}`, function () {
         // given
         const stateStub = sinon.createStubInstance(StoredDataState);
 
         stateStub.storedResponse = FETCH_RESPONSE_OBJ;
         stateStub.storedDateTime = 1234;
-        stateStub.consentHasChanged = cacheState.consentHasChanged;
+        stateStub.consentHasChanged = testCase.consentHasChanged;
         stateStub.pdHasChanged = false;
         stateStub.isStoredIdStale.returns(false);
-        stateStub.refreshInSecondsHasElapsed.returns(cacheState.refreshRequired);
-        stateStub.isResponseComplete.returns(cacheState.responseComplete);
+        stateStub.refreshInSecondsHasElapsed.returns(testCase.refreshRequired);
+        stateStub.isResponseComplete.returns(testCase.responseComplete);
         stateStub.isResponsePresent.returns(true);
         stateStub.segmentsHaveChanged = false;
         stateStub.hasValidUid.returns(true);
@@ -469,12 +394,14 @@ describe('UidFetcher', function () {
 
         // then
         return userIdFromCachePromise.then(fromCacheData => {
+          expect(extensions.gather).to.not.have.been.called;
+          expect(ajaxStub).to.not.have.been.called;
+
           expect(fromCacheData.timestamp).is.eq(stateStub.storedDateTime);
           expect(fromCacheData.isFromCache).is.true;
           expect(fromCacheData.responseObj).is.eql(stateStub.storedResponse);
+
           expect(store.incNbs).to.have.been.calledWith([DEFAULT_FETCH_DATA], stateStub);
-          expect(store.getStoredDataState).to.have.been.calledOnce;
-          expect(store.getStoredDataState.firstCall.args).to.be.eql([[DEFAULT_FETCH_DATA]]);
 
           const refreshedIdPromise = dispatcher.when(ApiEvent.USER_ID_READY);
           resolveConsent(CONSENT_DATA_GDPR_ALLOWED);
@@ -486,8 +413,7 @@ describe('UidFetcher', function () {
           expect(refreshedData.timestamp).is.not.eq(stateStub.storedDateTime);
           expect(refreshedData.isFromCache).is.false;
           expect(refreshedData.responseObj).is.eql(FETCH_RESPONSE_OBJ);
-          expect(store.getStoredDataState).to.have.been.calledTwice;
-          expect(store.getStoredDataState.secondCall.args).to.be.eql([[DEFAULT_FETCH_DATA], CONSENT_DATA_GDPR_ALLOWED]);
+
           expect(store.storeRequestData).to.have.been.calledWith(CONSENT_DATA_GDPR_ALLOWED, [DEFAULT_FETCH_DATA]);
           expect(store.storeResponse).to.have.been.calledWith([DEFAULT_FETCH_DATA], FETCH_RESPONSE_STRING, true);
           expect(consentManager.setStoredPrivacy).to.have.been.calledWith(PRIVACY_DATA_RETURNED);
@@ -496,33 +422,25 @@ describe('UidFetcher', function () {
     });
 
     [
-      {
-        hasValidUid: true, pdHasChanged: true, segmentsHaveChanged: false, isStale: false
-      },
-      {
-        hasValidUid: true, pdHasChanged: false, segmentsHaveChanged: true, isStale: false
-      },
-      {
-        hasValidUid: true, pdHasChanged: false, segmentsHaveChanged: false, isStale: true
-      },
-      {
-        hasValidUid: false, pdHasChanged: false, segmentsHaveChanged: false, isStale: false
-      }
-    ].forEach(cacheState => {
-      it(`should not provide from cache then refresh (${JSON.stringify(cacheState)})`, function () {
+      { desc: 'pd changed', hasValidUid: true, pdHasChanged: true, segmentsHaveChanged: false, isStale: false },
+      { desc: 'segments changed', hasValidUid: true, pdHasChanged: false, segmentsHaveChanged: true, isStale: false },
+      { desc: 'is stale', hasValidUid: true, pdHasChanged: false, segmentsHaveChanged: false, isStale: true },
+      { desc: 'has invalid uid', hasValidUid: false, pdHasChanged: false, segmentsHaveChanged: false, isStale: false }
+    ].forEach(testCase => {
+      it(`should not provide from cache but rather make a request when (${testCase.desc})`, function () {
         // given
         const stateStub = sinon.createStubInstance(StoredDataState);
 
         stateStub.storedResponse = FETCH_RESPONSE_OBJ;
         stateStub.storedDateTime = 1234;
         stateStub.consentHasChanged = false;
-        stateStub.pdHasChanged = cacheState.pdHasChanged;
-        stateStub.isStoredIdStale.returns(cacheState.isStale);
+        stateStub.pdHasChanged = testCase.pdHasChanged;
+        stateStub.isStoredIdStale.returns(testCase.isStale);
         stateStub.refreshInSecondsHasElapsed.returns(false);
         stateStub.isResponseComplete.returns(true);
         stateStub.isResponsePresent.returns(true);
-        stateStub.segmentsHaveChanged = cacheState.segmentsHaveChanged;
-        stateStub.hasValidUid.returns(cacheState.hasValidUid);
+        stateStub.segmentsHaveChanged = testCase.segmentsHaveChanged;
+        stateStub.hasValidUid.returns(testCase.hasValidUid);
         stateStub.nb = {}
 
         store.getStoredDataState.returns(stateStub);
@@ -534,18 +452,18 @@ describe('UidFetcher', function () {
 
         // then
         return userIdPromise.then(data => {
+          expect(extensions.gather).to.have.been.called;
+          expect(ajaxStub).to.have.been.called;
+
           expect(data.timestamp).is.not.undefined;
           expect(data.timestamp).is.not.eq(stateStub.storedDateTime);
           expect(data.isFromCache).is.false;
           expect(data.responseObj).is.eql(FETCH_RESPONSE_OBJ);
-          expect(store.incNbs).to.have.not.been.called;
-          expect(store.getStoredDataState).to.have.been.calledTwice;
-          expect(store.getStoredDataState.firstCall.args).to.be.eql([[DEFAULT_FETCH_DATA]]);
-          expect(store.getStoredDataState.secondCall.args).to.be.eql([[DEFAULT_FETCH_DATA], CONSENT_DATA_GDPR_ALLOWED]);
-          expect(extensions.gather).to.have.been.called;
-          expect(ajaxStub).to.have.been.called;
+
           expect(store.storeRequestData).to.have.been.calledWith(CONSENT_DATA_GDPR_ALLOWED, [DEFAULT_FETCH_DATA]);
           expect(store.storeResponse).to.have.been.calledWith([DEFAULT_FETCH_DATA], FETCH_RESPONSE_STRING, false);
+          expect(store.incNbs).to.have.not.been.called;
+
           expect(consentManager.setStoredPrivacy).to.have.been.calledWith(PRIVACY_DATA_RETURNED);
         })
       });
@@ -581,17 +499,18 @@ describe('UidFetcher', function () {
 
       // then
       return userIdPromise.then(data => {
+        expect(extensions.gather).to.have.been.called;
+        expect(ajaxStub).to.have.been.called;
+
         expect(data.timestamp).is.not.undefined;
         expect(data.timestamp).is.not.eq(stateStub.storedDateTime);
         expect(data.isFromCache).is.false;
         expect(data.responseObj).is.eql(FETCH_RESPONSE_OBJ);
-        expect(store.incNbs).to.have.not.been.called;
-        expect(store.getStoredDataState).to.have.been.calledOnce;
-        expect(store.getStoredDataState.firstCall.args).to.be.eql([[DEFAULT_FETCH_DATA], CONSENT_DATA_GDPR_ALLOWED]);
-        expect(extensions.gather).to.have.been.called;
-        expect(ajaxStub).to.have.been.called;
+
         expect(store.storeRequestData).to.have.been.calledWith(CONSENT_DATA_GDPR_ALLOWED, [DEFAULT_FETCH_DATA]);
         expect(store.storeResponse).to.have.been.calledWith([DEFAULT_FETCH_DATA], FETCH_RESPONSE_STRING, false);
+        expect(store.incNbs).to.have.not.been.called;
+
         expect(consentManager.setStoredPrivacy).to.have.been.calledWith(PRIVACY_DATA_RETURNED);
       })
     });
@@ -631,5 +550,42 @@ describe('UidFetcher', function () {
     expect(call.args[3].method).is.eq('POST');
   }
 
+  function buildTestUaHints() {
+    return {
+      'architecture': 'x86',
+      'brands': [
+        {
+          'brand': ' Not A;Brand',
+          'version': '99'
+        },
+        {
+          'brand': 'Chromium',
+          'version': '101'
+        },
+        {
+          'brand': 'Froogle Chrome',
+          'version': '101'
+        }
+      ],
+      'fullVersionList': [
+        {
+          'brand': ' Not A;Brand',
+          'version': '99.0.0.0'
+        },
+        {
+          'brand': 'Chromium',
+          'version': '101.0.4951.64'
+        },
+        {
+          'brand': 'Froogle Chrome',
+          'version': '101.0.4951.64'
+        }
+      ],
+      'mobile': false,
+      'model': '',
+      'platform': 'Linux',
+      'platformVersion': '5.17.9'
+    };
+  }
 });
 
