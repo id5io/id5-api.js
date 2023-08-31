@@ -26,6 +26,23 @@
             });
         };
     };
+    const uidCallback = function (status) {
+        const instance = status.instance;
+        const uid = status.getUserId();
+        window.fetch('https://instances.log/on-available', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'text/plain'
+            },
+            mode: 'no-cors',
+            body: JSON.stringify({
+                location: window.location.href,
+                id: instance.properties.id,
+                role: instance.role,
+                uid: uid
+            })
+        });
+    };
 
     ID5.debug = true;
 
@@ -52,7 +69,7 @@
             },
             segments: [{destination: '22', ids: ['abc']}]
         }
-    );
+    ).onAvailable(uidCallback);
 
     const instance1 = id5Status1.instance;
     instance1.on('leader-elected', leaderElectionCallback(instance1));
@@ -80,7 +97,7 @@
             },
             segments: [{destination: '22', ids: ['abc']}]
         }
-    );
+    ).onAvailable(uidCallback);
     const instance2 = id5Status2.instance;
     instance2.on('leader-elected', leaderElectionCallback(instance2));
 

@@ -300,8 +300,7 @@ export class UidFetcher {
         }
 
         if (responseObj.cascade_needed === true && localStorageGrant.isDefinitivelyAllowed()) {
-          // TODO in real multiplexing delegate to only one in follower
-          // TODO maybe this should be handled upon ApiEvent.USER_ID_READY by follower
+          // TODO move it to leader class upon UID ready event ?
           dispatcher.emit(ApiEvent.CASCADE_NEEDED, {
             partnerId: fetchIdData[0].partnerId,
             consentString: consentData.consentString,

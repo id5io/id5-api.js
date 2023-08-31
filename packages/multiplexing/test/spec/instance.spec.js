@@ -14,6 +14,32 @@ import {ConsentManagement} from '../../src/index.js';
 
 chai.use(sinonChai);
 
+/**
+ * @param {ID5Integration.Instance} instance
+ * @param {string} event
+ */
+function eventPromise(instance, event) {
+  return new Promise((resolve, reject) => {
+    instance.on(event, (...args) => resolve(args));
+  });
+}
+
+function instanceJoinedPromise(instance, expectedJoiner) {
+  return new Promise((resolve, reject) => {
+    instance.on(MultiplexingEvent.ID5_INSTANCE_JOINED, joiner => {
+      if (joiner.id === expectedJoiner.properties.id) {
+        resolve(joiner);
+      }
+    });
+  });
+}
+
+function instancesKnowEachOtherPromise(instanceA, instanceB) {
+  const aJoinedB = instanceJoinedPromise(instanceB, instanceA);
+  const bJoinedA = instanceJoinedPromise(instanceA, instanceB);
+  return Promise.all([aJoinedB, bJoinedA]);
+}
+
 describe('Leader election', () => {
 
   it('should elect only instance', function () {
@@ -252,6 +278,58 @@ describe('ID5 instance', function () {
       expect(unregisteredInstance._knownInstances).to.have.length(0);
       done();
     }, electionDelayMsec + 50);
+  });
+
+  it('late joiner should join to party and follow earlier elected leader', async () => {
+    // given
+    let electionDelayMsec = 20;
+
+
+    let instance1 = createInstance('api', '1', {}, {}, metrics);
+    let instance2 = createInstance('api', '2', {}, {}, metrics);
+    let lateJoiner = createInstance('api', '3', {}, {}, metrics);
+    let expectedLeader = instance2.properties;
+
+    let instance1Election = eventPromise(instance1, MultiplexingEvent.ID5_LEADER_ELECTED);
+    let instance2Election = eventPromise(instance2, MultiplexingEvent.ID5_LEADER_ELECTED);
+    let lateJoinerElection = eventPromise(lateJoiner, MultiplexingEvent.ID5_LEADER_ELECTED);
+    // when
+    instance1.init(electionDelayMsec);
+    instance2.init(electionDelayMsec);
+
+
+    return Promise.all([instance1Election, instance2Election])
+      .then(() => {
+
+        expect(instance1.role).is.eq(ID5Integration.Role.FOLLOWER);
+        expect(instance1._leaderInstance).is.deep.eq(expectedLeader);
+        expect(Array.from(instance1._knownInstances.values())).to.deep.eq([instance2.properties]);
+
+        expect(instance2.role).is.eq(ID5Integration.Role.LEADER);
+        expect(instance2._leaderInstance).is.deep.eq(expectedLeader);
+        expect(Array.from(instance2._knownInstances.values())).to.deep.eq([instance1.properties]);
+
+        expect(lateJoiner.role).is.eq(ID5Integration.Role.UNKNOWN);
+        expect(lateJoiner._leaderInstance).is.undefined;
+        expect(Array.from(lateJoiner._knownInstances.values())).to.deep.eq([]);
+        // when
+        let allKnowsEachOther = Promise.all([instancesKnowEachOtherPromise(instance1, lateJoiner), instancesKnowEachOtherPromise(instance2, lateJoiner)]);
+        lateJoiner.init(electionDelayMsec);
+        return Promise.all([lateJoinerElection, allKnowsEachOther]);
+      })
+      .then(() => {
+        expect(instance1.role).is.eq(ID5Integration.Role.FOLLOWER);
+        expect(instance1._leaderInstance).is.deep.eq(expectedLeader);
+        expect(Array.from(instance1._knownInstances.values())).to.deep.eq([instance2.properties, lateJoiner.properties]);
+
+        expect(instance2.role).is.eq(ID5Integration.Role.LEADER);
+        expect(instance2._leaderInstance).is.deep.eq(expectedLeader);
+        expect(Array.from(instance2._knownInstances.values())).to.deep.eq([instance1.properties, lateJoiner.properties]);
+
+        expect(lateJoiner.role).is.eq(ID5Integration.Role.FOLLOWER);
+        expect(lateJoiner._leaderInstance).is.deep.eq(expectedLeader);
+        expect(Array.from(lateJoiner._knownInstances.values())).to.deep.eq([instance1.properties, instance2.properties]);
+      });
   });
 
   it('should call listeners when instance joined to party', function (done) {

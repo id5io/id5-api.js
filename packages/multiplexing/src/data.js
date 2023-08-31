@@ -62,8 +62,6 @@
  * @property {number} [invalidSegmentsCount] - Monitoring server side for excluded invalid segments
  * @property {number} [refreshInSeconds] - Default operating uid refresh time in seconds
  * @property {number} [providedRefreshInSeconds] - Configured uid refresh time in seconds
- * @property {boolean} [canDoCascade]
- * @property {boolean} [isTopWindow]
  */
 
 /**

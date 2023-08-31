@@ -385,6 +385,37 @@ describe('UidFetcher', function () {
         });
       })
     });
+
+    it('should notify if cascade is needed', () => {
+      // given
+      const fetchIdData = {
+        ...DEFAULT_FETCH_DATA,
+        integrationId: crypto.randomUUID()
+      };
+
+      const cascadePromise = dispatcher.when(ApiEvent.CASCADE_NEEDED);
+
+      ajaxStub.restore();
+      ajaxStub = sinon.stub(utils, 'ajax').callsFake(function (url, callbacks, data, options) {
+        callbacks.success(JSON.stringify({
+          ...FETCH_RESPONSE_OBJ,
+          cascade_needed: true
+        }));
+      });
+
+      // when
+      fetcher.getId(dispatcher, [fetchIdData])
+
+      // then
+      return cascadePromise.then(data => {
+        expect(data).to.be.eql({
+          partnerId: fetchIdData.partnerId,
+          consentString: CONSENT_DATA_GDPR_ALLOWED.consentString,
+          gdprApplies: CONSENT_DATA_GDPR_ALLOWED.gdprApplies,
+          userId: FETCH_RESPONSE_OBJ.universal_uid
+        });
+      });
+    });
   });
 
   describe('Response from cache', function () {

@@ -9,9 +9,9 @@
 <script type="text/javascript" src="https://cdn.id5-sync.com/api/integration/id5-api.js"></script>
 <script>
 
-    const  leaderElectionCallback = function (instance) {
+    const leaderElectionCallback = function (instance) {
         return (role, leader) => {
-            window.fetch('https://instances.log/on-election', {
+            window.fetch('https://instances.log/on-late-joiner-election', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'text/plain'
@@ -21,12 +21,12 @@
                     location: window.location.href,
                     id: instance.properties.id,
                     role: role,
-                    leader: leader.id,
-                    knownInstances: Array.from(instance._knownInstances.keys())
+                    leader: leader.id
                 })
             });
         };
     };
+
     const uidCallback = function (status) {
         const instance = status.instance;
         const uid = status.getUserId();
@@ -44,35 +44,36 @@
             })
         });
     };
-
     ID5.debug = true;
 
-    let id5Status = ID5.init(
-        {
-            partnerId: 99,
-            refreshInSeconds: 5,
-            cmpApi: 'static',
-            consentData: {
-                getTCData: {
-                    gdprApplies: true,
-                    tcString: "CPBZjR9PBZjR9AKAZAENBMCsAP_AAH_AAAqIHWtf_X_fb39j-_59_9t0eY1f9_7_v-0zjhfds-8Nyf_X_L8X42M7vF36pq4KuR4Eu3LBIQFlHOHUTUmw6okVrTPsak2Mr7NKJ7LEinMbe2dYGHtfn9VTuZKYr97s___z__-__v__79f_r-3_3_vp9X---_e_V3dgdYASYal8BFmJY4Ek0aVQogQhXEh0AoAKKEYWiawgJXBTsrgI9QQMAEBqAjAiBBiCjFgEAAAAASURASAHggEQBEAgABACpAQgAIkAQWAFgYBAAKAaFgBFAEIEhBkcFRymBARItFBPJWAJRd7GGEIZRYAUCj-iowEAAAAA.cAAAAAAAAAAA",
-                    purpose: {
-                        consents: {
-                            '1': true
+    setTimeout(() => {
+        let id5Status = ID5.init(
+            {
+                partnerId: 99,
+                refreshInSeconds: 5,
+                cmpApi: 'static',
+                consentData: {
+                    getTCData: {
+                        gdprApplies: true,
+                        tcString: "CPBZjR9PBZjR9AKAZAENBMCsAP_AAH_AAAqIHWtf_X_fb39j-_59_9t0eY1f9_7_v-0zjhfds-8Nyf_X_L8X42M7vF36pq4KuR4Eu3LBIQFlHOHUTUmw6okVrTPsak2Mr7NKJ7LEinMbe2dYGHtfn9VTuZKYr97s___z__-__v__79f_r-3_3_vp9X---_e_V3dgdYASYal8BFmJY4Ek0aVQogQhXEh0AoAKKEYWiawgJXBTsrgI9QQMAEBqAjAiBBiCjFgEAAAAASURASAHggEQBEAgABACpAQgAIkAQWAFgYBAAKAaFgBFAEIEhBkcFRymBARItFBPJWAJRd7GGEIZRYAUCj-iowEAAAAA.cAAAAAAAAAAA",
+                        purpose: {
+                            consents: {
+                                '1': true
+                            }
                         }
                     }
-                }
-            },
-            diagnostics: {
-                publishAfterLoadInMsec: -1,
-                publishingSampleRatio: 1,
-                publishOnWindowUnload: true
-            },
-            segments: [{destination: '22', ids: ['abc']}]
-        }
-    ).onAvailable(uidCallback);
-    const instance = id5Status.instance;
-    instance.on('leader-elected', leaderElectionCallback(instance));
+                },
+                diagnostics: {
+                    publishAfterLoadInMsec: -1,
+                    publishingSampleRatio: 1,
+                    publishOnWindowUnload: true
+                },
+                segments: [{destination: '22', ids: ['abc']}]
+            }
+        ).onAvailable(uidCallback);
+        const instance = id5Status.instance;
+        instance.on('leader-elected', leaderElectionCallback(instance));
+    }, 4000);
 </script>
 <iframe id="non-friendly-frame" src="https://non-friendly-stuff.com"></iframe>
 <iframe id="friendly-frame" src="https://my-publisher-website.net/multiple-integrations.html"></iframe>

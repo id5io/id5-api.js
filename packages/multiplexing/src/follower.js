@@ -28,11 +28,7 @@ export class Follower {
   }
 
   updateFetchIdData(newFetchIdData) {
-    const oldData = this._instanceProperties.fetchIdData;
-    this._instanceProperties.fetchIdData = {
-      ...oldData,
-      ...newFetchIdData
-    };
+    Object.assign(this._instanceProperties.fetchIdData, newFetchIdData);
   }
 
   /**
@@ -51,15 +47,14 @@ export class Follower {
   /**
    * @param {CascadePixelCall} cascadeData
    */
-  canDoCascade(cascadeData) {
-    const fetchIdData = this._instanceProperties.fetchIdData;
-    return fetchIdData.canDoCascade === true && cascadeData.partnerId === fetchIdData.partnerId;
+  notifyCascadeNeeded(cascadeData) {
   }
 
   /**
    * @param {CascadePixelCall} cascadeData
    */
-  notifyCascadeNeeded(cascadeData) {
+  canDoCascade(cascadeData) {
+    return this._instanceProperties.canDoCascade === true && cascadeData.partnerId === this._instanceProperties.fetchIdData.partnerId;
   }
 }
 

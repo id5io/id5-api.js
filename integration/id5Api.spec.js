@@ -25,16 +25,16 @@ const ID5_ESP_JS_FILE = path.join(SCRIPT_DIR, '..', 'build', 'dist', 'esp.js');
 
 const DAYS_TO_MILLISECONDS = (60 * 60 * 24 * 1000);
 const MOCK_FETCH_RESPONSE = {
-  'created_at': '2021-05-26T20:08:13Z',
-  'id5_consent': true,
-  'universal_uid': 'ID5-ZHMOQ99ulpk687Fd9xVwzxMsYtkQIJnI-qm3iWdtww!ID5*LTzsUTSrz4juTlKvKoO0brhnjXyuZIGHv44Iqf4TzN0AAGwYr9heNFf7GF6QAMRq',
-  'signature': 'ID5_AQo_xCuSjJ3KsW8cOsbHs1d3AvFDad0XrupUgd5LBsLV0v0pXmrYt0AbE_8WeU_nRC2Bbmif8GPKtcHFpAl4wLo',
-  'cascade_needed': false,
-  'privacy': {
-    'jurisdiction': 'gdpr',
-    'id5_consent': true
+  created_at: '2021-05-26T20:08:13Z',
+  id5_consent: true,
+  universal_uid: 'ID5-ZHMOQ99ulpk687Fd9xVwzxMsYtkQIJnI-qm3iWdtww!ID5*LTzsUTSrz4juTlKvKoO0brhnjXyuZIGHv44Iqf4TzN0AAGwYr9heNFf7GF6QAMRq',
+  signature: 'ID5_AQo_xCuSjJ3KsW8cOsbHs1d3AvFDad0XrupUgd5LBsLV0v0pXmrYt0AbE_8WeU_nRC2Bbmif8GPKtcHFpAl4wLo',
+  cascade_needed: false,
+  privacy: {
+    jurisdiction: 'gdpr',
+    id5_consent: true
   },
-  'ext': {
+  ext: {
     'linkType': 2
   }
 };
@@ -395,15 +395,20 @@ describe('The ID5 API', function () {
 
   describe('with multiplexing enabled', function () {
     let electionNotifyEndpoint;
+    let lateJoinerElectionNotifyEndpoint;
     let diagnosticsEndpoint;
     let fetchEndpoint;
+    let onAvailableEndpoint;
     beforeEach(async () => {
       const INDEX_PAGE_PATH = path.join(SCRIPT_DIR, 'resources', 'multiplexing', 'index.html');
+      const LATE_JOINER_INDEX_PAGE_PATH = path.join(SCRIPT_DIR, 'resources', 'multiplexing', 'index-latejoiner.html');
       const NF_FRAME_PAGE_PATH = path.join(SCRIPT_DIR, 'resources', 'multiplexing', 'single-integration.html');
       const F_FRAME_PAGE_PATH = path.join(SCRIPT_DIR, 'resources', 'multiplexing', 'multiple-integrations.html');
 
       await server.forGet('https://my-publisher-website.net')
         .thenFromFile(200, INDEX_PAGE_PATH);
+      await server.forGet('https://my-publisher-website.net/late.html')
+        .thenFromFile(200, LATE_JOINER_INDEX_PAGE_PATH);
       await server.forGet('https://my-publisher-website.net/multiple-integrations.html')
         .thenFromFile(200, F_FRAME_PAGE_PATH);
       await server.forGet('https://non-friendly-stuff.com')
@@ -417,6 +422,10 @@ describe('The ID5 API', function () {
       diagnosticsEndpoint = await server.forPost('https://diagnostics.id5-sync.com/measurements')
         .thenCallback(jsonWithCorsAllowed('', 202));
       electionNotifyEndpoint = await server.forPost('https://instances.log/on-election')
+        .thenCallback(jsonWithCorsAllowed('', 202));
+      lateJoinerElectionNotifyEndpoint = await server.forPost('https://instances.log/on-late-joiner-election')
+        .thenCallback(jsonWithCorsAllowed('', 202));
+      onAvailableEndpoint = await server.forPost('https://instances.log/on-available')
         .thenCallback(jsonWithCorsAllowed('', 202));
     });
 
@@ -460,6 +469,76 @@ describe('The ID5 API', function () {
             .then(requestBody => {
               expect(requestBody.requests).has.length(4);
               expect(new Set(requestBody.requests.map(rq => rq.requestId))).is.eql(allIds);
+              return expectRequestsAt(onAvailableEndpoint, 4);
+            })
+            .then(onAvailableRequests => {
+              expect(onAvailableRequests).has.length(4);
+              return Promise.all(onAvailableRequests.map(rq => rq.body.getJson()));
+            }).then(onAvailBodies => {
+              const onAvailIds = new Set(onAvailBodies.map(i => i.id));
+              expect(allIds).to.be.eql(onAvailIds);
+              onAvailBodies.forEach(body => {
+                expect(body.uid).to.be.eql(MOCK_FETCH_RESPONSE.universal_uid);
+              });
+            });
+        });
+    });
+
+    it('late joiner joins to party and inherits leader', async () => {
+      const page = await browser.newPage();
+      await page.goto('https://my-publisher-website.net/late.html');
+      // each instance calls endpoint and post details once leader elected
+      return expectRequestsAt(electionNotifyEndpoint, 3)
+        .then((requests) => {
+          expect(requests).has.length(3);
+          return Promise.all(requests.map(rq => rq.body.getJson()));
+        })
+        .then(instances => {
+          const allEarlyJoinersIds = new Set(instances.map(i => i.id));
+          // expect all ids are unique
+          expect(allEarlyJoinersIds).has.length(3);
+
+          // expect all has the same leader
+          const leader = instances[0].leader;
+          // eslint-disable-next-line no-unused-expressions
+          expect(allEarlyJoinersIds).to.be.not.empty;
+          expect(instances[1].leader).to.be.eq(leader);
+          expect(instances[2].leader).to.be.eq(leader);
+
+          expect(new Set(instances.map(i => i.role))).to.be.deep.eq(new Set(['leader', 'follower']));
+          for (const i of instances) {
+            expect(i.role).to.be.eq(i.id === leader ? 'leader' : 'follower');
+            // knows each instance
+            expect(new Set([i.id, ...i.knownInstances])).is.deep.eq(allEarlyJoinersIds);
+          }
+          return expectRequestAt(fetchEndpoint)
+            .then(multiFetchRequests => {
+              expect(multiFetchRequests).has.length(1);
+              return multiFetchRequests[0].body.getJson();
+            })
+            .then(requestBody => {
+              expect(requestBody.requests).has.length(3);
+              expect(new Set(requestBody.requests.map(rq => rq.requestId))).is.eql(allEarlyJoinersIds);
+              return expectRequestAt(lateJoinerElectionNotifyEndpoint)
+                .then(lateJoinerElectionRequests => {
+                  expect(lateJoinerElectionRequests).has.length(1);
+                  return lateJoinerElectionRequests[0].body.getJson();
+                }).then(lateJoinerElectionInfo => {
+                  expect(lateJoinerElectionInfo.leader).to.be.eql(leader); // leader inherited
+                  const lateJoinerId = lateJoinerElectionInfo.id;
+                  // then expect all including late joiner had uid provisioned
+                  return expectRequestsAt(onAvailableEndpoint, 4)
+                    .then(onAvailableRequests => {
+                      expect(onAvailableRequests).has.length(4);
+                      return Promise.all(onAvailableRequests.map(rq => rq.body.getJson()));
+                    }).then(onAvailBodies => {
+                      const onAvailIds = new Set(onAvailBodies.map(i => i.id));
+                      expect(onAvailIds).to.be.eql(allEarlyJoinersIds.add(lateJoinerId));
+                      onAvailBodies.forEach(body => {
+                        expect(body.uid).to.be.eql(MOCK_FETCH_RESPONSE.universal_uid);
+                      });
+                    });
+                });
             });
         });
     });

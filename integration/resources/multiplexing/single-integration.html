@@ -26,6 +26,23 @@
             });
         };
     };
+    const uidCallback = function (status) {
+        const instance = status.instance;
+        const uid = status.getUserId();
+        window.fetch('https://instances.log/on-available', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'text/plain'
+            },
+            mode: 'no-cors',
+            body: JSON.stringify({
+                location: window.location.href,
+                id: instance.properties.id,
+                role: instance.role,
+                uid: uid
+            })
+        });
+    };
 
     ID5.debug = true;
 
@@ -52,7 +69,7 @@
             },
             segments: [{destination: '22', ids: ['abc']}]
         }
-    );
+    ).onAvailable(uidCallback);
     const instance = id5Status.instance;
     instance.on('leader-elected', leaderElectionCallback(instance));
 </script>

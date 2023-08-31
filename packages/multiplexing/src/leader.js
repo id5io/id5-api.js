@@ -5,7 +5,7 @@ import {ProxyMethodCallTarget} from './messaging.js';
 /**
  * @interface
  */
-export class LeaderApi {
+export class Leader {
   updateConsent(consentData) {
   }
 
@@ -30,7 +30,7 @@ export class LeaderApi {
   }
 }
 
-export class Leader extends LeaderApi {
+export class ActualLeader extends Leader {
   /**
    * @type Array<Follower>
    * @private
@@ -96,15 +96,16 @@ export class Leader extends LeaderApi {
    * @private
    */
   _handleCascade(cascade) {
-    const cascadeEligible = this._followers.filter(follower => follower.canDoCascade(cascade));
+    const cascadeEligible =
+      this._followers.filter(follower => follower.canDoCascade(cascade))
+        .sort((followerA, followerB) => {
+          const getDepth = function (f) {
+            return f.getFetchIdData().refererInfo?.stack?.length || Number.MAX_SAFE_INTEGER;
+          };
+          return getDepth(followerA) - getDepth(followerB);
+        });
     if (cascadeEligible.length > 0) {
-      const anyTopWindow = cascadeEligible.find(follower => follower.getFetchIdData().isTopWindow);
-      if (anyTopWindow) {
-        anyTopWindow.notifyCascadeNeeded(cascade);
-      } else {
-        // couldn't find top window get first
-        cascadeEligible[0].notifyCascadeNeeded(cascade);
-      }
+      cascadeEligible[0].notifyCascadeNeeded(cascade);
     } else {
       this._log.error(`Couldn't find cascade eligible follower`);
     }
@@ -131,7 +132,7 @@ export class Leader extends LeaderApi {
     this._getId(false);
   }
 
-  refreshUid(options) {
+  refreshUid(options = {}) {
     if (options.resetConsent === true) {
       this._consentManager.resetConsentData(options.forceAllowLocalStorageGrant === true);
     }
@@ -140,16 +141,18 @@ export class Leader extends LeaderApi {
 
   updateConsent(consentData) {
     // TODO check if changed , maybe re-trigger getId ???
+    // TODO add metric if updated different
     this._consentManager.setConsentData(consentData);
   }
 
   updateFetchIdData(instanceId, fetchIdData) {
     const toUpdate = this._followers.find(instance => instance.getId() === instanceId);
     toUpdate.updateFetchIdData(fetchIdData);
+    // TODO should refreshId ??
   }
 
   addFollower(follower) {
-    this._log.debug('Added follower', follower.getId());
+    this._log.debug('Added follower', follower.getId(), 'last uid', this._lastUid);
     if (this._lastUid) { // late joiner
       // if redy just notify follower
       follower.notifyUidReady(this._lastUid);
@@ -158,7 +161,7 @@ export class Leader extends LeaderApi {
   }
 }
 
-export class LeaderProxy extends LeaderApi {
+export class ProxyLeader extends Leader {
   /**
    * @type {CrossInstanceMessenger}
    * @private
@@ -197,7 +200,7 @@ export class LeaderProxy extends LeaderApi {
   }
 }
 
-export class AwaitedLeader extends LeaderApi {
+export class AwaitedLeader extends Leader {
   _callsQueue = [];
 
   updateConsent(consentData) {
@@ -221,7 +224,7 @@ export class AwaitedLeader extends LeaderApi {
 
   /**
    *
-   * @param {Leader} newLeader
+   * @param {ActualLeader} newLeader
    */
   onLeaderChange(newLeader) {
     for (const methodCall of this._callsQueue) {

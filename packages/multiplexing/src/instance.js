@@ -3,13 +3,12 @@ import {
   DST_BROADCAST,
   HelloMessage,
   ProxyMethodCallHandler,
-  ProxyMethodCallMessage,
   ProxyMethodCallTarget
 } from './messaging.js';
 import * as Utils from './utils.js';
 import {version} from '../generated/version.js';
 import {NamedLogger, NoopLogger} from './logger.js';
-import {AwaitedLeader, Leader, LeaderProxy} from './leader.js';
+import {AwaitedLeader, ActualLeader, ProxyLeader} from './leader.js';
 import {ApiEventsDispatcher, MultiplexingEvent} from './apiEvent.js';
 import {DirectFollower, ProxyFollower} from './follower.js';
 
@@ -50,6 +49,7 @@ export class Properties {
    *@type {boolean} indicates if instance operates in singleton mode or not
    */
   singletonMode;
+  canDoCascade;
 
   constructor(id, version, source, sourceVersion, sourceConfiguration, location) {
     this.id = id;
@@ -151,7 +151,7 @@ export class Instance {
   role;
   _leaderInstance;
   /**
-   * @type LeaderApi
+   * @type Leader
    * @private
    */
   _leader;
@@ -178,17 +178,8 @@ export class Instance {
   _proxyMethodCallHandler;
 
   /**
-   * @typedef {Object} InstanceConfiguration
-   * @property {string} source - source lib where it was initialized from
-   * @property {string} sourceVersion source lib version
-   * @property {string} sourceConfiguration source lib specific configuration
-   * @property {FetchIdData}  fetchIdData instance data required to call Fetch
-   * @property {boolean} singletonMode if true indicates that this instance does not want to participate to multiplexing and acts for itself
-   */
-
-  /**
    * @param {Window} wnd
-   * @param {InstanceConfiguration} configuration
+   * @param {Properties} configuration
    * @param {Id5CommonMetrics} metrics
    * @param {Logger} logger
    * @param {UidFetcher} uidFetcher
@@ -196,16 +187,12 @@ export class Instance {
    */
   constructor(wnd, configuration, metrics, logger = NoopLogger, uidFetcher, consentManager) {
     const id = Utils.generateId();
-    this.properties = {
+    this.properties = Object.assign({
       id: id,
       version: version,
       href: wnd.location?.href,
       domain: wnd.location?.hostname
-    };
-    this.updateConfig({
-      ...configuration,
-      sourceWindow: wnd
-    });
+    }, configuration);
     this.role = Role.UNKNOWN;
     this._metrics = metrics;
     this._instanceCounters = new InstancesCounters(metrics, this.properties);
@@ -217,29 +204,14 @@ export class Instance {
     this._uidFetcher = uidFetcher;
     this._consentManager = consentManager;
     this._follower = new DirectFollower(this.properties, this._dispatcher);
-    this._proxyMethodCallHandler = new ProxyMethodCallHandler();
   }
 
   /**
    *
-   * @param {InstanceConfiguration} configuration
+   * @param {Properties} configuration
    */
   updateConfig(configuration) {
-    if (configuration.source) {
-      this.properties.source = configuration.source;
-    }
-    if (configuration.sourceVersion) {
-      this.properties.sourceVersion = configuration.sourceVersion;
-    }
-    if (configuration.sourceConfiguration) {
-      this.properties.sourceConfiguration = configuration.sourceConfiguration;
-    }
-    if (configuration.fetchIdData) {
-      this.properties.fetchIdData = configuration.fetchIdData;
-    }
-    if (configuration.singletonMode !== undefined) {
-      this.properties.singletonMode = (configuration.singletonMode === true);
-    }
+    Object.assign(this.properties, configuration);
   }
 
   init(electionDelayMSec = 3000) {
@@ -247,24 +219,18 @@ export class Instance {
     let window = instance._window;
     instance._instanceCounters.addInstance(instance.properties);
     this._messenger = new CrossInstanceMessenger(instance.properties.id, window, instance._logger);
-    this._messenger.onMessageReceived((message) => {
-      let deliveryTimeMsec = (performance.now() - message.timestamp) | 0;
-      instance._metrics.instanceMsgDeliveryTimer().record(deliveryTimeMsec);
-      instance._logger.debug('Message received', message);
-      switch (message.type) {
-        case HelloMessage.TYPE:
-          let hello = new HelloMessage();
-          Object.assign(hello, message.payload);
-          instance._handleHelloMessage(hello, message);
-          break;
-        case ProxyMethodCallMessage.TYPE:
-          let pmc = new ProxyMethodCallMessage();
-          Object.assign(pmc, message.payload);
-          instance._handleProxyMethodCall(pmc);
-          break;
-      }
-      instance._doFireEvent(MultiplexingEvent.ID5_MESSAGE_RECEIVED, message);
-    });
+    this._proxyMethodCallHandler = new ProxyMethodCallHandler(this._messenger);
+    this._messenger
+      .onAnyMessage((message) => {
+        let deliveryTimeMsec = (performance.now() - message.timestamp) | 0;
+        instance._metrics.instanceMsgDeliveryTimer().record(deliveryTimeMsec);
+        instance._logger.debug('Message received', message);
+        instance._doFireEvent(MultiplexingEvent.ID5_MESSAGE_RECEIVED, message);
+      })
+      .onMessage(HelloMessage.TYPE, message => {
+        let hello = Object.assign(new HelloMessage(), message.payload);
+        instance._handleHelloMessage(hello, message);
+      });
     if (instance.properties.singletonMode === true) {
       // to provision uid ASAP
       instance._actAsLeader(true);
@@ -279,19 +245,11 @@ export class Instance {
   }
 
   /**
-   * @param {FetchIdData} fetchIdData
-   * @param {Object} [sourceConfiguration] - additional instance specific configuration
-   * @param {boolean} [singletonMode] - allow to register instance in singleton mode
+   * @param {Properties} properties
    */
-  register(fetchIdData, sourceConfiguration = {}, singletonMode = false) {
+  register(properties) {
     try {
-      this.updateConfig({
-        source: fetchIdData.origin,
-        sourceVersion: fetchIdData.originVersion,
-        sourceConfiguration: sourceConfiguration,
-        fetchIdData: fetchIdData,
-        singletonMode: singletonMode
-      });
+      this.updateConfig(properties);
       this.init();
     } catch (e) {
       this._logger.error('Failed to register integration instance', e);
@@ -307,16 +265,7 @@ export class Instance {
    */
   _handleHelloMessage(hello, message) {
     const instance = this;
-    instance._addInstance(hello);
-    if (message.dst === DST_BROADCAST) { // this init message , so respond back to introduce myself
-      instance._messenger.sendResponseMessage(message, new HelloMessage(instance.properties, instance._leaderInstance), HelloMessage.TYPE);
-    }
-  }
-
-  _handleProxyMethodCall(pmc) {
-    const instance = this;
-    instance._logger.info('Received ProxyMethodCall', JSON.stringify(pmc));
-    instance._proxyMethodCallHandler.handle(pmc);
+    instance._joinInstance(hello, message);
   }
 
   deregister() {
@@ -340,13 +289,21 @@ export class Instance {
    * @param {HelloMessage} hello
    * @private
    */
-  _addInstance(hello) {
+  _joinInstance(hello, message) {
     const joiningInstance = hello.instance;
     if (!this._knownInstances.get(joiningInstance.id)) {
       this._knownInstances.set(joiningInstance.id, joiningInstance);
       this._instanceCounters.addInstance(joiningInstance);
+      if (message.dst === DST_BROADCAST) {
+        // this is init message , so respond back to introduce itself
+        // we need to respond ASAP to get this info available for potential follower
+        // to let it know in case this instance is the leader and before joinig instance is added to followers
+        // in case uid is ready, the leader will try to deliver it but follower may not be ready to receive/handle msg
+        this._messenger.sendResponseMessage(message, new HelloMessage(this.properties, this._leaderInstance), HelloMessage.TYPE);
+      }
       this._metrics.instanceJoinDelayTimer().record((performance.now() - this._loadTime) | 0);
-      if (this.role !== Role.UNKNOWN) {
+      if (this.role !== Role.UNKNOWN) { // after election
+        this._logger.info('Late joiner detected', joiningInstance);
         this._metrics.instanceLateJoinCounter(this.properties.id).inc();
         if (this.role === Role.LEADER) {
           if (!joiningInstance.singletonMode) {
@@ -355,10 +312,13 @@ export class Instance {
         }
       } else {
         const providedLeader = hello.leaderInstance;
-        if (providedLeader !== undefined) {
-          if (this._scheduledElection !== undefined) {
+        if (providedLeader !== undefined) { // I'm late joiner
+          this._logger.info('Joined late, elected leader is', providedLeader);
+          if (this._scheduledElection !== undefined) { // if election is still awaiting
+            // cancel election
             clearTimeout(this._scheduledElection);
             this._scheduledElection = undefined;
+            // act as follower
             this._onLeaderElected(providedLeader);
             // TODO what if another instance will provide another leader instance
             // TODO what if it will never get HELLO from leader
@@ -376,7 +336,7 @@ export class Instance {
   }
 
   _actAsLeader(singletonMode = false) {
-    const leader = new Leader(this._uidFetcher, this._consentManager, [this._follower], this._logger);
+    const leader = new ActualLeader(this._uidFetcher, this._consentManager, [this._follower], this._logger);
     if (!singletonMode) {
       Array.from(this._knownInstances.values())
         .filter(instance => !instance.singletonMode) // exclude all instances operating in singleton mode
@@ -388,7 +348,7 @@ export class Instance {
   }
 
   _followRemoteLeader(leaderInstance) {
-    this._assignLeader(new LeaderProxy(this._messenger, leaderInstance.id)); // remote leader
+    this._assignLeader(new ProxyLeader(this._messenger, leaderInstance.id)); // remote leader
     this._proxyMethodCallHandler.register(ProxyMethodCallTarget.FOLLOWER, this._follower);
   }
 
@@ -403,12 +363,8 @@ export class Instance {
   }
 
   updateFetchIdData(fetchIdDataUpdate) {
-    const properties = this.properties;
-    const updatedData = {
-      ...properties.fetchIdData,
-      ...fetchIdDataUpdate
-    };
-    this._leader.updateFetchIdData(properties.id, updatedData);
+    Object.assign(this.properties.fetchIdData, fetchIdDataUpdate);
+    this._leader.updateFetchIdData(this.properties.id, this.properties.fetchIdData);
   }
 
   refreshUid(options) {
@@ -431,12 +387,12 @@ export class Instance {
     const instance = this;
     instance._leaderInstance = leader;
     instance.role = (leader.id === instance.properties.id) ? Role.LEADER : Role.FOLLOWER;
-    instance._logger.debug('Leader elected', leader.id, 'my role', instance.role);
     if (instance.role === Role.LEADER) {
       instance._actAsLeader();
     } else if (instance.role === Role.FOLLOWER) {
       instance._followRemoteLeader(leader);
     }
+    instance._logger.debug('Leader elected', leader.id, 'my role', instance.role);
     instance._doFireEvent(MultiplexingEvent.ID5_LEADER_ELECTED, instance.role, instance._leaderInstance);
   }
 }
