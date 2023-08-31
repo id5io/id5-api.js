@@ -2,18 +2,39 @@ import {ajax, isDefined, isGlobalTrace, isStr, objectEntries} from '../../../lib
 import {ApiEvent} from './apiEvent.js';
 import {startTimeMeasurement} from '@id5io/diagnostics';
 
+/* eslint-disable no-unused-vars */
+import {ConsentManager} from './consent.js';
+import {Store} from './store.js';
+/* eslint-ensable no-unused-vars */
+
 const HOST = 'https://id5-sync.com';
 
 export class UidFetcher {
+  /**
+   * @type {Store}
+   */
+  _store;
+
+  /**
+   * @type {ConsentManager}
+   */
+  _consentManager;
+
+  /**
+   * @type {Extensions}
+   */
+  _extensionsProvider;
+
+  /**
+   * @type {MeterRegistry}
+   */
+  _metrics;
+
   /**
    * @type {Logger}
    * @private
    */
   _log;
-  /**
-   * @type {Store}
-   */
-  _store;
 
   /**
    * @param {ConsentManager} consentManager
