@@ -948,37 +948,6 @@ describe('ID5 JS API', function () {
         ajaxStub.restore();
       });
 
-      describe('No Stored Value', function () {
-
-        it('should not store consent data nor pd on first request, but should after refresh', function (done) {
-          const id5Status = ID5.init({
-            ...defaultInit(),
-            pd: 'pubdata'
-          });
-
-          id5Status.onAvailable(function () {
-            sinon.assert.calledOnce(extensionsStub);
-            sinon.assert.calledOnce(ajaxStub);
-            expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
-            expect(localStorage.getItemWithExpiration(TEST_PD_STORAGE_CONFIG)).to.be.null;
-            expect(localStorage.getItemWithExpiration(TEST_CONSENT_DATA_STORAGE_CONFIG)).to.be.null;
-
-            // reset stubs before next calls
-            extensionsStub = resetExtensionsStub(extensionsStub);
-            ajaxStub.reset()
-
-            ID5.refreshId(id5Status).onRefresh(function () {
-
-              sinon.assert.calledOnce(extensionsStub);
-              sinon.assert.calledOnce(ajaxStub);
-              expect(localStorage.getItemWithExpiration(TEST_PD_STORAGE_CONFIG)).to.be.equal(utils.cyrb53Hash('pubdata'));
-              expect(localStorage.getItemWithExpiration(TEST_CONSENT_DATA_STORAGE_CONFIG)).to.not.be.null;
-              done();
-            });
-          });
-        });
-      });
-
       describe('Stored Value', function () {
         beforeEach(function () {
           localStorage.setItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON);
@@ -1054,89 +1023,6 @@ describe('ID5 JS API', function () {
             expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
             done();
           });
-        });
-      });
-    });
-
-    describe('No Consent on Response', function () {
-      let ajaxStub;
-
-      beforeEach(function () {
-        localStorage.setItemWithExpiration(TEST_PRIVACY_STORAGE_CONFIG, TEST_PRIVACY_ALLOWED);
-
-        ajaxStub = sinon.stub(utils, 'ajax').callsFake(function (url, callbacks, data, options) {
-          callbacks.success(JSON_RESPONSE_NO_ID5_CONSENT);
-        });
-      });
-      afterEach(function () {
-        ajaxStub.restore();
-      });
-
-      it('should not store consent data nor pd on first request, nor after refresh', function (done) {
-        const id5Status = ID5.init({
-          ...defaultInit(),
-          pd: 'pubdata'
-        });
-
-        id5Status.onAvailable(function () {
-          sinon.assert.calledOnce(extensionsStub);
-          sinon.assert.calledOnce(ajaxStub);
-          expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
-          expect(localStorage.getItemWithExpiration(TEST_PD_STORAGE_CONFIG)).to.be.null;
-          expect(localStorage.getItemWithExpiration(TEST_CONSENT_DATA_STORAGE_CONFIG)).to.be.null;
-
-          ID5.refreshId(id5Status).onRefresh(function () {
-
-            sinon.assert.calledOnce(extensionsStub);
-            sinon.assert.calledOnce(ajaxStub);
-            expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
-            expect(localStorage.getItemWithExpiration(TEST_PD_STORAGE_CONFIG)).to.be.null;
-            expect(localStorage.getItemWithExpiration(TEST_CONSENT_DATA_STORAGE_CONFIG)).to.be.null;
-            done();
-          });
-        });
-      });
-
-    });
-
-    describe('No Consent in Stored Privacy Data', function () {
-      let ajaxStub;
-
-      beforeEach(function () {
-        localStorage.setItemWithExpiration(TEST_PRIVACY_STORAGE_CONFIG, TEST_PRIVACY_DISALLOWED);
-
-        ajaxStub = sinon.stub(utils, 'ajax').callsFake(function (url, callbacks, data, options) {
-          callbacks.success(JSON_RESPONSE_NO_ID5_CONSENT);
-        });
-      });
-      afterEach(function () {
-        ajaxStub.restore();
-      });
-
-      it('should not request new id with previous no-consent privacy data', function (done) {
-        const id5Status = ID5.init(defaultInit());
-
-        id5Status.instance.on(ApiEvent.USER_ID_FETCH_CANCELED, _ => {
-          sinon.assert.notCalled(extensionsStub);
-          sinon.assert.notCalled(ajaxStub);
-          expect(id5Status.getUserId()).to.be.undefined;
-          expect(id5Status.getLinkType()).to.be.undefined;
-          expect(localStorage.getItemWithExpiration(TEST_PD_STORAGE_CONFIG)).to.be.null;
-          expect(localStorage.getItemWithExpiration(TEST_CONSENT_DATA_STORAGE_CONFIG)).to.be.null;
-          done();
-        });
-      });
-
-      it('should not use stored response for ID with previous no-consent privacy data', function (done) {
-        localStorage.setItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON);
-
-        const id5Status = ID5.init(defaultInit());
-        id5Status.instance.on(ApiEvent.USER_ID_FETCH_CANCELED, _ => {
-          sinon.assert.notCalled(extensionsStub);
-          sinon.assert.notCalled(ajaxStub);
-          expect(id5Status.getUserId()).to.be.undefined;
-          expect(id5Status.getLinkType()).to.be.undefined;
-          done();
         });
       });
     });

@@ -164,7 +164,6 @@ describe('UidFetcher', function () {
     metrics = new Id5CommonMetrics(origin, originVersion);
     fetcher = new UidFetcher(consentManager, store, metrics, log, extensions);
 
-    consentManager.localStorageGrant.returns(LOCAL_STORAGE_GRANT_ALLOWED_BY_API);
     consentManager.getConsentData.resolves(CONSENT_DATA_GDPR_ALLOWED);
     extensions.gather.resolves(DEFAULT_EXTENSIONS);
   });
@@ -188,6 +187,8 @@ describe('UidFetcher', function () {
           refreshInSeconds: 7200
         });
         store.getStoredDataState.returns(storedDataState)
+        consentManager.localStorageGrant.onCall(0).returns(new LocalStorageGrant(true, GRANT_TYPE.PROVISIONAL, API_TYPE.NONE));
+        consentManager.localStorageGrant.returns(LOCAL_STORAGE_GRANT_ALLOWED_BY_API);
       });
 
       [
@@ -368,7 +369,13 @@ describe('UidFetcher', function () {
         });
       });
     });
+
     describe('when previous response is in cache', function () {
+      beforeEach(function() {
+        consentManager.localStorageGrant.onCall(0).returns(new LocalStorageGrant(true, GRANT_TYPE.JURISDICTION, API_TYPE.NONE));
+        consentManager.localStorageGrant.returns(LOCAL_STORAGE_GRANT_ALLOWED_BY_API);
+      });
+
       it(`should provide from cache and don't refresh when all freshness conditions are met`, function () {
         // given
         const stateStub = sinon.createStubInstance(StoredDataState);
@@ -586,18 +593,17 @@ describe('UidFetcher', function () {
           refreshInSeconds: 7200
         });
         store.getStoredDataState.returns(storedDataState)
-      });
-
-      it('does not store the response in storage and rather clear it but still stores the privacy object', function() {
-        const fetchData = [{
-          ...DEFAULT_FETCH_DATA,
-          integrationId: crypto.randomUUID(),
-        }];
-
         consentManager.localStorageGrant.reset();
         consentManager.localStorageGrant.onCall(0).returns(new LocalStorageGrant(true, GRANT_TYPE.PROVISIONAL, API_TYPE.NONE));
         consentManager.localStorageGrant.onCall(1).returns(new LocalStorageGrant(true, GRANT_TYPE.CONSENT_API, API_TYPE.TCF_V2));
         consentManager.localStorageGrant.onCall(2).returns(new LocalStorageGrant(false, GRANT_TYPE.ID5_CONSENT, API_TYPE.TCF_V2));
+      });
+
+      it('should not store response in storage but rather clear it but still stores the privacy object', function() {
+        const fetchData = [{
+          ...DEFAULT_FETCH_DATA,
+          integrationId: crypto.randomUUID(),
+        }];
 
         // when
         const userIdPromise = dispatcher.when(ApiEvent.USER_ID_READY);
@@ -613,6 +619,38 @@ describe('UidFetcher', function () {
           });
           expect(store.storeResponse).to.not.have.been.called;
           expect(store.clearAll).to.have.been.called;
+        });
+      });
+    });
+
+    describe('when explicit denial of consent is saved in cache', function() {
+      let storedDataState;
+
+      beforeEach(function () {
+        storedDataState = Object.assign(new StoredDataState(), {
+          nb: {},
+          refreshInSeconds: 7200
+        });
+        store.getStoredDataState.returns(storedDataState)
+        consentManager.localStorageGrant.returns(new LocalStorageGrant(false, GRANT_TYPE.JURISDICTION, API_TYPE.NONE));
+      });
+
+      it('should neither make a request to the backend nor read previous response from local storage nor store request state', function() {
+        const fetchData = [{
+          ...DEFAULT_FETCH_DATA,
+          integrationId: crypto.randomUUID(),
+        }];
+
+        // when
+        const userIdPromise = dispatcher.when(ApiEvent.USER_ID_FETCH_CANCELED);
+        fetcher.getId(dispatcher, fetchData);
+
+        // then
+        return userIdPromise.then(data => {
+          expect(extensions.gather).to.not.have.been.called;
+          expect(ajaxStub).to.not.have.been.called;
+          expect(store.getStoredDataState).to.not.have.been.called;
+          expect(store.storeRequestData).to.not.have.been.called;
         });
       });
     });
