@@ -57,12 +57,26 @@ export class Id5MessageFactory {
 
 export class HelloMessage {
   static TYPE = 'HelloMessage';
+  /**
+   * @type {Properties}
+   */
   instance;
-  leaderInstance;
+  /**
+   * @type {InstanceState}
+   */
+  instanceState;
+  isResponse;
 
-  constructor(instance, leaderInstance = undefined) {
+  /**
+   *
+   * @param {boolean} isResponse
+   * @param {Properties} instance
+   * @param {Object} instanceState
+   */
+  constructor(instance, isResponse = false, instanceState = undefined) {
     this.instance = instance;
-    this.leaderInstance = leaderInstance;
+    this.instanceState = instanceState;
+    this.isResponse = isResponse;
   }
 }
 
@@ -169,7 +183,6 @@ export class CrossInstanceMessenger {
     messenger._abortController = typeof AbortController !== 'undefined' ? new AbortController() : undefined;
     const abortSignal = messenger._abortController?.signal;
     const handleMessage = (event) => {
-      messenger._log.info('Odebrane', event);
       let msg = event.data;
       if (event.data !== undefined && event.data._isId5Message) { // is ID5 message
         if (event.data.src === messenger._id) { // is loopback message
@@ -185,7 +198,7 @@ export class CrossInstanceMessenger {
             let handlers = messenger._handlers[type];
             if (handlers) {
               // TODO add window which msg was received from - response will not have to broadcast
-              handlers.forEach(handler => handler(msg));
+              handlers.forEach(handler => handler(msg, event.source));
             }
           });
         } catch (e) {

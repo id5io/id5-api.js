@@ -315,7 +315,7 @@ describe('The ID5 API', function () {
           expect(onlyRequest.metadata.sampling).is.eq(1);
           expect(onlyRequest.metadata.trigger).is.eq('fixed-time');
           expect(onlyRequest.metadata.fixed_time_msec).is.eq(3100);
-          expect(onlyRequest.measurements.length).is.eq(11);
+          expect(onlyRequest.measurements.length).is.gte(12);
           const commonTags = {version: version, partner: '99', source: 'api', tml: 'https://my-publisher-website.net/'};
           verifyContainsMeasurementWithTags(onlyRequest.measurements, 'id5.api.instance.load.delay', 'TIMER', commonTags);
           verifyContainsMeasurementWithTags(onlyRequest.measurements, 'id5.api.invocation.count', 'SUMMARY', commonTags);
@@ -338,6 +338,7 @@ describe('The ID5 API', function () {
             ...commonTags,
             cachedResponseUsed: false
           });
+          verifyContainsMeasurement(onlyRequest.measurements, 'id5.api.instance.partySize', 'SUMMARY');
         });
     });
 
@@ -366,7 +367,7 @@ describe('The ID5 API', function () {
           expect(onlyRequest.metadata).is.not.eq(undefined);
           expect(onlyRequest.metadata.sampling).is.eq(1);
           expect(onlyRequest.metadata.trigger).is.eq('beforeunload');
-          expect(onlyRequest.measurements.length).is.eq(11);
+          expect(onlyRequest.measurements.length).is.gte(12);
           const commonTags = {version: version, partner: '99', source: 'api', tml: 'https://my-publisher-website.net/'};
           verifyContainsMeasurementWithTags(onlyRequest.measurements, 'id5.api.instance.load.delay', 'TIMER', commonTags);
           verifyContainsMeasurementWithTags(onlyRequest.measurements, 'id5.api.invocation.count', 'SUMMARY', commonTags);
@@ -389,6 +390,7 @@ describe('The ID5 API', function () {
             ...commonTags,
             cachedResponseUsed: false
           });
+          verifyContainsMeasurement(onlyRequest.measurements, 'id5.api.instance.partySize', 'SUMMARY');
         });
     });
   });
@@ -402,6 +404,7 @@ describe('The ID5 API', function () {
     beforeEach(async () => {
       const INDEX_PAGE_PATH = path.join(SCRIPT_DIR, 'resources', 'multiplexing', 'index.html');
       const LATE_JOINER_INDEX_PAGE_PATH = path.join(SCRIPT_DIR, 'resources', 'multiplexing', 'index-latejoiner.html');
+      const SINGLETON_INDEX_PAGE = path.join(SCRIPT_DIR, 'resources', 'multiplexing', 'index-singleton.html');
       const NF_FRAME_PAGE_PATH = path.join(SCRIPT_DIR, 'resources', 'multiplexing', 'single-integration.html');
       const F_FRAME_PAGE_PATH = path.join(SCRIPT_DIR, 'resources', 'multiplexing', 'multiple-integrations.html');
 
@@ -409,6 +412,8 @@ describe('The ID5 API', function () {
         .thenFromFile(200, INDEX_PAGE_PATH);
       await server.forGet('https://my-publisher-website.net/late.html')
         .thenFromFile(200, LATE_JOINER_INDEX_PAGE_PATH);
+      await server.forGet('https://my-publisher-website.net/singleton.html')
+        .thenFromFile(200, SINGLETON_INDEX_PAGE);
       await server.forGet('https://my-publisher-website.net/multiple-integrations.html')
         .thenFromFile(200, F_FRAME_PAGE_PATH);
       await server.forGet('https://non-friendly-stuff.com')
@@ -461,14 +466,8 @@ describe('The ID5 API', function () {
             // knows each instance
             expect(new Set([i.id, ...i.knownInstances])).is.deep.eq(allIds);
           }
-          return expectRequestAt(fetchEndpoint)
-            .then(multiFetchRequests => {
-              expect(multiFetchRequests).has.length(1);
-              return multiFetchRequests[0].body.getJson();
-            })
-            .then(requestBody => {
-              expect(requestBody.requests).has.length(4);
-              expect(new Set(requestBody.requests.map(rq => rq.requestId))).is.eql(allIds);
+          return expectMultiFetchRequests(fetchEndpoint, [allIds])
+            .then(() => {
               return expectRequestsAt(onAvailableEndpoint, 4);
             })
             .then(onAvailableRequests => {
@@ -480,6 +479,68 @@ describe('The ID5 API', function () {
               onAvailBodies.forEach(body => {
                 expect(body.uid).to.be.eql(MOCK_FETCH_RESPONSE.universal_uid);
               });
+            });
+        });
+    });
+
+    it('instance operating in singleton mode should work on their own and not be joined to party', async () => {
+      const singletonElectionNotifyEndpoint = await server.forPost('https://instances.log/on-election/singleton')
+        .thenCallback(jsonWithCorsAllowed('', 202));
+      const page = await browser.newPage();
+      await page.goto('https://my-publisher-website.net/singleton.html');
+      // each instance calls endpoint and post details once leader elected
+
+      return expectRequestAt(singletonElectionNotifyEndpoint)
+        .then(singletoElectionRequests => {
+          expect(singletoElectionRequests).has.length(1);
+          return singletoElectionRequests[0].body.getJson();
+        }).then(singletonElectionInfo => {
+          const singletonId = singletonElectionInfo.id;
+          expect(singletonElectionInfo.leader).to.be.eql(singletonId);
+          return expectRequestsAt(electionNotifyEndpoint, 3)
+            .then((requests) => {
+              expect(requests).has.length(3);
+              return Promise.all(requests.map(rq => rq.body.getJson()));
+            })
+            .then(instances => {
+              const allMutiplexingPartyIds = new Set(instances.map(i => i.id));
+              // expect all ids are unique
+              expect(allMutiplexingPartyIds).has.length(3);
+
+              // expect all has the same leader
+              let leader = instances[0].leader;
+              // eslint-disable-next-line no-unused-expressions
+              expect(allMutiplexingPartyIds).to.be.not.empty;
+              expect(instances[1].leader).to.be.eq(leader);
+              expect(instances[2].leader).to.be.eq(leader);
+
+              expect(new Set(instances.map(i => i.role))).to.be.deep.eq(new Set(['leader', 'follower']));
+              const allInstancesOnPageIds = new Set(allMutiplexingPartyIds).add(singletonId);
+              for (const i of instances) {
+                expect(i.role).to.be.eq(i.id === leader ? 'leader' : 'follower');
+                // knows each instance including singleton
+                expect(new Set([i.id, ...i.knownInstances])).is.deep.eq(allInstancesOnPageIds);
+              }
+              const expectedMxRequestsParties = [
+                // 1st request with  only singleton
+                new Set([singletonId]),
+                // 2nd multiFetch request because singleton was w/o segments, multiplex instances have segments so trigger mf and not from cache
+                // 2nd request with mxPartyIds w/o singleton instance
+                allMutiplexingPartyIds
+              ];
+              return expectMultiFetchRequests(fetchEndpoint, expectedMxRequestsParties)
+                .then(() => expectRequestsAt(onAvailableEndpoint, 4))
+                .then(onAvailableRequests => {
+                  expect(onAvailableRequests).has.length(4); // all instances on the page have UID provisioned
+                  return Promise.all(onAvailableRequests.map(rq => rq.body.getJson()));
+                })
+                .then(onAvailBodies => {
+                  const onAvailIds = new Set(onAvailBodies.map(i => i.id));
+                  expect(onAvailIds).to.be.eql(allInstancesOnPageIds);
+                  onAvailBodies.forEach(body => {
+                    expect(body.uid).to.be.eql(MOCK_FETCH_RESPONSE.universal_uid);
+                  });
+                });
             });
         });
     });
@@ -511,14 +572,8 @@ describe('The ID5 API', function () {
             // knows each instance
             expect(new Set([i.id, ...i.knownInstances])).is.deep.eq(allEarlyJoinersIds);
           }
-          return expectRequestAt(fetchEndpoint)
-            .then(multiFetchRequests => {
-              expect(multiFetchRequests).has.length(1);
-              return multiFetchRequests[0].body.getJson();
-            })
-            .then(requestBody => {
-              expect(requestBody.requests).has.length(3);
-              expect(new Set(requestBody.requests.map(rq => rq.requestId))).is.eql(allEarlyJoinersIds);
+          return expectMultiFetchRequests(fetchEndpoint, [allEarlyJoinersIds])
+            .then(() => {
               return expectRequestAt(lateJoinerElectionNotifyEndpoint)
                 .then(lateJoinerElectionRequests => {
                   expect(lateJoinerElectionRequests).has.length(1);
@@ -565,10 +620,26 @@ describe('The ID5 API', function () {
             verifyContainsMeasurementWithValues(request.measurements, 'id5.api.instance.partners.count', 'COUNTER', [2]);
             verifyContainsMeasurement(request.measurements, 'id5.api.instance.message.delivery.time', 'TIMER');
             verifyContainsMeasurement(request.measurements, 'id5.api.instance.join.delay.time', 'TIMER');
+            verifyContainsMeasurement(request.measurements, 'id5.api.instance.lastJoin.delay', 'TIMER');
           }
         });
     });
   });
+
+  function expectMultiFetchRequests(endpoint, expectedParties) {
+    let expectedNumberOfrequests = expectedParties.length;
+    return expectRequestsAt(endpoint, expectedNumberOfrequests)
+      .then(multiFetchRequests => {
+        expect(multiFetchRequests).has.length(expectedNumberOfrequests);
+        return Promise.all(multiFetchRequests.map(rq => rq.body.getJson()));
+      })
+      .then(requestBodies => {
+        expect(requestBodies).has.length(expectedNumberOfrequests);
+        for (let i = 0; i < requestBodies.length; i++) {
+          expect(new Set(requestBodies[i].requests.map(rq => rq.requestId))).is.eql(expectedParties[i]);
+        }
+      });
+  }
 
   function verifyContainsMeasurementWithTags(measurements, name, type, tags = {}) {
     let measurement = verifyContainsMeasurement(measurements, name, type);

@@ -56,10 +56,12 @@ export class Timer extends Meter {
 
   record(value) {
     try {
-      this.values.push({
-        value: value,
-        timestamp: Date.now()
-      });
+      if (!isNaN(value)) {
+        this.values.push({
+          value: value,
+          timestamp: Date.now()
+        });
+      }
     } catch (e) {
     }
   }
@@ -101,6 +103,11 @@ export class Counter extends Meter {
     super(name, tags, MeterType.COUNTER);
   }
 
+  /**
+   *
+   * @param value
+   * @return current counter value
+   */
   inc(value = 1.0) {
     try {
       if (this.values.length === 0) {
@@ -109,6 +116,7 @@ export class Counter extends Meter {
         this.values[0].value += value;
         this.values[0].timestamp = Date.now();
       }
+      return this.values[0].value;
     } catch (e) {
     }
   }

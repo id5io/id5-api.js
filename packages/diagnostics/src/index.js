@@ -30,15 +30,15 @@ export class Id5CommonMetrics extends MeterRegistry {
       version: version,
       ...partnerTag(partnerId),
       ...tags
-    });
+    }, 'id5.api');
   }
 
   loadDelayTimer(tags = {}) {
-    return this.timer('id5.api.instance.load.delay', tags);
+    return this.timer('instance.load.delay', tags);
   }
 
   fetchCallTimer(status, tags = {}) {
-    return this.timer('id5.api.fetch.call.time', {
+    return this.timer('fetch.call.time', {
       status: status,
       ...tags
     });
@@ -53,15 +53,15 @@ export class Id5CommonMetrics extends MeterRegistry {
   }
 
   extensionsCallTimer(tags = {}) {
-    return this.timer('id5.api.extensions.call.time', tags);
+    return this.timer('extensions.call.time', tags);
   }
 
   consentRequestTimer(requestType, tags = {}) {
-    return this.timer('id5.api.consent.request.time', {requestType: requestType, ...tags});
+    return this.timer('consent.request.time', {requestType: requestType, ...tags});
   }
 
   invocationCountSummary(tags = {}) {
-    return this.summary('id5.api.invocation.count', tags);
+    return this.summary('invocation.count', tags);
   }
 
   /**
@@ -71,7 +71,7 @@ export class Id5CommonMetrics extends MeterRegistry {
    * @return {Counter|Meter}
    */
   instanceCounter(instanceId, tags = {}) {
-    return this.counter('id5.api.instance.count', {instanceId: instanceId, ...tags});
+    return this.counter('instance.count', {instanceId: instanceId, ...tags});
   }
 
   /**
@@ -81,7 +81,7 @@ export class Id5CommonMetrics extends MeterRegistry {
    * @return {Counter|Meter}
    */
   instanceUniqueDomainsCounter(instanceId, tags = {}) {
-    return this.counter('id5.api.instance.domains.count', {instanceId: instanceId, ...tags});
+    return this.counter('instance.domains.count', {instanceId: instanceId, ...tags});
   }
 
   /**
@@ -91,7 +91,7 @@ export class Id5CommonMetrics extends MeterRegistry {
    * @return {Counter|Meter}
    */
   instanceUniqWindowsCounter(instanceId, tags = {}) {
-    return this.counter('id5.api.instance.windows.count', {instanceId: instanceId, ...tags});
+    return this.counter('instance.windows.count', {instanceId: instanceId, ...tags});
   }
 
   /**
@@ -101,23 +101,31 @@ export class Id5CommonMetrics extends MeterRegistry {
    * @return {Counter|Meter}
    */
   instanceUniqPartnersCounter(instanceId, tags = {}) {
-    return this.counter('id5.api.instance.partners.count', {instanceId: instanceId, ...tags});
+    return this.counter('instance.partners.count', {instanceId: instanceId, ...tags});
   }
 
   instanceJoinDelayTimer(tags = {}) {
-    return this.timer('id5.api.instance.join.delay.time', tags);
+    return this.timer('instance.join.delay.time', tags);
   }
 
   instanceLateJoinCounter(instanceId, tags = {}) {
-    return this.counter('id5.api.instance.lateJoin.count', {instanceId: instanceId, ...tags});
+    return this.counter('instance.lateJoin.count', {instanceId: instanceId, ...tags});
+  }
+
+  instanceLateJoinDelayTimer(tags = {}) {
+    return this.timer('instance.lateJoin.delay', {...tags});
+  }
+
+  instanceLastJoinDelayTimer(tags = {}) {
+    return this.timer('instance.lastJoin.delay', {...tags});
   }
 
   instanceMsgDeliveryTimer(tags = {}) {
-    return this.timer('id5.api.instance.message.delivery.time', tags);
+    return this.timer('instance.message.delivery.time', tags);
   }
 
   userIdProvisioningDelayTimer(fromCache, tags = {}) {
-    return this.timer('id5.api.userid.provisioning.delay', {
+    return this.timer('userid.provisioning.delay', {
       cachedResponseUsed: fromCache,
       ...tags
     });

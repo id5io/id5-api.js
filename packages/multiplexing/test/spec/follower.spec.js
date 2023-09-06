@@ -4,7 +4,7 @@ import sinon from 'sinon';
 import sinonChai from 'sinon-chai';
 import {CrossInstanceMessenger, ProxyMethodCallTarget} from '../../src/messaging.js';
 import {DirectFollower, Follower, ProxyFollower} from '../../src/follower.js';
-import {Properties} from '../../src/instance.js';
+import {DiscoveredInstance, Properties} from '../../src/instance.js';
 import {ApiEvent, ApiEventsDispatcher} from '../../src/apiEvent.js';
 
 chai.use(sinonChai);
@@ -22,7 +22,7 @@ describe('ProxyFollower', function () {
 
   beforeEach(function () {
     messenger = sinon.createStubInstance(CrossInstanceMessenger);
-    proxyFollower = new ProxyFollower(properties, messenger);
+    proxyFollower = new ProxyFollower(new DiscoveredInstance(properties, window), messenger);
   });
 
   it('should sent message to call notifyUidReady', function () {

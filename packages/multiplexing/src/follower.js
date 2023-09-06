@@ -91,11 +91,11 @@ export class ProxyFollower extends Follower {
   _messenger;
 
   /**
-   * @param {Properties} properties - leader instance properties
+   * @param {DiscoveredInstance} knownInstance - leader instance properties
    * @param {CrossInstanceMessenger} messenger
    */
-  constructor(properties, messenger) {
-    super(properties);
+  constructor(knownInstance, messenger) {
+    super(knownInstance.properties);
     this._messenger = messenger;
   }
 

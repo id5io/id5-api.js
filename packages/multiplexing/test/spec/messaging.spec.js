@@ -259,7 +259,7 @@ describe('CrossInstanceMessenger', function () {
     // given
     let messengerA = new CrossInstanceMessenger('a', window);
     let messengerB = new CrossInstanceMessenger('b', window);
-    let hello = new HelloMessage({id: 'a'}, {id: 'leader'});
+    let hello = new HelloMessage({id: 'a'}, true, {id: 'leader'});
 
     let messageReceived = new Promise((resolve, reject) => {
       messengerB.onMessage(HelloMessage.TYPE, msg => resolve(msg))
@@ -280,7 +280,7 @@ describe('CrossInstanceMessenger', function () {
     // given
     let messengerA = new CrossInstanceMessenger('a', window);
     let messengerB = new CrossInstanceMessenger('b', window);
-    let hello = new HelloMessage({id: 'a'}, {id: 'leader'});
+    let hello = new HelloMessage({id: 'a'}, true, {id: 'leader'});
 
     let onAnyReceived = new Promise((resolve, reject) => {
       messengerB.onAnyMessage(msg => resolve(msg))
@@ -305,7 +305,7 @@ describe('CrossInstanceMessenger', function () {
     // given
     let messengerA = new CrossInstanceMessenger('a', window);
     let messengerB = new CrossInstanceMessenger('b', window);
-    let hello = new HelloMessage({id: 'a'}, {id: 'leader'});
+    let hello = new HelloMessage({id: 'a'}, true, {id: 'leader'});
 
     let handlerACalled = new Promise((resolve, reject) => {
       messengerB.onMessage(HelloMessage.TYPE, msg => resolve(msg));
@@ -330,7 +330,7 @@ describe('CrossInstanceMessenger', function () {
     // given
     let messengerA = new CrossInstanceMessenger('a', window);
     let messengerB = new CrossInstanceMessenger('b', window);
-    let hello = new HelloMessage({id: 'a'}, {id: 'leader'});
+    let hello = new HelloMessage({id: 'a'}, true, {id: 'leader'});
 
     let handlerACalled = new Promise((resolve, reject) => {
       messengerB.onAnyMessage(msg => resolve(msg));

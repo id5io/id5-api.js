@@ -19,7 +19,7 @@ export class Leader {
   refreshUid(refreshOptions) {
   }
 
-  onLeaderChange(newLeader) {
+  transferOfPower(newLeader) {
   }
 
   /**
@@ -224,9 +224,9 @@ export class AwaitedLeader extends Leader {
 
   /**
    *
-   * @param {ActualLeader} newLeader
+   * @param {Leader} newLeader
    */
-  onLeaderChange(newLeader) {
+  transferOfPower(newLeader) {
     for (const methodCall of this._callsQueue) {
       newLeader[methodCall.name](...methodCall.args);
     }

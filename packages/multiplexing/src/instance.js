@@ -8,14 +8,62 @@ import {
 import * as Utils from './utils.js';
 import {version} from '../generated/version.js';
 import {NamedLogger, NoopLogger} from './logger.js';
-import {AwaitedLeader, ActualLeader, ProxyLeader} from './leader.js';
+import {ActualLeader, AwaitedLeader, ProxyLeader} from './leader.js';
 import {ApiEventsDispatcher, MultiplexingEvent} from './apiEvent.js';
 import {DirectFollower, ProxyFollower} from './follower.js';
 
+/**
+ * @typedef {string} MultiplexingRole
+ */
+
+/**
+ * @typedef {string} ElectionState
+ */
+
+/**
+ * @typedef {string} OperatingMode
+ */
+
+/**
+ * @typedef {Object} MultiplexingState
+ * @property {MultiplexingRole} role
+ * @property {ElectionState} electionState
+ * @property {Properties} leader
+ */
+
+/**
+ * @typedef {Object} InstanceState
+ * @property {OperatingMode} operatingMode
+ * @property {MultiplexingState} [multiplexing]
+ * @property {Array<Properties>} [knownInstances]
+ */
+
+/**
+ * @enum {MultiplexingRole}
+ */
 export const Role = Object.freeze({
   UNKNOWN: 'unknown',
   LEADER: 'leader',
   FOLLOWER: 'follower'
+});
+
+/**
+ * @enum {OperatingMode}
+ */
+export const OperatingMode = Object.freeze({
+  MULTIPLEXING: 'multiplexing',
+  SINGLETON: 'singleton'
+});
+
+/**
+ * @enum {ElectionState}
+ */
+export const ElectionState = Object.freeze({
+  AWAITING_SCHEDULE: 'awaiting_schedule',
+  SKIPPED: 'skipped',
+  SCHEDULED: 'scheduled',
+  COMPLETED: 'completed',
+  CANCELED: 'canceled'
 });
 
 export class Properties {
@@ -59,6 +107,58 @@ export class Properties {
     this.sourceConfiguration = sourceConfiguration;
     this.href = location?.href;
     this.domain = location?.hostname;
+  }
+}
+
+export class DiscoveredInstance {
+  /**
+   * @type {Properties}
+   */
+  properties;
+  /**
+   * @type {InstanceState}
+   */
+  knownState;
+  /**
+   * @type {DOMHighResTimeStamp}
+   * @private
+   */
+  _joinTime;
+  /**
+   * @type WindowProxy
+   * @private
+   */
+  _window;
+
+  /**
+   *
+   * @param {Properties} properties
+   * @param {InstanceState} state
+   * @param {Window} wnd
+   */
+  constructor(properties, state, wnd) {
+    this.properties = properties;
+    this.knownState = state;
+    this._window = wnd;
+    this._joinTime = performance.now();
+  }
+
+  getId() {
+    return this.properties.id;
+  }
+
+  isMultiplexingPartyAllowed() {
+    // we want to exclude all instances working in SINGLETON mode
+    // we want to exclude old multiplexing instances that only introduces themselves but will never play leader/follower role
+    // such instances will never provide state (they send old HelloMessage version)
+    return this.knownState?.operatingMode === OperatingMode.MULTIPLEXING;
+  }
+
+  getInstanceMultiplexingLeader() {
+    if (this.knownState?.operatingMode !== OperatingMode.MULTIPLEXING) {
+      return undefined;
+    }
+    return this.knownState?.multiplexing?.leader;
   }
 }
 
@@ -132,6 +232,65 @@ class InstancesCounters {
   }
 }
 
+/**
+ *
+ * @param {Instance} instance
+ */
+function collectPartySizeMetrics(instance) {
+  const metrics = instance._metrics;
+  [100, 200, 500, 1000, 2000, 3000, 5000].forEach(measurementPoint => {
+    setTimeout(() => {
+      const partySize = (instance._knownInstances?.size || 0) + 1;
+      metrics.summary('instance.partySize', {
+        after: measurementPoint,
+        electionState: instance._election._state
+      }).record(partySize);
+    }, measurementPoint);
+  });
+}
+
+class Election {
+  _scheduleTime;
+  _closeTime;
+  _timeoutId;
+  _state = ElectionState.AWAITING_SCHEDULE;
+  _instance;
+
+  constructor(instance) {
+    this._instance = instance;
+  }
+
+  schedule(delayMs) {
+    const election = this;
+    this._timeoutId = setTimeout(() => {
+      if (election._timeoutId) {
+        election._timeoutId = undefined;
+        election._instance._doElection();
+        election._closeWithState(ElectionState.COMPLETED);
+      }
+    }, delayMs);
+    election._state = ElectionState.SCHEDULED;
+    election._scheduleTime = performance.now();
+  }
+
+  skip() {
+    this._closeWithState(ElectionState.SKIPPED);
+  }
+
+  cancel() {
+    if (this._timeoutId) {
+      clearTimeout(this._timeoutId);
+      this._timeoutId = undefined;
+    }
+    this._closeWithState(ElectionState.CANCELED);
+  }
+
+  _closeWithState(state) {
+    this._state = state;
+    this._closeTime = performance.now();
+  }
+}
+
 export class Instance {
   /**
    * @type {Properties}
@@ -144,10 +303,18 @@ export class Instance {
   _messenger;
   /**
    *
-   * @type {Map<string, Properties>}
+   * @type {Map<string, DiscoveredInstance>}
    * @private
    */
   _knownInstances = new Map();
+  /**
+   * @type DiscoveredInstance
+   * @private
+   */
+  _lastJoinedInstance;
+  /**
+   * @type MultiplexingRole
+   */
   role;
   _leaderInstance;
   /**
@@ -155,6 +322,10 @@ export class Instance {
    * @private
    */
   _leader;
+  /**
+   * @type OperatingMode
+   */
+  _mode;
   /**
    * @type {Id5CommonMetrics}
    * @private
@@ -176,6 +347,12 @@ export class Instance {
    * @private
    */
   _proxyMethodCallHandler;
+  /**
+   * @type {Election}
+   * @private
+   */
+  _election;
+  _window;
 
   /**
    * @param {Window} wnd
@@ -204,6 +381,7 @@ export class Instance {
     this._uidFetcher = uidFetcher;
     this._consentManager = consentManager;
     this._follower = new DirectFollower(this.properties, this._dispatcher);
+    this._election = new Election(this);
   }
 
   /**
@@ -217,9 +395,19 @@ export class Instance {
   init(electionDelayMSec = 3000) {
     let instance = this;
     let window = instance._window;
+    instance._mode = instance.properties.singletonMode === true ? OperatingMode.SINGLETON : OperatingMode.MULTIPLEXING;
     instance._instanceCounters.addInstance(instance.properties);
+    collectPartySizeMetrics(instance);
     this._messenger = new CrossInstanceMessenger(instance.properties.id, window, instance._logger);
     this._proxyMethodCallHandler = new ProxyMethodCallHandler(this._messenger);
+    // initially it is AwaitedLeader, so it will buffer all remote calls send from followers before this instance elect itself as a leader
+    // TODO FIXME when leader elected we may want to ignore messages sent from leader we were not elected
+    this._proxyMethodCallHandler.register(ProxyMethodCallTarget.LEADER, instance._leader);
+    // TODO temporary  FIX. Now we do this because we may potentially miss remote calls from leader and miss UID provisioned (very likely for remote late joiners)
+    //  it may happen when leader added us as follower and had UID ready so it immediately calls follower , but this instance may not yet know it is a follower and may not know the leader yet
+    //  in future we should add some buffer and in case we act as a leader we could ignore all buffered remote calls from leader we didn't elected
+    //  having this way, we may receive commands from remote leader then if elect our self as an leader we will execute leader role and have UID provisioned again (maybe it is expected ? )
+    this._proxyMethodCallHandler.register(ProxyMethodCallTarget.FOLLOWER, instance._follower);
     this._messenger
       .onAnyMessage((message) => {
         let deliveryTimeMsec = (performance.now() - message.timestamp) | 0;
@@ -227,17 +415,22 @@ export class Instance {
         instance._logger.debug('Message received', message);
         instance._doFireEvent(MultiplexingEvent.ID5_MESSAGE_RECEIVED, message);
       })
-      .onMessage(HelloMessage.TYPE, message => {
+      .onMessage(HelloMessage.TYPE, (message, source) => {
         let hello = Object.assign(new HelloMessage(), message.payload);
-        instance._handleHelloMessage(hello, message);
+        if (hello.isResponse === undefined) {
+          // patch messages received from older version instances
+          hello.isResponse = (message.dst !== DST_BROADCAST);
+        }
+        instance._handleHelloMessage(hello, message, source);
       });
-    if (instance.properties.singletonMode === true) {
+    if (instance._mode === OperatingMode.SINGLETON) {
       // to provision uid ASAP
-      instance._actAsLeader(true);
-    } else {
-      instance._scheduleLeaderElection(electionDelayMSec);
+      instance._election.skip();
+      instance._onLeaderElected(instance.properties); // self-proclaimed leader
+    } else if (instance._mode === OperatingMode.MULTIPLEXING) {
+      instance._election.schedule(electionDelayMSec);
     }
-    instance._messenger.broadcastMessage(new HelloMessage(instance.properties), HelloMessage.TYPE);
+    instance._messenger.broadcastMessage(instance._createHelloMessage(false), HelloMessage.TYPE);
     if (window.__id5_instances === undefined) {
       window.__id5_instances = [];
     }
@@ -260,12 +453,13 @@ export class Instance {
   /**
    *
    * @param {HelloMessage} hello
-   * @param message
+   * @param {Id5Message} message - id5 message object which delivered  this hello
+   * @param {WindowProxy} srcWindow
    * @private
    */
-  _handleHelloMessage(hello, message) {
+  _handleHelloMessage(hello, message, srcWindow) {
     const instance = this;
-    instance._joinInstance(hello, message);
+    instance._joinInstance(hello, message, srcWindow);
   }
 
   deregister() {
@@ -287,47 +481,80 @@ export class Instance {
   /**
    *
    * @param {HelloMessage} hello
+   * @param {WindowProxy} srcWindow
    * @private
    */
-  _joinInstance(hello, message) {
-    const joiningInstance = hello.instance;
-    if (!this._knownInstances.get(joiningInstance.id)) {
-      this._knownInstances.set(joiningInstance.id, joiningInstance);
-      this._instanceCounters.addInstance(joiningInstance);
-      if (message.dst === DST_BROADCAST) {
+  _joinInstance(hello, message, srcWindow) {
+    const isResponse = hello.isResponse;
+    const joiningInstance = new DiscoveredInstance(hello.instance, hello.instanceState, srcWindow);
+    if (!this._knownInstances.get(joiningInstance.getId())) {
+      this._knownInstances.set(joiningInstance.getId(), joiningInstance);
+      this._lastJoinedInstance = joiningInstance;
+      this._instanceCounters.addInstance(joiningInstance.properties);
+      this._metrics.instanceJoinDelayTimer({
+        election: this._election._state
+      }).record((performance.now() - this._loadTime) | 0);
+      if (!isResponse) { // new instance on the page
         // this is init message , so respond back to introduce itself
         // we need to respond ASAP to get this info available for potential follower
-        // to let it know in case this instance is the leader and before joinig instance is added to followers
+        // to let it know in case this instance is the leader and before joining instance is added to followers
         // in case uid is ready, the leader will try to deliver it but follower may not be ready to receive/handle msg
-        this._messenger.sendResponseMessage(message, new HelloMessage(this.properties, this._leaderInstance), HelloMessage.TYPE);
-      }
-      this._metrics.instanceJoinDelayTimer().record((performance.now() - this._loadTime) | 0);
-      if (this.role !== Role.UNKNOWN) { // after election
-        this._logger.info('Late joiner detected', joiningInstance);
-        this._metrics.instanceLateJoinCounter(this.properties.id).inc();
-        if (this.role === Role.LEADER) {
-          if (!joiningInstance.singletonMode) {
-            this._leader.addFollower(new ProxyFollower(joiningInstance, this._messenger));
-          }
+        this._messenger.sendResponseMessage(message, this._createHelloMessage(true), HelloMessage.TYPE);
+        if (this.role !== Role.UNKNOWN) { // after election
+          this._handleLateJoiner(joiningInstance);
         }
-      } else {
-        const providedLeader = hello.leaderInstance;
-        if (providedLeader !== undefined) { // I'm late joiner
+      } else { // response from earlier loaded instance
+        const providedLeader = joiningInstance.getInstanceMultiplexingLeader(); //
+        if (this._mode === OperatingMode.MULTIPLEXING &&
+          this.role === Role.UNKNOWN && // leader not elected yet
+          providedLeader !== undefined // discovered instance las leader assigned
+        ) {
+          // this means I'm late joiner, so cancel election and inherit leader
           this._logger.info('Joined late, elected leader is', providedLeader);
-          if (this._scheduledElection !== undefined) { // if election is still awaiting
-            // cancel election
-            clearTimeout(this._scheduledElection);
-            this._scheduledElection = undefined;
-            // act as follower
-            this._onLeaderElected(providedLeader);
-            // TODO what if another instance will provide another leader instance
-            // TODO what if it will never get HELLO from leader
-            // TODO should accept only if hello.leader === hello.instance -> this may guarantee that  leader will join follower ?
-          }
+          this._election.cancel();
+          // act as follower
+          this._onLeaderElected(providedLeader);
+          // TODO what if another instance will provide another leader instance
+          // TODO what if it will never get HELLO from leader
+          // TODO should accept only if hello.leader === hello.instance -> this may guarantee that  leader will join follower ?
         }
       }
-      this._logger.debug('Instance joined', joiningInstance.id);
-      this._doFireEvent(MultiplexingEvent.ID5_INSTANCE_JOINED, joiningInstance);
+      this._logger.debug('Instance joined', joiningInstance.getId());
+      this._doFireEvent(MultiplexingEvent.ID5_INSTANCE_JOINED, joiningInstance.properties);
+    } else {
+      this._logger.debug('Instance already know', joiningInstance.getId());
+    }
+  }
+
+  _createHelloMessage(isResponse = false) {
+    /**
+     * @type InstanceState
+     */
+    let state = {
+      operatingMode: this._mode,
+      knownInstances: Array.from(this._knownInstances.values()).map(i => i.properties)
+    };
+
+    if (this._mode === OperatingMode.MULTIPLEXING) {
+      state.multiplexing = {
+        role: this.role,
+        electionState: this._election?._state,
+        leader: this._leaderInstance
+      };
+    }
+
+    return new HelloMessage(this.properties, isResponse, state);
+  }
+
+  _handleLateJoiner(newInstance) {
+    this._logger.info('Late joiner detected', newInstance.properties);
+    const lateJoinersCount = this._metrics.instanceLateJoinCounter(this.properties.id).inc();
+    this._metrics.instanceLateJoinDelayTimer({
+      election: this._election._state,
+      isFirst: lateJoinersCount === 1
+    }).record(performance.now() - this._election._closeTime);
+    if (this._mode === OperatingMode.MULTIPLEXING && newInstance.isMultiplexingPartyAllowed() && this.role === Role.LEADER) {
+      this._leader.addFollower(new ProxyFollower(newInstance, this._messenger));
     }
   }
 
@@ -335,13 +562,16 @@ export class Instance {
     this._dispatcher.emit(event, ...args);
   }
 
-  _actAsLeader(singletonMode = false) {
+  _actAsLeader() {
     const leader = new ActualLeader(this._uidFetcher, this._consentManager, [this._follower], this._logger);
-    if (!singletonMode) {
+    if (this._mode === OperatingMode.MULTIPLEXING) { // in singleton mode ignore remote followers
       Array.from(this._knownInstances.values())
-        .filter(instance => !instance.singletonMode) // exclude all instances operating in singleton mode
+        .filter(instance => instance.isMultiplexingPartyAllowed())
         .map(instance => leader.addFollower(new ProxyFollower(instance, this._messenger)));
-      this._proxyMethodCallHandler.register(ProxyMethodCallTarget.LEADER, leader);
+      this._proxyMethodCallHandler.register(ProxyMethodCallTarget.LEADER, leader); // register new leader instance to listen commands from remote followers (replace previously set awaited leader instance)
+      // initially registered AwaitedLeader had buffered any calls from remote followers, so all will be passed to new leader  when transferring of power happens
+      // in singleton mode we don't care , none instance should treat as a leader because we broadcast in HELLO that we are in SINGLETON mode, so no expect any remote call
+      // in singleton mode awaited leader will stay and it will be NOOP
     }
     this._assignLeader(leader);
     leader.start();
@@ -349,12 +579,15 @@ export class Instance {
 
   _followRemoteLeader(leaderInstance) {
     this._assignLeader(new ProxyLeader(this._messenger, leaderInstance.id)); // remote leader
-    this._proxyMethodCallHandler.register(ProxyMethodCallTarget.FOLLOWER, this._follower);
+    // TODO FIXME done in init just in case race conditions caused by  election time shift (leader knows and notifies us before we know he is a leader)
+    //  this._proxyMethodCallHandler.register(ProxyMethodCallTarget.FOLLOWER, this._follower);
+    //  to fix it implement similar concept as AwaitedLeader to buffer commands and get them once we know who is the leader
+    this._logger.info('Following remote leader ', leaderInstance);
   }
 
   _assignLeader(newLeader) {
     let oldLeader = this._leader;
-    oldLeader.onLeaderChange(newLeader);
+    oldLeader.transferOfPower(newLeader);
     this._leader = newLeader;
   }
 
@@ -371,22 +604,25 @@ export class Instance {
     this._leader.refreshUid(options);
   }
 
-  _scheduleLeaderElection(electionDelay) {
-    const instance = this;
-    instance._scheduledElection = setTimeout(() => {
-      if (instance._scheduledElection) { // if not canceled
-        let instances = Array.from(instance._knownInstances.values());
-        instances.push(instance.properties);
-        instance._onLeaderElected(electLeader(instances));
-        instance._scheduledElection = undefined;
-      }
-    }, electionDelay);
+  _doElection() {
+    const election = this._election;
+    const knownInstances = this._knownInstances;
+    const lastJoinedInstance = this._lastJoinedInstance;
+    let electionCandidates = Array.from(knownInstances.values())
+      .filter(knownInstance => knownInstance.isMultiplexingPartyAllowed())
+      .map(knownInstance => knownInstance.properties);
+    electionCandidates.push(this.properties);
+    this._onLeaderElected(electLeader(electionCandidates));
+    if (lastJoinedInstance) {
+      this._metrics.instanceLastJoinDelayTimer().record(Math.max(lastJoinedInstance._joinTime - election._scheduleTime, 0));
+    }
   }
 
   _onLeaderElected(leader) {
     const instance = this;
     instance._leaderInstance = leader;
     instance.role = (leader.id === instance.properties.id) ? Role.LEADER : Role.FOLLOWER;
+    // in singleton mode we always act as a leader , it's role is activated on init to  deliver UID ASAP
     if (instance.role === Role.LEADER) {
       instance._actAsLeader();
     } else if (instance.role === Role.FOLLOWER) {

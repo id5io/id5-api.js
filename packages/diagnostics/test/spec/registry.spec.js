@@ -95,6 +95,19 @@ describe('Registry', function () {
     }));
   });
 
+  it('should create Timer with common tags and prefix', function () {
+    // given
+    let meterRegistry = new MeterRegistry({common: 'TAG'}, 'some.prefix');
+
+    // when
+    let summary = meterRegistry.timer(NAME_A);
+
+    // then
+    expect(summary).is.deep.eq(new Timer(`some.prefix.${NAME_A}`, {
+      common: 'TAG'
+    }));
+  });
+
   it('should create Counter', function () {
     // given
     let meterRegistry = new MeterRegistry();
@@ -169,6 +182,20 @@ describe('Registry', function () {
     }));
   });
 
+  it('should create Counter with common tags and prefix', function () {
+    // given
+    let meterRegistry = new MeterRegistry({common: 'TAG'}, 'some.prefix');
+
+    // when
+    let summary = meterRegistry.counter(NAME_A);
+
+    // then
+    expect(summary).is.deep.eq(new Counter(`some.prefix.${NAME_A}`, {
+      common: 'TAG'
+    }));
+  });
+
+
   it('should create Summary', function () {
     // given
     let meterRegistry = new MeterRegistry();
@@ -239,6 +266,19 @@ describe('Registry', function () {
 
     // then
     expect(summary).is.deep.eq(new Summary(NAME_A, {
+      common: 'TAG'
+    }));
+  });
+
+  it('should create Summary with common tags and prefix', function () {
+    // given
+    let meterRegistry = new MeterRegistry({common: 'TAG'}, 'some.prefix');
+
+    // when
+    let summary = meterRegistry.summary(NAME_A);
+
+    // then
+    expect(summary).is.deep.eq(new Summary(`some.prefix.${NAME_A}`, {
       common: 'TAG'
     }));
   });

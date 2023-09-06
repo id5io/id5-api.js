@@ -149,33 +149,36 @@ describe('Meters', function () {
 
       // when
       dateStub.returns(1);
-      counter.inc();
+      let currentValue =  counter.inc();
 
       // then
       expect(counter.values).is.deep.equal([{
         value: 1,
         timestamp: 1
       }]);
+      expect(currentValue).is.eq(1);
 
       // when
       dateStub.returns(10);
-      counter.inc();
+      currentValue = counter.inc();
 
       // then
       expect(counter.values).is.deep.equal([{
         value: 2,
         timestamp: 10
       }]);
+      expect(currentValue).is.eq(2);
 
       // when
       dateStub.returns(100);
-      counter.inc(3);
+      currentValue = counter.inc(3);
 
       // then
       expect(counter.values).is.deep.equal([{
         value: 5,
         timestamp: 100
       }]);
+      expect(currentValue).is.eq(5);
     });
   });
 

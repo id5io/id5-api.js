@@ -11,6 +11,7 @@ import {version} from '../../generated/version.js';
 import {MultiplexingEvent} from '../../src/apiEvent.js';
 import {UidFetcher} from '../../src/fetch.js';
 import {ConsentManagement} from '../../src/index.js';
+import {ElectionState} from '../../src/instance.js';
 
 chai.use(sinonChai);
 
@@ -120,11 +121,16 @@ describe('Leader election', () => {
   });
 });
 
+function knownInstances(instance1) {
+  return Array.from(instance1._knownInstances.values()).map(i => i.properties);
+}
+
 describe('ID5 instance', function () {
   let metrics;
   let createdInstances;
   let generateIdStub;
   let logger = NoopLogger; // for debug purposes assign console `let logger = console`
+  let performanceNowStub;
   let createInstance = (source, sourceVersion, sourceConfig, fetchIdData, metrics) => {
     const instance = new ID5Integration.Instance(window, {
       source: source,
@@ -137,6 +143,8 @@ describe('ID5 instance', function () {
   }
 
   beforeEach(function () {
+    const now = performance.now();
+    performanceNowStub = sinon.stub(performance, 'now').returns(now);
     createdInstances = [];
     metrics = new Id5CommonMetrics('api', '1');
   });
@@ -145,6 +153,7 @@ describe('ID5 instance', function () {
       generateIdStub.restore();
     }
     createdInstances.forEach(instance => instance.deregister());
+    performanceNowStub.restore();
   })
 
   it('should create instance ', function () {
@@ -158,7 +167,7 @@ describe('ID5 instance', function () {
     let instance = createInstance('api', '1.3.5', {some: 'property'}, {partnerId: 99}, metrics);
 
     // then
-    expect(instance.properties).is.deep.eq({
+    expect(instance.properties).is.eql({
       id: id,
       version: version,
       source: 'api',
@@ -236,7 +245,7 @@ describe('ID5 instance', function () {
 
       instance.updateConfig(config)
       // then
-      expect(instance.properties).is.deep.eq({
+      expect(instance.properties).is.eql({
         ...initialConfig,
         ...expectedOverride
       });
@@ -254,24 +263,29 @@ describe('ID5 instance', function () {
     let instance3 = createInstance('api', '3', {}, {}, metrics);
 
     // when
-    instance1.init(electionDelayMsec);
-    instance2.init(electionDelayMsec);
-    instance3.init(electionDelayMsec);
+    [instance1, instance2, instance3].forEach(instance => {
+      expect(instance._election._state).is.eql(ElectionState.AWAITING_SCHEDULE);
+      instance.init(electionDelayMsec);
+      expect(instance._election._state).is.eql(ElectionState.SCHEDULED);
+    });
 
     setTimeout(() => {
       // then
       let expectedLeader = instance3.properties;
+      expect(instance1._election._state).is.eql(ElectionState.COMPLETED);
       expect(instance1.role).is.eq(ID5Integration.Role.FOLLOWER);
-      expect(instance1._leaderInstance).is.deep.eq(expectedLeader);
-      expect(Array.from(instance1._knownInstances.values())).to.deep.eq([instance2.properties, instance3.properties]);
+      expect(instance1._leaderInstance).is.eql(expectedLeader);
+      expect(knownInstances(instance1)).to.eql([instance2.properties, instance3.properties]);
 
+      expect(instance2._election._state).is.eql(ElectionState.COMPLETED);
       expect(instance2.role).is.eq(ID5Integration.Role.FOLLOWER);
-      expect(instance2._leaderInstance).is.deep.eq(expectedLeader);
-      expect(Array.from(instance2._knownInstances.values())).to.deep.eq([instance1.properties, instance3.properties]);
+      expect(instance2._leaderInstance).is.eql(expectedLeader);
+      expect(knownInstances(instance2)).to.eql([instance1.properties, instance3.properties]);
 
+      expect(instance3._election._state).is.eql(ElectionState.COMPLETED);
       expect(instance3.role).is.eq(ID5Integration.Role.LEADER); // newest source version
-      expect(instance3._leaderInstance).is.deep.eq(expectedLeader);
-      expect(Array.from(instance3._knownInstances.values())).to.deep.eq([instance1.properties, instance2.properties]);
+      expect(instance3._leaderInstance).is.eql(expectedLeader);
+      expect(knownInstances(instance3)).to.eql([instance1.properties, instance2.properties]);
 
       expect(unregisteredInstance.role).is.eq(ID5Integration.Role.UNKNOWN);
       expect(unregisteredInstance._leaderInstance).is.eq(undefined);
@@ -288,7 +302,7 @@ describe('ID5 instance', function () {
     let instance1 = createInstance('api', '1', {}, {}, metrics);
     let instance2 = createInstance('api', '2', {}, {}, metrics);
     let lateJoiner = createInstance('api', '3', {}, {}, metrics);
-    let expectedLeader = instance2.properties;
+    let expectedLeaderProperties = instance2.properties;
 
     let instance1Election = eventPromise(instance1, MultiplexingEvent.ID5_LEADER_ELECTED);
     let instance2Election = eventPromise(instance2, MultiplexingEvent.ID5_LEADER_ELECTED);
@@ -297,40 +311,48 @@ describe('ID5 instance', function () {
     instance1.init(electionDelayMsec);
     instance2.init(electionDelayMsec);
 
-
     return Promise.all([instance1Election, instance2Election])
       .then(() => {
-
+        expect(instance1._election._state).is.eql(ElectionState.COMPLETED);
         expect(instance1.role).is.eq(ID5Integration.Role.FOLLOWER);
-        expect(instance1._leaderInstance).is.deep.eq(expectedLeader);
-        expect(Array.from(instance1._knownInstances.values())).to.deep.eq([instance2.properties]);
+        expect(instance1._leaderInstance).is.eql(expectedLeaderProperties);
+        expect(knownInstances(instance1)).to.eql([instance2.properties]);
 
+        expect(instance2._election._state).is.eql(ElectionState.COMPLETED);
         expect(instance2.role).is.eq(ID5Integration.Role.LEADER);
-        expect(instance2._leaderInstance).is.deep.eq(expectedLeader);
-        expect(Array.from(instance2._knownInstances.values())).to.deep.eq([instance1.properties]);
+        expect(instance2._leaderInstance).is.eql(expectedLeaderProperties);
+        expect(knownInstances(instance2)).to.eql([instance1.properties]);
 
+        expect(lateJoiner._election._state).is.eql(ElectionState.AWAITING_SCHEDULE);
         expect(lateJoiner.role).is.eq(ID5Integration.Role.UNKNOWN);
         expect(lateJoiner._leaderInstance).is.undefined;
-        expect(Array.from(lateJoiner._knownInstances.values())).to.deep.eq([]);
+        expect(knownInstances(lateJoiner)).to.eql([]);
         // when
         let allKnowsEachOther = Promise.all([instancesKnowEachOtherPromise(instance1, lateJoiner), instancesKnowEachOtherPromise(instance2, lateJoiner)]);
+
+        const addFollowerSpy  = sinon.spy(instance2._leader, 'addFollower');
         lateJoiner.init(electionDelayMsec);
-        return Promise.all([lateJoinerElection, allKnowsEachOther]);
-      })
-      .then(() => {
-        expect(instance1.role).is.eq(ID5Integration.Role.FOLLOWER);
-        expect(instance1._leaderInstance).is.deep.eq(expectedLeader);
-        expect(Array.from(instance1._knownInstances.values())).to.deep.eq([instance2.properties, lateJoiner.properties]);
+        expect(lateJoiner._election._state).is.eql(ElectionState.SCHEDULED);
+        return Promise.all([lateJoinerElection, allKnowsEachOther])
+          .then(() => {
+            expect(instance1.role).is.eq(ID5Integration.Role.FOLLOWER);
+            expect(instance1._leaderInstance).is.eql(expectedLeaderProperties);
+            expect(knownInstances(instance1)).to.eql([instance2.properties, lateJoiner.properties]);
+            expect(addFollowerSpy).has.been.called;
+            expect(addFollowerSpy.firstCall.args[0]._instanceProperties).is.eql(lateJoiner.properties);
 
-        expect(instance2.role).is.eq(ID5Integration.Role.LEADER);
-        expect(instance2._leaderInstance).is.deep.eq(expectedLeader);
-        expect(Array.from(instance2._knownInstances.values())).to.deep.eq([instance1.properties, lateJoiner.properties]);
+            expect(instance2.role).is.eq(ID5Integration.Role.LEADER);
+            expect(instance2._leaderInstance).is.eql(expectedLeaderProperties);
+            expect(knownInstances(instance2)).to.eql([instance1.properties, lateJoiner.properties]);
 
-        expect(lateJoiner.role).is.eq(ID5Integration.Role.FOLLOWER);
-        expect(lateJoiner._leaderInstance).is.deep.eq(expectedLeader);
-        expect(Array.from(lateJoiner._knownInstances.values())).to.deep.eq([instance1.properties, instance2.properties]);
+            expect(lateJoiner._election._state).is.eql(ElectionState.CANCELED);
+            expect(lateJoiner.role).is.eq(ID5Integration.Role.FOLLOWER);
+            expect(lateJoiner._leaderInstance).is.eql(expectedLeaderProperties);
+            expect(knownInstances(lateJoiner)).to.eql([instance1.properties, instance2.properties]);
+          });
       });
   });
+
 
   it('should call listeners when instance joined to party', function (done) {
 
@@ -354,7 +376,7 @@ describe('ID5 instance', function () {
       let expectedJoinedInstance = instance2.properties;
       let verifyCallback = callback => {
         expect(callback).to.have.been.calledOnce;
-        expect(callback.firstCall.firstArg).to.be.deep.eq(expectedJoinedInstance);
+        expect(callback.firstCall.firstArg).to.be.eql(expectedJoinedInstance);
       }
 
       verifyCallback(firstCallback);
@@ -386,8 +408,8 @@ describe('ID5 instance', function () {
       // then
       let verifyCallback = callback => {
         expect(callback).to.have.been.calledTwice; // HELLO message and instance1's HELLO response
-        expect(callback.firstCall.firstArg.src).to.be.deep.eq(instance2.properties.id);
-        expect(callback.secondCall.firstArg.src).to.be.deep.eq(instance2.properties.id);
+        expect(callback.firstCall.firstArg.src).to.be.eql(instance2.properties.id);
+        expect(callback.secondCall.firstArg.src).to.be.eql(instance2.properties.id);
       }
 
       verifyCallback(firstCallback);
@@ -424,8 +446,8 @@ describe('ID5 instance', function () {
       let verifyCallback = (callback, expectedRole) => {
         let expectedLeader = instance2.properties;
         expect(callback).to.have.been.calledOnce;
-        expect(callback.firstCall.args[0]).to.be.deep.eq(expectedRole);
-        expect(callback.firstCall.args[1]).to.be.deep.eq(expectedLeader);
+        expect(callback.firstCall.args[0]).to.be.eql(expectedRole);
+        expect(callback.firstCall.args[1]).to.be.eql(expectedLeader);
       }
 
       verifyCallback(firstCallback, ID5Integration.Role.FOLLOWER);

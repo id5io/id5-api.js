@@ -89,7 +89,7 @@ export class UidFetcher {
     }
 
     log.info('Waiting for consent');
-    const waitForConsentTimer = metrics.timer('id5.api.fetch.consent.wait.time', {cachedResponseUsed});
+    const waitForConsentTimer = metrics.timer('fetch.consent.wait.time', {cachedResponseUsed});
     consentManager.getConsentData().then((consentData) => {
       log.info('Consent received', consentData);
       if (waitForConsentTimer) {

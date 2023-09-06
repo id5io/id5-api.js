@@ -75,7 +75,7 @@ describe('AwaitedLeader', function () {
     awaitedLeader.updateConsent(consentData);
     awaitedLeader.refreshUid(refreshOptions);
     awaitedLeader.updateFetchIdData('1', fetchData);
-    awaitedLeader.onLeaderChange(newLeader);
+    awaitedLeader.transferOfPower(newLeader);
 
     // then
     expect(newLeader.updateConsent).to.have.been.calledWith(consentData);

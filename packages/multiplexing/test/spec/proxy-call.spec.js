@@ -8,7 +8,7 @@ import sinon from 'sinon';
 import sinonChai from 'sinon-chai';
 import chai, {expect} from 'chai';
 import {Follower, ProxyFollower} from "../../src/follower.js";
-import {Properties} from '../../src/instance.js';
+import {DiscoveredInstance, Properties} from '../../src/instance.js';
 import {Leader, ProxyLeader} from "../../src/leader.js";
 
 chai.use(sinonChai);
@@ -41,7 +41,7 @@ describe('Proxy Method Call', function () {
     const targetFollower = sinon.createStubInstance(Follower);
     handler.register(ProxyMethodCallTarget.FOLLOWER, targetFollower);
 
-    const proxyFollower = new ProxyFollower(properties, callerMessenger);
+    const proxyFollower = new ProxyFollower(new DiscoveredInstance(properties, window), callerMessenger);
 
     // when
     proxyFollower.notifyCascadeNeeded({cascade: 'something'});
@@ -56,7 +56,7 @@ describe('Proxy Method Call', function () {
     });
   });
 
-  it('Follower calls leader', function () {
+  it('Proxy leader calls', function () {
 // given
     const callerId = 'follower';
     const targetId = 'leader';
