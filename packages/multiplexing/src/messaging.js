@@ -65,6 +65,9 @@ export class HelloMessage {
    * @type {InstanceState}
    */
   instanceState;
+  /**
+   * @type {boolean}
+   */
   isResponse;
 
   /**

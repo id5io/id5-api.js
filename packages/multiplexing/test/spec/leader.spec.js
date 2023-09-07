@@ -8,7 +8,7 @@ import {UidFetcher} from "../../src/fetch.js";
 import {API_TYPE, ApiEvent, ConsentData, ConsentManagement, NoopLogger} from '../../src/index.js';
 import {Follower} from '../../src/follower.js';
 import {Properties} from "../../src/instance.js";
-import {Id5CommonMetrics} from "@id5io/diagnostics";
+import {Counter, Id5CommonMetrics} from "@id5io/diagnostics";
 
 chai.use(sinonChai);
 
@@ -388,7 +388,7 @@ describe('ActualLeader', () => {
       consentString: 'string',
     });
 
-    const consentStringChagedData = Object.assign(new ConsentData(), {
+    const consentStringChangedData = Object.assign(new ConsentData(), {
       api: API_TYPE.TCF_V2,
       consentString: 'new-string'
     });
@@ -400,6 +400,8 @@ describe('ActualLeader', () => {
     });
 
     const metrics = leader._metrics;
+    const counter = sinon.createStubInstance(Counter);
+    metrics.consentChangeCounter.returns(counter);
 
     // when
     leader.updateConsent(consentData);
@@ -409,10 +411,10 @@ describe('ActualLeader', () => {
     expect(metrics.consentChangeCounter).have.not.been.called;
 
     // when
-    leader.updateConsent(consentStringChagedData);
+    leader.updateConsent(consentStringChangedData);
 
     // then
-    expect(consentManager.setConsentData).to.be.calledWith(consentStringChagedData);
+    expect(consentManager.setConsentData).to.be.calledWith(consentStringChangedData);
     expect(metrics.consentChangeCounter).have.been.calledWith({
       apiChanged: false,
       consentStringChanged: true,
@@ -421,24 +423,26 @@ describe('ActualLeader', () => {
 
     // when
     metrics.consentChangeCounter.reset();
-    leader.updateConsent(consentStringChagedData);
+    metrics.consentChangeCounter.returns(counter);
+    leader.updateConsent(consentStringChangedData);
 
     // then
-    expect(consentManager.setConsentData).to.be.calledWith(consentStringChagedData);
+    expect(consentManager.setConsentData).to.be.calledWith(consentStringChangedData);
     expect(metrics.consentChangeCounter).have.not.been.called;
 
     // when
     metrics.consentChangeCounter.reset();
+    metrics.consentChangeCounter.returns(counter);
     leader.updateConsent(apiChangedConsentData);
 
     // then
-    expect(consentManager.setConsentData).to.be.calledWith(consentStringChagedData);
+    expect(consentManager.setConsentData).to.be.calledWith(consentStringChangedData);
     expect(metrics.consentChangeCounter).have.been.calledWith({
       apiChanged: true,
       consentStringChanged: false,
       usPrivacyChanged: true
     });
-
+    expect(counter.inc).to.have.calledTwice;
   });
 
   it('should update follower data', function () {

@@ -274,21 +274,21 @@ describe('ID5 instance', function () {
       let expectedLeader = instance3.properties;
       expect(instance1._election._state).is.eql(ElectionState.COMPLETED);
       expect(instance1.role).is.eq(ID5Integration.Role.FOLLOWER);
-      expect(instance1._leaderInstance).is.eql(expectedLeader);
+      expect(instance1._leader.getProperties()).is.eql(expectedLeader);
       expect(knownInstances(instance1)).to.eql([instance2.properties, instance3.properties]);
 
       expect(instance2._election._state).is.eql(ElectionState.COMPLETED);
       expect(instance2.role).is.eq(ID5Integration.Role.FOLLOWER);
-      expect(instance2._leaderInstance).is.eql(expectedLeader);
+      expect(instance2._leader.getProperties()).is.eql(expectedLeader);
       expect(knownInstances(instance2)).to.eql([instance1.properties, instance3.properties]);
 
       expect(instance3._election._state).is.eql(ElectionState.COMPLETED);
       expect(instance3.role).is.eq(ID5Integration.Role.LEADER); // newest source version
-      expect(instance3._leaderInstance).is.eql(expectedLeader);
+      expect(instance3._leader.getProperties()).is.eql(expectedLeader);
       expect(knownInstances(instance3)).to.eql([instance1.properties, instance2.properties]);
 
       expect(unregisteredInstance.role).is.eq(ID5Integration.Role.UNKNOWN);
-      expect(unregisteredInstance._leaderInstance).is.eq(undefined);
+      expect(unregisteredInstance._leader.getProperties()).is.eq(undefined);
       expect(unregisteredInstance._knownInstances).to.have.length(0);
       done();
     }, electionDelayMsec + 50);
@@ -315,17 +315,17 @@ describe('ID5 instance', function () {
       .then(() => {
         expect(instance1._election._state).is.eql(ElectionState.COMPLETED);
         expect(instance1.role).is.eq(ID5Integration.Role.FOLLOWER);
-        expect(instance1._leaderInstance).is.eql(expectedLeaderProperties);
+        expect(instance1._leader.getProperties()).is.eql(expectedLeaderProperties);
         expect(knownInstances(instance1)).to.eql([instance2.properties]);
 
         expect(instance2._election._state).is.eql(ElectionState.COMPLETED);
         expect(instance2.role).is.eq(ID5Integration.Role.LEADER);
-        expect(instance2._leaderInstance).is.eql(expectedLeaderProperties);
+        expect(instance2._leader.getProperties()).is.eql(expectedLeaderProperties);
         expect(knownInstances(instance2)).to.eql([instance1.properties]);
 
         expect(lateJoiner._election._state).is.eql(ElectionState.AWAITING_SCHEDULE);
         expect(lateJoiner.role).is.eq(ID5Integration.Role.UNKNOWN);
-        expect(lateJoiner._leaderInstance).is.undefined;
+        expect(lateJoiner._leader.getProperties()).is.undefined;
         expect(knownInstances(lateJoiner)).to.eql([]);
         // when
         let allKnowsEachOther = Promise.all([instancesKnowEachOtherPromise(instance1, lateJoiner), instancesKnowEachOtherPromise(instance2, lateJoiner)]);
@@ -336,18 +336,18 @@ describe('ID5 instance', function () {
         return Promise.all([lateJoinerElection, allKnowsEachOther])
           .then(() => {
             expect(instance1.role).is.eq(ID5Integration.Role.FOLLOWER);
-            expect(instance1._leaderInstance).is.eql(expectedLeaderProperties);
+            expect(instance1._leader.getProperties()).is.eql(expectedLeaderProperties);
             expect(knownInstances(instance1)).to.eql([instance2.properties, lateJoiner.properties]);
             expect(addFollowerSpy).has.been.called;
             expect(addFollowerSpy.firstCall.args[0]._instanceProperties).is.eql(lateJoiner.properties);
 
             expect(instance2.role).is.eq(ID5Integration.Role.LEADER);
-            expect(instance2._leaderInstance).is.eql(expectedLeaderProperties);
+            expect(instance2._leader.getProperties()).is.eql(expectedLeaderProperties);
             expect(knownInstances(instance2)).to.eql([instance1.properties, lateJoiner.properties]);
 
             expect(lateJoiner._election._state).is.eql(ElectionState.CANCELED);
             expect(lateJoiner.role).is.eq(ID5Integration.Role.FOLLOWER);
-            expect(lateJoiner._leaderInstance).is.eql(expectedLeaderProperties);
+            expect(lateJoiner._leader.getProperties()).is.eql(expectedLeaderProperties);
             expect(knownInstances(lateJoiner)).to.eql([instance1.properties, instance2.properties]);
           });
       });

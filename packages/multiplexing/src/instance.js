@@ -341,16 +341,17 @@ export class Instance {
    * @private
    */
   _instanceCounters;
-  /**
-   * @type {ProxyMethodCallHandler}
-   * @private
-   */
-  _proxyMethodCallHandler;
+
   /**
    * @type {Election}
    * @private
    */
   _election;
+
+  /**
+   * @type {Window} instance window
+   * @private
+   */
   _window;
 
   /**
@@ -378,7 +379,7 @@ export class Instance {
     this._dispatcher = new ApiEventsDispatcher(this._logger);
     this._uidFetcher = uidFetcher;
     this._consentManager = consentManager;
-    this._leader = new AwaitedLeader(); // AwaitedLeader buffers request to leader in case some events happened before leader is elected (i.e. consent update)
+    this._leader = new AwaitedLeader(); // AwaitedLeader buffers requests to leader in case some events happened before leader is elected (i.e. consent update)
     this._followerRole = new DirectFollower(this.properties, this._dispatcher);
     this._election = new Election(this);
   }
@@ -416,10 +417,10 @@ export class Instance {
       .onProxyMethodCall(
         new ProxyMethodCallHandler(this._logger)
           // register now to receive leader calls before actual leader is assigned
-          // it may happen that some followers will elect instance as the leader before instance knows it act as the leader
+          // it may happen that some followers will elect this instance as the leader before elected instance knows it acts as the leader
           // this way all calls will be buffered and executed when actual leader is elected
           .registerTarget(ProxyMethodCallTarget.LEADER, instance._leader)
-          // register now to receive followers calls before election is completed
+          // register it now to receive calls to follower before election is completed
           // it may happen that leader instance will elect them self as a leader with followers before all followers are aware they have a remote leader
           // this is very likely and happens quite frequently for late joiner, where Hello response can be delivered and handled after `notifyUidReady` by leader is called
           // leader have no idea if follower is ready and sends UID immediately when it's available (calls `notifyUidReady` method)
@@ -511,7 +512,7 @@ export class Instance {
         const providedLeader = joiningInstance.getInstanceMultiplexingLeader(); //
         if (this._mode === OperatingMode.MULTIPLEXING &&
           this.role === Role.UNKNOWN && // leader not elected yet
-          providedLeader !== undefined // discovered instance las leader assigned
+          providedLeader !== undefined // discovered instance has leader assigned
         ) {
           // this means I'm late joiner, so cancel election and inherit leader
           this._logger.info('Joined late, elected leader is', providedLeader);
@@ -526,7 +527,7 @@ export class Instance {
       this._logger.debug('Instance joined', joiningInstance.getId());
       this._doFireEvent(MultiplexingEvent.ID5_INSTANCE_JOINED, joiningInstance.properties);
     } else {
-      this._logger.debug('Instance already know', joiningInstance.getId());
+      this._logger.debug('Instance already known', joiningInstance.getId());
     }
   }
 
@@ -600,12 +601,12 @@ export class Instance {
   _doElection() {
     const election = this._election;
     const knownInstances = this._knownInstances;
-    const lastJoinedInstance = this._lastJoinedInstance;
     let electionCandidates = Array.from(knownInstances.values())
       .filter(knownInstance => knownInstance.isMultiplexingPartyAllowed())
       .map(knownInstance => knownInstance.properties);
     electionCandidates.push(this.properties);
     this._onLeaderElected(electLeader(electionCandidates));
+    const lastJoinedInstance = this._lastJoinedInstance;
     if (lastJoinedInstance) {
       this._metrics.instanceLastJoinDelayTimer().record(Math.max(lastJoinedInstance._joinTime - election._scheduleTime, 0));
     }
@@ -613,7 +614,6 @@ export class Instance {
 
   _onLeaderElected(leader) {
     const instance = this;
-    instance._leaderInstance = leader;
     instance.role = (leader.id === instance.properties.id) ? Role.LEADER : Role.FOLLOWER;
     // in singleton mode we always act as a leader , it's role is activated on init to  deliver UID ASAP
     if (instance.role === Role.LEADER) {
@@ -622,7 +622,7 @@ export class Instance {
       instance._followRemoteLeader(leader);
     }
     instance._logger.debug('Leader elected', leader.id, 'my role', instance.role);
-    instance._doFireEvent(MultiplexingEvent.ID5_LEADER_ELECTED, instance.role, instance._leaderInstance);
+    instance._doFireEvent(MultiplexingEvent.ID5_LEADER_ELECTED, instance.role, instance._leader.getProperties());
   }
 }
 

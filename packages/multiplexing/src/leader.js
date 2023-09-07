@@ -173,7 +173,7 @@ export class ActualLeader extends Leader {
           apiChanged: apiChanged,
           consentStringChanged: consentStringChanged,
           usPrivacyChanged: usPrivacyChanged
-        });
+        }).inc();
       }
     }
     this._consentManager.setConsentData(newConsentData);

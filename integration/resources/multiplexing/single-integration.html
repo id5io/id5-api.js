@@ -67,7 +67,10 @@
                 publishingSampleRatio: 1,
                 publishOnWindowUnload: true
             },
-            segments: [{destination: '22', ids: ['abc']}]
+            segments: [{destination: '22', ids: ['abc']}],
+            multiplexing: {
+                _disabled: false
+            }
         }
     ).onAvailable(uidCallback);
     const instance = id5Status.instance;

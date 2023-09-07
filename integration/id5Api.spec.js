@@ -491,9 +491,9 @@ describe('The ID5 API', function () {
       // each instance calls endpoint and post details once leader elected
 
       return expectRequestAt(singletonElectionNotifyEndpoint)
-        .then(singletoElectionRequests => {
-          expect(singletoElectionRequests).has.length(1);
-          return singletoElectionRequests[0].body.getJson();
+        .then(singletonElectionRequests => {
+          expect(singletonElectionRequests).has.length(1);
+          return singletonElectionRequests[0].body.getJson();
         }).then(singletonElectionInfo => {
           const singletonId = singletonElectionInfo.id;
           expect(singletonElectionInfo.leader).to.be.eql(singletonId);
