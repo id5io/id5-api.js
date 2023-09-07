@@ -130,4 +130,8 @@ export class Id5CommonMetrics extends MeterRegistry {
       ...tags
     });
   }
+
+  consentChangeCounter(tags = {}) {
+    return this.counter('leader.consent.change.count', tags);
+  }
 }

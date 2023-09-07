@@ -359,7 +359,7 @@ export class Instance {
    * @param {Id5CommonMetrics} metrics
    * @param {Logger} logger
    * @param {UidFetcher} uidFetcher
-   * @param {ConsentManager} consentManager
+   * @param {ConsentManagement} consentManager
    */
   constructor(wnd, configuration, metrics, logger = NoopLogger, uidFetcher, consentManager) {
     const id = Utils.generateId();
@@ -484,6 +484,7 @@ export class Instance {
   /**
    *
    * @param {HelloMessage} hello
+   * @param {Id5Message} message
    * @param {WindowProxy} srcWindow
    * @private
    */
@@ -566,7 +567,7 @@ export class Instance {
   }
 
   _actAsLeader() {
-    const leader = new ActualLeader(this._uidFetcher, this._consentManager, this.properties, this._logger);
+    const leader = new ActualLeader(this._uidFetcher, this._consentManager, this.properties, this._metrics, this._logger);
     leader.addFollower(this._followerRole); // add itself to be directly called
     this._leader.assignLeader(leader);
     if (this._mode === OperatingMode.MULTIPLEXING) { // in singleton mode ignore remote followers

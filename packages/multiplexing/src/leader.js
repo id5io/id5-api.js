@@ -61,7 +61,7 @@ export class ActualLeader extends Leader {
   _log;
 
   /**
-   * @type {ConsentManager}
+   * @type {ConsentManagement}
    * @private
    */
   _consentManager;
@@ -69,17 +69,30 @@ export class ActualLeader extends Leader {
   _lastUid;
 
   /**
+   * @type {ConsentData}
+   * @private
+   */
+  _lastConsentDataSet;
+  /**
+   * @type Id5CommonMetrics
+   * @private
+   */
+  _metrics;
+
+  /**
    * @param {UidFetcher} fetcher
-   * @param {ConsentManager} consentManager
+   * @param {ConsentManagement} consentManager
    * @param {Properties} properties
+   * @param {Id5CommonMetrics} metrics
    * @param {Logger} logger
    */
-  constructor(fetcher, consentManager, properties, logger = NoopLogger) {
+  constructor(fetcher, consentManager, properties, metrics, logger = NoopLogger) {
     super();
     this._followers = [];
     this._fetcher = fetcher;
     this._properties = properties;
     this._consentManager = consentManager;
+    this._metrics = metrics;
     const leader = this;
     this._dispatcher = new ApiEventsDispatcher(logger);
     this._dispatcher.on(ApiEvent.USER_ID_READY, uid => leader._handleUidReady(uid));
@@ -145,10 +158,26 @@ export class ActualLeader extends Leader {
     this._getId(options.forceFetch === true);
   }
 
-  updateConsent(consentData) {
-    // TODO check if changed , maybe re-trigger getId ???
-    // TODO add metric if updated different
-    this._consentManager.setConsentData(consentData);
+  /**
+   *
+   * @param {ConsentData} newConsentData
+   */
+  updateConsent(newConsentData) {
+    const prevConsentData = this._lastConsentDataSet;
+    if (prevConsentData) {
+      const apiChanged = newConsentData?.api !== prevConsentData.api;
+      const consentStringChanged = newConsentData?.consentString !== prevConsentData.consentString;
+      const usPrivacyChanged = newConsentData?.ccpaString !== prevConsentData.ccpaString;
+      if (apiChanged || consentStringChanged || usPrivacyChanged) {
+        this._metrics.consentChangeCounter({
+          apiChanged: apiChanged,
+          consentStringChanged: consentStringChanged,
+          usPrivacyChanged: usPrivacyChanged
+        });
+      }
+    }
+    this._consentManager.setConsentData(newConsentData);
+    this._lastConsentDataSet = newConsentData;
   }
 
   updateFetchIdData(instanceId, fetchIdData) {

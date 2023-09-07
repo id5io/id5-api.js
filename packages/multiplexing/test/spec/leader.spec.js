@@ -5,9 +5,10 @@ import sinonChai from 'sinon-chai';
 import {CrossInstanceMessenger, ProxyMethodCallTarget} from '../../src/messaging.js';
 import {AwaitedLeader, ActualLeader, Leader, ProxyLeader} from '../../src/leader.js';
 import {UidFetcher} from "../../src/fetch.js";
-import {ApiEvent, ConsentManagement, NoopLogger} from '../../src/index.js';
+import {API_TYPE, ApiEvent, ConsentData, ConsentManagement, NoopLogger} from '../../src/index.js';
 import {Follower} from '../../src/follower.js';
 import {Properties} from "../../src/instance.js";
+import {Id5CommonMetrics} from "@id5io/diagnostics";
 
 chai.use(sinonChai);
 
@@ -207,7 +208,7 @@ describe('ActualLeader', () => {
     follower3 = sinon.createStubInstance(Follower);
     follower3.getId.returns(follower3Id);
     follower3.getFetchIdData.returns(follower3FetchIdData);
-    leader = new ActualLeader(uidFetcher, consentManager, leaderProperties, NoopLogger);
+    leader = new ActualLeader(uidFetcher, consentManager, leaderProperties, sinon.createStubInstance(Id5CommonMetrics), NoopLogger);
   });
 
   it('should getId on start and notify followers when uid ready', function () {
@@ -378,6 +379,66 @@ describe('ActualLeader', () => {
 
     // then
     expect(consentManager.setConsentData).to.be.calledWith(consentData);
+  });
+
+  it('should update consent data and measure change', function () {
+    // given
+    const consentData = Object.assign(new ConsentData(), {
+      api: API_TYPE.TCF_V2,
+      consentString: 'string',
+    });
+
+    const consentStringChagedData = Object.assign(new ConsentData(), {
+      api: API_TYPE.TCF_V2,
+      consentString: 'new-string'
+    });
+
+    const apiChangedConsentData = Object.assign(new ConsentData(), {
+      api: API_TYPE.USP_V1,
+      consentString: 'new-string',
+      ccpaString: 'ccpa'
+    });
+
+    const metrics = leader._metrics;
+
+    // when
+    leader.updateConsent(consentData);
+
+    // then
+    expect(consentManager.setConsentData).to.be.calledWith(consentData);
+    expect(metrics.consentChangeCounter).have.not.been.called;
+
+    // when
+    leader.updateConsent(consentStringChagedData);
+
+    // then
+    expect(consentManager.setConsentData).to.be.calledWith(consentStringChagedData);
+    expect(metrics.consentChangeCounter).have.been.calledWith({
+      apiChanged: false,
+      consentStringChanged: true,
+      usPrivacyChanged: false
+    });
+
+    // when
+    metrics.consentChangeCounter.reset();
+    leader.updateConsent(consentStringChagedData);
+
+    // then
+    expect(consentManager.setConsentData).to.be.calledWith(consentStringChagedData);
+    expect(metrics.consentChangeCounter).have.not.been.called;
+
+    // when
+    metrics.consentChangeCounter.reset();
+    leader.updateConsent(apiChangedConsentData);
+
+    // then
+    expect(consentManager.setConsentData).to.be.calledWith(consentStringChagedData);
+    expect(metrics.consentChangeCounter).have.been.calledWith({
+      apiChanged: true,
+      consentStringChanged: false,
+      usPrivacyChanged: true
+    });
+
   });
 
   it('should update follower data', function () {
