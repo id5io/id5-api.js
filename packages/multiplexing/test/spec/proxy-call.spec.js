@@ -37,11 +37,13 @@ describe('Proxy Method Call', function () {
     const targetFollowerMessenger = new CrossInstanceMessenger(targetId, window);
 
     const properties = new Properties(targetId, 'v', 's', 'sv', {}, {});
-    const handler = new ProxyMethodCallHandler(targetFollowerMessenger);
     const targetFollower = sinon.createStubInstance(Follower);
-    handler.register(ProxyMethodCallTarget.FOLLOWER, targetFollower);
+    targetFollowerMessenger.onProxyMethodCall(
+      new ProxyMethodCallHandler()
+        .registerTarget(ProxyMethodCallTarget.FOLLOWER, targetFollower)
+    )
 
-    const proxyFollower = new ProxyFollower(new DiscoveredInstance(properties, window), callerMessenger);
+    const proxyFollower = new ProxyFollower(new DiscoveredInstance(properties, undefined, window), callerMessenger);
 
     // when
     proxyFollower.notifyCascadeNeeded({cascade: 'something'});
@@ -63,9 +65,11 @@ describe('Proxy Method Call', function () {
     const callerMessenger = new CrossInstanceMessenger(callerId, window);
     const targetLeaderMessenger = new CrossInstanceMessenger(targetId, window);
 
-    const handler = new ProxyMethodCallHandler(targetLeaderMessenger);
     const targetLeader = sinon.createStubInstance(Leader);
-    handler.register(ProxyMethodCallTarget.LEADER, targetLeader);
+    targetLeaderMessenger.onProxyMethodCall(
+      new ProxyMethodCallHandler()
+        .registerTarget(ProxyMethodCallTarget.LEADER, targetLeader)
+    );
 
     const proxyLeader = new ProxyLeader(callerMessenger, targetId);
 

@@ -316,9 +316,8 @@ export class Instance {
    * @type MultiplexingRole
    */
   role;
-  _leaderInstance;
   /**
-   * @type Leader
+   * @type AwaitedLeader
    * @private
    */
   _leader;
@@ -376,11 +375,11 @@ export class Instance {
     this._loadTime = performance.now();
     this._logger = (logger !== undefined) ? new NamedLogger(`Instance(id=${id})`, logger) : NoopLogger;
     this._window = wnd;
-    this._leader = new AwaitedLeader(); // AwaitedLeader buffers request to leader in case some events happened before leader is elected (i.e. consent update)
     this._dispatcher = new ApiEventsDispatcher(this._logger);
     this._uidFetcher = uidFetcher;
     this._consentManager = consentManager;
-    this._follower = new DirectFollower(this.properties, this._dispatcher);
+    this._leader = new AwaitedLeader(); // AwaitedLeader buffers request to leader in case some events happened before leader is elected (i.e. consent update)
+    this._followerRole = new DirectFollower(this.properties, this._dispatcher);
     this._election = new Election(this);
   }
 
@@ -398,17 +397,8 @@ export class Instance {
     instance._mode = instance.properties.singletonMode === true ? OperatingMode.SINGLETON : OperatingMode.MULTIPLEXING;
     instance._instanceCounters.addInstance(instance.properties);
     collectPartySizeMetrics(instance);
-    this._messenger = new CrossInstanceMessenger(instance.properties.id, window, instance._logger);
-    this._proxyMethodCallHandler = new ProxyMethodCallHandler(this._messenger);
-    // initially it is AwaitedLeader, so it will buffer all remote calls send from followers before this instance elect itself as a leader
-    // TODO FIXME when leader elected we may want to ignore messages sent from leader we were not elected
-    this._proxyMethodCallHandler.register(ProxyMethodCallTarget.LEADER, instance._leader);
-    // TODO temporary  FIX. Now we do this because we may potentially miss remote calls from leader and miss UID provisioned (very likely for remote late joiners)
-    //  it may happen when leader added us as follower and had UID ready so it immediately calls follower , but this instance may not yet know it is a follower and may not know the leader yet
-    //  in future we should add some buffer and in case we act as a leader we could ignore all buffered remote calls from leader we didn't elected
-    //  having this way, we may receive commands from remote leader then if elect our self as an leader we will execute leader role and have UID provisioned again (maybe it is expected ? )
-    this._proxyMethodCallHandler.register(ProxyMethodCallTarget.FOLLOWER, instance._follower);
-    this._messenger
+    instance._messenger = new CrossInstanceMessenger(instance.properties.id, window, instance._logger);
+    instance._messenger
       .onAnyMessage((message) => {
         let deliveryTimeMsec = (performance.now() - message.timestamp) | 0;
         instance._metrics.instanceMsgDeliveryTimer().record(deliveryTimeMsec);
@@ -422,7 +412,19 @@ export class Instance {
           hello.isResponse = (message.dst !== DST_BROADCAST);
         }
         instance._handleHelloMessage(hello, message, source);
-      });
+      })
+      .onProxyMethodCall(
+        new ProxyMethodCallHandler(this._logger)
+          // register now to receive leader calls before actual leader is assigned
+          // it may happen that some followers will elect instance as the leader before instance knows it act as the leader
+          // this way all calls will be buffered and executed when actual leader is elected
+          .registerTarget(ProxyMethodCallTarget.LEADER, instance._leader)
+          // register now to receive followers calls before election is completed
+          // it may happen that leader instance will elect them self as a leader with followers before all followers are aware they have a remote leader
+          // this is very likely and happens quite frequently for late joiner, where Hello response can be delivered and handled after `notifyUidReady` by leader is called
+          // leader have no idea if follower is ready and sends UID immediately when it's available (calls `notifyUidReady` method)
+          .registerTarget(ProxyMethodCallTarget.FOLLOWER, instance._followerRole)
+      );
     if (instance._mode === OperatingMode.SINGLETON) {
       // to provision uid ASAP
       instance._election.skip();
@@ -430,11 +432,12 @@ export class Instance {
     } else if (instance._mode === OperatingMode.MULTIPLEXING) {
       instance._election.schedule(electionDelayMSec);
     }
+    // ready to introduce itself to other instances
     instance._messenger.broadcastMessage(instance._createHelloMessage(false), HelloMessage.TYPE);
     if (window.__id5_instances === undefined) {
       window.__id5_instances = [];
     }
-    window.__id5_instances.push(this);
+    window.__id5_instances.push(instance);
   }
 
   /**
@@ -539,7 +542,7 @@ export class Instance {
       state.multiplexing = {
         role: this.role,
         electionState: this._election?._state,
-        leader: this._leaderInstance
+        leader: this._leader.getProperties()
       };
     }
 
@@ -563,32 +566,21 @@ export class Instance {
   }
 
   _actAsLeader() {
-    const leader = new ActualLeader(this._uidFetcher, this._consentManager, [this._follower], this._logger);
+    const leader = new ActualLeader(this._uidFetcher, this._consentManager, this.properties, this._logger);
+    leader.addFollower(this._followerRole); // add itself to be directly called
+    this._leader.assignLeader(leader);
     if (this._mode === OperatingMode.MULTIPLEXING) { // in singleton mode ignore remote followers
       Array.from(this._knownInstances.values())
         .filter(instance => instance.isMultiplexingPartyAllowed())
         .map(instance => leader.addFollower(new ProxyFollower(instance, this._messenger)));
-      this._proxyMethodCallHandler.register(ProxyMethodCallTarget.LEADER, leader); // register new leader instance to listen commands from remote followers (replace previously set awaited leader instance)
-      // initially registered AwaitedLeader had buffered any calls from remote followers, so all will be passed to new leader  when transferring of power happens
-      // in singleton mode we don't care , none instance should treat as a leader because we broadcast in HELLO that we are in SINGLETON mode, so no expect any remote call
-      // in singleton mode awaited leader will stay and it will be NOOP
     }
-    this._assignLeader(leader);
+    // all prepared let's start
     leader.start();
   }
 
   _followRemoteLeader(leaderInstance) {
-    this._assignLeader(new ProxyLeader(this._messenger, leaderInstance.id)); // remote leader
-    // TODO FIXME done in init just in case race conditions caused by  election time shift (leader knows and notifies us before we know he is a leader)
-    //  this._proxyMethodCallHandler.register(ProxyMethodCallTarget.FOLLOWER, this._follower);
-    //  to fix it implement similar concept as AwaitedLeader to buffer commands and get them once we know who is the leader
+    this._leader.assignLeader(new ProxyLeader(this._messenger, leaderInstance)); // remote leader
     this._logger.info('Following remote leader ', leaderInstance);
-  }
-
-  _assignLeader(newLeader) {
-    let oldLeader = this._leader;
-    oldLeader.transferOfPower(newLeader);
-    this._leader = newLeader;
   }
 
   updateConsent(consentData) {

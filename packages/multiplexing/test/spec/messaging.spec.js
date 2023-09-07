@@ -358,7 +358,7 @@ describe('ProxyMethodCallHandler', function () {
    */
   let handler;
   beforeEach(() => {
-    handler = new ProxyMethodCallHandler(sinon.createStubInstance(CrossInstanceMessenger));
+    handler = new ProxyMethodCallHandler();
   });
 
   it('should add target and call', () => {
@@ -372,8 +372,9 @@ describe('ProxyMethodCallHandler', function () {
       someMethod: function () {
       }
     });
-    handler.register(ProxyMethodCallTarget.FOLLOWER, followerTarget);
-    handler.register(ProxyMethodCallTarget.LEADER, leaderTarget);
+    handler
+      .registerTarget(ProxyMethodCallTarget.FOLLOWER, followerTarget)
+      .registerTarget(ProxyMethodCallTarget.LEADER, leaderTarget);
 
     // when
     handler._handle(new ProxyMethodCallMessage(ProxyMethodCallTarget.FOLLOWER, 'someMethod', ['arg1', 2]));
@@ -392,7 +393,7 @@ describe('ProxyMethodCallHandler', function () {
         throw  new Error();
       }
     });
-    handler.register(ProxyMethodCallTarget.LEADER, leaderTarget);
+    handler.registerTarget(ProxyMethodCallTarget.LEADER, leaderTarget);
 
     // when
     handler._handle(new ProxyMethodCallMessage(ProxyMethodCallTarget.LEADER, 'someMethod', [3, {prop: 'A'}]));

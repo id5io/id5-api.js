@@ -19,14 +19,19 @@ export class Leader {
   refreshUid(refreshOptions) {
   }
 
-  transferOfPower(newLeader) {
-  }
-
   /**
    *
    * @param {Follower} follower
    */
   addFollower(follower) {
+  }
+
+  /**
+   *
+   * @return {Properties | undefined}
+   */
+  getProperties() {
+    return undefined;
   }
 }
 
@@ -66,16 +71,17 @@ export class ActualLeader extends Leader {
   /**
    * @param {UidFetcher} fetcher
    * @param {ConsentManager} consentManager
-   * @param {Array<Follower>} followers
+   * @param {Properties} properties
    * @param {Logger} logger
    */
-  constructor(fetcher, consentManager, followers, logger = NoopLogger) {
+  constructor(fetcher, consentManager, properties, logger = NoopLogger) {
     super();
-    this._dispatcher = new ApiEventsDispatcher(logger);
+    this._followers = [];
     this._fetcher = fetcher;
-    this._followers = followers;
+    this._properties = properties;
     this._consentManager = consentManager;
     const leader = this;
+    this._dispatcher = new ApiEventsDispatcher(logger);
     this._dispatcher.on(ApiEvent.USER_ID_READY, uid => leader._handleUidReady(uid));
     this._dispatcher.on(ApiEvent.USER_ID_FETCH_CANCELED, cancel => leader._handleCancel(cancel));
     this._dispatcher.on(ApiEvent.CASCADE_NEEDED, cascade => leader._handleCascade(cascade));
@@ -159,6 +165,10 @@ export class ActualLeader extends Leader {
     }
     this._followers.push(follower);
   }
+
+  getProperties() {
+    return this._properties;
+  }
 }
 
 export class ProxyLeader extends Leader {
@@ -167,24 +177,28 @@ export class ProxyLeader extends Leader {
    * @private
    */
   _messenger;
-  _leaderInstanceId;
+  /**
+   * @type {Properties}
+   * @private
+   */
+  _leaderInstanceProperties;
 
   /**
    *
    * @param {CrossInstanceMessenger} messenger
-   * @param {String} leaderInstanceId
+   * @param {Properties} leaderInstanceProperties
    */
-  constructor(messenger, leaderInstanceId) {
+  constructor(messenger, leaderInstanceProperties) {
     super();
     this._messenger = messenger;
-    this._leaderInstanceId = leaderInstanceId;
+    this._leaderInstanceProperties = leaderInstanceProperties;
   }
 
   /**
    * @private
    */
   _sendToLeader(methodName, args) {
-    this._messenger.callProxyMethod(this._leaderInstanceId, ProxyMethodCallTarget.LEADER, methodName, args);
+    this._messenger.callProxyMethod(this._leaderInstanceProperties.id, ProxyMethodCallTarget.LEADER, methodName, args);
   }
 
   updateConsent(consentData) {
@@ -198,37 +212,63 @@ export class ProxyLeader extends Leader {
   updateFetchIdData(instanceId, fetchIdData) {
     this._sendToLeader('updateFetchIdData', [instanceId, fetchIdData]);
   }
+
+  getProperties() {
+    return this._leaderInstanceProperties;
+  }
 }
 
 export class AwaitedLeader extends Leader {
   _callsQueue = [];
+  _assignedLeader;
 
   updateConsent(consentData) {
-    this._add('updateConsent', [consentData]);
+    this._callOrBuffer('updateConsent', [consentData]);
   }
 
   updateFetchIdData(instanceId, fetchIdData) {
-    this._add('updateFetchIdData', [instanceId, fetchIdData]);
+    this._callOrBuffer('updateFetchIdData', [instanceId, fetchIdData]);
   }
 
   refreshUid(refreshOptions) {
-    this._add('refreshUid', [refreshOptions]);
+    this._callOrBuffer('refreshUid', [refreshOptions]);
   }
 
-  _add(name, args) {
-    this._callsQueue.push({
-      name: name,
-      args: args
-    });
+  addFollower(follower) {
+    this._callOrBuffer('addFollower', [follower]);
+  }
+
+  getProperties() {
+    if (this._assignedLeader) {
+      return this._assignedLeader.getProperties();
+    }
+    return undefined;
   }
 
   /**
    *
    * @param {Leader} newLeader
    */
-  transferOfPower(newLeader) {
+  assignLeader(newLeader) {
+    this._assignedLeader = newLeader;
     for (const methodCall of this._callsQueue) {
-      newLeader[methodCall.name](...methodCall.args);
+      this._callAssignedLeader(methodCall.name, methodCall.args);
     }
+    this._callsQueue = [];
+  }
+
+  _callOrBuffer(name, args) {
+    if (this._assignedLeader) {
+      this._callAssignedLeader(name, args);
+    } else { // add to queue
+      this._callsQueue.push({
+        name: name,
+        args: args
+      });
+    }
+  }
+
+  _callAssignedLeader(methodName, methodArgs) {
+    this._assignedLeader[methodName](...methodArgs);
   }
 }

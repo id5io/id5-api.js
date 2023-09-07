@@ -104,15 +104,10 @@ export class ProxyMethodCallHandler {
 
   /**
    *
-   * @param {CrossInstanceMessenger} messenger
    * @param logger
    */
-  constructor(messenger, logger = NoopLogger) {
+  constructor(logger = NoopLogger) {
     this._log = logger;
-    const handler = this;
-    messenger.onMessage(ProxyMethodCallMessage.TYPE, message => {
-      handler._handle(Object.assign(new ProxyMethodCallMessage(), message.payload));
-    });
   }
 
   /**
@@ -120,10 +115,10 @@ export class ProxyMethodCallHandler {
    * @param {string} target
    * @param {Object} targetObject
    */
-  register(target, targetObject) {
+  registerTarget(target, targetObject) {
     this._targets[target] = targetObject;
+    return this;
   }
-
   /**
    *
    * @param {ProxyMethodCallMessage} proxyMethodCallMessage
@@ -297,5 +292,16 @@ export class CrossInstanceMessenger {
   callProxyMethod(dst, target, name, args) {
     this._log.info('Calling ProxyMethodCall', {target, name, args});
     this.unicastMessage(dst, new ProxyMethodCallMessage(target, name, args), ProxyMethodCallMessage.TYPE);
+  }
+
+  /**
+   *
+   * @param {ProxyMethodCallHandler} handler
+   * @return {CrossInstanceMessenger}
+   */
+  onProxyMethodCall(handler) {
+    return this.onMessage(ProxyMethodCallMessage.TYPE, message => {
+      handler._handle(Object.assign(new ProxyMethodCallMessage(), message.payload));
+    });
   }
 }

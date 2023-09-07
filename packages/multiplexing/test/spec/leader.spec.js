@@ -7,6 +7,7 @@ import {AwaitedLeader, ActualLeader, Leader, ProxyLeader} from '../../src/leader
 import {UidFetcher} from "../../src/fetch.js";
 import {ApiEvent, ConsentManagement, NoopLogger} from '../../src/index.js';
 import {Follower} from '../../src/follower.js';
+import {Properties} from "../../src/instance.js";
 
 chai.use(sinonChai);
 
@@ -18,12 +19,12 @@ describe('ProxyLeader', function () {
   /**
    * @type ProxyLeader
    */
-  let leaderProxy;
+  let leader;
   const leaderId = 'LEADER_ID';
-
+  const leaderProperties = new Properties(leaderId);
   beforeEach(function () {
     messenger = sinon.createStubInstance(CrossInstanceMessenger);
-    leaderProxy = new ProxyLeader(messenger, leaderId);
+    leader = new ProxyLeader(messenger, leaderProperties);
   });
 
   it('should sent message to call consnetData', function () {
@@ -31,7 +32,7 @@ describe('ProxyLeader', function () {
     const consentData = sinon.stub();
 
     // when
-    leaderProxy.updateConsent(consentData);
+    leader.updateConsent(consentData);
 
     // then
     expect(messenger.callProxyMethod).to.have.been.calledWith(leaderId, ProxyMethodCallTarget.LEADER, 'updateConsent', [consentData]);
@@ -42,7 +43,7 @@ describe('ProxyLeader', function () {
     const forceFetch = sinon.stub();
 
     // when
-    leaderProxy.refreshUid(forceFetch);
+    leader.refreshUid(forceFetch);
 
     // then
     expect(messenger.callProxyMethod).to.have.been.calledWith(leaderId, ProxyMethodCallTarget.LEADER, 'refreshUid', [forceFetch]);
@@ -53,10 +54,15 @@ describe('ProxyLeader', function () {
     const fetchData = sinon.stub();
 
     // when
-    leaderProxy.updateFetchIdData('id', fetchData);
+    leader.updateFetchIdData('id', fetchData);
 
     // then
     expect(messenger.callProxyMethod).to.have.been.calledWith(leaderId, ProxyMethodCallTarget.LEADER, 'updateFetchIdData', ['id', fetchData]);
+  });
+
+  it('should return properties when asked', function () {
+    // when/then
+    expect(leader.getProperties()).to.be.eq(leaderProperties);
   });
 });
 
@@ -67,6 +73,7 @@ describe('AwaitedLeader', function () {
     const consentData = sinon.stub();
     const fetchData = sinon.stub();
     const refreshOptions = sinon.stub();
+    const follower = sinon.stub();
 
     const awaitedLeader = new AwaitedLeader();
     const newLeader = sinon.createStubInstance(Leader);
@@ -75,7 +82,8 @@ describe('AwaitedLeader', function () {
     awaitedLeader.updateConsent(consentData);
     awaitedLeader.refreshUid(refreshOptions);
     awaitedLeader.updateFetchIdData('1', fetchData);
-    awaitedLeader.transferOfPower(newLeader);
+    awaitedLeader.assignLeader(newLeader);
+    awaitedLeader.addFollower(follower);
 
     // then
     expect(newLeader.updateConsent).to.have.been.calledWith(consentData);
@@ -83,6 +91,66 @@ describe('AwaitedLeader', function () {
     expect(newLeader.refreshUid).to.have.been.calledWith(refreshOptions);
     expect(newLeader.refreshUid).to.have.been.calledBefore(newLeader.updateFetchIdData);
     expect(newLeader.updateFetchIdData).to.have.been.calledWith('1', fetchData);
+    expect(newLeader.addFollower).to.have.been.calledWith(follower);
+    expect(awaitedLeader._assignedLeader).is.eq(newLeader);
+    expect(awaitedLeader._callsQueue).has.length(0);
+  });
+
+
+  it('should directly call assigned leader', function () {
+    // given
+    const consentData = sinon.stub();
+    const fetchData = sinon.stub();
+    const refreshOptions = sinon.stub();
+    const follower = sinon.stub();
+
+    const awaitedLeader = new AwaitedLeader();
+    const assignedLeader = sinon.createStubInstance(Leader);
+    awaitedLeader.assignLeader(assignedLeader);
+
+    // when
+    assignedLeader.updateConsent(consentData);
+
+    // then
+    expect(assignedLeader.updateConsent).to.have.been.calledWith(consentData);
+    expect(awaitedLeader._callsQueue).has.length(0);
+
+    // when
+    awaitedLeader.refreshUid(refreshOptions);
+
+    // then
+    expect(assignedLeader.refreshUid).to.have.been.calledWith(refreshOptions);
+    expect(awaitedLeader._callsQueue).has.length(0);
+
+    // when
+    awaitedLeader.updateFetchIdData('1', fetchData);
+
+    // then
+    expect(assignedLeader.updateFetchIdData).to.have.been.calledWith('1', fetchData);
+    expect(awaitedLeader._callsQueue).has.length(0);
+
+    // when
+    awaitedLeader.addFollower(follower);
+
+    // then
+    expect(assignedLeader.addFollower).to.have.been.calledWith(follower);
+    expect(awaitedLeader._callsQueue).has.length(0);
+  });
+
+  it('returns assigned leader properties', function () {
+    const awaitedLeader = new AwaitedLeader();
+    const leader = sinon.createStubInstance(Leader);
+    const properties = {id: 'a'};
+    leader.getProperties.returns(properties);
+
+    // then
+    expect(awaitedLeader.getProperties()).to.be.undefined;
+
+    // when
+    awaitedLeader.assignLeader(leader);
+
+    // then
+    expect(awaitedLeader.getProperties()).to.be.eq(properties);
   });
 });
 
@@ -125,6 +193,8 @@ describe('ActualLeader', () => {
   let follower2Id = '2';
   let follower3Id = '3';
 
+  let leaderProperties = new Properties('leaderId');
+
   beforeEach(() => {
     uidFetcher = sinon.createStubInstance(UidFetcher);
     consentManager = sinon.createStubInstance(ConsentManagement);
@@ -137,13 +207,15 @@ describe('ActualLeader', () => {
     follower3 = sinon.createStubInstance(Follower);
     follower3.getId.returns(follower3Id);
     follower3.getFetchIdData.returns(follower3FetchIdData);
-    leader = new ActualLeader(uidFetcher, consentManager, [follower1, follower2], NoopLogger);
+    leader = new ActualLeader(uidFetcher, consentManager, leaderProperties, NoopLogger);
   });
 
   it('should getId on start and notify followers when uid ready', function () {
 
     // given
     const uid = sinon.stub();
+    leader.addFollower(follower1);
+    leader.addFollower(follower2);
 
     // when
     leader.start();
@@ -171,6 +243,8 @@ describe('ActualLeader', () => {
 
     // given
     const uid = sinon.stub();
+    leader.addFollower(follower1);
+    leader.addFollower(follower2);
 
     // when
     leader._dispatcher.emit(ApiEvent.USER_ID_READY, uid);
@@ -207,6 +281,9 @@ describe('ActualLeader', () => {
   it('should notify followers when uid canceled', function () {
 
     // given
+    leader.addFollower(follower1);
+    leader.addFollower(follower2);
+
     const dispatcher = leader._dispatcher;
     const cancel = {
       reason: 'no consent'
@@ -221,6 +298,10 @@ describe('ActualLeader', () => {
   });
 
   it('should refresh uid ', function () {
+
+    // given
+    leader.addFollower(follower1);
+    leader.addFollower(follower2);
 
     // when
     leader.refreshUid();
@@ -240,6 +321,10 @@ describe('ActualLeader', () => {
 
   [true, false, undefined].forEach(forceAllowLocalStorageGrant => {
     it(`should refresh uid and reset consent if required forceAllowLocalStorageGrant=${forceAllowLocalStorageGrant}`, function () {
+
+      // given
+      leader.addFollower(follower1);
+      leader.addFollower(follower2);
 
       // when
       leader.refreshUid({
@@ -262,6 +347,10 @@ describe('ActualLeader', () => {
   });
 
   it('should refresh uid with force fetch', function () {
+    // given
+    leader.addFollower(follower1);
+    leader.addFollower(follower2);
+
     // when
     leader.refreshUid({
       forceFetch: true
@@ -292,12 +381,16 @@ describe('ActualLeader', () => {
   });
 
   it('should update follower data', function () {
+    // given
+    leader.addFollower(follower1);
+    leader.addFollower(follower2);
+
     // when
     leader.updateFetchIdData(follower2Id, {updated: 'data'})
-    leader.refreshUid();
 
     // then
     expect(follower2.updateFetchIdData).to.be.calledWith({updated: 'data'});
+    expect(follower1.updateFetchIdData).to.not.be.called;
   });
 
   it('should notify about cascade if eligible follower present', function () {
@@ -315,8 +408,10 @@ describe('ActualLeader', () => {
       stack: ['top']
     };
 
-    leader = new ActualLeader(uidFetcher, consentManager, [follower1, follower2, follower3]);
     const cascade = sinon.stub();
+    leader.addFollower(follower1);
+    leader.addFollower(follower2);
+    leader.addFollower(follower3);
 
     // when
     leader._dispatcher.emit(ApiEvent.CASCADE_NEEDED, cascade);
@@ -330,4 +425,8 @@ describe('ActualLeader', () => {
     expect(follower3.notifyCascadeNeeded).to.have.been.calledWith(cascade);
   });
 
+  it('should return properties when asked', function () {
+    // when/then
+    expect(leader.getProperties()).to.be.eq(leaderProperties);
+  });
 });
