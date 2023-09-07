@@ -505,7 +505,7 @@ export class Instance {
         // to let it know in case this instance is the leader and before joining instance is added to followers
         // in case uid is ready, the leader will try to deliver it but follower may not be ready to receive/handle msg
         this._messenger.sendResponseMessage(message, this._createHelloMessage(true), HelloMessage.TYPE);
-        if (this.role !== Role.UNKNOWN) { // after election
+        if (this._mode === OperatingMode.MULTIPLEXING && this.role !== Role.UNKNOWN) { // after election
           this._handleLateJoiner(joiningInstance);
         }
       } else { // response from earlier loaded instance
@@ -558,7 +558,7 @@ export class Instance {
       election: this._election._state,
       isFirst: lateJoinersCount === 1
     }).record(performance.now() - this._election._closeTime);
-    if (this._mode === OperatingMode.MULTIPLEXING && newInstance.isMultiplexingPartyAllowed() && this.role === Role.LEADER) {
+    if (newInstance.isMultiplexingPartyAllowed() && this.role === Role.LEADER) {
       this._leader.addFollower(new ProxyFollower(newInstance, this._messenger));
     }
   }
