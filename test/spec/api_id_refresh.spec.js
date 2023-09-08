@@ -60,7 +60,7 @@ describe('Refresh ID Fetch Handling', function () {
     beforeEach(function () {
       multiplexingStub = new MultiplexingStub();
       multiplexingStub.interceptInstance(instance => {
-        getIdSpy = sinon.spy(instance, '_getId')
+        getIdSpy = sinon.spy(instance._uidFetcher, 'getId')
         return instance;
       })
     });
@@ -272,7 +272,7 @@ describe('Refresh ID Fetch Handling', function () {
     beforeEach(function () {
       multiplexingStub = new MultiplexingStub();
       multiplexingStub.interceptInstance(instance => {
-        getIdSpy = sinon.spy(instance, '_getId')
+        getIdSpy = sinon.spy(instance._uidFetcher, 'getId')
         return instance;
       })
     });

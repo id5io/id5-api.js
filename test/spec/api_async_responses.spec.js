@@ -46,7 +46,7 @@ describe('Async Responses', function () {
   beforeEach(function () {
     multiplexingStub = new MultiplexingStub();
     createInstanceStub = multiplexingStub.interceptInstance(instance => {
-      sinon.stub(instance, '_getId'); // bypass leader _getId
+      sinon.stub(instance._uidFetcher, 'getId'); // bypass leader _getId
       return instance;
     })
     clock = sinon.useFakeTimers(Date.now());

@@ -1,5 +1,6 @@
 import {NoopLogger} from './logger.js';
 
+const ANY_MSG_TYPE = '*';
 export const DST_BROADCAST = undefined;
 
 export class Id5Message {
@@ -54,6 +55,89 @@ export class Id5MessageFactory {
   }
 }
 
+export class HelloMessage {
+  static TYPE = 'HelloMessage';
+  /**
+   * @type {Properties}
+   */
+  instance;
+  /**
+   * @type {InstanceState}
+   */
+  instanceState;
+  /**
+   * @type {boolean}
+   */
+  isResponse;
+
+  /**
+   *
+   * @param {boolean} isResponse
+   * @param {Properties} instance
+   * @param {Object} instanceState
+   */
+  constructor(instance, isResponse = false, instanceState = undefined) {
+    this.instance = instance;
+    this.instanceState = instanceState;
+    this.isResponse = isResponse;
+  }
+}
+
+export const ProxyMethodCallTarget = Object.freeze({
+  LEADER: 'leader',
+  FOLLOWER: 'follower'
+});
+
+export class ProxyMethodCallMessage {
+  static TYPE = 'RemoteMethodCallMessage';
+  target;
+  methodName;
+  methodArguments;
+
+  constructor(target, methodName, methodArguments) {
+    this.target = target;
+    this.methodName = methodName;
+    this.methodArguments = methodArguments;
+  }
+}
+
+export class ProxyMethodCallHandler {
+  _targets = {};
+  _log;
+
+  /**
+   *
+   * @param logger
+   */
+  constructor(logger = NoopLogger) {
+    this._log = logger;
+  }
+
+  /**
+   *
+   * @param {string} target
+   * @param {Object} targetObject
+   */
+  registerTarget(target, targetObject) {
+    this._targets[target] = targetObject;
+    return this;
+  }
+  /**
+   *
+   * @param {ProxyMethodCallMessage} proxyMethodCallMessage
+   */
+  _handle(proxyMethodCallMessage) {
+    const target = this._targets[proxyMethodCallMessage.target];
+    if (target) {
+      try {
+        target[proxyMethodCallMessage.methodName](...proxyMethodCallMessage.methodArguments);
+      } catch (e) {
+        this._log.error('Error while handling method call ', proxyMethodCallMessage, e);
+      }
+    }
+  }
+}
+
 export class CrossInstanceMessenger {
   /**
    * @type {string}
@@ -84,6 +168,7 @@ export class CrossInstanceMessenger {
     this._messageFactory = new Id5MessageFactory(this._id);
     this._log = logger;
     this._window = window;
+    this._handlers = {};
     this._register();
   }
 
@@ -97,7 +182,7 @@ export class CrossInstanceMessenger {
     const abortSignal = messenger._abortController?.signal;
     const handleMessage = (event) => {
       let msg = event.data;
-      if (msg !== undefined && msg._isId5Message) { // is ID5 message
+      if (event.data !== undefined && event.data._isId5Message) { // is ID5 message
         if (event.data.src === messenger._id) { // is loopback message
           messenger._log.debug(`Ignore loopback msg`);
           return;
@@ -106,9 +191,16 @@ export class CrossInstanceMessenger {
           messenger._log.debug(`Ignore msg not to me`);
           return;
         }
-        if (messenger._onMessageCallBackFunction && typeof messenger._onMessageCallBackFunction === 'function') {
-          // TODO add window from msg was received - response will not have to broadcast
-          messenger._onMessageCallBackFunction(msg);
+        try {
+          [ANY_MSG_TYPE, msg.type].forEach(type => {
+            let handlers = messenger._handlers[type];
+            if (handlers) {
+              // TODO add window which msg was received from - response will not have to broadcast
+              handlers.forEach(handler => handler(msg, event.source));
+            }
+          });
+        } catch (e) {
+          messenger._log.error('Error while handling message', msg, e);
         }
       }
     };
@@ -128,8 +220,23 @@ export class CrossInstanceMessenger {
    *
    * @param {function} onMessageCallback
    */
-  onMessageReceived(onMessageCallback) {
-    this._onMessageCallBackFunction = onMessageCallback;
+  onAnyMessage(onMessageCallback) {
+    return this.onMessage(ANY_MSG_TYPE, onMessageCallback);
+  }
+
+  /**
+   *
+   * @param {String} messageType
+   * @param {Function<Object>} handler - message handler
+   */
+  onMessage(messageType, handler) {
+    const typeHandlers = this._handlers[messageType];
+    if (typeHandlers) {
+      typeHandlers.push(handler);
+    } else {
+      this._handlers[messageType] = [handler];
+    }
+    return this;
   }
 
   broadcastMessage(payload, type) {
@@ -143,7 +250,7 @@ export class CrossInstanceMessenger {
   }
 
   unicastMessage(dst, payload, type = payload.constructor.name) {
-    this._log.debug('Sending response to', dst, type, payload);
+    this._log.debug('Sending message to', dst, type, payload);
     this._postMessage(this._messageFactory.createUnicastMessage(dst, payload, type));
   }
 
@@ -183,5 +290,21 @@ export class CrossInstanceMessenger {
       }
     };
     broadcastMessage(messenger._window.top);
+  }
+
+  callProxyMethod(dst, target, name, args) {
+    this._log.info('Calling ProxyMethodCall', {target, name, args});
+    this.unicastMessage(dst, new ProxyMethodCallMessage(target, name, args), ProxyMethodCallMessage.TYPE);
+  }
+
+  /**
+   *
+   * @param {ProxyMethodCallHandler} handler
+   * @return {CrossInstanceMessenger}
+   */
+  onProxyMethodCall(handler) {
+    return this.onMessage(ProxyMethodCallMessage.TYPE, message => {
+      handler._handle(Object.assign(new ProxyMethodCallMessage(), message.payload));
+    });
   }
 }

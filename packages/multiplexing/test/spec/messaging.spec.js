@@ -1,8 +1,28 @@
+import * as chai from 'chai';
 import {expect} from 'chai';
-import {CrossInstanceMessenger, Id5Message, Id5MessageFactory} from "../../src/messaging.js";
 import sinon from 'sinon';
+import sinonChai from 'sinon-chai';
+import {
+  CrossInstanceMessenger,
+  Id5Message,
+  Id5MessageFactory,
+  ProxyMethodCallHandler,
+  ProxyMethodCallTarget,
+  ProxyMethodCallMessage, HelloMessage
+} from '../../src/messaging.js';
+
+chai.use(sinonChai);
 
 class Hello {
+}
+
+function messageReceivedPromise(messanger) {
+  return new Promise((resolve, reject) => {
+    messanger.onAnyMessage((message) => {
+      resolve(message);
+    })
+    setTimeout(reject, 1000);
+  });
 }
 
 describe('Id5MessageFactory', function () {
@@ -103,19 +123,9 @@ describe('CrossInstanceMessenger', function () {
 
     let messengerB = new CrossInstanceMessenger('b', window);
 
-    let receivedByA = new Promise((resolve, reject) => {
-      messengerA.onMessageReceived((message) => {
-        resolve(message)
-      });
-      setTimeout(reject, 1000);
-    });
+    let receivedByA = messageReceivedPromise(messengerA);
 
-    let receivedByB = new Promise((resolve, reject) => {
-      messengerB.onMessageReceived((message) => {
-        resolve(message);
-      })
-      setTimeout(reject, 1000);
-    });
+    let receivedByB = messageReceivedPromise(messengerB);
 
     // when
     messengerA.broadcastMessage(new Hello());
@@ -139,14 +149,10 @@ describe('CrossInstanceMessenger', function () {
 
     let responder = new CrossInstanceMessenger('b', window);
 
-    let receivedBySender = new Promise((resolve, reject) => {
-      sender.onMessageReceived((message) => {
-        resolve(message);
-      });
-    });
+    let receivedBySender = messageReceivedPromise(sender);
 
     // when
-    responder.onMessageReceived((message) => {
+    responder.onAnyMessage((message) => {
       responder.sendResponseMessage(message, {
         request: message.payload,
       }, message.type + '-response');
@@ -177,7 +183,7 @@ describe('CrossInstanceMessenger', function () {
     let firstId5Message = messageFactory.createBroadcastMessage(new Hello());
     let secondId5Message = messageFactory.createBroadcastMessage('END', 'END');
     let receivedId5Message = new Promise((resolve, _) => {
-      messengerA.onMessageReceived((message) => {
+      messengerA.onAnyMessage((message) => {
         if (message.payload === 'END') {
           resolve(message)
         }
@@ -206,19 +212,9 @@ describe('CrossInstanceMessenger', function () {
     let messengerC = new CrossInstanceMessenger('c', window)
 
 
-    let receivedByA = new Promise((resolve, reject) => {
-      messengerA.onMessageReceived((message) => {
-        resolve(message)
-      });
-      setTimeout(reject, 1000);
-    });
+    let receivedByA = messageReceivedPromise(messengerA);
 
-    let receivedByB = new Promise((resolve, reject) => {
-      messengerB.onMessageReceived((message) => {
-        resolve(message);
-      })
-      setTimeout(reject, 1000);
-    });
+    let receivedByB = messageReceivedPromise(messengerB);
 
     // when
     messengerC.unicastMessage('a', 'MESSAGE_TO_A');
@@ -237,6 +233,182 @@ describe('CrossInstanceMessenger', function () {
         expect(msg.payload).is.eq('MESSAGE_TO_B');
       })]
     );
+  });
+
+  it('should send proxy method call', function () {
+    let messengerA = new CrossInstanceMessenger('a', window);
+    let messengerB = new CrossInstanceMessenger('b', window);
+
+
+    let pmcMessageReceived = messageReceivedPromise(messengerB);
+
+    // when
+    messengerA.callProxyMethod('b', ProxyMethodCallTarget.FOLLOWER, 'someMethod', ['arg1', 2, {arg: 3}, ['arg4']]);
+
+    // then
+    return pmcMessageReceived.then(message => {
+      expect(message.payload).is.eql({
+        target: ProxyMethodCallTarget.FOLLOWER,
+        methodName: 'someMethod',
+        methodArguments: ['arg1', 2, {arg: 3}, ['arg4']]
+      });
+    })
+  });
+
+  it('should handle callback for specific message type', function () {
+    // given
+    let messengerA = new CrossInstanceMessenger('a', window);
+    let messengerB = new CrossInstanceMessenger('b', window);
+    let hello = new HelloMessage({id: 'a'}, true, {id: 'leader'});
+
+    let messageReceived = new Promise((resolve, reject) => {
+      messengerB.onMessage(HelloMessage.TYPE, msg => resolve(msg))
+    });
+
+    // when
+    messengerA.unicastMessage('b', hello, HelloMessage.TYPE);
+
+    // then
+    return messageReceived.then(message => {
+      expect(message.type).to.be.eql(HelloMessage.TYPE);
+      expect(message.src).to.be.eql('a');
+      expect(message.payload).to.be.eql(hello);
+    });
+  });
+
+  it('should handle callback for specific message type and any', function () {
+    // given
+    let messengerA = new CrossInstanceMessenger('a', window);
+    let messengerB = new CrossInstanceMessenger('b', window);
+    let hello = new HelloMessage({id: 'a'}, true, {id: 'leader'});
+
+    let onAnyReceived = new Promise((resolve, reject) => {
+      messengerB.onAnyMessage(msg => resolve(msg))
+    });
+    let onTypeReceived = new Promise((resolve, reject) => {
+      messengerB.onMessage(HelloMessage.TYPE, msg => resolve(msg))
+    });
+    // when
+    messengerA.unicastMessage('b', hello, HelloMessage.TYPE);
+
+    // then
+    return Promise.all([onAnyReceived, onTypeReceived]).then(messages => {
+      messages.forEach(message => {
+        expect(message.type).to.be.eql(HelloMessage.TYPE);
+        expect(message.src).to.be.eql('a');
+        expect(message.payload).to.be.eql(hello);
+      });
+    });
+  });
+
+  it('should handle multiple callbacks for specific message type', function () {
+    // given
+    let messengerA = new CrossInstanceMessenger('a', window);
+    let messengerB = new CrossInstanceMessenger('b', window);
+    let hello = new HelloMessage({id: 'a'}, true, {id: 'leader'});
+
+    let handlerACalled = new Promise((resolve, reject) => {
+      messengerB.onMessage(HelloMessage.TYPE, msg => resolve(msg));
+    });
+    let handlerBCalled = new Promise((resolve, reject) => {
+      messengerB.onMessage(HelloMessage.TYPE, msg => resolve(msg));
+    });
+    // when
+    messengerA.unicastMessage('b', hello, HelloMessage.TYPE);
+
+    // then
+    return Promise.all([handlerACalled, handlerBCalled]).then(messages => {
+      messages.forEach(message => {
+        expect(message.type).to.be.eql(HelloMessage.TYPE);
+        expect(message.src).to.be.eql('a');
+        expect(message.payload).to.be.eql(hello);
+      });
+    });
+  });
+
+  it('should handle multiple callbacks for any message', function () {
+    // given
+    let messengerA = new CrossInstanceMessenger('a', window);
+    let messengerB = new CrossInstanceMessenger('b', window);
+    let hello = new HelloMessage({id: 'a'}, true, {id: 'leader'});
+
+    let handlerACalled = new Promise((resolve, reject) => {
+      messengerB.onAnyMessage(msg => resolve(msg));
+    });
+    let handlerBCalled = new Promise((resolve, reject) => {
+      messengerB.onAnyMessage(msg => resolve(msg));
+    });
+    // when
+    messengerA.unicastMessage('b', hello, HelloMessage.TYPE);
+
+    // then
+    return Promise.all([handlerACalled, handlerBCalled]).then(messages => {
+      messages.forEach(message => {
+        expect(message.type).to.be.eql(HelloMessage.TYPE);
+        expect(message.src).to.be.eql('a');
+        expect(message.payload).to.be.eql(hello);
+      });
+    });
+  });
+});
+
+describe('ProxyMethodCallHandler', function () {
+  /**
+   * @type {ProxyMethodCallHandler}
+   */
+  let handler;
+  beforeEach(() => {
+    handler = new ProxyMethodCallHandler();
+  });
+
+  it('should add target and call', () => {
+    // given
+    let followerTarget = sinon.spy({
+      someMethod: function () {
+      }
+    });
+
+    let leaderTarget = sinon.spy({
+      someMethod: function () {
+      }
+    });
+    handler
+      .registerTarget(ProxyMethodCallTarget.FOLLOWER, followerTarget)
+      .registerTarget(ProxyMethodCallTarget.LEADER, leaderTarget);
+
+    // when
+    handler._handle(new ProxyMethodCallMessage(ProxyMethodCallTarget.FOLLOWER, 'someMethod', ['arg1', 2]));
+    handler._handle(new ProxyMethodCallMessage(ProxyMethodCallTarget.LEADER, 'someMethod', [3, {prop: 'A'}]));
+
+    // then
+    expect(followerTarget.someMethod).have.been.calledWith('arg1', 2);
+    expect(leaderTarget.someMethod).have.been.calledWith(3, {prop: 'A'})
+  });
+
+  it('should be target exceptions resistant', () => {
+
+    // given
+    let leaderTarget = sinon.spy({
+      someMethod: function () {
+        throw  new Error();
+      }
+    });
+    handler.registerTarget(ProxyMethodCallTarget.LEADER, leaderTarget);
+
+    // when
+    handler._handle(new ProxyMethodCallMessage(ProxyMethodCallTarget.LEADER, 'someMethod', [3, {prop: 'A'}]));
+
+    // then
+    expect(leaderTarget.someMethod).have.been.calledWith(3, {prop: 'A'})
+  });
+
+  it('should ignore when no target', () => {
+    // given no targets registered
+
+    // when
+    handler._handle(new ProxyMethodCallMessage(ProxyMethodCallTarget.LEADER, 'someMethod', [3, {prop: 'A'}]));
+
+    // then nothing happens (expect no error)
   });
 
 });

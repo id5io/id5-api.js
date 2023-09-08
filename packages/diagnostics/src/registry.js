@@ -53,10 +53,12 @@ export class MeterRegistry {
   /**
    *
    * @param {Object} [commonTags] - common tags, default unknown
+   * @param {string} [commonPrefix] - common prefix added to each meter name in this registry
    */
-  constructor(commonTags = undefined) {
+  constructor(commonTags = undefined, commonPrefix = undefined) {
     this._registry = new Registry();
     this.commonTags = Tags.from(commonTags);
+    this.commonPrefix = commonPrefix;
   }
 
   /**
@@ -67,9 +69,10 @@ export class MeterRegistry {
    */
   getOrCreate(name, tags, createFn) {
     let mergedTags = {...tags, ...this.commonTags};
-    const key = `${name}[${Tags.toString(mergedTags)}]`;
+    let prefixedName = this.commonPrefix ? (this.commonPrefix + '.' + name) : name;
+    const key = `${prefixedName}[${Tags.toString(mergedTags)}]`;
     if (!this._registry.has(key)) {
-      this._registry.set(key, createFn(name, mergedTags));
+      this._registry.set(key, createFn(prefixedName, mergedTags));
     }
     return this._registry.get(key);
   }

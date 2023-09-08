@@ -9,9 +9,9 @@
 <script type="text/javascript" src="https://cdn.id5-sync.com/api/integration/id5-api.js"></script>
 <script>
 
-    const  leaderElectionCallback = function (instance) {
+    const leaderElectionCallback = function (instance) {
         return (role, leader) => {
-            window.fetch('https://instances.log/on-election', {
+            window.fetch('https://instances.log/on-election/singleton', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'text/plain'
@@ -21,12 +21,12 @@
                     location: window.location.href,
                     id: instance.properties.id,
                     role: role,
-                    leader: leader.id,
-                    knownInstances: Array.from(instance._knownInstances.keys())
+                    leader: leader.id
                 })
             });
         };
     };
+
     const uidCallback = function (status) {
         const instance = status.instance;
         const uid = status.getUserId();
@@ -44,7 +44,6 @@
             })
         });
     };
-
     ID5.debug = true;
 
     let id5Status = ID5.init(
@@ -68,14 +67,14 @@
                 publishingSampleRatio: 1,
                 publishOnWindowUnload: true
             },
-            segments: [{destination: '22', ids: ['abc']}],
             multiplexing: {
-                _disabled: false
+                _disabled: true
             }
         }
     ).onAvailable(uidCallback);
     const instance = id5Status.instance;
     instance.on('leader-elected', leaderElectionCallback(instance));
+
 </script>
 <iframe id="non-friendly-frame" src="https://non-friendly-stuff.com"></iframe>
 <iframe id="friendly-frame" src="https://my-publisher-website.net/multiple-integrations.html"></iframe>

@@ -1,14 +1,15 @@
-import sinon, {spy, stub} from 'sinon';
+import {spy, stub} from 'sinon';
 import chai, {expect} from 'chai';
 import sinonChai from 'sinon-chai';
 
 chai.should();
 chai.use(sinonChai);
-import {ConsentManagement} from '../../lib/consentManagement.js';
-import * as utils from '../../lib/utils.js';
-import CONSTANTS from '../../lib/constants.json';
-import {StorageConfig} from "../../lib/config.js";
-import {ConsentData, API_TYPE, GRANT_TYPE, LocalStorageGrant, NoopLogger} from "@id5io/multiplexing";
+import {ConsentManagement} from '../../src/consentManagement.js';
+import * as utils from '../../../../lib/utils.js';
+import CONSTANTS from '../../../../lib/constants.json';
+import {StorageConfig} from "../../../../lib/config.js";
+import {ConsentData, API_TYPE, GRANT_TYPE, LocalStorageGrant} from '../../src/consent.js';
+import {NoopLogger} from '../../src/logger.js';
 
 const STORAGE_CONFIG = new StorageConfig();
 
@@ -46,7 +47,7 @@ describe('Consent Management', function () {
         consentManagement.setConsentData(consentData);
         // then
         return consentDataPromise.then(consent => {
-            expect(consent).to.be.eq(consentData);
+            expect(consent).to.be.eql(consentData);
         });
     });
 
@@ -63,14 +64,32 @@ describe('Consent Management', function () {
         consentManagement.setConsentData(consentData);
         // then
         return consentDataPromise.then(consent => {
-            expect(consent).to.be.eq(consentData);
+            expect(consent).to.be.eql(consentData);
             consentManagement.resetConsentData(false);
             let promiseAfterReset = consentManagement.getConsentData();
             consentManagement.setConsentData(anotherConsentData);
             return promiseAfterReset;
         }).then(consent => {
-            expect(consent).to.be.eq(anotherConsentData);
+            expect(consent).to.be.eql(anotherConsentData);
         });
+    });
+
+    it('should assign to ConsentData class when set plain object ', () => {
+      const consentManagement = newConsentManagement(localStorageMock);
+
+      // when
+      let consentData = {
+        api: API_TYPE.TCF_V2,
+        consentString: 'consnetString',
+        ccpaString: 'ccpaString'
+      };
+      let consentDataPromise = consentManagement.getConsentData();
+      consentManagement.setConsentData(consentData);
+
+      // then
+      return consentDataPromise.then(consent => {
+        expect(consent).to.be.eql(Object.assign(new ConsentData(), consent));
+      });
     });
 
     describe('Provisional local storage access grant', function () {
@@ -143,17 +162,14 @@ describe('Consent Management', function () {
             const consentManagement = newConsentManagement(localStorageMock);
             let consentData = new ConsentData();
             consentData.api = API_TYPE.USP_V1;
-            let localStorageGrantStub = sinon.stub(consentData, 'localStorageGrant');
             let localStorageGrant = new LocalStorageGrant(true, GRANT_TYPE.CONSENT_API, API_TYPE.USP_V1);
-            localStorageGrantStub.returns(localStorageGrant);
             consentManagement.setConsentData(consentData);
 
             //when
             const result = consentManagement.localStorageGrant();
 
             // then
-            expect(localStorageGrantStub).to.be.called;
-            expect(result).to.be.equal(localStorageGrant);
+            expect(result).to.be.eql(localStorageGrant);
         });
 
         it(`allows local storage forced by config after reset`, function ()  {
@@ -161,16 +177,14 @@ describe('Consent Management', function () {
             const consentManagement = newConsentManagement(localStorageMock, false);
             let consentData = new ConsentData();
             consentData.api = API_TYPE.USP_V1;
-            let localStorageGrantStub = sinon.stub(consentData, 'localStorageGrant');
             let localStorageGrant = new LocalStorageGrant(true, GRANT_TYPE.CONSENT_API, API_TYPE.USP_V1);
-            localStorageGrantStub.returns(localStorageGrant);
             consentManagement.setConsentData(consentData);
 
             //when
             const result = consentManagement.localStorageGrant();
 
             // then
-            expect(result).to.be.equal(localStorageGrant);
+            expect(result).to.be.eql(localStorageGrant);
 
             // when
             consentManagement.resetConsentData(true);

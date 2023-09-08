@@ -2,30 +2,49 @@ import {ajax, isDefined, isGlobalTrace, isStr, objectEntries} from '../../../lib
 import {ApiEvent} from './apiEvent.js';
 import {startTimeMeasurement} from '@id5io/diagnostics';
 
+/* eslint-disable no-unused-vars */
+import {ConsentManager} from './consent.js';
+import {Store} from './store.js';
+/* eslint-ensable no-unused-vars */
+
 const HOST = 'https://id5-sync.com';
 
 export class UidFetcher {
-  /**
-   * @type {Logger}
-   * @private
-   */
-  _log;
   /**
    * @type {Store}
    */
   _store;
 
   /**
-   * @param {ApiEventsDispatcher} dispatcher
+   * @type {ConsentManager}
+   */
+  _consentManager;
+
+  /**
+   * @type {Extensions}
+   */
+  _extensionsProvider;
+
+  /**
+   * @type {MeterRegistry}
+   */
+  _metrics;
+
+  /**
+   * @type {Logger}
+   * @private
+   */
+  _log;
+
+  /**
    * @param {ConsentManager} consentManager
    * @param {Store} store
    * @param {MeterRegistry} metrics
    * @param {Logger} logger
    * @param {Extensions} extensions
    */
-  constructor(dispatcher, consentManager, store, metrics, logger, extensions) {
+  constructor(consentManager, store, metrics, logger, extensions) {
     this._store = store;
-    this._dispatcher = dispatcher;
     this._consentManager = consentManager;
     this._extensionsProvider = extensions;
     this._metrics = metrics;
@@ -34,14 +53,14 @@ export class UidFetcher {
 
   /**
    * This function get the user ID for the given config
+   * @param {ApiEventsDispatcher} dispatcher
    * @param {array<FetchIdData>} fetchIdData
    * @param {boolean} forceFetch - Force a call to server
    */
-  getId(fetchIdData, forceFetch = false) {
+  getId(dispatcher, fetchIdData, forceFetch = false) {
     const log = this._log;
     log.info('Get id', fetchIdData);
     const store = this._store;
-    const dispatcher = this._dispatcher;
     const consentManager = this._consentManager;
     const metrics = this._metrics;
     const localStorageGrant = consentManager.localStorageGrant();
@@ -70,7 +89,7 @@ export class UidFetcher {
     }
 
     log.info('Waiting for consent');
-    const waitForConsentTimer = metrics.timer('id5.api.fetch.consent.wait.time', {cachedResponseUsed});
+    const waitForConsentTimer = metrics.timer('fetch.consent.wait.time', {cachedResponseUsed});
     consentManager.getConsentData().then((consentData) => {
       log.info('Consent received', consentData);
       if (waitForConsentTimer) {
@@ -89,8 +108,10 @@ export class UidFetcher {
       storedDataState = store.getStoredDataState(fetchIdData, consentData);
       const consentHasChanged = storedDataState.consentHasChanged;
 
-      // store hashed consent data pd for future page loads
-      store.storeRequestData(consentData, fetchIdData);
+      // store hashed consent data pd for future page loads if local storage allowed
+      if (localStorageGrant.isDefinitivelyAllowed()) {
+        store.storeRequestData(consentData, fetchIdData);
+      }
 
       // make a call to fetch a new ID5 ID if:
       // - there is no valid universal_uid or no signature in cache
@@ -132,7 +153,7 @@ export class UidFetcher {
               instanceRequest.extensions = extensions;
               return instanceRequest;
             });
-            this.fetchFreshID5ID(requests, fetchIdData, consentData, forceFetch, cachedResponseUsed);
+            this.fetchFreshID5ID(dispatcher, requests, fetchIdData, consentData, forceFetch, cachedResponseUsed);
           });
       }
     });
@@ -235,19 +256,20 @@ export class UidFetcher {
 
   /**
    *
+   * @param {ApiEventsDispatcher} dispatcher
    * @param {array<Object>} requests
    * @param {array<FetchIdData>} fetchIdData
    * @param {ConsentData} consentData
    * @param {boolean} forceFetch
    * @param {boolean} cachedResponseUsed
    */
-  fetchFreshID5ID(requests, fetchIdData, consentData, forceFetch, cachedResponseUsed) {
+  fetchFreshID5ID(dispatcher, requests, fetchIdData, consentData, forceFetch, cachedResponseUsed) {
     const url = `${HOST}/gm/v2`;
     let fetchTimeMeasurement = startTimeMeasurement();
     const log = this._log;
     log.info(`Fetching ID5 ID (forceFetch:${forceFetch}) from:`, url, requests);
     ajax(url, {
-      success: this.handleSuccessfulFetchResponse(fetchIdData, cachedResponseUsed, consentData, fetchTimeMeasurement),
+      success: this.handleSuccessfulFetchResponse(dispatcher, fetchIdData, cachedResponseUsed, consentData, fetchTimeMeasurement),
       error: error => {
         log.error('Error during AJAX request to ID5 server', error);
         if (fetchTimeMeasurement) {
@@ -258,16 +280,15 @@ export class UidFetcher {
   }
 
   /**
-   *
+   * @param {ApiEventsDispatcher} dispatcher
    * @param {array<FetchIdData>} fetchIdData
-   * @param cachedResponseUsed
+   * @param {boolean} cachedResponseUsed
    * @param {ConsentData} consentData
-   * @param fetchTimeMeasurement
+   * @param {TimeMeasurement} fetchTimeMeasurement
    * @return {(function(*): void)|*}
    */
-  handleSuccessfulFetchResponse(fetchIdData, cachedResponseUsed, consentData, fetchTimeMeasurement) {
+  handleSuccessfulFetchResponse(dispatcher, fetchIdData, cachedResponseUsed, consentData, fetchTimeMeasurement) {
     const log = this._log;
-    const dispatcher = this._dispatcher;
     const consentManager = this._consentManager;
     const store = this._store;
     return response => {
@@ -294,7 +315,8 @@ export class UidFetcher {
 
         const localStorageGrant = consentManager.localStorageGrant();
         if (localStorageGrant.isDefinitivelyAllowed()) {
-          log.info('Storing ID in cache');
+          log.info('Storing ID and request hashes in cache');
+          store.storeRequestData(consentData, fetchIdData);
           store.storeResponse(fetchIdData, response, cachedResponseUsed);
         } else {
           log.info('Cannot use local storage to cache ID', localStorageGrant);
@@ -302,8 +324,7 @@ export class UidFetcher {
         }
 
         if (responseObj.cascade_needed === true && localStorageGrant.isDefinitivelyAllowed()) {
-          // TODO in real multiplexing delegate to only one in follower
-          // TODO maybe this should be handled upon ApiEvent.USER_ID_READY by follower
+          // TODO move it to leader class upon UID ready event ?
           dispatcher.emit(ApiEvent.CASCADE_NEEDED, {
             partnerId: fetchIdData[0].partnerId,
             consentString: consentData.consentString,

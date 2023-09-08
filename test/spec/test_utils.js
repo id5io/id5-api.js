@@ -138,6 +138,7 @@ export function defaultInit(partnerId = TEST_ID5_PARTNER_ID) {
     partnerId,
     disableUaHints: true,
     disableLiveIntentIntegration: true,
+    multiplexing: {_disabled: true}
   }
 }
 
@@ -172,14 +173,6 @@ export function resetAllInLocalStorage() {
   localStorage.removeItemWithExpiration(TEST_PD_STORAGE_CONFIG);
   localStorage.removeItemWithExpiration(TEST_CONSENT_DATA_STORAGE_CONFIG);
   localStorage.removeItemWithExpiration(TEST_NB_STORAGE_CONFIG);
-}
-
-export function stubDelayedResponse(response) {
-  return function (url, callbacks, data, options) {
-    setTimeout(() => {
-      callbacks.success(response);
-    }, AJAX_RESPONSE_MS);
-  };
 }
 
 /**
@@ -234,7 +227,7 @@ export class MultiplexingStub {
 
   interceptInstance(interceptor) {
     const thisStub = this;
-    this.stubCreate.callsFake((...args)=> {
+    this.stubCreate.callsFake((...args) => {
       return interceptor(thisStub.realCreate(...args));
     })
   }

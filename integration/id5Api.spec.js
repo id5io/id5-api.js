@@ -25,16 +25,16 @@ const ID5_ESP_JS_FILE = path.join(SCRIPT_DIR, '..', 'build', 'dist', 'esp.js');
 
 const DAYS_TO_MILLISECONDS = (60 * 60 * 24 * 1000);
 const MOCK_FETCH_RESPONSE = {
-  'created_at': '2021-05-26T20:08:13Z',
-  'id5_consent': true,
-  'universal_uid': 'ID5-ZHMOQ99ulpk687Fd9xVwzxMsYtkQIJnI-qm3iWdtww!ID5*LTzsUTSrz4juTlKvKoO0brhnjXyuZIGHv44Iqf4TzN0AAGwYr9heNFf7GF6QAMRq',
-  'signature': 'ID5_AQo_xCuSjJ3KsW8cOsbHs1d3AvFDad0XrupUgd5LBsLV0v0pXmrYt0AbE_8WeU_nRC2Bbmif8GPKtcHFpAl4wLo',
-  'cascade_needed': false,
-  'privacy': {
-    'jurisdiction': 'gdpr',
-    'id5_consent': true
+  created_at: '2021-05-26T20:08:13Z',
+  id5_consent: true,
+  universal_uid: 'ID5-ZHMOQ99ulpk687Fd9xVwzxMsYtkQIJnI-qm3iWdtww!ID5*LTzsUTSrz4juTlKvKoO0brhnjXyuZIGHv44Iqf4TzN0AAGwYr9heNFf7GF6QAMRq',
+  signature: 'ID5_AQo_xCuSjJ3KsW8cOsbHs1d3AvFDad0XrupUgd5LBsLV0v0pXmrYt0AbE_8WeU_nRC2Bbmif8GPKtcHFpAl4wLo',
+  cascade_needed: false,
+  privacy: {
+    jurisdiction: 'gdpr',
+    id5_consent: true
   },
-  'ext': {
+  ext: {
     'linkType': 2
   }
 };
@@ -314,8 +314,8 @@ describe('The ID5 API', function () {
           expect(onlyRequest.metadata).is.not.eq(undefined);
           expect(onlyRequest.metadata.sampling).is.eq(1);
           expect(onlyRequest.metadata.trigger).is.eq('fixed-time');
-          expect(onlyRequest.metadata.fixed_time_msec).is.eq(3000);
-          expect(onlyRequest.measurements.length).is.eq(11);
+          expect(onlyRequest.metadata.fixed_time_msec).is.eq(3100);
+          expect(onlyRequest.measurements.length).is.gte(12);
           const commonTags = {version: version, partner: '99', source: 'api', tml: 'https://my-publisher-website.net/'};
           verifyContainsMeasurementWithTags(onlyRequest.measurements, 'id5.api.instance.load.delay', 'TIMER', commonTags);
           verifyContainsMeasurementWithTags(onlyRequest.measurements, 'id5.api.invocation.count', 'SUMMARY', commonTags);
@@ -338,6 +338,7 @@ describe('The ID5 API', function () {
             ...commonTags,
             cachedResponseUsed: false
           });
+          verifyContainsMeasurement(onlyRequest.measurements, 'id5.api.instance.partySize', 'SUMMARY');
         });
     });
 
@@ -347,7 +348,7 @@ describe('The ID5 API', function () {
         .thenFromFile(200, TEST_PAGE_PATH);
       await server.forGet('https://lb.eu-1-id5-sync.com/lb/v1')
         .thenJson(200, MOCK_LB_RESPONSE, MOCK_CORS_HEADERS);
-      let fetchEndpoint = await server.forPost(FETCH_ENDPOINT)
+      const fetchEndpoint = await server.forPost(FETCH_ENDPOINT)
         .thenJson(200, MOCK_FETCH_RESPONSE, MOCK_CORS_HEADERS);
       await server.forGet('https://dummyimage.com/600x200')
         .thenReply(200, '');
@@ -366,7 +367,7 @@ describe('The ID5 API', function () {
           expect(onlyRequest.metadata).is.not.eq(undefined);
           expect(onlyRequest.metadata.sampling).is.eq(1);
           expect(onlyRequest.metadata.trigger).is.eq('beforeunload');
-          expect(onlyRequest.measurements.length).is.eq(11);
+          expect(onlyRequest.measurements.length).is.gte(12);
           const commonTags = {version: version, partner: '99', source: 'api', tml: 'https://my-publisher-website.net/'};
           verifyContainsMeasurementWithTags(onlyRequest.measurements, 'id5.api.instance.load.delay', 'TIMER', commonTags);
           verifyContainsMeasurementWithTags(onlyRequest.measurements, 'id5.api.invocation.count', 'SUMMARY', commonTags);
@@ -389,33 +390,47 @@ describe('The ID5 API', function () {
             ...commonTags,
             cachedResponseUsed: false
           });
+          verifyContainsMeasurement(onlyRequest.measurements, 'id5.api.instance.partySize', 'SUMMARY');
         });
     });
   });
 
   describe('with multiplexing enabled', function () {
     let electionNotifyEndpoint;
+    let lateJoinerElectionNotifyEndpoint;
     let diagnosticsEndpoint;
+    let fetchEndpoint;
+    let onAvailableEndpoint;
     beforeEach(async () => {
       const INDEX_PAGE_PATH = path.join(SCRIPT_DIR, 'resources', 'multiplexing', 'index.html');
+      const LATE_JOINER_INDEX_PAGE_PATH = path.join(SCRIPT_DIR, 'resources', 'multiplexing', 'index-latejoiner.html');
+      const SINGLETON_INDEX_PAGE = path.join(SCRIPT_DIR, 'resources', 'multiplexing', 'index-singleton.html');
       const NF_FRAME_PAGE_PATH = path.join(SCRIPT_DIR, 'resources', 'multiplexing', 'single-integration.html');
       const F_FRAME_PAGE_PATH = path.join(SCRIPT_DIR, 'resources', 'multiplexing', 'multiple-integrations.html');
 
       await server.forGet('https://my-publisher-website.net')
         .thenFromFile(200, INDEX_PAGE_PATH);
+      await server.forGet('https://my-publisher-website.net/late.html')
+        .thenFromFile(200, LATE_JOINER_INDEX_PAGE_PATH);
+      await server.forGet('https://my-publisher-website.net/singleton.html')
+        .thenFromFile(200, SINGLETON_INDEX_PAGE);
       await server.forGet('https://my-publisher-website.net/multiple-integrations.html')
         .thenFromFile(200, F_FRAME_PAGE_PATH);
       await server.forGet('https://non-friendly-stuff.com')
         .thenFromFile(200, NF_FRAME_PAGE_PATH);
       await server.forGet('https://lb.eu-1-id5-sync.com/lb/v1')
         .thenCallback(jsonWithCorsAllowed(MOCK_LB_RESPONSE));
-      await server.forPost(FETCH_ENDPOINT)
+      fetchEndpoint = await server.forPost(FETCH_ENDPOINT)
         .thenCallback(jsonWithCorsAllowed(MOCK_FETCH_RESPONSE));
       await server.forGet('https://dummyimage.com/600x200')
         .thenCallback(jsonWithCorsAllowed(''));
       diagnosticsEndpoint = await server.forPost('https://diagnostics.id5-sync.com/measurements')
         .thenCallback(jsonWithCorsAllowed('', 202));
       electionNotifyEndpoint = await server.forPost('https://instances.log/on-election')
+        .thenCallback(jsonWithCorsAllowed('', 202));
+      lateJoinerElectionNotifyEndpoint = await server.forPost('https://instances.log/on-late-joiner-election')
+        .thenCallback(jsonWithCorsAllowed('', 202));
+      onAvailableEndpoint = await server.forPost('https://instances.log/on-available')
         .thenCallback(jsonWithCorsAllowed('', 202));
     });
 
@@ -426,7 +441,6 @@ describe('The ID5 API', function () {
     it('all integrations eventually should get to know each other and elect the same leader', async () => {
       const page = await browser.newPage();
       await page.goto('https://my-publisher-website.net');
-
       // each instance calls endpoint and post details once leader elected
       return expectRequestsAt(electionNotifyEndpoint, 4)
         .then((requests) => {
@@ -452,6 +466,135 @@ describe('The ID5 API', function () {
             // knows each instance
             expect(new Set([i.id, ...i.knownInstances])).is.deep.eq(allIds);
           }
+          return expectMultiFetchRequests(fetchEndpoint, [allIds])
+            .then(() => {
+              return expectRequestsAt(onAvailableEndpoint, 4);
+            })
+            .then(onAvailableRequests => {
+              expect(onAvailableRequests).has.length(4);
+              return Promise.all(onAvailableRequests.map(rq => rq.body.getJson()));
+            }).then(onAvailBodies => {
+              const onAvailIds = new Set(onAvailBodies.map(i => i.id));
+              expect(allIds).to.be.eql(onAvailIds);
+              onAvailBodies.forEach(body => {
+                expect(body.uid).to.be.eql(MOCK_FETCH_RESPONSE.universal_uid);
+              });
+            });
+        });
+    });
+
+    it('instance operating in singleton mode should work on their own and not be joined to party', async () => {
+      const singletonElectionNotifyEndpoint = await server.forPost('https://instances.log/on-election/singleton')
+        .thenCallback(jsonWithCorsAllowed('', 202));
+      const page = await browser.newPage();
+      await page.goto('https://my-publisher-website.net/singleton.html');
+      // each instance calls endpoint and post details once leader elected
+
+      return expectRequestAt(singletonElectionNotifyEndpoint)
+        .then(singletonElectionRequests => {
+          expect(singletonElectionRequests).has.length(1);
+          return singletonElectionRequests[0].body.getJson();
+        }).then(singletonElectionInfo => {
+          const singletonId = singletonElectionInfo.id;
+          expect(singletonElectionInfo.leader).to.be.eql(singletonId);
+          return expectRequestsAt(electionNotifyEndpoint, 3)
+            .then((requests) => {
+              expect(requests).has.length(3);
+              return Promise.all(requests.map(rq => rq.body.getJson()));
+            })
+            .then(instances => {
+              const allMutiplexingPartyIds = new Set(instances.map(i => i.id));
+              // expect all ids are unique
+              expect(allMutiplexingPartyIds).has.length(3);
+
+              // expect all has the same leader
+              let leader = instances[0].leader;
+              // eslint-disable-next-line no-unused-expressions
+              expect(allMutiplexingPartyIds).to.be.not.empty;
+              expect(instances[1].leader).to.be.eq(leader);
+              expect(instances[2].leader).to.be.eq(leader);
+
+              expect(new Set(instances.map(i => i.role))).to.be.deep.eq(new Set(['leader', 'follower']));
+              const allInstancesOnPageIds = new Set(allMutiplexingPartyIds).add(singletonId);
+              for (const i of instances) {
+                expect(i.role).to.be.eq(i.id === leader ? 'leader' : 'follower');
+                // knows each instance including singleton
+                expect(new Set([i.id, ...i.knownInstances])).is.deep.eq(allInstancesOnPageIds);
+              }
+              const expectedMxRequestsParties = [
+                // 1st request with  only singleton
+                new Set([singletonId]),
+                // 2nd multiFetch request because singleton was w/o segments, multiplex instances have segments so trigger mf and not from cache
+                // 2nd request with mxPartyIds w/o singleton instance
+                allMutiplexingPartyIds
+              ];
+              return expectMultiFetchRequests(fetchEndpoint, expectedMxRequestsParties)
+                .then(() => expectRequestsAt(onAvailableEndpoint, 4))
+                .then(onAvailableRequests => {
+                  expect(onAvailableRequests).has.length(4); // all instances on the page have UID provisioned
+                  return Promise.all(onAvailableRequests.map(rq => rq.body.getJson()));
+                })
+                .then(onAvailBodies => {
+                  const onAvailIds = new Set(onAvailBodies.map(i => i.id));
+                  expect(onAvailIds).to.be.eql(allInstancesOnPageIds);
+                  onAvailBodies.forEach(body => {
+                    expect(body.uid).to.be.eql(MOCK_FETCH_RESPONSE.universal_uid);
+                  });
+                });
+            });
+        });
+    });
+
+    it('late joiner joins to party and inherits leader', async () => {
+      const page = await browser.newPage();
+      await page.goto('https://my-publisher-website.net/late.html');
+      // each instance calls endpoint and post details once leader elected
+      return expectRequestsAt(electionNotifyEndpoint, 3)
+        .then((requests) => {
+          expect(requests).has.length(3);
+          return Promise.all(requests.map(rq => rq.body.getJson()));
+        })
+        .then(instances => {
+          const allEarlyJoinersIds = new Set(instances.map(i => i.id));
+          // expect all ids are unique
+          expect(allEarlyJoinersIds).has.length(3);
+
+          // expect all has the same leader
+          const leader = instances[0].leader;
+          // eslint-disable-next-line no-unused-expressions
+          expect(allEarlyJoinersIds).to.be.not.empty;
+          expect(instances[1].leader).to.be.eq(leader);
+          expect(instances[2].leader).to.be.eq(leader);
+
+          expect(new Set(instances.map(i => i.role))).to.be.deep.eq(new Set(['leader', 'follower']));
+          for (const i of instances) {
+            expect(i.role).to.be.eq(i.id === leader ? 'leader' : 'follower');
+            // knows each instance
+            expect(new Set([i.id, ...i.knownInstances])).is.deep.eq(allEarlyJoinersIds);
+          }
+          return expectMultiFetchRequests(fetchEndpoint, [allEarlyJoinersIds])
+            .then(() => {
+              return expectRequestAt(lateJoinerElectionNotifyEndpoint)
+                .then(lateJoinerElectionRequests => {
+                  expect(lateJoinerElectionRequests).has.length(1);
+                  return lateJoinerElectionRequests[0].body.getJson();
+                }).then(lateJoinerElectionInfo => {
+                  expect(lateJoinerElectionInfo.leader).to.be.eql(leader); // leader inherited
+                  const lateJoinerId = lateJoinerElectionInfo.id;
+                  // then expect all including late joiner had uid provisioned
+                  return expectRequestsAt(onAvailableEndpoint, 4)
+                    .then(onAvailableRequests => {
+                      expect(onAvailableRequests).has.length(4);
+                      return Promise.all(onAvailableRequests.map(rq => rq.body.getJson()));
+                    }).then(onAvailBodies => {
+                      const onAvailIds = new Set(onAvailBodies.map(i => i.id));
+                      expect(onAvailIds).to.be.eql(allEarlyJoinersIds.add(lateJoinerId));
+                      onAvailBodies.forEach(body => {
+                        expect(body.uid).to.be.eql(MOCK_FETCH_RESPONSE.universal_uid);
+                      });
+                    });
+                });
+            });
         });
     });
 
@@ -477,10 +620,26 @@ describe('The ID5 API', function () {
             verifyContainsMeasurementWithValues(request.measurements, 'id5.api.instance.partners.count', 'COUNTER', [2]);
             verifyContainsMeasurement(request.measurements, 'id5.api.instance.message.delivery.time', 'TIMER');
             verifyContainsMeasurement(request.measurements, 'id5.api.instance.join.delay.time', 'TIMER');
+            verifyContainsMeasurement(request.measurements, 'id5.api.instance.lastJoin.delay', 'TIMER');
           }
         });
     });
   });
+
+  function expectMultiFetchRequests(endpoint, expectedParties) {
+    let expectedNumberOfrequests = expectedParties.length;
+    return expectRequestsAt(endpoint, expectedNumberOfrequests)
+      .then(multiFetchRequests => {
+        expect(multiFetchRequests).has.length(expectedNumberOfrequests);
+        return Promise.all(multiFetchRequests.map(rq => rq.body.getJson()));
+      })
+      .then(requestBodies => {
+        expect(requestBodies).has.length(expectedNumberOfrequests);
+        for (let i = 0; i < requestBodies.length; i++) {
+          expect(new Set(requestBodies[i].requests.map(rq => rq.requestId))).is.eql(expectedParties[i]);
+        }
+      });
+  }
 
   function verifyContainsMeasurementWithTags(measurements, name, type, tags = {}) {
     let measurement = verifyContainsMeasurement(measurements, name, type);
