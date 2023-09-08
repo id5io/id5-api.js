@@ -1,8 +1,20 @@
 import {expect} from 'chai';
 import sinon from 'sinon';
-import * as utils from '../../src/utils.js';
-import {ID5_LB_ENDPOINT, EXTENSIONS} from '../../src/extensions.js';
+import {EXTENSIONS, ID5_LB_ENDPOINT} from '../../src/extensions.js';
+import {InvocationLogger} from '../../../../lib/utils.js';
 
+
+function createFetchStub(lbResponse) {
+  return sinon.stub(window, 'fetch').callsFake(function (url) {
+    if (url.includes("eu-3-id5-sync.com")) {
+      return Promise.resolve(new window.Response("1", {status: 200}));
+    } else if (url.includes(ID5_LB_ENDPOINT)) {
+      return Promise.resolve(new window.Response(JSON.stringify(lbResponse), {status: 200}));
+    } else {
+      return Promise.reject("Error")
+    }
+  });
+}
 
 describe('Extensions', function () {
 
@@ -10,45 +22,59 @@ describe('Extensions', function () {
     lb: 'lbValue'
   }
 
-  let ajaxStub;
-
-  function verifyExtensionsCalled() {
-    sinon.assert.calledOnce(ajaxStub);
-    expect(ajaxStub.getCalls().map(value => value.args[0])).to.have.members([ID5_LB_ENDPOINT]);
-  }
+  let fetchStub;
 
   afterEach(function () {
-    ajaxStub.restore();
+    fetchStub.restore();
   })
 
-  it('should return all extensions gathered and default', function () {
-    ajaxStub = sinon.stub(utils, 'ajax').callsFake(function (url, callbacks, data, options) {
-      if (url.includes(ID5_LB_ENDPOINT)) {
-        callbacks.success(JSON.stringify(LB_EXTENSIONS));
-      } else {
-        callbacks.error("BOOM")
-      }
-    });
+  it('should return all extensions gathered and a default response', function () {
+    fetchStub = createFetchStub(LB_EXTENSIONS)
 
-    return EXTENSIONS.gather()
+    return EXTENSIONS.gather([{pd: "some"}],new InvocationLogger("1"))
       .then(response => {
-        verifyExtensionsCalled();
         expect(response).to.be.deep.equal({
           ...LB_EXTENSIONS,
+          lbCDN: '%%LB_CDN%%',
+          devChunks: Array.from({length: 8}, v => "1"),
+          devChunksVersion: "3"
+        });
+      });
+  });
+
+  it('should return only default when calls fail on http level', function () {
+    fetchStub = sinon.stub(window, 'fetch').callsFake(function (input) {
+      return Promise.resolve(new window.Response(null, {status: 500}));
+    });
+
+    return EXTENSIONS.gather([{pd: "some"}])
+      .then(response => {
+        expect(response).to.be.deep.equal({
           lbCDN: '%%LB_CDN%%'
         });
       });
   });
 
   it('should return only default when other fails', function () {
-    ajaxStub = sinon.stub(utils, 'ajax').callsFake(function (url, callbacks, data, options) {
-      callbacks.error("BOOM")
+    fetchStub = sinon.stub(window, 'fetch').callsFake(function (input) {
+      return Promise.reject("error");
     });
 
-    return EXTENSIONS.gather()
+    return EXTENSIONS.gather([{pd: "some"}])
       .then(response => {
-        verifyExtensionsCalled();
         expect(response).to.be.deep.equal({
+          lbCDN: '%%LB_CDN%%'
+        });
+      });
+  });
+
+  it('should call dev chunks only when there is pd in fetch data', function () {
+    fetchStub = createFetchStub(LB_EXTENSIONS);
+
+    return EXTENSIONS.gather([{pd: null}, {}])
+      .then(response => {
+        expect(response).to.be.deep.equal({
+          ...LB_EXTENSIONS,
           lbCDN: '%%LB_CDN%%'
         });
       });

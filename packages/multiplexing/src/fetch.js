@@ -143,7 +143,7 @@ export class UidFetcher {
           cachedResponseUsed
         });
         let extensionsCallTimeMeasurement = metrics?.extensionsCallTimer().startMeasurement();
-        this._extensionsProvider.gather(log)
+        this._extensionsProvider.gather(fetchIdData, log)
           .then(extensions => {
             if (extensionsCallTimeMeasurement) {
               extensionsCallTimeMeasurement.record();
