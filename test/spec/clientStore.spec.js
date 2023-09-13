@@ -5,7 +5,7 @@ import { API_TYPE, GRANT_TYPE, LocalStorageGrant, NoopLogger } from "@id5io/mult
 import ClientStore from "../../lib/clientStore";
 import LocalStorage from "../../lib/localStorage";
 import { StorageConfig } from '../../lib/config';
-import { STORED_JSON_LEGACY, LEGACY_RESPONSE } from './test_utils';
+import { JSON_RESPONSE_ID5_CONSENT, TEST_RESPONSE_ID5_CONSENT } from './test_utils';
 
 chai.use(sinonChai);
 
