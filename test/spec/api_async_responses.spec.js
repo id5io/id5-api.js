@@ -5,9 +5,9 @@ import {
   defaultInit,
   defaultInitBypassConsent,
   execSequence,
+  TEST_RESPONSE_ID5_CONSENT,
   JSON_RESPONSE_ID5_CONSENT,
   MultiplexingStub,
-  STORED_JSON_LEGACY,
   TEST_RESPONSE_ID5ID,
   TEST_RESPONSE_LINK_TYPE,
   TEST_STORED_ID5ID,
@@ -244,7 +244,7 @@ describe('Async Responses', function () {
           expect(id5Status.getUserId()).to.be.undefined;
           expect(id5Status.getLinkType()).to.be.undefined;
           stubUserIdReadyNow(id5Status, {
-            response: JSON.parse(STORED_JSON_LEGACY),
+            response: {...TEST_RESPONSE_ID5_CONSENT},
             fromCache: true
           });
         }
@@ -281,7 +281,7 @@ describe('Async Responses', function () {
       const id5Status = ID5.init(defaultInitBypassConsent());
       id5Status.onAvailable(onAvailableSpy, CALLBACK_TIMEOUT_MS).onUpdate(onUpdateSpy);
       stubUserIdReadyNow(id5Status, {
-        response: JSON.parse(STORED_JSON_LEGACY),
+        response: {...TEST_RESPONSE_ID5_CONSENT},
         fromCache: true
       });
 
@@ -302,7 +302,7 @@ describe('Async Responses', function () {
 
           ID5.refreshId(id5Status).onRefresh(onRefreshSpy, CALLBACK_TIMEOUT_MS);
           stubUserIdReadyNow(id5Status, {
-            response: JSON.parse(STORED_JSON_LEGACY),
+            response: {...TEST_RESPONSE_ID5_CONSENT},
             fromCache: true
           });
         }
@@ -333,7 +333,7 @@ describe('Async Responses', function () {
       const id5Status = ID5.init(defaultInitBypassConsent());
       id5Status.onAvailable(onAvailableSpy).onUpdate(onUpdateSpy);
       stubUserIdReadyNow(id5Status, {
-        response: JSON.parse(STORED_JSON_LEGACY),
+        response: {...TEST_RESPONSE_ID5_CONSENT},
         fromCache: true
       });
 
@@ -348,7 +348,7 @@ describe('Async Responses', function () {
 
           ID5.refreshId(id5Status).onRefresh(onRefreshSpy);
           stubUserIdReadyNow(id5Status, {
-            response: JSON.parse(STORED_JSON_LEGACY),
+            response: {...TEST_RESPONSE_ID5_CONSENT},
             fromCache: true
           });
         }
@@ -370,7 +370,7 @@ describe('Async Responses', function () {
       id5Status.onAvailable(onAvailableSpy, CALLBACK_TIMEOUT_MS).onUpdate(onUpdateSpy);
 
       stubUserIdReadyNow(id5Status, {
-        response: JSON.parse(STORED_JSON_LEGACY),
+        response: {...TEST_RESPONSE_ID5_CONSENT},
         fromCache: true
       });
 
@@ -426,7 +426,7 @@ describe('Async Responses', function () {
       id5Status.onAvailable(onAvailableSpy, SHORT_CALLBACK_TIMEOUT_MS);
 
       stubUserIdReadyNow(id5Status, {
-        response: JSON.parse(STORED_JSON_LEGACY),
+        response: {...TEST_RESPONSE_ID5_CONSENT},
         fromCache: true
       });
 
@@ -470,7 +470,7 @@ describe('Async Responses', function () {
       id5Status.onAvailable(onAvailableSpy);
 
       stubUserIdReadyNow(id5Status, {
-        response: JSON.parse(STORED_JSON_LEGACY),
+        response: {...TEST_RESPONSE_ID5_CONSENT},
         fromCache: true
       });
 

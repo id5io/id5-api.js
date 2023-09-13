@@ -59,16 +59,6 @@ export const TEST_PRIVACY_DISALLOWED = JSON.stringify({
 export const TEST_STORED_ID5ID = 'teststoredid5id';
 export const TEST_STORED_SIGNATURE = 'abcdef';
 export const TEST_STORED_LINK_TYPE = 0;
-export const STORED_JSON_LEGACY = JSON.stringify({
-  'universal_uid': TEST_STORED_ID5ID,
-  'cascade_needed': false,
-  'signature': TEST_STORED_SIGNATURE,
-  'ext': {
-    'linkType': TEST_STORED_LINK_TYPE
-  },
-  'privacy': JSON.parse(TEST_PRIVACY_ALLOWED)
-});
-export const STORED_JSON = encodeURIComponent(STORED_JSON_LEGACY);
 
 export const TEST_RESPONSE_ID5ID = 'testresponseid5id';
 export const TEST_RESPONSE_ID5ID_NO_CONSENT = '0';
@@ -87,7 +77,7 @@ export const TEST_RESPONSE_EID = {
   }]
 };
 
-export const JSON_RESPONSE_ID5_CONSENT = JSON.stringify({
+export const TEST_RESPONSE_ID5_CONSENT = {
   'universal_uid': TEST_RESPONSE_ID5ID,
   'cascade_needed': false,
   'signature': TEST_RESPONSE_SIGNATURE,
@@ -95,7 +85,9 @@ export const JSON_RESPONSE_ID5_CONSENT = JSON.stringify({
     'linkType': TEST_RESPONSE_LINK_TYPE
   },
   'privacy': JSON.parse(TEST_PRIVACY_ALLOWED)
-});
+};
+export const JSON_RESPONSE_ID5_CONSENT = JSON.stringify(TEST_RESPONSE_ID5_CONSENT);
+export const STORED_JSON = encodeURIComponent(JSON_RESPONSE_ID5_CONSENT);
 
 export const JSON_RESPONSE_CASCADE = JSON.stringify({
   'universal_uid': TEST_RESPONSE_ID5ID,
