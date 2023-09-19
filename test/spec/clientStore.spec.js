@@ -13,7 +13,7 @@ chai.use(sinonChai);
 const DEFAULT_STORAGE_CONFIG = new StorageConfig();
 const _DEBUG = false;
 
-describe.only('ClientStore', function() {
+describe('ClientStore', function() {
   let log;
 
   beforeEach(function() {
