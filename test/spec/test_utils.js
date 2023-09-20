@@ -56,14 +56,13 @@ export const TEST_PRIVACY_DISALLOWED = JSON.stringify({
   'id5_consent': false
 });
 
-export const TEST_STORED_ID5ID = 'teststoredid5id';
-export const TEST_STORED_SIGNATURE = 'abcdef';
-export const TEST_STORED_LINK_TYPE = 0;
-
 export const TEST_RESPONSE_ID5ID = 'testresponseid5id';
+export const TEST_STORED_ID5ID = TEST_RESPONSE_ID5ID;
 export const TEST_RESPONSE_ID5ID_NO_CONSENT = '0';
 export const TEST_RESPONSE_SIGNATURE = 'uvwxyz';
+export const TEST_STORED_SIGNATURE = TEST_RESPONSE_SIGNATURE;
 export const TEST_RESPONSE_LINK_TYPE = 1;
+export const TEST_STORED_LINK_TYPE = TEST_RESPONSE_LINK_TYPE;
 export const TEST_RESPONSE_LINK_TYPE_NO_CONSENT = 0;
 export const TEST_RESPONSE_EID = {
   source: CONSTANTS.ID5_EIDS_SOURCE,
