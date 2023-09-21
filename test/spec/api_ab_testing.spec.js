@@ -3,17 +3,17 @@ import CONSTANTS from '../../lib/constants.json';
 import ID5 from '../../lib/id5-api';
 import * as utils from '../../lib/utils';
 import {
+  DEFAULT_EXTENSIONS,
+  defaultInit,
+  defaultInitBypassConsent,
+  ExtensionsPromiseStub,
   ID5_FETCH_ENDPOINT,
   JSON_RESPONSE_ID5_CONSENT,
   localStorage,
   TEST_ID5ID_STORAGE_CONFIG,
   TEST_LAST_STORAGE_CONFIG,
   TEST_PRIVACY_ALLOWED,
-  TEST_STORED_SIGNATURE,
-  defaultInit,
-  defaultInitBypassConsent,
-  ExtensionsPromiseStub,
-  DEFAULT_EXTENSIONS
+  TEST_RESPONSE_SIGNATURE
 } from './test_utils';
 import {EXTENSIONS} from '@id5io/multiplexing';
 
@@ -75,7 +75,7 @@ describe('A/B Testing', function () {
     const JSON_ABTEST = JSON.stringify({
       'universal_uid': 'whateverID_AB_NORMAL',
       'cascade_needed': false,
-      'signature': TEST_STORED_SIGNATURE,
+      'signature': TEST_RESPONSE_SIGNATURE,
       'privacy': JSON.parse(TEST_PRIVACY_ALLOWED),
       'ab_testing': {
         'result': 'normal'
@@ -145,7 +145,7 @@ describe('A/B Testing', function () {
     const JSON_ABTEST = JSON.stringify({
       'universal_uid': 'whateverID_AB_NORMAL',
       'cascade_needed': false,
-      'signature': TEST_STORED_SIGNATURE,
+      'signature': TEST_RESPONSE_SIGNATURE,
       'ext': {
         'linkType': 1
       },
@@ -199,7 +199,6 @@ describe('A/B Testing', function () {
         expect(id5Status.getUserIdAsEid()).to.be.eql(TEST_RESPONSE_EID_AB_CONTROL_GROUP);
         done();
       });
-
     });
 
     it('should not expose ID5.userId from a stored response', function (done) {

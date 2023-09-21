@@ -178,7 +178,7 @@ describe('UidFetcher', function () {
       ajaxStub.restore();
     });
 
-    describe('calls multi fetch when no state is saved in cache', function () {
+    describe('when no state is saved in cache', function () {
       let storedDataState;
 
       beforeEach(function () {
@@ -232,7 +232,7 @@ describe('UidFetcher', function () {
           }
         }]
       ].forEach(([description, data, expectedInRequest]) => {
-        it(`should correctly use parameters to create the fetch request body (${description})`, async () => {
+        it(`should call multi-fetch and correctly use parameters to create the fetch request body (${description})`, async () => {
           // given
           /**
            * @type {FetchIdData}
