@@ -12,7 +12,6 @@ import {
   resetAllInLocalStorage,
   STORED_JSON,
   TEST_CONSENT_DATA_STORAGE_CONFIG,
-  TEST_ID5_PARTNER_ID,
   TEST_ID5ID_STORAGE_CONFIG,
   TEST_ID5ID_STORAGE_CONFIG_EXPIRED,
   TEST_LAST_STORAGE_CONFIG,
@@ -21,25 +20,15 @@ import {
   TEST_PRIVACY_STORAGE_CONFIG,
   TEST_RESPONSE_ID5ID,
   TEST_RESPONSE_LINK_TYPE,
-  TEST_STORED_ID5ID,
-  TEST_STORED_LINK_TYPE,
-  TEST_STORED_SIGNATURE
+  TEST_RESPONSE_SIGNATURE
 } from './test_utils';
 import {StorageConfig} from "../../lib/config.js";
-import {EXTENSIONS, ConsentData, API_TYPE, GRANT_TYPE, LocalStorageGrant, ApiEvent, NoopLogger} from "@id5io/multiplexing";
+import {API_TYPE, ConsentData, EXTENSIONS, GRANT_TYPE, LocalStorageGrant, NoopLogger} from "@id5io/multiplexing";
 
 let expect = require('chai').expect;
 
-const TCF_V2_STRING_WITH_STORAGE_CONSENT = 'CPh8b0RPh8b0RPXAAAENCZCAANoAAAAAAAAAAAAAAAAA.II7Nd_X__bX9n-_7_6ft0eY1f9_r37uQzDhfNs-8F3L_W_LwX32E7NF36tq4KmR4ku1bBIQNtHMnUDUmxaolVrzHsak2cpyNKJ_JkknsZe2dYGF9Pn9lD-YKZ7_5_9_f52T_9_9_-39z3_9f___dv_-__-vjf_599n_v9fV_78_Kf9______-____________8A';
-const TCF_V2_STRING_WITHOUT_STORAGE_CONSENT = 'CPh8cxGPh8cxGFpAAAENCZCAAAgAAAAAAAAAAAAAAAAA.II7Nd_X__bX9n-_7_6ft0eY1f9_r37uQzDhfNs-8F3L_W_LwX32E7NF36tq4KmR4ku1bBIQNtHMnUDUmxaolVrzHsak2cpyNKJ_JkknsZe2dYGF9Pn9lD-YKZ7_5_9_f52T_9_9_-39z3_9f___dv_-__-vjf_599n_v9fV_78_Kf9______-____________8A';
-
 function stubExtensions() {
   return sinon.stub(EXTENSIONS, 'gather').resolves(DEFAULT_EXTENSIONS);
-}
-
-function resetExtensionsStub(extensionsStub) {
-  extensionsStub.restore()
-  return stubExtensions()
 }
 
 describe('ID5 JS API', function () {
@@ -184,8 +173,8 @@ describe('ID5 JS API', function () {
           id5Status.onAvailable(function () {
             sinon.assert.notCalled(extensionsStub);
             sinon.assert.notCalled(ajaxStub);
-            expect(id5Status.getUserId()).to.be.equal(TEST_STORED_ID5ID);
-            expect(id5Status.getLinkType()).to.be.equal(TEST_STORED_LINK_TYPE);
+            expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
+            expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
             expect(id5Status.isFromCache()).to.be.true;
             done();
           });
@@ -202,8 +191,8 @@ describe('ID5 JS API', function () {
           id5Status.onAvailable(function () {
             sinon.assert.notCalled(extensionsStub);
             sinon.assert.notCalled(ajaxStub);
-            expect(id5Status.getUserId()).to.be.equal(TEST_STORED_ID5ID);
-            expect(id5Status.getLinkType()).to.be.equal(TEST_STORED_LINK_TYPE);
+            expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
+            expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
             expect(id5Status.isFromCache()).to.be.true;
             done();
           });
@@ -238,11 +227,11 @@ describe('ID5 JS API', function () {
 
         it('should request new value if stored older than cache max age from response ', function (done) {
           localStorage.setItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG, encodeURIComponent(JSON.stringify({
-            universal_uid: TEST_STORED_ID5ID,
+            universal_uid: TEST_RESPONSE_ID5ID,
             cascade_needed: false,
-            signature: TEST_STORED_SIGNATURE,
+            signature: TEST_RESPONSE_SIGNATURE,
             ext: {
-              linkType: TEST_STORED_LINK_TYPE
+              linkType: TEST_RESPONSE_LINK_TYPE
             },
             privacy: JSON.parse(TEST_PRIVACY_ALLOWED),
             cache_control: {

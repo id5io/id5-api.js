@@ -5,15 +5,14 @@ import {
   defaultInit,
   defaultInitBypassConsent,
   execSequence,
-  TEST_RESPONSE_ID5_CONSENT,
   JSON_RESPONSE_ID5_CONSENT,
   MultiplexingStub,
+  TEST_RESPONSE_ID5_CONSENT,
   TEST_RESPONSE_ID5ID,
-  TEST_RESPONSE_LINK_TYPE,
-  TEST_STORED_ID5ID,
-  TEST_STORED_LINK_TYPE
+  TEST_RESPONSE_LINK_TYPE
 } from './test_utils';
-import {ApiEvent} from "@id5io/multiplexing";
+import clone from 'clone';
+import {ApiEvent} from '@id5io/multiplexing';
 
 function stubDelayedUserIdReady(id5Status, timeout, data = {fromCache: false}) {
   setTimeout(() => {
@@ -232,8 +231,13 @@ describe('Async Responses', function () {
       const id5Status = ID5.init(defaultInit());
       id5Status.onAvailable(onAvailableSpy, CALLBACK_TIMEOUT_MS).onUpdate(onUpdateSpy);
 
+      const stored_response = clone(TEST_RESPONSE_ID5_CONSENT);
+      const updated_response = clone(TEST_RESPONSE_ID5_CONSENT);
+      updated_response.ext.linkType = 1;
+      updated_response.universal_uid = 'updated_uid';
+
       stubDelayedUserIdReady(id5Status, USER_ID_READY_DELAY_MS, {
-        response: JSON.parse(JSON_RESPONSE_ID5_CONSENT),
+        response: updated_response,
         fromCache: false
       });
       execSequence(clock, {
@@ -244,7 +248,7 @@ describe('Async Responses', function () {
           expect(id5Status.getUserId()).to.be.undefined;
           expect(id5Status.getLinkType()).to.be.undefined;
           stubUserIdReadyNow(id5Status, {
-            response: {...TEST_RESPONSE_ID5_CONSENT},
+            response: stored_response,
             fromCache: true
           });
         }
@@ -254,8 +258,8 @@ describe('Async Responses', function () {
           // onAvailable & onUpdate must be called for cached response
           sinon.assert.calledOnce(onAvailableSpy);
           sinon.assert.calledOnce(onUpdateSpy);
-          expect(id5Status.getUserId()).to.be.equal(TEST_STORED_ID5ID);
-          expect(id5Status.getLinkType()).to.be.equal(TEST_STORED_LINK_TYPE);
+          expect(id5Status.getUserId()).to.be.equal(stored_response.universal_uid);
+          expect(id5Status.getLinkType()).to.be.equal(stored_response.ext.linkType);
         }
       }, {
         timeout: USER_ID_READY_DELAY_MS,
@@ -263,8 +267,8 @@ describe('Async Responses', function () {
           // onUpdate must be called for ajax response
           sinon.assert.calledOnce(onAvailableSpy);
           sinon.assert.calledTwice(onUpdateSpy);
-          expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
-          expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
+          expect(id5Status.getUserId()).to.be.equal(updated_response.universal_uid);
+          expect(id5Status.getLinkType()).to.be.equal(updated_response.ext.linkType);
         }
       }, {
         timeout: LONG_TIMEOUT,
@@ -297,8 +301,8 @@ describe('Async Responses', function () {
           // make sure the watchdog timeout from init is cleared before moving on
           sinon.assert.calledOnce(onAvailableSpy);
           sinon.assert.calledOnce(onUpdateSpy);
-          expect(id5Status.getUserId()).to.be.equal(TEST_STORED_ID5ID);
-          expect(id5Status.getLinkType()).to.be.equal(TEST_STORED_LINK_TYPE);
+          expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
+          expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
 
           ID5.refreshId(id5Status).onRefresh(onRefreshSpy, CALLBACK_TIMEOUT_MS);
           stubUserIdReadyNow(id5Status, {
@@ -312,8 +316,8 @@ describe('Async Responses', function () {
           sinon.assert.calledOnce(onAvailableSpy);
           sinon.assert.calledOnce(onUpdateSpy); // User id did not change on update
           sinon.assert.calledOnce(onRefreshSpy);
-          expect(id5Status.getUserId()).to.be.equal(TEST_STORED_ID5ID);
-          expect(id5Status.getLinkType()).to.be.equal(TEST_STORED_LINK_TYPE);
+          expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
+          expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
         }
       }, {
         timeout: LONG_TIMEOUT,
@@ -322,8 +326,8 @@ describe('Async Responses', function () {
           sinon.assert.calledOnce(onAvailableSpy);
           sinon.assert.calledOnce(onUpdateSpy);
           sinon.assert.calledOnce(onRefreshSpy);
-          expect(id5Status.getUserId()).to.be.equal(TEST_STORED_ID5ID);
-          expect(id5Status.getLinkType()).to.be.equal(TEST_STORED_LINK_TYPE);
+          expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
+          expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
           done();
         }
       });
@@ -343,8 +347,8 @@ describe('Async Responses', function () {
         fn: () => {
           sinon.assert.calledOnce(onAvailableSpy);
           sinon.assert.calledOnce(onUpdateSpy);
-          expect(id5Status.getUserId()).to.be.equal(TEST_STORED_ID5ID);
-          expect(id5Status.getLinkType()).to.be.equal(TEST_STORED_LINK_TYPE);
+          expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
+          expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
 
           ID5.refreshId(id5Status).onRefresh(onRefreshSpy);
           stubUserIdReadyNow(id5Status, {
@@ -358,8 +362,8 @@ describe('Async Responses', function () {
           sinon.assert.calledOnce(onAvailableSpy);
           sinon.assert.calledOnce(onRefreshSpy);
           sinon.assert.calledOnce(onUpdateSpy);
-          expect(id5Status.getUserId()).to.be.equal(TEST_STORED_ID5ID);
-          expect(id5Status.getLinkType()).to.be.equal(TEST_STORED_LINK_TYPE);
+          expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
+          expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
           done();
         }
       });
@@ -369,8 +373,13 @@ describe('Async Responses', function () {
       const id5Status = ID5.init(defaultInitBypassConsent());
       id5Status.onAvailable(onAvailableSpy, CALLBACK_TIMEOUT_MS).onUpdate(onUpdateSpy);
 
+      const stored_response = clone(TEST_RESPONSE_ID5_CONSENT);
+      const updated_response = clone(TEST_RESPONSE_ID5_CONSENT);
+      updated_response.ext.linkType = 2;
+      updated_response.universal_uid = 'updated_uid';
+
       stubUserIdReadyNow(id5Status, {
-        response: {...TEST_RESPONSE_ID5_CONSENT},
+        response: stored_response,
         fromCache: true
       });
 
@@ -386,11 +395,14 @@ describe('Async Responses', function () {
           // make sure the watchdog timeout from init is cleared before moving on
           sinon.assert.calledOnce(onAvailableSpy);
           sinon.assert.calledOnce(onUpdateSpy);
-          expect(id5Status.getUserId()).to.be.equal(TEST_STORED_ID5ID);
-          expect(id5Status.getLinkType()).to.be.equal(TEST_STORED_LINK_TYPE);
+          expect(id5Status.getUserId()).to.be.equal(stored_response.universal_uid);
+          expect(id5Status.getLinkType()).to.be.equal(stored_response.ext.linkType);
 
           ID5.refreshId(id5Status, true).onRefresh(onRefreshSpy);
-          stubDelayedUserIdReady(id5Status, USER_ID_READY_DELAY_MS);
+          stubDelayedUserIdReady(id5Status, USER_ID_READY_DELAY_MS, {
+            response: updated_response,
+            fromCache: false
+          });
         }
       }, {
         timeout: 1,
@@ -405,8 +417,8 @@ describe('Async Responses', function () {
           sinon.assert.calledOnce(onAvailableSpy);
           sinon.assert.calledOnce(onRefreshSpy);
           sinon.assert.calledTwice(onUpdateSpy);
-          expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
-          expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
+          expect(id5Status.getUserId()).to.be.equal(updated_response.universal_uid);
+          expect(id5Status.getLinkType()).to.be.equal(updated_response.ext.linkType);
         }
       }, {
         timeout: LONG_TIMEOUT,
@@ -414,8 +426,8 @@ describe('Async Responses', function () {
           sinon.assert.calledOnce(onAvailableSpy);
           sinon.assert.calledOnce(onRefreshSpy);
           sinon.assert.calledTwice(onUpdateSpy);
-          expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
-          expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
+          expect(id5Status.getUserId()).to.be.equal(updated_response.universal_uid);
+          expect(id5Status.getLinkType()).to.be.equal(updated_response.ext.linkType);
           done();
         }
       });
@@ -434,8 +446,8 @@ describe('Async Responses', function () {
         timeout: 1,
         fn: () => {
           sinon.assert.calledOnce(onAvailableSpy);
-          expect(id5Status.getUserId()).to.be.equal(TEST_STORED_ID5ID);
-          expect(id5Status.getLinkType()).to.be.equal(TEST_STORED_LINK_TYPE);
+          expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
+          expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
         }
       }, {
         timeout: LONG_TIMEOUT,
@@ -452,8 +464,8 @@ describe('Async Responses', function () {
           sinon.assert.calledOnce(onAvailableSpy);
           sinon.assert.calledOnce(onRefreshSpy);
           // Should callback with stored value a ajax response was not received
-          expect(onAvailableSpy.getCall(0).args[0].getUserId()).to.be.equal(TEST_STORED_ID5ID);
-          expect(onAvailableSpy.getCall(0).args[0].getLinkType()).to.be.equal(TEST_STORED_LINK_TYPE);
+          expect(onAvailableSpy.getCall(0).args[0].getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
+          expect(onAvailableSpy.getCall(0).args[0].getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
         }
       }, {
         timeout: LONG_TIMEOUT,
@@ -478,8 +490,8 @@ describe('Async Responses', function () {
         timeout: 1,
         fn: () => {
           sinon.assert.calledOnce(onAvailableSpy);
-          expect(id5Status.getUserId()).to.be.equal(TEST_STORED_ID5ID);
-          expect(id5Status.getLinkType()).to.be.equal(TEST_STORED_LINK_TYPE);
+          expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
+          expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
 
           ID5.refreshId(id5Status, true).onRefresh(onRefreshSpy);
           stubDelayedUserIdReady(id5Status, USER_ID_READY_DELAY_MS);

@@ -1,15 +1,12 @@
 import LocalStorage from '../../lib/localStorage.js';
-import CONSTANTS from '../../lib/constants.json';
-import sinon from "sinon";
-import multiplexing from "@id5io/multiplexing";
+import sinon from 'sinon';
+import multiplexing from '@id5io/multiplexing';
 
 export const TEST_ID5_PARTNER_ID = 99;
-export const TEST_ID5_PARTNER_ID_ALT = 999;
 export const ID5_FETCH_ENDPOINT = `https://id5-sync.com/gm/v2`;
 export const ID5_CALL_ENDPOINT = `https://id5-sync.com/i/${TEST_ID5_PARTNER_ID}`;
 export const ID5_SYNC_ENDPOINT = `https://id5-sync.com/s/${TEST_ID5_PARTNER_ID}`;
 
-export const AJAX_RESPONSE_MS = 20;
 export const CALLBACK_TIMEOUT_MS = 30;
 
 export const TEST_ID5ID_STORAGE_CONFIG = {
@@ -37,11 +34,6 @@ export const TEST_NB_STORAGE_CONFIG = {
   expiresDays: 90
 };
 
-export const TEST_SEGMENT_STORAGE_CONFIG = {
-  name: `id5id_cached_segments_${TEST_ID5_PARTNER_ID}`,
-  expiresDays: 30
-}
-
 export const TEST_PRIVACY_STORAGE_CONFIG = {
   name: 'id5id_privacy',
   expiresDays: 30
@@ -57,24 +49,8 @@ export const TEST_PRIVACY_DISALLOWED = JSON.stringify({
 });
 
 export const TEST_RESPONSE_ID5ID = 'testresponseid5id';
-export const TEST_STORED_ID5ID = TEST_RESPONSE_ID5ID;
-export const TEST_RESPONSE_ID5ID_NO_CONSENT = '0';
 export const TEST_RESPONSE_SIGNATURE = 'uvwxyz';
-export const TEST_STORED_SIGNATURE = TEST_RESPONSE_SIGNATURE;
 export const TEST_RESPONSE_LINK_TYPE = 1;
-export const TEST_STORED_LINK_TYPE = TEST_RESPONSE_LINK_TYPE;
-export const TEST_RESPONSE_LINK_TYPE_NO_CONSENT = 0;
-export const TEST_RESPONSE_EID = {
-  source: CONSTANTS.ID5_EIDS_SOURCE,
-  uids: [{
-    atype: 1,
-    id: TEST_RESPONSE_ID5ID,
-    ext: {
-      linkType: TEST_RESPONSE_LINK_TYPE,
-      abTestingControlGroup: false
-    }
-  }]
-};
 
 export const TEST_RESPONSE_ID5_CONSENT = {
   'universal_uid': TEST_RESPONSE_ID5ID,
@@ -96,16 +72,6 @@ export const JSON_RESPONSE_CASCADE = JSON.stringify({
     'linkType': TEST_RESPONSE_LINK_TYPE
   },
   'privacy': JSON.parse(TEST_PRIVACY_ALLOWED)
-});
-
-export const JSON_RESPONSE_NO_ID5_CONSENT = JSON.stringify({
-  'universal_uid': TEST_RESPONSE_ID5ID_NO_CONSENT,
-  'cascade_needed': false,
-  'signature': TEST_RESPONSE_SIGNATURE,
-  'ext': {
-    'linkType': TEST_RESPONSE_LINK_TYPE_NO_CONSENT
-  },
-  'privacy': JSON.parse(TEST_PRIVACY_DISALLOWED)
 });
 
 export const DEFAULT_EXTENSIONS = {
@@ -140,22 +106,7 @@ export function defaultInitBypassConsent(partnerId = TEST_ID5_PARTNER_ID) {
   }
 }
 
-export function defaultInitBypassConsentWithPd(partnerId = TEST_ID5_PARTNER_ID) {
-  return {
-    ...defaultInit(partnerId),
-    debugBypassConsent: true,
-    pd: 'pdvalue'
-  }
-}
-
 export const localStorage = new LocalStorage(window);
-
-export function getLocalStorageItemExpirationDays(key) {
-  let now = new Date();
-  let expirationTime = new Date(localStorage.getItem(key + '_exp'));
-  let durationMs = expirationTime - now;
-  return Math.ceil(durationMs / (60 * 60 * 24 * 1000));
-}
 
 export function resetAllInLocalStorage() {
   localStorage.removeItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG);
@@ -189,20 +140,6 @@ export function execSequence(clock, ...steps) {
   }, () => {
   });
   rootFn();
-}
-
-/**
- * Stubs __tcfapi successful call given consent
- * @param consentData - given consent to return
- * @return __tcfapi stub
- */
-export function stubTcfApi(consentData) {
-  if (window['__tcfapi']['restore'] !== undefined) {
-    window.__tcfapi.restore()
-  }
-  return sinon.stub(window, '__tcfapi').callsFake((...args) => {
-    args[2](consentData, true);
-  });
 }
 
 export class MultiplexingStub {
