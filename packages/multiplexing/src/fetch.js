@@ -171,6 +171,7 @@ export class UidFetcher {
     const partner = fetchIdData.partnerId;
     const data = {
       'requestId': fetchIdData.integrationId,
+      'requestCount': fetchIdData.requestCount,
       'partner': partner,
       'v': fetchIdData.originVersion,
       'o': fetchIdData.origin,
@@ -265,16 +266,25 @@ export class UidFetcher {
    */
   fetchFreshID5ID(dispatcher, requests, fetchIdData, consentData, forceFetch, cachedResponseUsed) {
     const url = `${HOST}/gm/v2`;
-    let fetchTimeMeasurement = startTimeMeasurement();
+    const fetchTimeMeasurement = startTimeMeasurement();
     const log = this._log;
+    const fetcher = this;
     log.info(`Fetching ID5 ID (forceFetch:${forceFetch}) from:`, url, requests);
     ajax(url, {
-      success: this.handleSuccessfulFetchResponse(dispatcher, fetchIdData, cachedResponseUsed, consentData, fetchTimeMeasurement),
+      success: response => {
+        fetcher.handleSuccessfulFetchResponse(dispatcher, fetchIdData, cachedResponseUsed, consentData, fetchTimeMeasurement)(response);
+        dispatcher.emit(ApiEvent.USER_ID_FETCH_COMPLETED, {
+          response: response
+        });
+      },
       error: error => {
         log.error('Error during AJAX request to ID5 server', error);
         if (fetchTimeMeasurement) {
           fetchTimeMeasurement.record(this._metrics?.fetchFailureCallTimer());
         }
+        dispatcher.emit(ApiEvent.USER_ID_FETCH_FAILED, {
+          error: error
+        });
       }
     }, JSON.stringify({requests: requests}), {method: 'POST', withCredentials: true}, log);
   }

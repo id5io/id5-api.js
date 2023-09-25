@@ -137,6 +137,186 @@ describe('Follower', function () {
       segments: ['seg1']
     });
   });
+
+  [
+    ['similar - only partnerId',
+      {partnerId: 1},
+      {partnerId: 1},
+      true
+    ],
+    ['similar - partnerId and pd',
+      {partnerId: 1, pd: 'a'},
+      {partnerId: 1, pd: 'a'},
+      true
+    ],
+    ['similar - partnerId and att',
+      {partnerId: 1, att: 2},
+      {partnerId: 1, att: 2},
+      true
+    ],
+    ['similar - partnerId and liveIntentId',
+      {partnerId: 1, liveIntentId: 'lid'},
+      {partnerId: 1, liveIntentId: 'lid'},
+      true
+    ],
+    ['similar - partnerId and provider',
+      {partnerId: 1, provider: 'provider'},
+      {partnerId: 1, provider: 'provider'},
+      true
+    ],
+    ['similar - partnerId and abTesting',
+      {partnerId: 1, abTesting: {enabled: true, controlGroupPct: 0.8}},
+      {partnerId: 1, abTesting: {enabled: true, controlGroupPct: 0.8}},
+      true
+    ],
+    ['similar - partnerId and segments',
+      {partnerId: 1, segments: [{destination: '22', ids: ['abc']}, {destination: '23', ids: ['a', 'b', 'c']}]},
+      {partnerId: 1, segments: [{destination: '22', ids: ['abc']}, {destination: '23', ids: ['a', 'b', 'c']}]},
+      true
+    ],
+    ['similar - partnerId and refresh time',
+      {partnerId: 1, providedRefreshInSeconds: 7200},
+      {partnerId: 1, providedRefreshInSeconds: 7200},
+      true
+    ],
+    ['similar - all',
+      {
+        partnerId: 1,
+        pd: 'a',
+        att: 2,
+        liveIntentId: 'lid',
+        provider: 'provider',
+        abTesting: {enabled: true, controlGroupPct: 0.8},
+        segments: [{destination: '22', ids: ['abc']}, {destination: '23', ids: ['a', 'b', 'c']}],
+        providedRefreshInSeconds: 7200
+      },
+      {
+        partnerId: 1,
+        pd: 'a',
+        att: 2,
+        liveIntentId: 'lid',
+        provider: 'provider',
+        abTesting: {enabled: true, controlGroupPct: 0.8},
+        segments: [{destination: '22', ids: ['abc']}, {destination: '23', ids: ['a', 'b', 'c']}],
+        providedRefreshInSeconds: 7200
+      },
+      true
+    ],
+    ['different - partnerId',
+      {partnerId: 1},
+      {partnerId: 2},
+      false
+    ],
+    ['different - partnerId missing',
+      {partnerId: 1},
+      {},
+      false
+    ],
+    ['different - pd',
+      {partnerId: 1, pd: 'a'},
+      {partnerId: 1, pd: 'aa'},
+      false
+    ],
+    ['different - pd missing',
+      {partnerId: 1, pd: 'a'},
+      {partnerId: 1},
+      false
+    ],
+    ['different - att',
+      {partnerId: 1, att: 2},
+      {partnerId: 1, att: 22},
+      false
+    ],
+    ['different - att missing',
+      {partnerId: 1, att: 2},
+      {partnerId: 1},
+      false
+    ],
+    ['different - liveIntentId',
+      {partnerId: 1, liveIntentId: 'lid'},
+      {partnerId: 1, liveIntentId: 'lid2'},
+      false
+    ],
+    ['different - liveIntentId missing',
+      {partnerId: 1, liveIntentId: 'lid'},
+      {partnerId: 1},
+      false
+    ],
+    ['different - provider',
+      {partnerId: 1, provider: 'provider'},
+      {partnerId: 1, provider: 'provider2'},
+      false
+    ],
+    ['different - provider missing',
+      {partnerId: 1, provider: 'provider'},
+      {partnerId: 1},
+      false
+    ],
+    ['different - abTesting',
+      {partnerId: 1, abTesting: {enabled: true, controlGroupPct: 0.8}},
+      {partnerId: 1, abTesting: {enabled: true, controlGroupPct: 0.7}},
+      false
+    ],
+    ['different - abTesting missing',
+      {partnerId: 1, abTesting: {enabled: true, controlGroupPct: 0.8}},
+      {partnerId: 1},
+      false
+    ],
+    ['different - segments',
+      {partnerId: 1, segments: [{destination: '22', ids: ['abc']}, {destination: '23', ids: ['a', 'b', 'c']}]},
+      {partnerId: 1, segments: [{destination: '22', ids: ['abc']}, {destination: '24', ids: ['a', 'b', 'c']}]},
+      false
+    ],
+    ['different - segments missing',
+      {partnerId: 1, segments: [{destination: '22', ids: ['abc']}, {destination: '23', ids: ['a', 'b', 'c']}]},
+      {partnerId: 1},
+      false
+    ],
+    ['different - refresh time',
+      {partnerId: 1, providedRefreshInSeconds: 7200},
+      {partnerId: 1, providedRefreshInSeconds: 3600},
+      false
+    ],
+    ['different - refresh time missing',
+      {partnerId: 1, providedRefreshInSeconds: 7200},
+      {partnerId: 1},
+      false
+    ],
+    ['different - all vs none',
+      {
+        partnerId: 1,
+        pd: 'a',
+        att: 2,
+        liveIntentId: 'lid',
+        provider: 'provider',
+        abTesting: {enabled: true, controlGroupPct: 0.8},
+        segments: [{destination: '22', ids: ['abc']}, {destination: '23', ids: ['a', 'b', 'c']}],
+        providedRefreshInSeconds: 7200
+      },
+      {},
+      false
+    ]
+  ].forEach(([descr, aData, bData, expectedResult]) => {
+    it(`should check if other is similar - ${descr}`, function () {
+      // given
+      let followerA = new Follower({
+        id: 'a',
+        fetchIdData: aData
+      });
+      let followerB = new Follower({
+        id: 'b',
+        fetchIdData: bData
+      });
+
+      // when
+      const aToB = followerA.isSimilarTo(followerB);
+      const bToA = followerB.isSimilarTo(followerA);
+
+      // then
+      expect(aToB).to.be.eq(expectedResult);
+      expect(bToA).to.be.eq(expectedResult);
+    });
+  });
 });
 
 

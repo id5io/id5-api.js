@@ -79,6 +79,7 @@ const FETCH_RESPONSE_STRING = JSON.stringify(FETCH_RESPONSE_OBJ);
  */
 const DEFAULT_FETCH_DATA = {
   integrationId: 'default-integration',
+  requestCount: 1,
   origin: origin,
   originVersion: originVersion,
   partnerId: 1234,
@@ -163,12 +164,11 @@ describe('UidFetcher', function () {
     extensions = sinon.createStubInstance(Extensions);
     metrics = new Id5CommonMetrics(origin, originVersion);
     fetcher = new UidFetcher(consentManager, store, metrics, log, extensions);
-
     consentManager.getConsentData.resolves(CONSENT_DATA_GDPR_ALLOWED);
     extensions.gather.resolves(DEFAULT_EXTENSIONS);
   });
 
-  describe('when server response does grant consent', function() {
+  describe('when server response does grant consent', function () {
     beforeEach(function () {
       ajaxStub = sinon.stub(utils, 'ajax').callsFake(function (url, callbacks, data, options, log) {
         callbacks.success(FETCH_RESPONSE_STRING);
@@ -196,7 +196,7 @@ describe('UidFetcher', function () {
         ['with pd', {pd: 'PD_DATA'}, {pd: 'PD_DATA'}],
         ['with partnerUserId', {partnerUserId: '1234567'}, {puid: '1234567'}],
         ['with provider', {provider: 'some_provider'}, {provider: 'some_provider'}],
-        ['with ua hints', { uaHints: buildTestUaHints() }, { ua_hints: buildTestUaHints() } ],
+        ['with ua hints', {uaHints: buildTestUaHints()}, {ua_hints: buildTestUaHints()}],
         ['with abTesting', {abTesting: {enabled: true, controlGroupPct: 0.5}}, {
           ab_testing: {
             enabled: true,
@@ -287,6 +287,7 @@ describe('UidFetcher', function () {
            */
           const secondInstanceData = {
             integrationId: crypto.randomUUID(),
+            requestCount: 2,
             origin: 'other-origin',
             originVersion: '7.0.1',
             partnerId: 4321,
@@ -372,7 +373,7 @@ describe('UidFetcher', function () {
     });
 
     describe('when previous response is in cache', function () {
-      beforeEach(function() {
+      beforeEach(function () {
         consentManager.localStorageGrant.onCall(0).returns(new LocalStorageGrant(true, GRANT_TYPE.JURISDICTION, API_TYPE.NONE));
         consentManager.localStorageGrant.returns(LOCAL_STORAGE_GRANT_ALLOWED_BY_API);
       });
@@ -418,9 +419,9 @@ describe('UidFetcher', function () {
       });
 
       [
-        { desc: 'refresh required', responseComplete: true, refreshRequired: true, consentHasChanged: false },
-        { desc: 'consent changed', responseComplete: true, refreshRequired: false, consentHasChanged: true },
-        { desc: 'response incomplete', responseComplete: false, refreshRequired: false, consentHasChanged: false }
+        {desc: 'refresh required', responseComplete: true, refreshRequired: true, consentHasChanged: false},
+        {desc: 'consent changed', responseComplete: true, refreshRequired: false, consentHasChanged: true},
+        {desc: 'response incomplete', responseComplete: false, refreshRequired: false, consentHasChanged: false}
       ].forEach(testCase => {
         it(`should provide from cache and then trigger a refresh when ${testCase.desc}`, function () {
           // given
@@ -480,10 +481,10 @@ describe('UidFetcher', function () {
       });
 
       [
-        { desc: 'pd changed', hasValidUid: true, pdHasChanged: true, segmentsHaveChanged: false, isStale: false },
-        { desc: 'segments changed', hasValidUid: true, pdHasChanged: false, segmentsHaveChanged: true, isStale: false },
-        { desc: 'is stale', hasValidUid: true, pdHasChanged: false, segmentsHaveChanged: false, isStale: true },
-        { desc: 'has invalid uid', hasValidUid: false, pdHasChanged: false, segmentsHaveChanged: false, isStale: false }
+        {desc: 'pd changed', hasValidUid: true, pdHasChanged: true, segmentsHaveChanged: false, isStale: false},
+        {desc: 'segments changed', hasValidUid: true, pdHasChanged: false, segmentsHaveChanged: true, isStale: false},
+        {desc: 'is stale', hasValidUid: true, pdHasChanged: false, segmentsHaveChanged: false, isStale: true},
+        {desc: 'has invalid uid', hasValidUid: false, pdHasChanged: false, segmentsHaveChanged: false, isStale: false}
       ].forEach(testCase => {
         it(`should not provide from cache but rather make a request when (${testCase.desc})`, function () {
           // given
@@ -575,7 +576,7 @@ describe('UidFetcher', function () {
     });
   });
 
-  describe('when server response does not grant consent', function() {
+  describe('when server response does not grant consent', function () {
     beforeEach(function () {
       ajaxStub = sinon.stub(utils, 'ajax').callsFake(function (url, callbacks, data, options) {
         callbacks.success(JSON.stringify(FETCH_RESPONSE_OBJ_NO_CONSENT));
@@ -585,7 +586,7 @@ describe('UidFetcher', function () {
       ajaxStub.restore();
     });
 
-    describe('when no state is saved in cache', function() {
+    describe('when no state is saved in cache', function () {
       let storedDataState;
 
       beforeEach(function () {
@@ -600,7 +601,7 @@ describe('UidFetcher', function () {
         consentManager.localStorageGrant.onCall(2).returns(new LocalStorageGrant(false, GRANT_TYPE.ID5_CONSENT, API_TYPE.TCF_V2));
       });
 
-      it('should not store response in storage but rather clear it but still stores the privacy object', function() {
+      it('should not store response in storage but rather clear it but still stores the privacy object', function () {
         const fetchData = [{
           ...DEFAULT_FETCH_DATA,
           integrationId: crypto.randomUUID(),
@@ -624,7 +625,7 @@ describe('UidFetcher', function () {
       });
     });
 
-    describe('when explicit denial of consent is saved in cache', function() {
+    describe('when explicit denial of consent is saved in cache', function () {
       let storedDataState;
 
       beforeEach(function () {
@@ -636,7 +637,7 @@ describe('UidFetcher', function () {
         consentManager.localStorageGrant.returns(new LocalStorageGrant(false, GRANT_TYPE.JURISDICTION, API_TYPE.NONE));
       });
 
-      it('should neither make a request to the backend nor read previous response from local storage nor store request state', function() {
+      it('should neither make a request to the backend nor read previous response from local storage nor store request state', function () {
         const fetchData = [{
           ...DEFAULT_FETCH_DATA,
           integrationId: crypto.randomUUID(),
@@ -667,6 +668,7 @@ describe('UidFetcher', function () {
 function expectedRequestFor(fetchIdData, consentData, extensions, nbPage, storedDataState, other = undefined) {
   return {
     requestId: fetchIdData.integrationId,
+    requestCount: fetchIdData.requestCount,
     att: fetchIdData.att,
     extensions: extensions,
     gdpr: consentData.gdprApplies ? 1 : 0,

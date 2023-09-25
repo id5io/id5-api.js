@@ -380,7 +380,7 @@ export class Instance {
     this._uidFetcher = uidFetcher;
     this._consentManager = consentManager;
     this._leader = new AwaitedLeader(); // AwaitedLeader buffers requests to leader in case some events happened before leader is elected (i.e. consent update)
-    this._followerRole = new DirectFollower(this.properties, this._dispatcher);
+    this._followerRole = new DirectFollower(this.properties, this._dispatcher, this._logger);
     this._election = new Election(this);
   }
 
@@ -553,13 +553,21 @@ export class Instance {
 
   _handleLateJoiner(newInstance) {
     this._logger.info('Late joiner detected', newInstance.properties);
-    const lateJoinersCount = this._metrics.instanceLateJoinCounter(this.properties.id).inc();
+    const lateJoinersCount = this._metrics.instanceLateJoinCounter(this.properties.id, {
+      scope: 'party'
+    }).inc();
     this._metrics.instanceLateJoinDelayTimer({
       election: this._election._state,
       isFirst: lateJoinersCount === 1
     }).record(performance.now() - this._election._closeTime);
     if (newInstance.isMultiplexingPartyAllowed() && this.role === Role.LEADER) {
-      this._leader.addFollower(new ProxyFollower(newInstance, this._messenger));
+      let result = this._leader.addFollower(new ProxyFollower(newInstance, this._messenger, this._logger));
+      if (result?.lateJoiner === true) {
+        this._metrics.instanceLateJoinCounter(this.properties.id, {
+          scope: 'leader',
+          unique: (result?.uniqueLateJoiner === true)
+        }).inc();
+      }
     }
   }
 
@@ -574,7 +582,7 @@ export class Instance {
     if (this._mode === OperatingMode.MULTIPLEXING) { // in singleton mode ignore remote followers
       Array.from(this._knownInstances.values())
         .filter(instance => instance.isMultiplexingPartyAllowed())
-        .map(instance => leader.addFollower(new ProxyFollower(instance, this._messenger)));
+        .map(instance => leader.addFollower(new ProxyFollower(instance, this._messenger, this._logger)));
     }
     // all prepared let's start
     leader.start();
