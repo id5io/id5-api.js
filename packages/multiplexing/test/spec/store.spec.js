@@ -3,9 +3,10 @@ import {expect} from 'chai';
 import sinon from 'sinon';
 import sinonChai from 'sinon-chai';
 import chaiDateTime from 'chai-datetime';
-import {Store, StoredDataState} from "../../src/store.js";
-import ClientStore from "../../../../lib/clientStore.js";
+import {Store, StoredDataState, StorageConfig} from "../../src/store.js";
+import {ClientStore} from "../../src/clientStore.js";
 import {API_TYPE, ConsentData} from "../../src/index.js";
+import CONSTANTS from '../../src/constants.js'
 
 chai.use(sinonChai);
 chai.use(chaiDateTime);
@@ -138,9 +139,6 @@ describe('Store', function () {
   it('should return stored data state with nb counters ', function () {
 
     // given
-    const partnerId1 = FETCH_ID_DATA[0].partnerId;
-    const partnerId2 = FETCH_ID_DATA[1].partnerId;
-
     clientStoreV1.getResponse.returns(FETCH_RESPONSE_OBJ);
     clientStoreV1.getDateTime.returns(STORE_TIME);
     clientStoreV1.isStoredPdUpToDate.returns(true);
@@ -339,13 +337,8 @@ describe('Store', function () {
   it(`should store request data`, function () {
     // given
     const partner1 = FETCH_ID_DATA[0].partnerId;
-    ;
     const partner2 = FETCH_ID_DATA[1].partnerId;
     const consentData = {};
-
-    const state = {
-      pdHasChanged: false
-    };
 
     clientStoreV1.isStoredPdUpToDate.onFirstCall().returns(false);
     clientStoreV1.isStoredPdUpToDate.onSecondCall().returns(false);
@@ -372,10 +365,6 @@ describe('Store', function () {
     const partner2 = FETCH_ID_DATA[1].partnerId;
     const consentData = {};
 
-    const state = {
-      pdHasChanged: false
-    };
-
     clientStoreV1.isStoredPdUpToDate.onFirstCall().returns(false);
     clientStoreV1.isStoredPdUpToDate.onSecondCall().returns(true);
 
@@ -397,7 +386,6 @@ describe('Store', function () {
   it('should increase NB and update state', function () {
     // given
     const partner1 = FETCH_ID_DATA[0].partnerId;
-    ;
     const partner2 = FETCH_ID_DATA[1].partnerId;
     const state = {
       nb: {}
@@ -461,7 +449,55 @@ describe('Store', function () {
     expect(clientStoreV1.clearHashedSegments.secondCall.args).to.be.eql([FETCH_ID_DATA[1].partnerId]);
     expect(clientStoreV1.clearHashedConsentData).to.have.been.calledOnce;
   });
+});
 
+describe("Storage config", function () {
+  const STORAGE_CONFIG = CONSTANTS.STORAGE_CONFIG;
+  it('should return default config', function () {
+    const storageConfig = new StorageConfig(undefined);
+    function verifyConfig(actual, expected) {
+      expect(actual.name).is.eq(expected.name);
+      expect(actual.expiresDays).is.eq(expected.expiresDays);
+    }
+    verifyConfig(storageConfig.ID5, STORAGE_CONFIG.ID5);
+    verifyConfig(storageConfig.LAST, STORAGE_CONFIG.LAST);
+    verifyConfig(storageConfig.PD, STORAGE_CONFIG.PD);
+    verifyConfig(storageConfig.PRIVACY, STORAGE_CONFIG.PRIVACY);
+    verifyConfig(storageConfig.CONSENT_DATA, STORAGE_CONFIG.CONSENT_DATA);
+    verifyConfig(storageConfig.SEGMENTS, STORAGE_CONFIG.SEGMENTS);
+    verifyConfig(storageConfig.LIVE_INTENT, STORAGE_CONFIG.LIVE_INTENT);
+  });
 
+  it('should return configured expiration', function () {
+    const storageExpirationDays = 40;
+    const storageConfig = new StorageConfig(storageExpirationDays);
+    function verifyConfig(actual, expected) {
+      expect(actual.name).is.eq(expected.name);
+      expect(actual.expiresDays).is.eq(storageExpirationDays);
+    }
+    verifyConfig(storageConfig.ID5, STORAGE_CONFIG.ID5);
+    verifyConfig(storageConfig.LAST, STORAGE_CONFIG.LAST);
+    verifyConfig(storageConfig.PD, STORAGE_CONFIG.PD);
+    verifyConfig(storageConfig.PRIVACY, STORAGE_CONFIG.PRIVACY);
+    verifyConfig(storageConfig.CONSENT_DATA, STORAGE_CONFIG.CONSENT_DATA);
+    verifyConfig(storageConfig.SEGMENTS, STORAGE_CONFIG.SEGMENTS);
+    verifyConfig(storageConfig.LIVE_INTENT, STORAGE_CONFIG.LIVE_INTENT);
+  });
+
+  it('should apply minimum expiration', function () {
+    const storageExpirationDays = 0;
+    const storageConfig = new StorageConfig(storageExpirationDays);
+    function verifyConfig(actual, expected) {
+      expect(actual.name).is.eq(expected.name);
+      expect(actual.expiresDays).is.eq(1);
+    }
+    verifyConfig(storageConfig.ID5, STORAGE_CONFIG.ID5);
+    verifyConfig(storageConfig.LAST, STORAGE_CONFIG.LAST);
+    verifyConfig(storageConfig.PD, STORAGE_CONFIG.PD);
+    verifyConfig(storageConfig.PRIVACY, STORAGE_CONFIG.PRIVACY);
+    verifyConfig(storageConfig.CONSENT_DATA, STORAGE_CONFIG.CONSENT_DATA);
+    verifyConfig(storageConfig.SEGMENTS, STORAGE_CONFIG.SEGMENTS);
+    verifyConfig(storageConfig.LIVE_INTENT, STORAGE_CONFIG.LIVE_INTENT);
+  });
 });
 

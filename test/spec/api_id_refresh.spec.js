@@ -1,5 +1,4 @@
 import sinon from 'sinon';
-import * as utils from '../../lib/utils';
 import ID5 from '../../lib/id5-api';
 import {
   TEST_ID5ID_STORAGE_CONFIG,
@@ -16,7 +15,7 @@ import {
   DEFAULT_EXTENSIONS, MultiplexingStub
 } from './test_utils';
 import {expect} from "chai";
-import {EXTENSIONS} from '@id5io/multiplexing';
+import {EXTENSIONS, utils} from '@id5io/multiplexing';
 
 describe('Refresh ID Fetch Handling', function () {
   let ajaxStub;

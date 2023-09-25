@@ -15,7 +15,7 @@ import {
   defaultInitBypassConsent,
   DEFAULT_EXTENSIONS
 } from './test_utils';
-import {EXTENSIONS} from '@id5io/multiplexing';
+import {EXTENSIONS, utils as mxutils} from '@id5io/multiplexing';
 
 describe('Fire Usersync Pixel', function () {
   let ajaxStub;
@@ -49,7 +49,7 @@ describe('Fire Usersync Pixel', function () {
 
   describe('Without Calling ID5', function () {
     beforeEach(function () {
-      ajaxStub = sinon.stub(utils, 'ajax').callsFake(function(url, callbacks, data, options) {
+      ajaxStub = sinon.stub(mxutils, 'ajax').callsFake(function(url, callbacks, data, options) {
         callbacks.success('{}');
       });
     });
@@ -69,7 +69,7 @@ describe('Fire Usersync Pixel', function () {
 
   describe('With Cascade Needed', function () {
     beforeEach(function () {
-      ajaxStub = sinon.stub(utils, 'ajax').callsFake(function(url, callbacks, data, options) {
+      ajaxStub = sinon.stub(mxutils, 'ajax').callsFake(function(url, callbacks, data, options) {
         callbacks.success(JSON_RESPONSE_CASCADE);
       });
     });
@@ -141,7 +141,7 @@ describe('Fire Usersync Pixel', function () {
 
   describe('Without Cascade Needed', function () {
     beforeEach(function () {
-      ajaxStub = sinon.stub(utils, 'ajax').callsFake(function(url, callbacks, data, options) {
+      ajaxStub = sinon.stub(mxutils, 'ajax').callsFake(function(url, callbacks, data, options) {
         callbacks.success(JSON_RESPONSE_ID5_CONSENT);
       });
     });

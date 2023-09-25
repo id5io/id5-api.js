@@ -1,4 +1,4 @@
-import {cyrb53Hash} from '../../../lib/utils.js';
+import {cyrb53Hash} from './utils.js';
 
 const ID5_GVL_ID = '131';
 
@@ -73,7 +73,7 @@ export class ConsentData {
   /**
    * Note this is not a generic hash code but rather a hash code
    * used to check whether or not consent has changed across invocations
-   * @returns a hash code of some properties of this object
+   * @returns {string} a hash code of some properties of this object
    */
   hashCode() {
     /*

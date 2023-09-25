@@ -1,4 +1,4 @@
-import {ajax, isDefined, isGlobalTrace, isStr, objectEntries} from '../../../lib/utils.js';
+import {ajax, isDefined, isStr, objectEntries} from './utils.js';
 import {ApiEvent} from './apiEvent.js';
 import {startTimeMeasurement} from '@id5io/diagnostics';
 
@@ -241,7 +241,7 @@ export class UidFetcher {
       data._invalid_segments = invalidSegmentsCount;
     }
 
-    if (isGlobalTrace()) {
+    if (fetchIdData.trace) {
       data._trace = true;
     }
 
@@ -276,7 +276,7 @@ export class UidFetcher {
           fetchTimeMeasurement.record(this._metrics?.fetchFailureCallTimer());
         }
       }
-    }, JSON.stringify({requests: requests}), {method: 'POST', withCredentials: true});
+    }, JSON.stringify({requests: requests}), {method: 'POST', withCredentials: true}, log);
   }
 
   /**

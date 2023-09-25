@@ -1,4 +1,103 @@
-import {isNumber} from '../../../lib/utils.js';
+import {isNumber} from './utils.js';
+import CONSTANTS from './constants.js';
+
+export class StoreItemConfig {
+  constructor(name, expiresDays) {
+    this.name = name;
+    this.expiresDays = expiresDays;
+  }
+
+  withNameSuffixed(...suffixes) {
+    let name = this.name;
+    for (const suffix of suffixes) {
+      name += `_${suffix}`;
+    }
+    return new StoreItemConfig(name, this.expiresDays);
+  }
+}
+
+export class StorageConfig {
+  constructor(storageExpirationDays = undefined) {
+    let defaultStorageConfig = CONSTANTS.STORAGE_CONFIG;
+    let createConfig = function (defaultConfig) {
+      let expiresDays = storageExpirationDays !== undefined ? Math.max(1, storageExpirationDays) : defaultConfig.expiresDays;
+      return new StoreItemConfig(defaultConfig.name, expiresDays);
+    };
+
+    this.ID5 = createConfig(defaultStorageConfig.ID5);
+    this.LAST = createConfig(defaultStorageConfig.LAST);
+    this.CONSENT_DATA = createConfig(defaultStorageConfig.CONSENT_DATA);
+    this.PD = createConfig(defaultStorageConfig.PD);
+    this.PRIVACY = createConfig(defaultStorageConfig.PRIVACY);
+    this.SEGMENTS = createConfig(defaultStorageConfig.SEGMENTS);
+    this.LIVE_INTENT = createConfig(defaultStorageConfig.LIVE_INTENT);
+  }
+}
+
+/**
+ * @interface
+ */
+export class LocalStorageApi {
+  /**
+   * @returns {boolean} true if the localStorage is available
+   */
+  isAvailable() {
+    return false;
+  }
+
+  /**
+   * Gets a stored string from local storage
+   *
+   * @param {string} key
+   * @returns {string|null|undefined} the stored value, null if no value or expired were stored, undefined if no localStorage
+   */
+  getItem(key) {
+    return undefined;
+  }
+
+  /**
+   * Puts a string in local storage
+   *
+   * @param {string} key the key of the item
+   * @param {string} value the vaule to store
+   * @returns {undefined}
+   */
+  setItem(key, value) {
+  }
+
+  /**
+   * Removes a string from local storage
+   * @param {string} key the key of the item
+   */
+  removeItem(key) {
+  }
+
+  /**
+   * Gets a stored item from local storage dealing with expiration policy.
+   * @param {Object} config The item configuration
+   * @param {string} config.name The item name
+   * @returns {string|null} the stored value, null if no value, expired or no localStorage
+   */
+  getItemWithExpiration({ name }) {
+    return null;
+  }
+
+  /**
+   * Stores an item in local storage dealing with expiration policy.
+   * @param {Object} config The item configuration
+   * @param {string} config.name The item name
+   * @param {number} config.expiresDays The expiration in days
+   * @returns {undefined}
+   */
+  setItemWithExpiration({name, expiresDays}, value) {
+  }
+
+  /**
+   * Removes an item from local storage dealing with expiration policy.
+   */
+  removeItemWithExpiration({ name }) {
+  }
+}
 
 export class StoredDataState {
   storedResponse;

@@ -1,7 +1,5 @@
 import sinon from 'sinon';
-import CONSTANTS from '../../lib/constants.json';
 import ID5 from '../../lib/id5-api';
-import * as utils from '../../lib/utils';
 import {
   DEFAULT_EXTENSIONS,
   defaultInit,
@@ -15,7 +13,7 @@ import {
   TEST_PRIVACY_ALLOWED,
   TEST_RESPONSE_SIGNATURE
 } from './test_utils';
-import {EXTENSIONS} from '@id5io/multiplexing';
+import {CONSTANTS, EXTENSIONS, utils} from '@id5io/multiplexing';
 
 describe('A/B Testing', function () {
   let ajaxStub;
@@ -141,7 +139,7 @@ describe('A/B Testing', function () {
 
   describe('In Control Group', function () {
     let onAvailableSpy, onUpdateSpy, onRefreshSpy;
-    let ajaxStub, extensionsStub, clock;
+    let ajaxStub, extensionsStub;
     const JSON_ABTEST = JSON.stringify({
       'universal_uid': 'whateverID_AB_NORMAL',
       'cascade_needed': false,

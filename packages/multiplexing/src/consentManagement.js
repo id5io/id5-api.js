@@ -1,8 +1,8 @@
 import {
   isDefined,
   isPlainObject
-} from '../../../lib/utils.js';
-import CONSTANTS from '../../../lib/constants.json';
+} from './utils.js';
+import CONSTANTS from './constants.js';
 import {LazyValue} from './promise.js';
 import {API_TYPE, GRANT_TYPE, LocalStorageGrant, ConsentManager, ConsentData} from './consent.js';
 

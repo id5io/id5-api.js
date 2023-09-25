@@ -1,6 +1,4 @@
 import sinon from 'sinon';
-import * as utils from '../../lib/utils';
-import ClientStore from '../../lib/clientStore';
 import ID5 from '../../lib/id5-api';
 import {
   DEFAULT_EXTENSIONS,
@@ -22,8 +20,7 @@ import {
   TEST_RESPONSE_LINK_TYPE,
   TEST_RESPONSE_SIGNATURE
 } from './test_utils';
-import {StorageConfig} from "../../lib/config.js";
-import {API_TYPE, ConsentData, EXTENSIONS, GRANT_TYPE, LocalStorageGrant, NoopLogger} from "@id5io/multiplexing";
+import {API_TYPE, ConsentData, EXTENSIONS, GRANT_TYPE, LocalStorageGrant, NoopLogger, utils, ClientStore, StorageConfig} from '@id5io/multiplexing';
 
 let expect = require('chai').expect;
 

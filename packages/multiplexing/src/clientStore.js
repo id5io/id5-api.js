@@ -5,16 +5,15 @@
 import {cyrb53Hash, isEmpty} from './utils.js';
 
 /* eslint-disable no-unused-vars */
-import {ConsentData, LocalStorageGrant} from '@id5io/multiplexing';
-import {Segment, StoreItemConfig} from './config.js';
-import LocalStorage from './localStorage.js';
+import {ConsentData, LocalStorageGrant} from './consent.js';
+import {LocalStorageApi, StorageConfig, StoreItemConfig} from './store.js';
 /* eslint-enable no-unused-vars */
 
-export default class ClientStore {
+export class ClientStore {
   /** @type {function} */
   localStorageGrantChecker;
 
-  /** @type {LocalStorage} */
+  /** @type {LocalStorageApi} */
   localStorage;
 
   /**
@@ -25,7 +24,7 @@ export default class ClientStore {
 
   /**
    * @param {function} localStorageGrantChecker
-   * @param {LocalStorage} localStorage the localStorage abstraction object to use
+   * @param {LocalStorageApi} localStorage the localStorage abstraction object to use
    * @param {StorageConfig} storageConfig
    * @param {Logger} logger
    */

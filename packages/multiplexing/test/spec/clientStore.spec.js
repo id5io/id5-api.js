@@ -1,13 +1,27 @@
 import * as chai from 'chai';
 import {expect} from 'chai';
-import sinonChai from 'sinon-chai';import sinon from 'sinon';
-import { API_TYPE, GRANT_TYPE, LocalStorageGrant, NoopLogger } from "@id5io/multiplexing";
-import ClientStore from "../../lib/clientStore";
-import LocalStorage from "../../lib/localStorage";
-import { StorageConfig } from '../../lib/config';
-import { JSON_RESPONSE_ID5_CONSENT, TEST_RESPONSE_ID5_CONSENT } from './test_utils';
-import { cyrb53Hash } from '../../lib/utils';
+import sinonChai from 'sinon-chai';
+import sinon from 'sinon';
+import {API_TYPE, GRANT_TYPE, LocalStorageGrant} from '../../src/consent.js';
+import {ClientStore} from '../../src/clientStore.js';
+import {LocalStorageApi, StorageConfig} from '../../src/store.js';
+import {NoopLogger} from '../../src/logger.js';
+import {cyrb53Hash} from '../../src/utils';
 
+const TEST_RESPONSE_ID5_CONSENT = {
+    universal_uid: 'testresponseid5id',
+    cascade_needed: false,
+    signature: 'uvwxyz',
+    ext: {
+        linkType: 1
+    },
+    privacy: {
+        jurisdiction: 'other',
+        id5_consent: true
+    }
+};
+
+const JSON_RESPONSE_ID5_CONSENT = JSON.stringify(TEST_RESPONSE_ID5_CONSENT);
 chai.use(sinonChai);
 
 const DEFAULT_STORAGE_CONFIG = new StorageConfig();
@@ -23,7 +37,7 @@ describe('ClientStore', function() {
   [true, false].forEach(casus => {
     it(`should tell whether local storage is available in case ${casus}`, function() {
       // given
-      const localStorage = sinon.createStubInstance(LocalStorage);
+      const localStorage = sinon.createStubInstance(LocalStorageApi);
       localStorage.isAvailable.returns(casus);
       const clientStore = new ClientStore(undefined, localStorage, DEFAULT_STORAGE_CONFIG, log);
 
@@ -39,7 +53,7 @@ describe('ClientStore', function() {
     let localStorage;
 
     beforeEach(function() {
-      localStorage = sinon.createStubInstance(LocalStorage);
+      localStorage = sinon.createStubInstance(LocalStorageApi);
       localStorage.isAvailable.returns(true);
     });
 
