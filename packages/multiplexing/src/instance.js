@@ -254,6 +254,7 @@ class Election {
   _closeTime;
   _timeoutId;
   _state = ElectionState.AWAITING_SCHEDULE;
+  _delayMs;
   _instance;
 
   constructor(instance) {
@@ -262,13 +263,14 @@ class Election {
 
   schedule(delayMs) {
     const election = this;
+    election._delayMs = delayMs;
     this._timeoutId = setTimeout(() => {
       if (election._timeoutId) {
         election._timeoutId = undefined;
         election._instance._doElection();
         election._closeWithState(ElectionState.COMPLETED);
       }
-    }, delayMs);
+    }, election._delayMs);
     election._state = ElectionState.SCHEDULED;
     election._scheduleTime = performance.now();
   }
@@ -392,7 +394,7 @@ export class Instance {
     Object.assign(this.properties, configuration);
   }
 
-  init(electionDelayMSec = 3000) {
+  init(electionDelayMSec = 1000) {
     let instance = this;
     let window = instance._window;
     instance._mode = instance.properties.singletonMode === true ? OperatingMode.SINGLETON : OperatingMode.MULTIPLEXING;
@@ -519,7 +521,7 @@ export class Instance {
           this._election.cancel();
           // act as follower
           this._onLeaderElected(providedLeader);
-          // TODO what if another instance will provide another leader instance
+          // TODO what if another instance will provide different leader instance
           // TODO what if it will never get HELLO from leader
           // TODO should accept only if hello.leader === hello.instance -> this may guarantee that  leader will join follower ?
         }

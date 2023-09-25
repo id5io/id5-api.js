@@ -653,7 +653,7 @@ describe('The ID5 API', function () {
       const page = await browser.newPage();
       await page.goto('https://my-publisher-website.net');
 
-      await expectRequestAt(electionNotifyEndpoint);
+      await expectRequestsAt(electionNotifyEndpoint, 4); // all instances have elected leader
       await page.reload();
 
       // each instance publishes diagnostics

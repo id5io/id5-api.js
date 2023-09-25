@@ -68,15 +68,12 @@
                     publishingSampleRatio: 1,
                     publishOnWindowUnload: true
                 },
-                segments: [{destination: '22', ids: ['abc']}],
-                multiplexing: {
-                    _disabled: false
-                }
+                segments: [{destination: '22', ids: ['abc']}]
             }
         ).onAvailable(uidCallback);
         const instance = id5Status.instance;
         instance.on('leader-elected', leaderElectionCallback(instance));
-    }, 4000);
+    }, 2000);
 </script>
 <iframe id="non-friendly-frame" src="https://non-friendly-stuff.com"></iframe>
 <iframe id="friendly-frame" src="https://my-publisher-website.net/multiple-integrations.html"></iframe>
