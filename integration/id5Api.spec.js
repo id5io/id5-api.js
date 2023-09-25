@@ -7,7 +7,6 @@ import {fileURLToPath} from 'url';
 import chai, {expect} from 'chai';
 import {version} from '../generated/version.js';
 import chaiDateTime from 'chai-datetime';
-import {readFile} from 'fs/promises';
 import isDocker from 'is-docker';
 /**
  * If you want to debug in the browser, you can use "devtools: true" in
@@ -60,7 +59,7 @@ const FETCH_ENDPOINT = 'https://id5-sync.com/gm/v2';
 
 // Note: do not use lambda syntax in describes. https://mochajs.org/#arrow-functions
 describe('The ID5 API', function () {
-  let browser, server, CONSTANTS, profileDir, caFingerprint;
+  let browser, server, profileDir, caFingerprint;
 
   this.timeout((_DEBUG ? 300 : 30) * 1000);
 
@@ -89,8 +88,6 @@ describe('The ID5 API', function () {
   }
 
   before(async () => {
-    CONSTANTS = JSON.parse(await readFile(path.join(SCRIPT_DIR, '..', 'lib', 'constants.json')));
-
     // Create a proxy server with a self-signed HTTPS CA certificate:
     const https = await mockttp.generateCACertificate();
     server = mockttp.getLocal({
@@ -178,7 +175,7 @@ describe('The ID5 API', function () {
 
       // For comparing timestamps we use an interval of 30s of uncertainty
       const id5idExpRaw = await page.evaluate(() => localStorage.getItem('id5id_exp'));
-      const ID5_EXPIRE_DAYS = CONSTANTS.STORAGE_CONFIG.ID5.expiresDays;
+      const ID5_EXPIRE_DAYS = 90;
       expect(new Date(id5idExpRaw)).to.be.withinTime(
         new Date(NOW - 30000 + ID5_EXPIRE_DAYS * DAYS_TO_MILLISECONDS),
         new Date(NOW + ID5_EXPIRE_DAYS * DAYS_TO_MILLISECONDS));
@@ -187,7 +184,7 @@ describe('The ID5 API', function () {
       expect(new Date(lastRaw)).to.be.closeToTime(new Date(NOW), 30);
 
       const lastExpRaw = await page.evaluate(() => localStorage.getItem('id5id_last_exp'));
-      const LAST_EXPIRE_DAYS = CONSTANTS.STORAGE_CONFIG.LAST.expiresDays;
+      const LAST_EXPIRE_DAYS = 90;
       expect(new Date(lastExpRaw)).to.be.withinTime(
         new Date(NOW - 30000 + LAST_EXPIRE_DAYS * DAYS_TO_MILLISECONDS),
         new Date(NOW + LAST_EXPIRE_DAYS * DAYS_TO_MILLISECONDS));

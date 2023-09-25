@@ -15,9 +15,9 @@ import {
   NoopLogger
 } from '../../src/index.js';
 import {Id5CommonMetrics} from '@id5io/diagnostics';
-import * as utils from '../../../../lib/utils.js';
+import * as utils from '../../src/utils.js';
 import {Store, StoredDataState} from "../../src/store.js";
-import Promise from "../../src/promise.js";
+import Promise from '../../src/promise.js';
 
 chai.use(sinonChai);
 
@@ -170,7 +170,7 @@ describe('UidFetcher', function () {
 
   describe('when server response does grant consent', function() {
     beforeEach(function () {
-      ajaxStub = sinon.stub(utils, 'ajax').callsFake(function (url, callbacks, data, options) {
+      ajaxStub = sinon.stub(utils, 'ajax').callsFake(function (url, callbacks, data, options, log) {
         callbacks.success(FETCH_RESPONSE_STRING);
       });
     });
@@ -230,7 +230,8 @@ describe('UidFetcher', function () {
           provided_options: {
             refresh_in_seconds: 1000
           }
-        }]
+        }],
+        ['with trace', {trace: true}, {_trace: true}],
       ].forEach(([description, data, expectedInRequest]) => {
         it(`should call multi-fetch and correctly use parameters to create the fetch request body (${description})`, async () => {
           // given

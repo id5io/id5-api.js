@@ -1,4 +1,4 @@
-import {ajax} from '../../../lib/utils.js';
+import {ajax} from './utils.js';
 import Promise from './promise.js';
 import {NoopLogger} from './logger.js';
 
@@ -27,7 +27,7 @@ export class Extensions {
       }
     };
 
-    const submitExtensionCall = function (url) {
+    const submitExtensionCall = function (url, log) {
       return new Promise(resolve => {
         ajax(url,
           {
@@ -39,12 +39,12 @@ export class Extensions {
               log.warn(`Got error from ${url} endpoint`, error);
               resolve(DEFAULT_RESPONSE); // if fails, then complete successfully
             }
-          }, null);
+          }, null, {}, log);
       });
     };
 
     return Promise.allSettled([
-      submitExtensionCall(ID5_LB_ENDPOINT)
+      submitExtensionCall(ID5_LB_ENDPOINT, log)
     ]).then((results) => {
       let extensions = DEFAULT_RESPONSE;
       results.forEach(result => {

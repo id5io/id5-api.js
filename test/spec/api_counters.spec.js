@@ -1,6 +1,5 @@
 import sinon from 'sinon';
 import ID5 from '../../lib/id5-api';
-import * as utils from '../../lib/utils';
 import {
   ID5_FETCH_ENDPOINT,
   JSON_RESPONSE_ID5_CONSENT,
@@ -17,7 +16,7 @@ import {
   defaultInitBypassConsent,
   DEFAULT_EXTENSIONS
 } from './test_utils';
-import {EXTENSIONS, ApiEvent} from "@id5io/multiplexing";
+import {EXTENSIONS, ApiEvent, utils} from "@id5io/multiplexing";
 
 describe('Counters', function () {
   let ajaxStub;
