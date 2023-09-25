@@ -1,9 +1,9 @@
 import * as chai from 'chai';
 import {expect} from 'chai';
-import sinon from 'sinon';
+import sinon, {stub} from 'sinon';
 import sinonChai from 'sinon-chai';
 import {CrossInstanceMessenger, ProxyMethodCallTarget} from '../../src/messaging.js';
-import {AwaitedLeader, ActualLeader, Leader, ProxyLeader} from '../../src/leader.js';
+import {AwaitedLeader, ActualLeader, Leader, ProxyLeader, AddFollowerResult} from '../../src/leader.js';
 import {UidFetcher} from "../../src/fetch.js";
 import {API_TYPE, ApiEvent, ConsentData, ConsentManagement, NoopLogger} from '../../src/index.js';
 import {Follower} from '../../src/follower.js';
@@ -78,13 +78,23 @@ describe('AwaitedLeader', function () {
 
     const awaitedLeader = new AwaitedLeader();
     const newLeader = sinon.createStubInstance(Leader);
+    newLeader.addFollower.returns(new AddFollowerResult());
 
     // when
     awaitedLeader.updateConsent(consentData);
     awaitedLeader.refreshUid(refreshOptions);
     awaitedLeader.updateFetchIdData('1', fetchData);
+    let addResult = awaitedLeader.addFollower(follower);
+
+    // then
+    expect(newLeader.updateConsent).to.have.not.been.called;
+    expect(newLeader.refreshUid).to.have.not.been.called;
+    expect(newLeader.updateFetchIdData).to.have.not.been.called;
+    expect(newLeader.addFollower).to.have.not.been.called;
+    expect(addResult).to.be.undefined; // just buffered no result known
+
+    // when
     awaitedLeader.assignLeader(newLeader);
-    awaitedLeader.addFollower(follower);
 
     // then
     expect(newLeader.updateConsent).to.have.been.calledWith(consentData);
@@ -107,6 +117,7 @@ describe('AwaitedLeader', function () {
 
     const awaitedLeader = new AwaitedLeader();
     const assignedLeader = sinon.createStubInstance(Leader);
+    assignedLeader.addFollower.returns(new AddFollowerResult());
     awaitedLeader.assignLeader(assignedLeader);
 
     // when
@@ -131,9 +142,10 @@ describe('AwaitedLeader', function () {
     expect(awaitedLeader._callsQueue).has.length(0);
 
     // when
-    awaitedLeader.addFollower(follower);
+    let addResult = awaitedLeader.addFollower(follower);
 
     // then
+    expect(addResult).to.be.eql(new AddFollowerResult());
     expect(assignedLeader.addFollower).to.have.been.calledWith(follower);
     expect(awaitedLeader._callsQueue).has.length(0);
   });
@@ -215,8 +227,14 @@ describe('ActualLeader', () => {
 
     // given
     const uid = sinon.stub();
-    leader.addFollower(follower1);
-    leader.addFollower(follower2);
+
+    // when
+    let add1Result = leader.addFollower(follower1);
+    let add2Result = leader.addFollower(follower2);
+
+    // then
+    expect(add1Result).to.be.eql(new AddFollowerResult());
+    expect(add2Result).to.be.eql(new AddFollowerResult());
 
     // when
     leader.start();
@@ -225,11 +243,13 @@ describe('ActualLeader', () => {
     expect(uidFetcher.getId).to.be.calledWith(leader._dispatcher, [
       {
         ...follower1FetchIdData,
-        integrationId: follower1Id
+        integrationId: follower1Id,
+        requestCount: 1
       },
       {
         ...follower2FetchIdData,
-        integrationId: follower2Id
+        integrationId: follower2Id,
+        requestCount: 1
       }], false);
 
     // when
@@ -240,7 +260,153 @@ describe('ActualLeader', () => {
     expect(follower2.notifyUidReady).to.be.calledWith(uid);
   });
 
-  it('should notify late joiners when uid already received and include them for other updates', function () {
+  it(`should notify late joiner when uid already received and don't trigger fetch when not required`, function () {
+
+    // given
+    const uid = {
+      responseObj: sinon.stub(),
+      timestamp: Date.now(),
+      isFromCache: false
+    };
+    leader.addFollower(follower1);
+    leader.addFollower(follower2);
+
+    // when
+    leader.start();
+
+    // then
+    expect(uidFetcher.getId).to.be.calledOnce;
+    expect(uidFetcher.getId.firstCall).to.be.calledWith(leader._dispatcher, [
+      {
+        ...follower1FetchIdData,
+        integrationId: follower1Id,
+        requestCount: 1
+      },
+      {
+        ...follower2FetchIdData,
+        integrationId: follower2Id,
+        requestCount: 1
+      }], false);
+
+    // when
+    leader._dispatcher.emit(ApiEvent.USER_ID_READY, uid);
+
+    // then
+    expect(follower1.notifyUidReady).to.be.calledWith(uid);
+    expect(follower2.notifyUidReady).to.be.calledWith(uid);
+
+    // when
+    follower3.isSimilarTo.onFirstCall().returns(false);
+    follower3.isSimilarTo.onSecondCall().returns(true);
+
+    let result = leader.addFollower(follower3);
+
+    // then
+    expect(result).to.be.eql(new AddFollowerResult(true, false));
+    expect(follower3.isSimilarTo).to.be.calledTwice;
+    expect(follower3.isSimilarTo.firstCall).to.be.calledWith(follower1);
+    expect(follower3.isSimilarTo.secondCall).to.be.calledWith(follower1);
+    expect(follower3.notifyUidReady).to.be.calledWith({
+      ...uid,
+      isFromCache: true
+    });
+
+    // then
+    expect(uidFetcher.getId).to.be.calledOnce;
+    expect(leader._followers).contains(follower3);
+  });
+
+  it(`should add to queue refresh when different late joiner added and fetch is in progress - uid already provisioned`, function () {
+
+    // given
+    const uid = {
+      responseObj: sinon.stub(),
+      timestamp: Date.now(),
+      isFromCache: false
+    };
+    leader.addFollower(follower1);
+    leader.addFollower(follower2);
+
+    // when
+    leader.start();
+
+    // then
+    expect(uidFetcher.getId).to.be.calledOnce;
+    expect(uidFetcher.getId.firstCall).to.be.calledWith(leader._dispatcher, [
+      {
+        ...follower1FetchIdData,
+        integrationId: follower1Id,
+        requestCount: 1
+      },
+      {
+        ...follower2FetchIdData,
+        integrationId: follower2Id,
+        requestCount: 1
+      }], false);
+
+    // when
+    leader._dispatcher.emit(ApiEvent.USER_ID_READY, uid); // uid already provisioned, fetch not completed (i.e. from cache but fetch is ongoing)
+
+    // then
+    expect(follower1.notifyUidReady).to.be.calledWith(uid);
+    expect(follower2.notifyUidReady).to.be.calledWith(uid);
+
+    // when
+    follower3.isSimilarTo.onFirstCall().returns(false);
+    follower3.isSimilarTo.onSecondCall().returns(false);
+    let result = leader.addFollower(follower3);
+
+    // then
+    expect(result).to.be.eql(new AddFollowerResult(true, true));
+    expect(follower3.isSimilarTo).to.be.calledTwice;
+    expect(follower3.isSimilarTo.firstCall).to.be.calledWith(follower1);
+    expect(follower3.isSimilarTo.secondCall).to.be.calledWith(follower1);
+
+    expect(follower3.notifyUidReady).to.be.calledWith({
+      ...uid,
+      isFromCache: true
+    });
+
+    expect(uidFetcher.getId).to.be.calledOnce;
+
+    // when
+    leader._dispatcher.emit(ApiEvent.USER_ID_FETCH_COMPLETED); // complete fetch
+
+    // then
+    expect(uidFetcher.getId).to.be.calledTwice;
+    expect(uidFetcher.getId.secondCall).to.be.calledWith(leader._dispatcher, [
+      {
+        ...follower1FetchIdData,
+        integrationId: follower1Id,
+        requestCount: 2
+      },
+      {
+        ...follower2FetchIdData,
+        integrationId: follower2Id,
+        requestCount: 2
+      },
+      {
+        ...follower3FetchIdData,
+        integrationId: follower3Id,
+        requestCount: 1
+      },
+    ], true);
+
+    // when
+    follower1.notifyUidReady.reset();
+    follower2.notifyUidReady.reset();
+
+    const updatedUid = stub();
+    leader._dispatcher.emit(ApiEvent.USER_ID_READY, updatedUid);
+    leader._dispatcher.emit(ApiEvent.USER_ID_FETCH_COMPLETED);
+
+    // then
+    expect(follower1.notifyUidReady).to.be.calledWith(updatedUid);
+    expect(follower2.notifyUidReady).to.be.calledWith(updatedUid);
+    expect(follower3.notifyUidReady).to.be.calledWith(updatedUid);
+  });
+
+  it(`should add to queue refresh when different late joiner added and fetch is in progress - no uid ready yet`, function () {
 
     // given
     const uid = sinon.stub();
@@ -248,38 +414,155 @@ describe('ActualLeader', () => {
     leader.addFollower(follower2);
 
     // when
+    leader.start();
+
+    // then
+    expect(uidFetcher.getId).to.be.calledOnce;
+    expect(uidFetcher.getId.firstCall).to.be.calledWith(leader._dispatcher, [
+      {
+        ...follower1FetchIdData,
+        integrationId: follower1Id,
+        requestCount: 1
+      },
+      {
+        ...follower2FetchIdData,
+        integrationId: follower2Id,
+        requestCount: 1
+      }], false);
+
+    // when
+    follower3.isSimilarTo.onFirstCall().returns(false);
+    follower3.isSimilarTo.onSecondCall().returns(false);
+    let result = leader.addFollower(follower3);
+
+    // then
+    expect(result).to.be.eql(new AddFollowerResult(true, true));
+    expect(follower3.isSimilarTo).to.be.calledTwice;
+    expect(follower3.isSimilarTo.firstCall).to.be.calledWith(follower1);
+    expect(follower3.isSimilarTo.secondCall).to.be.calledWith(follower1);
+
+    expect(uidFetcher.getId).to.be.calledOnce; // not called yet
+
+    // when
     leader._dispatcher.emit(ApiEvent.USER_ID_READY, uid);
+    leader._dispatcher.emit(ApiEvent.USER_ID_FETCH_COMPLETED);
+
+    // then
+    expect(follower1.notifyUidReady).to.be.calledWith(uid);
+    expect(follower2.notifyUidReady).to.be.calledWith(uid);
+    expect(follower3.notifyUidReady).to.be.calledWith(uid);
+
+
+    // then
+    expect(uidFetcher.getId).to.be.calledTwice;
+    expect(uidFetcher.getId.secondCall).to.be.calledWith(leader._dispatcher, [
+      {
+        ...follower1FetchIdData,
+        integrationId: follower1Id,
+        requestCount: 2
+      },
+      {
+        ...follower2FetchIdData,
+        integrationId: follower2Id,
+        requestCount: 2
+      },
+      {
+        ...follower3FetchIdData,
+        integrationId: follower3Id,
+        requestCount: 1
+      },
+    ], true);
+
+    // when
+    follower1.notifyUidReady.reset();
+    follower2.notifyUidReady.reset();
+
+    const updatedUid = stub();
+    leader._dispatcher.emit(ApiEvent.USER_ID_READY, updatedUid);
+    leader._dispatcher.emit(ApiEvent.USER_ID_FETCH_COMPLETED);
+
+    // then
+    expect(follower1.notifyUidReady).to.be.calledWith(updatedUid);
+    expect(follower2.notifyUidReady).to.be.calledWith(updatedUid);
+    expect(follower3.notifyUidReady).to.be.calledWith(updatedUid);
+  });
+
+  it(`should trigger fetch when different late joiner added`, function () {
+
+    // given
+    const uid = sinon.stub();
+    leader.addFollower(follower1);
+    leader.addFollower(follower2);
+
+    // when
+    leader.start();
+
+    // then
+    expect(uidFetcher.getId).to.be.calledOnce;
+    expect(uidFetcher.getId.firstCall).to.be.calledWith(leader._dispatcher, [
+      {
+        ...follower1FetchIdData,
+        integrationId: follower1Id,
+        requestCount: 1
+      },
+      {
+        ...follower2FetchIdData,
+        integrationId: follower2Id,
+        requestCount: 1
+      }], false);
+
+    // when
+    leader._dispatcher.emit(ApiEvent.USER_ID_READY, uid);
+    leader._dispatcher.emit(ApiEvent.USER_ID_FETCH_COMPLETED);
 
     // then
     expect(follower1.notifyUidReady).to.be.calledWith(uid);
     expect(follower2.notifyUidReady).to.be.calledWith(uid);
 
     // when
-    leader.addFollower(follower3);
+    follower3.isSimilarTo.onFirstCall().returns(false);
+    follower3.isSimilarTo.onSecondCall().returns(false);
+    let result = leader.addFollower(follower3);
 
     // then
-    expect(follower3.notifyUidReady).to.be.calledWith(uid);
+    expect(result).to.be.eql(new AddFollowerResult(true, true));
+    expect(follower3.isSimilarTo).to.be.calledTwice;
+    expect(follower3.isSimilarTo.firstCall).to.be.calledWith(follower1);
+    expect(follower3.isSimilarTo.secondCall).to.be.calledWith(follower1);
 
-    // when
-    leader.refreshUid();
-
-    // then
-    expect(uidFetcher.getId).to.be.calledWith(leader._dispatcher, [
+    expect(uidFetcher.getId).to.be.calledTwice;
+    expect(uidFetcher.getId.secondCall).to.be.calledWith(leader._dispatcher, [
       {
         ...follower1FetchIdData,
-        integrationId: follower1Id
+        integrationId: follower1Id,
+        requestCount: 2
       },
       {
         ...follower2FetchIdData,
-        integrationId: follower2Id
+        integrationId: follower2Id,
+        requestCount: 2
       },
       {
         ...follower3FetchIdData,
-        integrationId: follower3Id
-      }], false);
+        integrationId: follower3Id,
+        requestCount: 1
+      },
+    ], true);
+
+    // when
+    follower1.notifyUidReady.reset();
+    follower2.notifyUidReady.reset();
+
+    const updatedUid = stub();
+    leader._dispatcher.emit(ApiEvent.USER_ID_READY, updatedUid);
+
+    // then
+    expect(follower1.notifyUidReady).to.be.calledWith(updatedUid);
+    expect(follower2.notifyUidReady).to.be.calledWith(updatedUid);
+    expect(follower3.notifyUidReady).to.be.calledWith(updatedUid);
   });
 
-  it('should notify followers when uid canceled', function () {
+  it('should notify followers when uid fetch canceled', function () {
 
     // given
     leader.addFollower(follower1);
@@ -298,7 +581,82 @@ describe('ActualLeader', () => {
     expect(follower2.notifyFetchUidCanceled).to.be.calledWith(cancel);
   });
 
-  it('should refresh uid ', function () {
+  it('should notify followers when uid fetch failed', function () {
+
+    // given
+    leader.addFollower(follower1);
+    leader.addFollower(follower2);
+
+    const dispatcher = leader._dispatcher;
+
+    // when
+    dispatcher.emit(ApiEvent.USER_ID_FETCH_FAILED, new Error('some-error'));
+
+    // then
+    expect(follower1.notifyFetchUidCanceled).to.be.calledWith({reason: 'error'});
+    expect(follower2.notifyFetchUidCanceled).to.be.calledWith({reason: 'error'});
+  });
+
+  [
+    ApiEvent.USER_ID_FETCH_FAILED,
+    ApiEvent.USER_ID_FETCH_CANCELED,
+    ApiEvent.USER_ID_FETCH_COMPLETED
+  ].forEach(event => {
+    it(`should schedule refresh uid when in progress and execute when previous is done (${event})`, function () {
+
+      // given
+      const dispatcher = leader._dispatcher;
+      leader.addFollower(follower1);
+      leader.addFollower(follower2);
+
+      // when
+      leader.start();
+
+      // then
+      expect(uidFetcher.getId).to.be.calledWith(leader._dispatcher, [
+        {
+          ...follower1FetchIdData,
+          integrationId: follower1Id,
+          requestCount: 1
+        },
+        {
+          ...follower2FetchIdData,
+          integrationId: follower2Id,
+          requestCount: 1
+        }], false);
+
+      // when
+      uidFetcher.getId.reset();
+      leader.refreshUid({
+        forceAllowLocalStorageGrant: true,
+        resetConsent: true,
+        forceFetch: true
+      });
+
+      // then
+      expect(uidFetcher.getId).to.not.be.called;
+      expect(consentManager.resetConsentData).to.not.be.called;
+
+      // when
+      dispatcher.emit(event, {});
+
+      // then
+      expect(consentManager.resetConsentData).to.be.calledWith(true);
+      expect(uidFetcher.getId).to.be.calledWith(leader._dispatcher, [
+        {
+          ...follower1FetchIdData,
+          integrationId: follower1Id,
+          requestCount: 2
+        },
+        {
+          ...follower2FetchIdData,
+          integrationId: follower2Id,
+          requestCount: 2
+        }], true);
+    });
+  });
+
+  it('should refresh uid', function () {
 
     // given
     leader.addFollower(follower1);
@@ -312,11 +670,13 @@ describe('ActualLeader', () => {
     expect(uidFetcher.getId).to.be.calledWith(leader._dispatcher, [
       {
         ...follower1FetchIdData,
-        integrationId: follower1Id
+        integrationId: follower1Id,
+        requestCount: 1
       },
       {
         ...follower2FetchIdData,
-        integrationId: follower2Id
+        integrationId: follower2Id,
+        requestCount: 1
       }], false);
   });
 
@@ -338,11 +698,13 @@ describe('ActualLeader', () => {
       expect(uidFetcher.getId).to.be.calledWith(leader._dispatcher, [
         {
           ...follower1FetchIdData,
-          integrationId: follower1Id
+          integrationId: follower1Id,
+          requestCount: 1
         },
         {
           ...follower2FetchIdData,
-          integrationId: follower2Id
+          integrationId: follower2Id,
+          requestCount: 1
         }], false);
     });
   });
@@ -362,11 +724,13 @@ describe('ActualLeader', () => {
     expect(uidFetcher.getId).to.be.calledWith(leader._dispatcher, [
       {
         ...follower1FetchIdData,
-        integrationId: follower1Id
+        integrationId: follower1Id,
+        requestCount: 1
       },
       {
         ...follower2FetchIdData,
-        integrationId: follower2Id
+        integrationId: follower2Id,
+        requestCount: 1
       }], true);
   });
 

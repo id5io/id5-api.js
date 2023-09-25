@@ -106,7 +106,7 @@ export class Counter extends Meter {
   /**
    *
    * @param value
-   * @return current counter value
+   * @return {number} counter value
    */
   inc(value = 1.0) {
     try {

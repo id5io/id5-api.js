@@ -1,5 +1,6 @@
 import {ApiEvent} from './apiEvent.js';
 import {ProxyMethodCallTarget} from './messaging.js';
+import {NoopLogger} from './logger.js';
 
 /**
  * @interface
@@ -10,9 +11,15 @@ export class Follower {
    * @private
    */
   _instanceProperties;
+  /**
+   * @type {Logger}
+   * @private
+   */
+  _log;
 
-  constructor(properties) {
+  constructor(properties, logger = NoopLogger) {
     this._instanceProperties = properties;
+    this._log = logger;
   }
 
   getId() {
@@ -29,6 +36,37 @@ export class Follower {
 
   updateFetchIdData(newFetchIdData) {
     Object.assign(this._instanceProperties.fetchIdData, newFetchIdData);
+  }
+
+  /**
+   * Compares important fetch data with other follower's data.
+   * 'Important' means these than may have impact on UID generation on serverside like partner data, signals.
+   *
+   * @param {Follower} other
+   * @returns {boolean} true - if this follower has same important fetch data as other follower
+   */
+  isSimilarTo(other) {
+    const otherData = other._instanceProperties.fetchIdData;
+    const thisData = this._instanceProperties.fetchIdData;
+    const samePartner = otherData.partnerId === thisData.partnerId;
+    const sameAtt = otherData.att === thisData.att;
+    const sameLiveIntentId = otherData.liveIntentId === thisData.liveIntentId;
+    const samePd = otherData.pd === thisData.pd;
+    const sameProvider = otherData.provider === thisData.provider;
+    const sameAbTesting = JSON.stringify(otherData.abTesting) === JSON.stringify(thisData.abTesting);
+    const sameSegments = JSON.stringify(otherData.segments) === JSON.stringify(thisData.segments);
+    const sameProvidedRefresh = otherData.providedRefreshInSeconds === thisData.providedRefreshInSeconds;
+    const isSimilar = samePartner && sameAtt && sameLiveIntentId && samePd && sameProvider && sameAbTesting && sameSegments && sameProvidedRefresh;
+    this._log.debug('Comparing followers this:', this.getId(), 'other:', other.getId(), 'areSimilar:', isSimilar, 'reason:', {
+      samePartner,
+      sameAtt,
+      sameLiveIntentId,
+      samePd,
+      sameProvider,
+      sameSegments,
+      sameProvidedRefresh
+    });
+    return isSimilar;
   }
 
   /**
@@ -65,8 +103,8 @@ export class DirectFollower extends Follower {
    */
   _dispatcher;
 
-  constructor(properties, dispatcher) {
-    super(properties);
+  constructor(properties, dispatcher, logger = NoopLogger) {
+    super(properties, logger);
     this._dispatcher = dispatcher;
   }
 
@@ -93,9 +131,10 @@ export class ProxyFollower extends Follower {
   /**
    * @param {DiscoveredInstance} knownInstance - leader instance properties
    * @param {CrossInstanceMessenger} messenger
+   * @param {Logger} logger
    */
-  constructor(knownInstance, messenger) {
-    super(knownInstance.properties);
+  constructor(knownInstance, messenger, logger = NoopLogger) {
+    super(knownInstance.properties, logger);
     this._messenger = messenger;
   }
 
