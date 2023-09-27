@@ -333,7 +333,10 @@ describe('The ID5 API', function () {
           });
           verifyContainsMeasurementWithTags(onlyRequest.measurements, 'id5.api.userid.provisioning.delay', 'TIMER', {
             ...commonTags,
-            cachedResponseUsed: false
+            cachedResponseUsed: false,
+            callType: 'direct_method',
+            isUpdate: false,
+            lateJoiner: false
           });
           verifyContainsMeasurement(onlyRequest.measurements, 'id5.api.instance.partySize', 'SUMMARY');
         });
@@ -385,7 +388,10 @@ describe('The ID5 API', function () {
           });
           verifyContainsMeasurementWithTags(onlyRequest.measurements, 'id5.api.userid.provisioning.delay', 'TIMER', {
             ...commonTags,
-            cachedResponseUsed: false
+            cachedResponseUsed: false,
+            callType: 'direct_method',
+            isUpdate: false,
+            lateJoiner: false
           });
           verifyContainsMeasurement(onlyRequest.measurements, 'id5.api.instance.partySize', 'SUMMARY');
         });

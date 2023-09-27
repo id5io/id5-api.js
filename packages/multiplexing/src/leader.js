@@ -136,9 +136,19 @@ export class ActualLeader extends Leader {
   _handleUidReady(uid) {
     for (const follower of this._followers) {
       this._log.debug('Notify uid ready.', 'Follower:', follower.getId(), 'Uid:', uid);
-      follower.notifyUidReady(uid);
+      this._notifyUidReady(follower, uid);
     }
     this._cachedResponse = uid;
+  }
+  _notifyUidReady(follower, uid, lateJoiner = false) {
+    const notificationContext = {
+      timestamp: Date.now(),
+      tags: {
+        lateJoiner: lateJoiner,
+        callType: follower.callType
+      }
+    };
+    follower.notifyUidReady(uid, notificationContext);
   }
 
   /**
@@ -243,10 +253,10 @@ export class ActualLeader extends Leader {
       result.lateJoiner = true;
       if (cachedResponse) {
         // notify new joiner immediately
-        newFollower.notifyUidReady({
+        this._notifyUidReady(newFollower, {
           ...cachedResponse,
           isFromCache: true // to let follower know it's from cache
-        });
+        }, true);
       }
 
       const isSimilarToAnyOther = this._followers

@@ -402,9 +402,12 @@ export class Instance {
     collectPartySizeMetrics(instance);
     instance._messenger = new CrossInstanceMessenger(instance.properties.id, window, instance._logger);
     instance._messenger
-      .onAnyMessage((message) => {
-        let deliveryTimeMsec = (performance.now() - message.timestamp) | 0;
-        instance._metrics.instanceMsgDeliveryTimer().record(deliveryTimeMsec);
+      .onAnyMessage((message, source) => {
+        let deliveryTimeMsec = (Date.now() - message.timestamp) | 0;
+        instance._metrics.instanceMsgDeliveryTimer({
+          messageType: message.type,
+          sameWindow: window === source
+        }).record(deliveryTimeMsec);
         instance._logger.debug('Message received', message);
         instance._doFireEvent(MultiplexingEvent.ID5_MESSAGE_RECEIVED, message);
       })

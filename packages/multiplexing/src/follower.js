@@ -3,6 +3,24 @@ import {ProxyMethodCallTarget} from './messaging.js';
 import {NoopLogger} from './logger.js';
 
 /**
+ * @typedef {string} FollowerCallType
+ */
+
+/**
+ * @typedef {Object} NotificationContext
+ * @param {number} timestamp
+ * @param {tags} tags
+ */
+
+/**
+ * @enum {FollowerCallType}
+ */
+export const FollowerCallType = Object.freeze({
+  DIRECT_METHOD: 'direct_method',
+  POST_MESSAGE: 'post_message'
+});
+
+/**
  * @interface
  */
 export class Follower {
@@ -16,10 +34,22 @@ export class Follower {
    * @private
    */
   _log;
+  /**
+   *
+   * @type {FollowerCallType}
+   */
+  callType;
 
-  constructor(properties, logger = NoopLogger) {
+  /**
+   *
+   * @param {FollowerCallType} callType
+   * @param {Properties} properties
+   * @param {Logger} logger
+   */
+  constructor(callType, properties, logger = NoopLogger) {
     this._instanceProperties = properties;
     this._log = logger;
+    this.callType = callType;
   }
 
   getId() {
@@ -72,8 +102,9 @@ export class Follower {
   /**
    *
    * @param {Id5UserId} uid
+   * @param {NotificationContext} notificationContext
    */
-  notifyUidReady(uid) {
+  notifyUidReady(uid, notificationContext) {
   }
 
   /**
@@ -104,12 +135,12 @@ export class DirectFollower extends Follower {
   _dispatcher;
 
   constructor(properties, dispatcher, logger = NoopLogger) {
-    super(properties, logger);
+    super(FollowerCallType.DIRECT_METHOD, properties, logger);
     this._dispatcher = dispatcher;
   }
 
-  notifyUidReady(uid) {
-    this._dispatcher.emit(ApiEvent.USER_ID_READY, uid);
+  notifyUidReady(uid, notificationContext) {
+    this._dispatcher.emit(ApiEvent.USER_ID_READY, uid, notificationContext);
   }
 
   notifyFetchUidCanceled(cancelInfo) {
@@ -134,7 +165,7 @@ export class ProxyFollower extends Follower {
    * @param {Logger} logger
    */
   constructor(knownInstance, messenger, logger = NoopLogger) {
-    super(knownInstance.properties, logger);
+    super(FollowerCallType.POST_MESSAGE, knownInstance.properties, logger);
     this._messenger = messenger;
   }
 
@@ -145,8 +176,8 @@ export class ProxyFollower extends Follower {
     this._messenger.callProxyMethod(this.getId(), ProxyMethodCallTarget.FOLLOWER, methodName, args);
   }
 
-  notifyUidReady(uid) {
-    this._callProxy('notifyUidReady', [uid]);
+  notifyUidReady(uid, notificationContext) {
+    this._callProxy('notifyUidReady', [uid, notificationContext]);
   }
 
   notifyFetchUidCanceled(cancelInfo) {

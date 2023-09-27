@@ -131,6 +131,12 @@ export class Id5CommonMetrics extends MeterRegistry {
     });
   }
 
+  userIdNotificationDeliveryDelayTimer(tags = {}) {
+    return this.timer('userid.provisioning.delivery.delay', {
+      ...tags
+    });
+  }
+
   consentChangeCounter(tags = {}) {
     return this.counter('leader.consent.change.count', tags);
   }
