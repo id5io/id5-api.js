@@ -43,15 +43,15 @@ export class Id5MessageFactory {
   }
 
   createBroadcastMessage(payload, type = payload.constructor.name) {
-    return new Id5Message(performance.now(), this._senderId, DST_BROADCAST, ++this._messageSeqNb, payload, type || payload.constructor.name);
+    return new Id5Message(Date.now(), this._senderId, DST_BROADCAST, ++this._messageSeqNb, payload, type || payload.constructor.name);
   }
 
   createResponse(message, payload, type = payload.constructor.name) {
-    return new Id5Message(performance.now(), this._senderId, message.src, ++this._messageSeqNb, payload, type || payload.constructor.name, message);
+    return new Id5Message(Date.now(), this._senderId, message.src, ++this._messageSeqNb, payload, type || payload.constructor.name, message);
   }
 
   createUnicastMessage(dst, payload, type = payload.constructor.name) {
-    return new Id5Message(performance.now(), this._senderId, dst, ++this._messageSeqNb, payload, type || payload.constructor.name);
+    return new Id5Message(Date.now(), this._senderId, dst, ++this._messageSeqNb, payload, type || payload.constructor.name);
   }
 }
 

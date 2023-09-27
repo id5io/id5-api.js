@@ -33,7 +33,7 @@ describe('Id5MessageFactory', function () {
 
   beforeEach(function () {
     factory = new Id5MessageFactory(senderId);
-    clockStub = sinon.stub(performance, "now");
+    clockStub = sinon.stub(Date, "now");
 
     clockStub.returns(NOW)
   });
@@ -69,7 +69,7 @@ describe('Id5MessageFactory', function () {
     let responsePayload = {
       a: 'A'
     };
-    let requestMsg = new Id5Message(5678.1234, "request_source_id", undefined, 777, new Hello(), Hello.constructor.name);
+    let requestMsg = new Id5Message(5678, "request_source_id", undefined, 777, new Hello(), Hello.constructor.name);
 
     let expectedMsg = {
       _isId5Message: true,

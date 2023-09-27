@@ -3,7 +3,7 @@ import {expect} from 'chai';
 import sinon from 'sinon';
 import sinonChai from 'sinon-chai';
 import {CrossInstanceMessenger, ProxyMethodCallTarget} from '../../src/messaging.js';
-import {DirectFollower, Follower, ProxyFollower} from '../../src/follower.js';
+import {DirectFollower, Follower, FollowerCallType, ProxyFollower} from '../../src/follower.js';
 import {DiscoveredInstance, Properties} from '../../src/instance.js';
 import {ApiEvent, ApiEventsDispatcher} from '../../src/apiEvent.js';
 
@@ -28,12 +28,12 @@ describe('ProxyFollower', function () {
   it('should sent message to call notifyUidReady', function () {
     // given
     const uid = sinon.stub();
-
+    const context = sinon.stub();
     // when
-    proxyFollower.notifyUidReady(uid);
+    proxyFollower.notifyUidReady(uid, context);
 
     // then
-    expect(messenger.callProxyMethod).to.have.been.calledWith(properties.id, ProxyMethodCallTarget.FOLLOWER, 'notifyUidReady', [uid]);
+    expect(messenger.callProxyMethod).to.have.been.calledWith(properties.id, ProxyMethodCallTarget.FOLLOWER, 'notifyUidReady', [uid, context]);
   });
 
   it('should sent message to call notifyFetchUidCanceled', function () {
@@ -67,7 +67,7 @@ describe('Follower', function () {
    */
   let follower;
   beforeEach(() => {
-    follower = new Follower(properties);
+    follower = new Follower(FollowerCallType.POST_MESSAGE, properties);
   })
 
   it('should return properties id', function () {
@@ -299,14 +299,14 @@ describe('Follower', function () {
   ].forEach(([descr, aData, bData, expectedResult]) => {
     it(`should check if other is similar - ${descr}`, function () {
       // given
-      let followerA = new Follower({
+      let followerA = new DirectFollower({
         id: 'a',
         fetchIdData: aData
-      });
-      let followerB = new Follower({
+      }, sinon.stub());
+      let followerB = new ProxyFollower(new DiscoveredInstance({
         id: 'b',
         fetchIdData: bData
-      });
+      }, sinon.stub(), sinon.stub()), sinon.stub());
 
       // when
       const aToB = followerA.isSimilarTo(followerB);
@@ -330,14 +330,16 @@ describe('DirectFollower', () => {
   it('should emit event when notifyUidReady', function (done) {
     // given
     const uid = sinon.stub();
+    const context = sinon.stub();
 
-    dispatcher.on(ApiEvent.USER_ID_READY, received => {
-      expect(received).to.be.eql(uid);
+    dispatcher.on(ApiEvent.USER_ID_READY, (receivedUid, receivedContext) => {
+      expect(receivedUid).to.be.eql(uid);
+      expect(receivedContext).to.be.eql(context);
       done();
     });
 
     // when
-    follower.notifyUidReady(uid);
+    follower.notifyUidReady(uid, context);
 
   });
 
