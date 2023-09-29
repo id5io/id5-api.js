@@ -886,7 +886,7 @@ describe('Consent Data Provider', function () {
         });
     });
 
-    describe('when API is running in iframe and TCF in top frame', function () {
+    describe('when API is running in iframe and CMP in top frame', function () {
         describe('with TCFv1', function () {
             let eventListener;
             beforeEach(function () {
@@ -961,5 +961,48 @@ describe('Consent Data Provider', function () {
                     });
             });
         });
+
+      describe('with GPP', function () {
+        let eventListener;
+        beforeEach(function () {
+          eventListener = (event) => {
+            if (event.data.__gppCall) {
+              expect(event.data.__gppCall.command).to.equal('addEventListener');
+              const returnMessage = {
+                __gppReturn: {
+                  returnValue: {
+                    eventName: 'cmpStatus', pingData: {
+                      gppVersion: "1.0",
+                      cmpStatus: "loaded",
+                      supportedAPIs: [],
+
+                    }
+                  },
+                  success: true,
+                  callId: event.data.__gppCall.callId
+                }
+              }
+              event.source.postMessage(returnMessage, '*');
+            }
+          };
+          window.frames['__gppLocator'] = {};
+          window.addEventListener('message', eventListener);
+        });
+
+        afterEach(function () {
+          delete window.frames['__gppLocator'];
+          window.removeEventListener('message', eventListener);
+        });
+
+        it('can receive the data', async () => {
+          return consentProvider.refreshConsentData(false, 'iab', undefined)
+            .then(consentData => {
+              expect(consentData.gpp).to.be.not.undefined;
+              expect(consentData.gpp).to.be.not.null;
+              expect(consentData.gpp.version).to.be.eq("1.0");
+              expect(consentData.gpp.cmpStatus).to.be.eq("loaded");
+            });
+        });
+      })
     });
 });
