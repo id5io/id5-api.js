@@ -7,6 +7,7 @@ chai.use(sinonChai);
 import {ConsentDataProvider} from '../../lib/consentProvider.js';
 import clone from 'clone';
 import {API_TYPE, GRANT_TYPE, NoopLogger} from "@id5io/multiplexing";
+import {Id5CommonMetrics} from "@id5io/diagnostics";
 
 const TEST_CONSENT_DATA_V1 = {
     getConsentData: {
@@ -112,11 +113,12 @@ const TCF_V2_STRING_WITHOUT_STORAGE_ACCESS_CONSENT = 'CPh8d-2Ph8d-2NRAAAENCZCAAB
 const TCF_V2_STRING_WITH_STORAGE_ACCESS_CONSENT = 'CPh8dhYPh8dhYJjAAAENCZCAAJHAAAAAAAAAAAAAAAAA.II7Nd_X__bX9n-_7_6ft0eY1f9_r37uQzDhfNs-8F3L_W_LwX32E7NF36tq4KmR4ku1bBIQNtHMnUDUmxaolVrzHsak2cpyNKJ_JkknsZe2dYGF9Pn9lD-YKZ7_5_9_f52T_9_9_-39z3_9f___dv_-__-vjf_599n_v9fV_78_Kf9______-____________8A';
 
 describe('Consent Data Provider', function () {
-    let consentProvider, logger, logErrorSpy, logWarnSpy;
+    let consentProvider, logger, logErrorSpy, logWarnSpy, metrics;
 
     beforeEach(function () {
         logger = NoopLogger; // `= console;` for debug purposes
-        consentProvider = new ConsentDataProvider(logger);
+        metrics = new Id5CommonMetrics('api', '1')
+        consentProvider = new ConsentDataProvider(metrics, logger);
         logErrorSpy = sinon.spy(logger, 'error');
         logWarnSpy = sinon.spy(logger, 'warn');
     });
@@ -124,6 +126,7 @@ describe('Consent Data Provider', function () {
     afterEach(function () {
         logErrorSpy.restore();
         logWarnSpy.restore();
+        metrics.reset();
     });
 
     it('should print an error and return rejected promise when an unknown CMP framework ID is used', async () => {
@@ -886,7 +889,7 @@ describe('Consent Data Provider', function () {
         });
     });
 
-    describe('when API is running in iframe and CMP in top frame', function () {
+  describe('when API is running in iframe and CMP in top frame', function () {
         describe('with TCFv1', function () {
             let eventListener;
             beforeEach(function () {
@@ -924,23 +927,26 @@ describe('Consent Data Provider', function () {
             });
         });
 
+        function uspApiMessageResponse(event) {
+          if (event.data.__uspapiCall) {
+            expect(event.data.__uspapiCall.version).to.equal(1);
+            expect(event.data.__uspapiCall.command).to.equal('getUSPData');
+            const returnMessage = {
+              __uspapiReturn: {
+                returnValue: {uspString: '1YYN'},
+                success: true,
+                callId: event.data.__uspapiCall.callId
+              }
+            }
+            event.source.postMessage(returnMessage, '*');
+          }
+        }
 
         describe('with USPv2', function () {
             let eventListener;
             beforeEach(function () {
                 eventListener = (event) => {
-                    if (event.data.__uspapiCall) {
-                        expect(event.data.__uspapiCall.version).to.equal(1);
-                        expect(event.data.__uspapiCall.command).to.equal('getUSPData');
-                        const returnMessage = {
-                            __uspapiReturn: {
-                                returnValue: {uspString: '1YYN'},
-                                success: true,
-                                callId: event.data.__uspapiCall.callId
-                            }
-                        }
-                        event.source.postMessage(returnMessage, '*');
-                    }
+                    uspApiMessageResponse(event);
                 };
                 window.frames['__uspapiLocator'] = {};
                 window.addEventListener('message', eventListener);
@@ -984,8 +990,10 @@ describe('Consent Data Provider', function () {
               }
               event.source.postMessage(returnMessage, '*');
             }
+            uspApiMessageResponse(event)
           };
           window.frames['__gppLocator'] = {};
+          window.frames['__uspapiLocator'] = {};
           window.addEventListener('message', eventListener);
         });
 
@@ -994,13 +1002,13 @@ describe('Consent Data Provider', function () {
           window.removeEventListener('message', eventListener);
         });
 
-        it('can receive the data', async () => {
+        it('marks the gpp information on metrics', async () => {
           return consentProvider.refreshConsentData(false, 'iab', undefined)
             .then(consentData => {
-              expect(consentData.gpp).to.be.not.undefined;
-              expect(consentData.gpp).to.be.not.null;
-              expect(consentData.gpp.version).to.be.eq("1.0");
-              expect(consentData.gpp.cmpStatus).to.be.eq("loaded");
+              let measurements = metrics.getAllMeasurements();
+              expect(measurements.length).is.eq(2);
+              expect(measurements.find(m => m.name==='id5.api.gpp.delay')).is.not.undefined
+              expect(measurements.find(m => m.name==='id5.api.gpp.otherCmp.delay')).is.not.undefined
             });
         });
       })
