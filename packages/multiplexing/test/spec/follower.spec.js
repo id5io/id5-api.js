@@ -67,7 +67,7 @@ describe('Follower', function () {
    */
   let follower;
   beforeEach(() => {
-    follower = new Follower(FollowerCallType.POST_MESSAGE, properties);
+    follower = new Follower(FollowerCallType.POST_MESSAGE, window, properties);
   })
 
   it('should return properties id', function () {
@@ -88,6 +88,10 @@ describe('Follower', function () {
     });
   });
 
+  it('should return window', function () {
+    // when/then
+    expect(follower.getWindow()).to.be.eql(window);
+  });
 
   [undefined, true, false].forEach(canDoCascade => {
     it(`should tell if handle cascade canDoCascade=${canDoCascade}, same partner`, function () {
@@ -299,7 +303,7 @@ describe('Follower', function () {
   ].forEach(([descr, aData, bData, expectedResult]) => {
     it(`should check if other is similar - ${descr}`, function () {
       // given
-      let followerA = new DirectFollower({
+      let followerA = new DirectFollower(window, {
         id: 'a',
         fetchIdData: aData
       }, sinon.stub());
@@ -325,7 +329,7 @@ describe('DirectFollower', () => {
   let dispatcher;
   beforeEach(() => {
     dispatcher = new ApiEventsDispatcher();
-    follower = new DirectFollower(properties, dispatcher);
+    follower = new DirectFollower(window, properties, dispatcher);
   });
   it('should emit event when notifyUidReady', function (done) {
     // given

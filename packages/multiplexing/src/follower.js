@@ -1,7 +1,7 @@
 import {ApiEvent} from './apiEvent.js';
 import {ProxyMethodCallTarget} from './messaging.js';
 import {NoopLogger} from './logger.js';
-
+import {NoopStorage, StorageApi} from './localStorage.js';
 /**
  * @typedef {string} FollowerCallType
  */
@@ -41,12 +41,19 @@ export class Follower {
   callType;
 
   /**
+   * @type {Window}
+   * @private
+   */
+  _instanceWindow;
+  /**
    *
    * @param {FollowerCallType} callType
+   * @param {Window} window
    * @param {Properties} properties
    * @param {Logger} logger
    */
-  constructor(callType, properties, logger = NoopLogger) {
+  constructor(callType, window, properties, logger = NoopLogger) {
+    this._instanceWindow = window;
     this._instanceProperties = properties;
     this._log = logger;
     this.callType = callType;
@@ -125,6 +132,22 @@ export class Follower {
   canDoCascade(cascadeData) {
     return this._instanceProperties.canDoCascade === true && cascadeData.partnerId === this._instanceProperties.fetchIdData.partnerId;
   }
+
+  /**
+   *
+   * @return {StorageApi}
+   */
+  getStorage() {
+    return NoopStorage; // noop storage
+  }
+
+  /**
+   *
+   * @return {Window}
+   */
+  getWindow() {
+    return this._instanceWindow;
+  }
 }
 
 export class DirectFollower extends Follower {
@@ -134,8 +157,8 @@ export class DirectFollower extends Follower {
    */
   _dispatcher;
 
-  constructor(properties, dispatcher, logger = NoopLogger) {
-    super(FollowerCallType.DIRECT_METHOD, properties, logger);
+  constructor(window, properties, dispatcher, logger = NoopLogger) {
+    super(FollowerCallType.DIRECT_METHOD, window, properties, logger);
     this._dispatcher = dispatcher;
   }
 
@@ -152,6 +175,43 @@ export class DirectFollower extends Follower {
   }
 }
 
+export class ProxyStorage extends StorageApi {
+  /**
+   * @type {CrossInstanceMessenger}
+   * @private
+   */
+  _messenger;
+
+  /**
+   * @type {string}
+   * @private
+   */
+  _destinationId;
+
+  constructor(messenger, destinationId) {
+    super();
+    this._messanger = messenger;
+    this._destinationId = destinationId;
+  }
+
+  getItem(key) {
+    // proxy storage calls are only to trigger writing
+    return undefined;
+  }
+
+  removeItem(key) {
+    this._remoteCall('removeItem', [key]);
+  }
+
+  setItem(key, value) {
+    this._remoteCall('setItem', [key, value]);
+  }
+
+  _remoteCall(name, args) {
+    this._messanger.callProxyMethod(this._destinationId, ProxyMethodCallTarget.STORAGE, name, args);
+  }
+}
+
 export class ProxyFollower extends Follower {
   /**
    * @type {CrossInstanceMessenger}
@@ -165,7 +225,7 @@ export class ProxyFollower extends Follower {
    * @param {Logger} logger
    */
   constructor(knownInstance, messenger, logger = NoopLogger) {
-    super(FollowerCallType.POST_MESSAGE, knownInstance.properties, logger);
+    super(FollowerCallType.POST_MESSAGE, knownInstance.getWindow(), knownInstance.properties, logger);
     this._messenger = messenger;
   }
 
@@ -186,5 +246,9 @@ export class ProxyFollower extends Follower {
 
   notifyCascadeNeeded(cascadeData) {
     this._callProxy('notifyCascadeNeeded', [cascadeData]);
+  }
+
+  getStorage() {
+    return new ProxyStorage(this._messenger, this.getId());
   }
 }

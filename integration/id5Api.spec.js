@@ -214,13 +214,14 @@ describe('The ID5 API', function () {
       await server.reset();
     });
 
-    it('reports it cannot use localStorage but detects referrer', async () => {
+    it('reports it can use frame localStorage and detects referrer but not uses top localStorage', async () => {
       const mockId5 = await server.forPost(FETCH_ENDPOINT)
         .thenJson(200, MOCK_FETCH_RESPONSE, NON_FRIENDLY_MOCK_CORS_HEADERS);
       await server.forGet('https://dummyimage.com/600x200').thenReply(200, '');
       const page = await browser.newPage();
       await page.goto('https://my-iframe-website.net');
-      const frame = page.mainFrame().childFrames()[0];
+      const mainFrame = page.mainFrame();
+      const frame = mainFrame.childFrames()[0];
       await frame.waitForSelector('#done');
 
       expect(frame.url()).to.equal('https://non-friendly-stuff.com/');
@@ -230,12 +231,15 @@ describe('The ID5 API', function () {
 
       const requestBody = (await id5SyncRequests[0].body.getJson()).requests[0];
       expect(requestBody.top).to.equal(1);
-      expect(requestBody.localStorage).to.equal(0);
+      expect(requestBody.localStorage).to.equal(1);
       expect(requestBody.tml).to.equal('https://my-iframe-website.net/');
 
-      // Check there is no id5 stuff in the iframe local storage
-      const id5idRaw = await frame.evaluate(() => localStorage.getItem('id5id'));
-      expect(id5idRaw).to.equal(null);
+      // Check there is id5 stuff in the iframe local storage but not in mainFrame's storage
+      const id5idRawFromIFrame = await frame.evaluate(() => localStorage.getItem('id5id'));
+      expect(id5idRawFromIFrame).to.equal(encodeURIComponent(JSON.stringify(MOCK_FETCH_RESPONSE)));
+
+      const id5idRawFromMainFrame = await mainFrame.evaluate(() => localStorage.getItem('id5id'));
+      expect(id5idRawFromMainFrame).to.equal(null);
     });
   });
 

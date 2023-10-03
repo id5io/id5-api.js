@@ -11,6 +11,17 @@ import {NamedLogger, NoopLogger} from './logger.js';
 import {ActualLeader, AwaitedLeader, ProxyLeader} from './leader.js';
 import {ApiEventsDispatcher, MultiplexingEvent} from './apiEvent.js';
 import {DirectFollower, ProxyFollower} from './follower.js';
+import {
+  LocalStorage, ReplicatingStorage,
+  /* eslint-disable no-unused-vars */
+  StorageApi
+  /* eslint-enable no-unused-vars */
+} from './localStorage.js';
+import {StorageConfig, Store} from './store.js';
+import {ConsentManagement} from './consentManagement.js';
+import {UidFetcher} from './fetch.js';
+import {ClientStore} from './clientStore.js';
+import {EXTENSIONS} from './extensions.js';
 
 /**
  * @typedef {string} MultiplexingRole
@@ -97,7 +108,20 @@ export class Properties {
    *@type {boolean} indicates if instance operates in singleton mode or not
    */
   singletonMode;
+  /**
+   * @type {boolean}
+   */
   canDoCascade;
+  /**
+   *
+   * @type {boolean}
+   */
+  forceAllowLocalStorageGrant;
+  /**
+   *
+   * @type {number|undefined}
+   */
+  storageExpirationDays;
 
   constructor(id, version, source, sourceVersion, sourceConfiguration, location) {
     this.id = id;
@@ -125,7 +149,7 @@ export class DiscoveredInstance {
    */
   _joinTime;
   /**
-   * @type WindowProxy
+   * @type {WindowProxy}
    * @private
    */
   _window;
@@ -159,6 +183,10 @@ export class DiscoveredInstance {
       return undefined;
     }
     return this.knownState?.multiplexing?.leader;
+  }
+
+  getWindow() {
+    return this._window;
   }
 }
 
@@ -357,14 +385,19 @@ export class Instance {
   _window;
 
   /**
+   * @type {StorageApi}
+   * @private
+   */
+  _storage;
+
+  /**
    * @param {Window} wnd
+   * @param {StorageApi} storage
    * @param {Properties} configuration
    * @param {Id5CommonMetrics} metrics
    * @param {Logger} logger
-   * @param {UidFetcher} uidFetcher
-   * @param {ConsentManagement} consentManager
    */
-  constructor(wnd, configuration, metrics, logger = NoopLogger, uidFetcher, consentManager) {
+  constructor(wnd, configuration, storage, metrics, logger = NoopLogger) {
     const id = Utils.generateId();
     this.properties = Object.assign({
       id: id,
@@ -379,11 +412,10 @@ export class Instance {
     this._logger = (logger !== undefined) ? new NamedLogger(`Instance(id=${id})`, logger) : NoopLogger;
     this._window = wnd;
     this._dispatcher = new ApiEventsDispatcher(this._logger);
-    this._uidFetcher = uidFetcher;
-    this._consentManager = consentManager;
     this._leader = new AwaitedLeader(); // AwaitedLeader buffers requests to leader in case some events happened before leader is elected (i.e. consent update)
-    this._followerRole = new DirectFollower(this.properties, this._dispatcher, this._logger);
+    this._followerRole = new DirectFollower(this._window, this.properties, this._dispatcher, this._logger);
     this._election = new Election(this);
+    this._storage = storage;
   }
 
   /**
@@ -430,6 +462,7 @@ export class Instance {
           // this is very likely and happens quite frequently for late joiner, where Hello response can be delivered and handled after `notifyUidReady` by leader is called
           // leader have no idea if follower is ready and sends UID immediately when it's available (calls `notifyUidReady` method)
           .registerTarget(ProxyMethodCallTarget.FOLLOWER, instance._followerRole)
+          .registerTarget(ProxyMethodCallTarget.STORAGE, instance._storage)
       );
     if (instance._mode === OperatingMode.SINGLETON) {
       // to provision uid ASAP
@@ -581,13 +614,23 @@ export class Instance {
   }
 
   _actAsLeader() {
-    const leader = new ActualLeader(this._uidFetcher, this._consentManager, this.properties, this._metrics, this._logger);
+    const properties = this.properties;
+    const logger = this._logger;
+    const metrics = this._metrics;
+    const replicatingStorage = new ReplicatingStorage(this._storage);
+    const localStorage = new LocalStorage(replicatingStorage);
+    const storageConfig = new StorageConfig(properties.storageExpirationDays);
+    const consentManagement = new ConsentManagement(localStorage, storageConfig, properties.forceAllowLocalStorageGrant, logger);
+    const grantChecker = () => consentManagement.localStorageGrant();
+    const fetcher = new UidFetcher(consentManagement, new Store(new ClientStore(grantChecker, localStorage, storageConfig, logger)), metrics, logger, EXTENSIONS);
+
+    const leader = new ActualLeader(this._window, fetcher, properties, replicatingStorage, consentManagement, metrics, logger);
     leader.addFollower(this._followerRole); // add itself to be directly called
     this._leader.assignLeader(leader);
     if (this._mode === OperatingMode.MULTIPLEXING) { // in singleton mode ignore remote followers
       Array.from(this._knownInstances.values())
         .filter(instance => instance.isMultiplexingPartyAllowed())
-        .map(instance => leader.addFollower(new ProxyFollower(instance, this._messenger, this._logger)));
+        .map(instance => leader.addFollower(new ProxyFollower(instance, this._messenger, logger)));
     }
     // all prepared let's start
     leader.start();

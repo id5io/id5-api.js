@@ -6,14 +6,15 @@ import {cyrb53Hash, isEmpty} from './utils.js';
 
 /* eslint-disable no-unused-vars */
 import {ConsentData, LocalStorageGrant} from './consent.js';
-import {LocalStorageApi, StorageConfig, StoreItemConfig} from './store.js';
+import {StorageConfig, StoreItemConfig} from './store.js';
+import {LocalStorage} from './localStorage.js';
 /* eslint-enable no-unused-vars */
 
 export class ClientStore {
   /** @type {function} */
   localStorageGrantChecker;
 
-  /** @type {LocalStorageApi} */
+  /** @type {LocalStorage} */
   localStorage;
 
   /**
@@ -24,7 +25,7 @@ export class ClientStore {
 
   /**
    * @param {function} localStorageGrantChecker
-   * @param {LocalStorageApi} localStorage the localStorage abstraction object to use
+   * @param {LocalStorage} localStorage the localStorage abstraction object to use
    * @param {StorageConfig} storageConfig
    * @param {Logger} logger
    */

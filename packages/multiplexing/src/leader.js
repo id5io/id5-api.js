@@ -105,19 +105,29 @@ export class ActualLeader extends Leader {
   _metrics;
 
   /**
+   * @type {ReplicatingStorage}
+   * @private
+   */
+  _leaderStorage;
+  /**
+   * @param {Window} window
    * @param {UidFetcher} fetcher
-   * @param {ConsentManagement} consentManager
    * @param {Properties} properties
+   * @param {ReplicatingStorage} storage
+   * @param {ConsentManagement} consentManager
    * @param {Id5CommonMetrics} metrics
    * @param {Logger} logger
    */
-  constructor(fetcher, consentManager, properties, metrics, logger = NoopLogger) {
+  constructor(window, fetcher, properties, storage, consentManager, metrics, logger = NoopLogger) {
     super();
     this._followers = [];
     this._fetcher = fetcher;
     this._properties = properties;
     this._consentManager = consentManager;
     this._metrics = metrics;
+    this._window = window;
+    this._leaderStorage = storage;
+    this._log = logger;
     const leader = this;
     this._dispatcher = new ApiEventsDispatcher(logger);
     this._dispatcher.on(ApiEvent.USER_ID_READY, uid => leader._handleUidReady(uid));
@@ -125,7 +135,6 @@ export class ActualLeader extends Leader {
     this._dispatcher.on(ApiEvent.USER_ID_FETCH_FAILED, event => leader._handleFailed(event));
     this._dispatcher.on(ApiEvent.USER_ID_FETCH_COMPLETED, event => leader._handleFetchCompleted(event));
     this._dispatcher.on(ApiEvent.CASCADE_NEEDED, cascade => leader._handleCascade(cascade));
-    this._log = logger;
   }
 
   /**
@@ -247,6 +256,11 @@ export class ActualLeader extends Leader {
     const cachedResponse = this._cachedResponse;
     const logger = this._log;
     this._followers.push(newFollower);
+    if (this._window !== newFollower.getWindow()) {
+      const followerStorage = newFollower.getStorage();
+      logger.info(`Adding follower's`, newFollower.getId(), 'storage as replica');
+      this._leaderStorage.addReplica(followerStorage);
+    }
     logger.debug('Added follower', newJoinerId, 'last uid', cachedResponse);
     let result = new AddFollowerResult();
     if (cachedResponse || this._inProgressFetch) { // late joiner
