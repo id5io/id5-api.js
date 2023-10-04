@@ -17,7 +17,6 @@ import {
 import {Id5CommonMetrics} from '@id5io/diagnostics';
 import * as utils from '../../src/utils.js';
 import {Store, StoredDataState} from "../../src/store.js";
-import Promise from '../../src/promise.js';
 
 chai.use(sinonChai);
 

@@ -1,5 +1,4 @@
 import {ajax} from './utils.js';
-import Promise from './promise.js';
 import {NoopLogger} from './logger.js';
 
 export const ID5_LB_ENDPOINT = `https://lb.eu-1-id5-sync.com/lb/v1`;
