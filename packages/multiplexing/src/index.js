@@ -2,7 +2,7 @@ import {UidFetcher} from './fetch.js';
 import {Instance as MultiplexInstance} from './instance.js';
 import {Store} from './store.js';
 import {EXTENSIONS} from './extensions.js';
-export {default as Promise, LazyValue} from './promise.js';
+export {LazyValue} from './promise.js';
 export {EXTENSIONS} from './extensions.js';
 export * from './logger.js';
 export * from './consent.js';
