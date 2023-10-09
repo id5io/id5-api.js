@@ -16,11 +16,11 @@ import {
   defaultInitBypassConsent,
   DEFAULT_EXTENSIONS
 } from './test_utils';
-import {EXTENSIONS, ApiEvent, utils} from "@id5io/multiplexing";
+import {EXTENSIONS, Extensions, ApiEvent, utils} from "@id5io/multiplexing";
 
 describe('Counters', function () {
   let ajaxStub;
-  let extensionsStub;
+  let extensionsStub, extensionsCreatorStub;
 
   before(function () {
     resetAllInLocalStorage();
@@ -30,12 +30,14 @@ describe('Counters', function () {
     ajaxStub = sinon.stub(utils, 'ajax').callsFake(function (url, callbacks, data, options) {
       callbacks.success(JSON_RESPONSE_ID5_CONSENT);
     });
-    extensionsStub = sinon.stub(EXTENSIONS, 'gather').resolves(DEFAULT_EXTENSIONS);
+    extensionsStub = sinon.createStubInstance(Extensions);
+    extensionsStub.gather.resolves(DEFAULT_EXTENSIONS);
+    extensionsCreatorStub = sinon.stub(EXTENSIONS, 'createExtensions').returns(extensionsStub);
   });
 
   afterEach(function () {
     ajaxStub.restore();
-    extensionsStub.restore();
+    extensionsCreatorStub.restore();
     resetAllInLocalStorage();
   });
 
@@ -45,7 +47,7 @@ describe('Counters', function () {
     localStorage.setItemWithExpiration(TEST_PRIVACY_STORAGE_CONFIG, TEST_PRIVACY_ALLOWED);
 
     ID5.init(defaultInit()).onAvailable(function () {
-      sinon.assert.notCalled(extensionsStub);
+      sinon.assert.notCalled(extensionsStub.gather);
       sinon.assert.notCalled(ajaxStub);
 
       const nb = parseInt(localStorage.getItemWithExpiration(TEST_NB_STORAGE_CONFIG));
@@ -61,7 +63,7 @@ describe('Counters', function () {
     localStorage.setItemWithExpiration(TEST_NB_STORAGE_CONFIG, 5);
 
     ID5.init(defaultInit()).onAvailable(function () {
-      sinon.assert.notCalled(extensionsStub);
+      sinon.assert.notCalled(extensionsStub.gather);
       sinon.assert.notCalled(ajaxStub);
 
       const nb = parseInt(localStorage.getItemWithExpiration(TEST_NB_STORAGE_CONFIG));
@@ -76,7 +78,7 @@ describe('Counters', function () {
 
     const id5Status = ID5.init(defaultInit());
     id5Status.instance.on(ApiEvent.USER_ID_FETCH_CANCELED, details => {
-      sinon.assert.notCalled(extensionsStub);
+      sinon.assert.notCalled(extensionsStub.gather);
       sinon.assert.notCalled(ajaxStub);
       const nb = parseInt(localStorage.getItemWithExpiration(TEST_NB_STORAGE_CONFIG));
       expect(nb).to.be.equal(5);
@@ -91,7 +93,7 @@ describe('Counters', function () {
 
     ID5.init(defaultInitBypassConsent()).onAvailable(function () {
 
-      sinon.assert.calledOnce(extensionsStub);
+      sinon.assert.calledOnce(extensionsStub.gather);
       sinon.assert.calledOnce(ajaxStub);
       expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
       const requestPayload = JSON.parse(ajaxStub.firstCall.args[2]).requests[0];
@@ -108,7 +110,7 @@ describe('Counters', function () {
 
     ID5.init(defaultInitBypassConsent()).onAvailable(function () {
 
-      sinon.assert.calledOnce(extensionsStub);
+      sinon.assert.calledOnce(extensionsStub.gather);
       sinon.assert.calledOnce(ajaxStub);
       expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
       const requestPayload = JSON.parse(ajaxStub.firstCall.args[2]).requests[0];
@@ -125,7 +127,7 @@ describe('Counters', function () {
 
     ID5.init(defaultInitBypassConsent()).onAvailable(function () {
 
-      sinon.assert.calledOnce(extensionsStub);
+      sinon.assert.calledOnce(extensionsStub.gather);
       sinon.assert.calledOnce(ajaxStub);
       expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
       const requestPayload = JSON.parse(ajaxStub.firstCall.args[2]).requests[0];
@@ -140,7 +142,7 @@ describe('Counters', function () {
   it('should reset counter to 1 after calling ID5 servers if no ID in local storage without a previous counter', function (done) {
     ID5.init(defaultInitBypassConsent()).onAvailable(function () {
 
-      sinon.assert.calledOnce(extensionsStub);
+      sinon.assert.calledOnce(extensionsStub.gather);
       sinon.assert.calledOnce(ajaxStub);
       expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
       const requestPayload = JSON.parse(ajaxStub.firstCall.args[2]).requests[0];

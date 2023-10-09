@@ -20,13 +20,20 @@ import {
   TEST_RESPONSE_LINK_TYPE,
   TEST_RESPONSE_SIGNATURE
 } from './test_utils';
-import {API_TYPE, ConsentData, EXTENSIONS, GRANT_TYPE, LocalStorageGrant, NoopLogger, utils, ClientStore, StorageConfig} from '@id5io/multiplexing';
+import {
+  API_TYPE,
+  ClientStore,
+  ConsentData,
+  Extensions,
+  EXTENSIONS,
+  GRANT_TYPE,
+  LocalStorageGrant,
+  NoopLogger,
+  StorageConfig,
+  utils
+} from '@id5io/multiplexing';
 
 let expect = require('chai').expect;
-
-function stubExtensions() {
-  return sinon.stub(EXTENSIONS, 'gather').resolves(DEFAULT_EXTENSIONS);
-}
 
 describe('ID5 JS API', function () {
 
@@ -35,14 +42,16 @@ describe('ID5 JS API', function () {
     localStorage,
     new StorageConfig(), NoopLogger);
 
-  let extensionsStub;
+  let extensionsStub, extensionsCreatorStub;
 
   beforeEach(function () {
-    extensionsStub = stubExtensions();
+    extensionsStub = sinon.createStubInstance(Extensions);
+    extensionsStub.gather.resolves(DEFAULT_EXTENSIONS);
+    extensionsCreatorStub = sinon.stub(EXTENSIONS, 'createExtensions').returns(extensionsStub);
   });
 
   afterEach(function () {
-    extensionsStub.restore();
+    extensionsCreatorStub.restore();
   })
 
   describe('Core API Availability', function () {
@@ -113,7 +122,7 @@ describe('ID5 JS API', function () {
           });
 
           id5Status.onAvailable(function () {
-            sinon.assert.calledOnce(extensionsStub);
+            sinon.assert.calledOnce(extensionsStub.gather);
             sinon.assert.calledOnce(ajaxStub);
             expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
 
@@ -144,7 +153,7 @@ describe('ID5 JS API', function () {
             ...defaultInitBypassConsent(),
             abTesting: {enabled: false}
           }).onAvailable(function () {
-            sinon.assert.calledOnce(extensionsStub);
+            sinon.assert.calledOnce(extensionsStub.gather);
             sinon.assert.calledOnce(ajaxStub);
             expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
 
@@ -168,7 +177,7 @@ describe('ID5 JS API', function () {
           });
 
           id5Status.onAvailable(function () {
-            sinon.assert.notCalled(extensionsStub);
+            sinon.assert.notCalled(extensionsStub.gather);
             sinon.assert.notCalled(ajaxStub);
             expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
             expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
@@ -186,7 +195,7 @@ describe('ID5 JS API', function () {
           });
 
           id5Status.onAvailable(function () {
-            sinon.assert.notCalled(extensionsStub);
+            sinon.assert.notCalled(extensionsStub.gather);
             sinon.assert.notCalled(ajaxStub);
             expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
             expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
@@ -209,7 +218,7 @@ describe('ID5 JS API', function () {
           });
 
           id5Status.onAvailable(function () {
-            sinon.assert.calledOnce(extensionsStub);
+            sinon.assert.calledOnce(extensionsStub.gather);
             sinon.assert.calledOnce(ajaxStub);
             expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
             expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
@@ -242,7 +251,7 @@ describe('ID5 JS API', function () {
           });
 
           id5Status.onAvailable(function () {
-            sinon.assert.calledOnce(extensionsStub);
+            sinon.assert.calledOnce(extensionsStub.gather);
             sinon.assert.calledOnce(ajaxStub);
             expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
             expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
@@ -263,7 +272,7 @@ describe('ID5 JS API', function () {
           });
 
           id5Status.onAvailable(function () {
-            sinon.assert.calledOnce(extensionsStub);
+            sinon.assert.calledOnce(extensionsStub.gather);
             sinon.assert.calledOnce(ajaxStub);
             expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
             expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
@@ -285,7 +294,7 @@ describe('ID5 JS API', function () {
           });
 
           id5Status.onAvailable(function () {
-            sinon.assert.calledOnce(extensionsStub);
+            sinon.assert.calledOnce(extensionsStub.gather);
             sinon.assert.calledOnce(ajaxStub);
             expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
             expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
@@ -303,7 +312,7 @@ describe('ID5 JS API', function () {
           });
 
           id5Status.onAvailable(function () {
-            sinon.assert.calledOnce(extensionsStub);
+            sinon.assert.calledOnce(extensionsStub.gather);
             sinon.assert.calledOnce(ajaxStub);
             expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
             expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
@@ -326,7 +335,7 @@ describe('ID5 JS API', function () {
           });
 
           id5Status.onAvailable(function () {
-            sinon.assert.calledOnce(extensionsStub);
+            sinon.assert.calledOnce(extensionsStub.gather);
             sinon.assert.calledOnce(ajaxStub);
             expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
             expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
@@ -344,7 +353,7 @@ describe('ID5 JS API', function () {
           });
 
           id5Status.onAvailable(function () {
-            sinon.assert.calledOnce(extensionsStub);
+            sinon.assert.calledOnce(extensionsStub.gather);
             sinon.assert.calledOnce(ajaxStub);
             expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
             expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
@@ -403,7 +412,7 @@ describe('ID5 JS API', function () {
                 ...defaultInit(),
                 refreshInSeconds: 1000
               }).onAvailable(function () {
-                sinon.assert.calledOnce(extensionsStub);
+                sinon.assert.calledOnce(extensionsStub.gather);
                 sinon.assert.calledOnce(ajaxStub);
                 expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
                 done();
@@ -421,7 +430,7 @@ describe('ID5 JS API', function () {
                 ...defaultInit(),
                 refreshInSeconds: 1000
               }).onAvailable(function () {
-                sinon.assert.calledOnce(extensionsStub);
+                sinon.assert.calledOnce(extensionsStub.gather);
                 sinon.assert.calledOnce(ajaxStub);
                 expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
                 done();
@@ -439,7 +448,7 @@ describe('ID5 JS API', function () {
                 ...defaultInit(),
                 refreshInSeconds: 1000
               }).onAvailable(function () {
-                sinon.assert.notCalled(extensionsStub);
+                sinon.assert.notCalled(extensionsStub.gather);
                 sinon.assert.notCalled(ajaxStub);
                 done();
               });
@@ -484,7 +493,7 @@ describe('ID5 JS API', function () {
                 ...defaultInit(),
                 refreshInSeconds: 1000
               }).onAvailable(function () {
-                sinon.assert.calledOnce(extensionsStub);
+                sinon.assert.calledOnce(extensionsStub.gather);
                 sinon.assert.calledOnce(ajaxStub);
                 expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
                 done();
@@ -502,7 +511,7 @@ describe('ID5 JS API', function () {
                 ...defaultInit(),
                 refreshInSeconds: 1000
               }).onAvailable(function () {
-                sinon.assert.calledOnce(extensionsStub);
+                sinon.assert.calledOnce(extensionsStub.gather);
                 sinon.assert.calledOnce(ajaxStub);
                 expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
                 done();
@@ -520,7 +529,7 @@ describe('ID5 JS API', function () {
                 ...defaultInit(),
                 refreshInSeconds: 1000
               }).onAvailable(function () {
-                sinon.assert.notCalled(extensionsStub);
+                sinon.assert.notCalled(extensionsStub.gather);
                 sinon.assert.notCalled(ajaxStub);
                 done();
               });
@@ -556,7 +565,7 @@ describe('ID5 JS API', function () {
           });
 
           id5Status.onAvailable(function () {
-            sinon.assert.calledOnce(extensionsStub);
+            sinon.assert.calledOnce(extensionsStub.gather);
             sinon.assert.calledOnce(ajaxStub);
             expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
             expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
@@ -575,7 +584,7 @@ describe('ID5 JS API', function () {
           });
 
           id5Status.onAvailable(function () {
-            sinon.assert.calledOnce(extensionsStub);
+            sinon.assert.calledOnce(extensionsStub.gather);
             sinon.assert.calledOnce(ajaxStub);
             expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
             expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
@@ -591,7 +600,7 @@ describe('ID5 JS API', function () {
           });
 
           id5Status.onAvailable(function () {
-            sinon.assert.calledOnce(extensionsStub);
+            sinon.assert.calledOnce(extensionsStub.gather);
             sinon.assert.calledOnce(ajaxStub);
             expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
             expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
@@ -610,7 +619,7 @@ describe('ID5 JS API', function () {
           });
 
           id5Status.onAvailable(function () {
-            sinon.assert.calledOnce(extensionsStub);
+            sinon.assert.calledOnce(extensionsStub.gather);
             sinon.assert.calledOnce(ajaxStub);
             expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
             expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
@@ -678,7 +687,7 @@ describe('ID5 JS API', function () {
         });
 
         id5Status.onAvailable(function () {
-          sinon.assert.calledOnce(extensionsStub);
+          sinon.assert.calledOnce(extensionsStub.gather);
           sinon.assert.calledOnce(ajaxStub);
           const URL = ajaxStub.firstCall.args[0];
           expect(URL).to.contain(ID5_FETCH_ENDPOINT);
@@ -705,14 +714,14 @@ describe('ID5 JS API', function () {
 
 
       it('should not be blocked by an error in getHighEntropyValues()', function (done) {
-        uaDataStub.rejects("ERROR");
+        uaDataStub.rejects('ERROR');
         const id5Status = ID5.init({
           ...defaultInitBypassConsent(),
           disableUaHints: false
         });
 
         id5Status.onAvailable(function () {
-          sinon.assert.calledOnce(extensionsStub);
+          sinon.assert.calledOnce(extensionsStub.gather);
           sinon.assert.calledOnce(ajaxStub);
           const URL = ajaxStub.firstCall.args[0]
           expect(URL).to.contain(ID5_FETCH_ENDPOINT);
@@ -743,7 +752,7 @@ describe('ID5 JS API', function () {
           disableLiveIntentIntegration: false
         });
         id5Status.onAvailable(function () {
-          sinon.assert.calledOnce(extensionsStub);
+          sinon.assert.calledOnce(extensionsStub.gather);
           sinon.assert.calledOnce(ajaxStub);
           expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
           done();
@@ -762,7 +771,7 @@ describe('ID5 JS API', function () {
           disableLiveIntentIntegration: false
         });
         id5Status.onAvailable(function () {
-          sinon.assert.calledOnce(extensionsStub);
+          sinon.assert.calledOnce(extensionsStub.gather);
           sinon.assert.calledOnce(ajaxStub);
           expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
           done();
@@ -779,7 +788,7 @@ describe('ID5 JS API', function () {
           disableLiveIntentIntegration: false
         });
         id5Status.onAvailable(function () {
-          sinon.assert.calledOnce(extensionsStub);
+          sinon.assert.calledOnce(extensionsStub.gather);
           sinon.assert.calledOnce(ajaxStub);
           expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
           done();
