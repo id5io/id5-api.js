@@ -52,8 +52,12 @@ export class Id5CommonMetrics extends MeterRegistry {
     return this.fetchCallTimer('success', tags);
   }
 
-  extensionsCallTimer(tags = {}) {
-    return this.timer('extensions.call.time', tags);
+  extensionsCallTimer(extensionType, success, tags = {}) {
+    return this.timer('extensions.call.time', {
+      extensionType: extensionType,
+      status: success ? 'success' : 'fail',
+      ...tags
+    });
   }
 
   consentRequestTimer(requestType, tags = {}) {

@@ -143,12 +143,9 @@ export class UidFetcher {
           forceFetch,
           cachedResponseUsed
         });
-        let extensionsCallTimeMeasurement = metrics?.extensionsCallTimer().startMeasurement();
+
         this._extensionsProvider.gather(fetchIdData, log)
           .then(extensions => {
-            if (extensionsCallTimeMeasurement) {
-              extensionsCallTimeMeasurement.record();
-            }
             const requests = fetchIdData.map(fetchIdData => {
               const instanceRequest = this.createRequest(storedDataState, consentData, fetchIdData);
               instanceRequest.extensions = extensions;

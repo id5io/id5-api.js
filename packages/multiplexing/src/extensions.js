@@ -1,3 +1,5 @@
+import {startTimeMeasurement} from '@id5io/diagnostics';
+
 export const ID5_LB_ENDPOINT = `https://lb.eu-1-id5-sync.com/lb/v1`;
 
 export class Extensions {
@@ -6,7 +8,7 @@ export class Extensions {
    */
 
   /**
-   * @type {MeterRegistry}
+   * @type {Id5CommonMetrics}
    */
   _metrics;
 
@@ -17,7 +19,7 @@ export class Extensions {
   _log;
 
   /**
-   * @param {MeterRegistry} metrics
+   * @param {Id5CommonMetrics} metrics
    * @param {Logger} logger
    */
   constructor(metrics, logger) {
@@ -36,20 +38,25 @@ export class Extensions {
   /**
    *
    * @param {String} url - url of extensions service
+   * @param {String} extensionType - type of extension used in metrics
    * @returns {Promise}
    */
-  submitExtensionCall(url) {
+  submitExtensionCall(url, extensionType) {
+    let extensionsCallTimeMeasurement = startTimeMeasurement();
     return fetch(url)
       .then(response => {
         if (response.ok) {
+          extensionsCallTimeMeasurement.record(this._metrics.extensionsCallTimer(extensionType, true));
           return response.json();
         } else {
+          extensionsCallTimeMeasurement.record(this._metrics.extensionsCallTimer(extensionType, false));
           let msg = `The call to get extensions at ${url} was not ok, status: ${response.status}, statusText: ${response.statusText}`;
           this._log.warn(msg);
           return Promise.reject(new Error(msg));
         }
       })
       .catch(error => {
+        extensionsCallTimeMeasurement.record(this._metrics.extensionsCallTimer(extensionType, false));
         this._log.warn(`Got error from ${url} endpoint`, error);
         return {};
       });
@@ -60,7 +67,9 @@ export class Extensions {
    * @returns {Promise} a promise that if successful contains an object containing an array of dev chunks
    */
   gatherDevChunks(fetchDataList) {
+    const extensionType = 'devChunks';
     if (fetchDataList.some(value => value.pd != null && value.pd.trim() !== '')) {
+      let extensionsCallTimeMeasurement = startTimeMeasurement();
       return Promise.all(Array.from({length: 8}, (_, i) => {
         const chunkUrl = Extensions.getChunkUrl(i);
         return fetch(chunkUrl).then(r => {
@@ -71,8 +80,10 @@ export class Extensions {
           }
         });
       })).then(chunks => {
+        extensionsCallTimeMeasurement.record(this._metrics.extensionsCallTimer(extensionType, true));
         return {devChunks: chunks, devChunksVersion: '3'};
       }).catch((error) => {
+        extensionsCallTimeMeasurement.record(this._metrics.extensionsCallTimer(extensionType, false));
         this._log.warn(`Got error when getting dev chunks`, error);
         return {};
       });
@@ -87,24 +98,28 @@ export class Extensions {
    * @returns {Promise<ExtensionsData>} - extensions data
    */
   gather(fetchDataList) {
-    return Promise.allSettled([this.submitExtensionCall(ID5_LB_ENDPOINT), this.gatherDevChunks(fetchDataList)]).then((results) => {
-      let extensions = Extensions.DEFAULT_RESPONSE;
-      results.forEach(result => {
-        if (result.value) {
-          extensions = {...extensions, ...result.value};
-        }
+    let extensionsCallTimeMeasurement = startTimeMeasurement();
+    return Promise.allSettled([this.submitExtensionCall(ID5_LB_ENDPOINT, 'lb'), this.gatherDevChunks(fetchDataList)])
+      .then((results) => {
+        extensionsCallTimeMeasurement.record(this._metrics.extensionsCallTimer('all', true));
+        let extensions = Extensions.DEFAULT_RESPONSE;
+        results.forEach(result => {
+          if (result.value) {
+            extensions = {...extensions, ...result.value};
+          }
+        });
+        return extensions;
+      }).catch((error) => {
+        extensionsCallTimeMeasurement.record(this._metrics.extensionsCallTimer('all', false));
+        this._log.error(`Got error ${error} when gathering extensions data`);
+        return Extensions.DEFAULT_RESPONSE;
       });
-      return extensions;
-    }).catch((error) => {
-      this._log.error(`Got error ${error} when gathering extensions data`);
-      return Extensions.DEFAULT_RESPONSE;
-    });
   }
 }
 
 export const EXTENSIONS = {
   /**
-   * @param {MeterRegistry} metrics
+   * @param {Id5CommonMetrics} metrics
    * @param {Logger} log
    * @returns {Extensions}
    */

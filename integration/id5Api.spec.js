@@ -326,7 +326,7 @@ describe('The ID5 API', function () {
             ...commonTags,
             cachedResponseUsed: false
           });
-          verifyContainsMeasurementWithTags(onlyRequest.measurements, 'id5.api.extensions.call.time', 'TIMER', commonTags);
+          verifyContainsMeasurementWithTags(onlyRequest.measurements, 'id5.api.extensions.call.time', 'TIMER', {...commonTags, status: 'success', extensionType: 'lb'});
           verifyContainsMeasurementWithTags(onlyRequest.measurements, 'id5.api.fetch.call.time', 'TIMER', {
             ...commonTags,
             status: 'success'
@@ -381,7 +381,7 @@ describe('The ID5 API', function () {
             ...commonTags,
             cachedResponseUsed: false
           });
-          verifyContainsMeasurementWithTags(onlyRequest.measurements, 'id5.api.extensions.call.time', 'TIMER', commonTags);
+          verifyContainsMeasurementWithTags(onlyRequest.measurements, 'id5.api.extensions.call.time', 'TIMER', {...commonTags, status: 'success', extensionType: 'lb'});
           verifyContainsMeasurementWithTags(onlyRequest.measurements, 'id5.api.fetch.call.time', 'TIMER', {
             ...commonTags,
             status: 'success'
