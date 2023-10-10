@@ -42,7 +42,7 @@ describe('Extensions', function () {
           ...LB_EXTENSIONS,
           lbCDN: '%%LB_CDN%%',
           devChunks: Array.from({length: 8}, v => '1'),
-          devChunksVersion: '3'
+          devChunksVersion: '4'
         });
       });
   });

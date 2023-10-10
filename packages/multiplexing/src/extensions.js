@@ -81,7 +81,7 @@ export class Extensions {
         });
       })).then(chunks => {
         extensionsCallTimeMeasurement.record(this._metrics.extensionsCallTimer(extensionType, true));
-        return {devChunks: chunks, devChunksVersion: '3'};
+        return {devChunks: chunks, devChunksVersion: '4'};
       }).catch((error) => {
         extensionsCallTimeMeasurement.record(this._metrics.extensionsCallTimer(extensionType, false));
         this._log.warn(`Got error when getting dev chunks`, error);
