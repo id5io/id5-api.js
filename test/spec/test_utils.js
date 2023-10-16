@@ -78,17 +78,6 @@ export const DEFAULT_EXTENSIONS = {
   lbCDN: '%%LB_CDN%%'
 }
 
-// Stubs Extensions data Promise in order to bypass async task queue and let `then` be immediately pushed on stack
-export class ExtensionsPromiseStub {
-  constructor(test) {
-    this.test = test;
-  }
-
-  then(callback) {
-    callback(DEFAULT_EXTENSIONS);
-  }
-}
-
 export function defaultInit(partnerId = TEST_ID5_PARTNER_ID) {
   return {
     partnerId,

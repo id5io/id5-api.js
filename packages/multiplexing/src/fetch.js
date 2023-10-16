@@ -5,6 +5,7 @@ import {startTimeMeasurement} from '@id5io/diagnostics';
 /* eslint-disable no-unused-vars */
 import {ConsentManager} from './consent.js';
 import {Store} from './store.js';
+import {EXTENSIONS} from './extensions.js';
 /* eslint-ensable no-unused-vars */
 
 const HOST = 'https://id5-sync.com';
@@ -43,12 +44,12 @@ export class UidFetcher {
    * @param {Logger} logger
    * @param {Extensions} extensions
    */
-  constructor(consentManager, store, metrics, logger, extensions) {
+  constructor(consentManager, store, metrics, logger, extensions = EXTENSIONS.createExtensions(metrics, logger)) {
     this._store = store;
     this._consentManager = consentManager;
-    this._extensionsProvider = extensions;
     this._metrics = metrics;
     this._log = logger;
+    this._extensionsProvider = extensions;
   }
 
   /**
@@ -142,12 +143,9 @@ export class UidFetcher {
           forceFetch,
           cachedResponseUsed
         });
-        let extensionsCallTimeMeasurement = metrics?.extensionsCallTimer().startMeasurement();
-        this._extensionsProvider.gather(log)
+
+        this._extensionsProvider.gather(fetchIdData, log)
           .then(extensions => {
-            if (extensionsCallTimeMeasurement) {
-              extensionsCallTimeMeasurement.record();
-            }
             const requests = fetchIdData.map(fetchIdData => {
               const instanceRequest = this.createRequest(storedDataState, consentData, fetchIdData);
               instanceRequest.extensions = extensions;

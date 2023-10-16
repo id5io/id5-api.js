@@ -1,6 +1,6 @@
 {
   "name": "@id5io/multiplexing",
-  "version": "1.0.8",
+  "version": "1.0.11",
   "description": "",
   "main": "src/index.js",
   "files": [
@@ -48,7 +48,6 @@
     "webpack": "^3.0.0"
   },
   "dependencies": {
-    "@id5io/diagnostics": "*",
-    "promise-polyfill": "^8.2.3"
+    "@id5io/diagnostics": "1.0.7"
   }
 }

@@ -1,6 +1,7 @@
 import {Instance as MultiplexInstance} from './instance.js';
-export {default as Promise, LazyValue} from './promise.js';
-export {EXTENSIONS} from './extensions.js';
+import {Store} from './store.js';
+export {LazyValue} from './promise.js';
+export {EXTENSIONS, Extensions} from './extensions.js';
 export * from './logger.js';
 export * from './consent.js';
 export {ConsentManagement} from './consentManagement.js';

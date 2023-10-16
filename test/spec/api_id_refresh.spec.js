@@ -15,11 +15,11 @@ import {
   DEFAULT_EXTENSIONS, MultiplexingStub
 } from './test_utils';
 import {expect} from 'chai';
-import {EXTENSIONS, utils} from '@id5io/multiplexing';
+import {EXTENSIONS, Extensions, utils} from '@id5io/multiplexing';
 
 describe('Refresh ID Fetch Handling', function () {
   let ajaxStub;
-  let extensionsStub;
+  let extensionsStub, extensionsCreatorStub;
   const TEST_REFRESH_RESPONSE_ID5ID = 'testrefreshresponseid5id';
   const TEST_REFRESH_RESPONSE_SIGNATURE = 'lmnopq';
   const TEST_REFRESH_RESPONSE_LINK_TYPE = 2;
@@ -42,11 +42,13 @@ describe('Refresh ID Fetch Handling', function () {
     ajaxStub = sinon.stub(utils, 'ajax').callsFake(function (url, callbacks, data, options) {
       callbacks.success(JSON_RESPONSE_ID5_CONSENT);
     });
-    extensionsStub = sinon.stub(EXTENSIONS, 'gather').resolves(DEFAULT_EXTENSIONS);
+    extensionsStub = sinon.createStubInstance(Extensions);
+    extensionsStub.gather.resolves(DEFAULT_EXTENSIONS);
+    extensionsCreatorStub = sinon.stub(EXTENSIONS, 'createExtensions').returns(extensionsStub);
   });
   afterEach(function () {
     ajaxStub.restore();
-    extensionsStub.restore();
+    extensionsCreatorStub.restore();
     localStorage.removeItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG);
     localStorage.removeItemWithExpiration(TEST_LAST_STORAGE_CONFIG);
     localStorage.removeItemWithExpiration(TEST_CONSENT_DATA_STORAGE_CONFIG);
@@ -75,18 +77,18 @@ describe('Refresh ID Fetch Handling', function () {
     it('should not call ID5 with no config changes', function (done) {
       const id5Status = ID5.init(defaultInitBypassConsent());
       id5Status.onAvailable(function () {
-        sinon.assert.calledOnce(extensionsStub);
+        sinon.assert.calledOnce(extensionsStub.gather);
         sinon.assert.calledOnce(ajaxStub);
         expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
 
-        extensionsStub.resetHistory();
+        extensionsStub.gather.resetHistory();
         ajaxStub.restore();
         ajaxStub = sinon.stub(utils, 'ajax').callsFake(function (url, callbacks, data, options) {
           callbacks.success(REFRESH_JSON_RESPONSE);
         });
 
         ID5.refreshId(id5Status).onRefresh(function () {
-          sinon.assert.notCalled(extensionsStub);
+          sinon.assert.notCalled(extensionsStub.gather);
           sinon.assert.notCalled(ajaxStub);
 
           sinon.assert.calledTwice(getIdSpy);
@@ -105,7 +107,7 @@ describe('Refresh ID Fetch Handling', function () {
         refreshInSeconds: 50
       });
       id5Status.onAvailable(function () {
-        sinon.assert.calledOnce(extensionsStub);
+        sinon.assert.calledOnce(extensionsStub.gather);
         sinon.assert.calledOnce(ajaxStub);
         expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
 
@@ -113,14 +115,14 @@ describe('Refresh ID Fetch Handling', function () {
         expect(requestData.used_refresh_in_seconds).to.be.eq(50);
         expect(requestData.provided_options.refresh_in_seconds).to.be.eq(50);
 
-        extensionsStub.resetHistory();
+        extensionsStub.gather.resetHistory();
         ajaxStub.restore();
         ajaxStub = sinon.stub(utils, 'ajax').callsFake(function (url, callbacks, data, options) {
           callbacks.success(REFRESH_JSON_RESPONSE);
         });
 
         ID5.refreshId(id5Status, false, {refreshInSeconds: 100}).onRefresh(function () {
-          sinon.assert.notCalled(extensionsStub);
+          sinon.assert.notCalled(extensionsStub.gather);
           sinon.assert.notCalled(ajaxStub);
           sinon.assert.calledTwice(getIdSpy);
 
@@ -134,21 +136,21 @@ describe('Refresh ID Fetch Handling', function () {
 
     it('should call ID5 with config changes that require a refresh', function (done) {
       const id5Status = ID5.init(defaultInitBypassConsent()).onAvailable(function () {
-        sinon.assert.calledOnce(extensionsStub);
+        sinon.assert.calledOnce(extensionsStub.gather);
         sinon.assert.calledOnce(ajaxStub);
         expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
         const requestData = JSON.parse(ajaxStub.firstCall.args[2]).requests[0];
         expect(requestData.provided_options.refresh_in_seconds).to.be.eq(undefined);
         expect(requestData.used_refresh_in_seconds).to.be.eq(7200);
 
-        extensionsStub.resetHistory();
+        extensionsStub.gather.resetHistory();
         ajaxStub.restore();
         ajaxStub = sinon.stub(utils, 'ajax').callsFake(function (url, callbacks, data, options) {
           callbacks.success(REFRESH_JSON_RESPONSE);
         });
 
         ID5.refreshId(id5Status, false, {pd: 'abcdefg'}).onRefresh(function () {
-          sinon.assert.calledOnce(extensionsStub);
+          sinon.assert.calledOnce(extensionsStub.gather);
           sinon.assert.calledOnce(ajaxStub);
           expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
           sinon.assert.calledTwice(getIdSpy);
@@ -199,18 +201,18 @@ describe('Refresh ID Fetch Handling', function () {
       it('should not call ID5 with no consent changes', function (done) {
         const id5Status = ID5.init(defaultInit());
         id5Status.onAvailable(function () {
-          sinon.assert.calledOnce(extensionsStub);
+          sinon.assert.calledOnce(extensionsStub.gather);
           sinon.assert.calledOnce(ajaxStub);
           expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
 
-          extensionsStub.resetHistory();
+          extensionsStub.gather.resetHistory();
           ajaxStub.restore();
           ajaxStub = sinon.stub(utils, 'ajax').callsFake(function (url, callbacks, data, options) {
             callbacks.success(REFRESH_JSON_RESPONSE);
           });
 
           ID5.refreshId(id5Status).onRefresh(function () {
-            sinon.assert.notCalled(extensionsStub);
+            sinon.assert.notCalled(extensionsStub.gather);
             sinon.assert.notCalled(ajaxStub);
             sinon.assert.calledTwice(getIdSpy);
 
@@ -225,11 +227,11 @@ describe('Refresh ID Fetch Handling', function () {
       it('should call ID5 when consent changes after init', function (done) {
         const id5Status = ID5.init(defaultInit());
         id5Status.onAvailable(function () {
-          sinon.assert.calledOnce(extensionsStub);
+          sinon.assert.calledOnce(extensionsStub.gather);
           sinon.assert.calledOnce(ajaxStub);
           expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
 
-          extensionsStub.resetHistory();
+          extensionsStub.gather.resetHistory();
           ajaxStub.restore();
           ajaxStub = sinon.stub(utils, 'ajax').callsFake(function (url, callbacks, data, options) {
             callbacks.success(REFRESH_JSON_RESPONSE);
@@ -254,7 +256,7 @@ describe('Refresh ID Fetch Handling', function () {
           });
 
           ID5.refreshId(id5Status).onRefresh(function () {
-            sinon.assert.calledOnce(extensionsStub);
+            sinon.assert.calledOnce(extensionsStub.gather);
             sinon.assert.calledOnce(ajaxStub);
             expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
             sinon.assert.calledTwice(getIdSpy);
@@ -291,18 +293,18 @@ describe('Refresh ID Fetch Handling', function () {
     it('should call ID5 with no other reason to refresh', function (done) {
       const id5Status = ID5.init(defaultInitBypassConsent());
       id5Status.onAvailable(function () {
-        sinon.assert.calledOnce(extensionsStub);
+        sinon.assert.calledOnce(extensionsStub.gather);
         sinon.assert.calledOnce(ajaxStub);
         expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
 
-        extensionsStub.resetHistory();
+        extensionsStub.gather.resetHistory();
         ajaxStub.restore();
         ajaxStub = sinon.stub(utils, 'ajax').callsFake(function (url, callbacks, data, options) {
           callbacks.success(REFRESH_JSON_RESPONSE);
         });
 
         ID5.refreshId(id5Status, true).onRefresh(function () {
-          sinon.assert.calledOnce(extensionsStub);
+          sinon.assert.calledOnce(extensionsStub.gather);
           sinon.assert.calledOnce(ajaxStub);
           expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
           sinon.assert.calledTwice(getIdSpy);

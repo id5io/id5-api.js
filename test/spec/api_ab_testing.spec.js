@@ -4,7 +4,6 @@ import {
   DEFAULT_EXTENSIONS,
   defaultInit,
   defaultInitBypassConsent,
-  ExtensionsPromiseStub,
   ID5_FETCH_ENDPOINT,
   JSON_RESPONSE_ID5_CONSENT,
   localStorage,
@@ -13,11 +12,11 @@ import {
   TEST_PRIVACY_ALLOWED,
   TEST_RESPONSE_SIGNATURE
 } from './test_utils';
-import {CONSTANTS, EXTENSIONS, utils} from '@id5io/multiplexing';
+import {CONSTANTS, EXTENSIONS, Extensions, utils} from '@id5io/multiplexing';
 
 describe('A/B Testing', function () {
   let ajaxStub;
-  let extensionsStub;
+  let extensionsStub, extensionsCreatorStub;
   const API_CONFIG = {
     ...defaultInitBypassConsent(),
     abTesting: {enabled: true, controlGroupPct: 0.5} // config not relevant with the stub
@@ -29,21 +28,27 @@ describe('A/B Testing', function () {
     ID5.userId = undefined;
   });
 
+  beforeEach(() => {
+    extensionsStub = sinon.createStubInstance(Extensions);
+    extensionsStub.gather.resolves(DEFAULT_EXTENSIONS);
+    extensionsCreatorStub = sinon.stub(EXTENSIONS, 'createExtensions').returns(extensionsStub);
+  })
+
   afterEach(function () {
     localStorage.removeItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG);
     localStorage.removeItemWithExpiration(TEST_LAST_STORAGE_CONFIG);
+    extensionsCreatorStub.restore()
     ID5.userId = undefined;
   });
 
+
   describe('Function Availability', function () {
     beforeEach(function () {
-      extensionsStub = sinon.stub(EXTENSIONS, 'gather').resolves(DEFAULT_EXTENSIONS);
       ajaxStub = sinon.stub(utils, 'ajax').callsFake(function (url, callbacks, data, options) {
         callbacks.success(JSON_RESPONSE_ID5_CONSENT);
       });
     });
     afterEach(function () {
-      extensionsStub.restore();
       ajaxStub.restore();
     });
 
@@ -57,7 +62,7 @@ describe('A/B Testing', function () {
 
     it('should send ab_testing config in server request', function (done) {
       ID5.init(API_CONFIG).onAvailable(function () {
-        sinon.assert.calledOnce(extensionsStub);
+        sinon.assert.calledOnce(extensionsStub.gather);
         sinon.assert.calledOnce(ajaxStub);
         expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
         const requestData = JSON.parse(ajaxStub.firstCall.args[2]).requests[0];
@@ -95,13 +100,11 @@ describe('A/B Testing', function () {
     };
 
     beforeEach(function () {
-      extensionsStub = sinon.stub(EXTENSIONS, 'gather').resolves(DEFAULT_EXTENSIONS);
       ajaxStub = sinon.stub(utils, 'ajax').callsFake(function (url, callbacks, data, options) {
         callbacks.success(JSON_ABTEST);
       });
     });
     afterEach(function () {
-      extensionsStub.restore();
       ajaxStub.restore();
     });
 
@@ -112,7 +115,7 @@ describe('A/B Testing', function () {
       const id5Status = ID5.init(API_CONFIG);
 
       id5Status.onAvailable(function () {
-        sinon.assert.notCalled(extensionsStub);
+        sinon.assert.notCalled(extensionsStub.gather);
         sinon.assert.notCalled(ajaxStub);
         expect(id5Status.getUserId()).to.be.equal('whateverID_AB_NORMAL');
         expect(id5Status.getLinkType()).to.be.equal(1);
@@ -125,7 +128,7 @@ describe('A/B Testing', function () {
       const id5Status = ID5.init(API_CONFIG);
 
       id5Status.onAvailable(function () {
-        sinon.assert.calledOnce(extensionsStub);
+        sinon.assert.calledOnce(extensionsStub.gather);
         sinon.assert.calledOnce(ajaxStub);
         expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
         expect(id5Status.getUserId()).to.be.equal('whateverID_AB_NORMAL');
@@ -139,7 +142,7 @@ describe('A/B Testing', function () {
 
   describe('In Control Group', function () {
     let onAvailableSpy, onUpdateSpy, onRefreshSpy;
-    let ajaxStub, extensionsStub;
+    let ajaxStub;
     const JSON_ABTEST = JSON.stringify({
       'universal_uid': 'whateverID_AB_NORMAL',
       'cascade_needed': false,
@@ -165,9 +168,6 @@ describe('A/B Testing', function () {
     };
 
     beforeEach(function () {
-      extensionsStub = sinon.stub(EXTENSIONS, 'gather').callsFake(function () {
-        return new ExtensionsPromiseStub();
-      });
       onAvailableSpy = sinon.spy();
       onUpdateSpy = sinon.spy();
       onRefreshSpy = sinon.spy();
@@ -175,7 +175,6 @@ describe('A/B Testing', function () {
 
     afterEach(function () {
       ajaxStub.restore();
-      extensionsStub.restore();
       onAvailableSpy.resetHistory();
       onUpdateSpy.resetHistory();
       onRefreshSpy.resetHistory();
@@ -187,7 +186,7 @@ describe('A/B Testing', function () {
       });
       const id5Status = ID5.init(API_CONFIG);
       id5Status.onAvailable(function () {
-        sinon.assert.calledOnce(extensionsStub);
+        sinon.assert.calledOnce(extensionsStub.gather);
         sinon.assert.calledOnce(ajaxStub);
         expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
         expect(id5Status.getUserId()).to.be.equal('0');
@@ -208,7 +207,7 @@ describe('A/B Testing', function () {
 
       const id5Status = ID5.init(API_CONFIG);
       id5Status.onAvailable(function () {
-        sinon.assert.notCalled(extensionsStub);
+        sinon.assert.notCalled(extensionsStub.gather);
         sinon.assert.notCalled(ajaxStub);
         expect(id5Status.getUserId()).to.be.equal('0');
         expect(id5Status.getLinkType()).to.be.equal(0);
