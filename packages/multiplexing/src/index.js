@@ -1,5 +1,4 @@
 import {Instance as MultiplexInstance} from './instance.js';
-import {Store} from './store.js';
 export {LazyValue} from './promise.js';
 export {EXTENSIONS, Extensions} from './extensions.js';
 export * from './logger.js';

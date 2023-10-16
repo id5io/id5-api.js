@@ -622,7 +622,7 @@ export class Instance {
     const storageConfig = new StorageConfig(properties.storageExpirationDays);
     const consentManagement = new ConsentManagement(localStorage, storageConfig, properties.forceAllowLocalStorageGrant, logger);
     const grantChecker = () => consentManagement.localStorageGrant();
-    const fetcher = new UidFetcher(consentManagement, new Store(new ClientStore(grantChecker, localStorage, storageConfig, logger)), metrics, logger, EXTENSIONS);
+    const fetcher = new UidFetcher(consentManagement, new Store(new ClientStore(grantChecker, localStorage, storageConfig, logger)), metrics, logger, EXTENSIONS.createExtensions(metrics, logger));
 
     const leader = new ActualLeader(this._window, fetcher, properties, replicatingStorage, consentManagement, metrics, logger);
     leader.addFollower(this._followerRole); // add itself to be directly called
