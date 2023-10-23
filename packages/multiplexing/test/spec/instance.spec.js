@@ -9,8 +9,7 @@ import sinonChai from 'sinon-chai';
 import {NoopLogger} from '../../src/logger.js';
 import {version} from '../../generated/version.js';
 import {MultiplexingEvent} from '../../src/apiEvent.js';
-import {UidFetcher} from '../../src/fetch.js';
-import {ConsentManagement} from '../../src/index.js';
+import {StorageApi} from '../../src/index.js';
 import {ElectionState} from '../../src/instance.js';
 
 chai.use(sinonChai);
@@ -137,7 +136,7 @@ describe('ID5 instance', function () {
       sourceVersion: sourceVersion,
       sourceConfiguration: sourceConfig,
       fetchIdData: fetchIdData
-    }, metrics, logger, sinon.createStubInstance(UidFetcher), sinon.createStubInstance(ConsentManagement));
+    }, sinon.createStubInstance(StorageApi),  metrics, logger);
     createdInstances.push(instance);
     return instance;
   }

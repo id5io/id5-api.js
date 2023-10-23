@@ -3,8 +3,8 @@ import {expect} from 'chai';
 import sinonChai from 'sinon-chai';
 import sinon from 'sinon';
 import {API_TYPE, GRANT_TYPE, LocalStorageGrant} from '../../src/consent.js';
-import {ClientStore} from '../../src/clientStore.js';
-import {LocalStorageApi, StorageConfig} from '../../src/store.js';
+import {LocalStorage, ClientStore} from '../../src/index.js';
+import {StorageConfig} from '../../src/store.js';
 import {NoopLogger} from '../../src/logger.js';
 import {cyrb53Hash} from '../../src/utils';
 
@@ -37,7 +37,7 @@ describe('ClientStore', function() {
   [true, false].forEach(casus => {
     it(`should tell whether local storage is available in case ${casus}`, function() {
       // given
-      const localStorage = sinon.createStubInstance(LocalStorageApi);
+      const localStorage = sinon.createStubInstance(LocalStorage);
       localStorage.isAvailable.returns(casus);
       const clientStore = new ClientStore(undefined, localStorage, DEFAULT_STORAGE_CONFIG, log);
 
@@ -53,7 +53,7 @@ describe('ClientStore', function() {
     let localStorage;
 
     beforeEach(function() {
-      localStorage = sinon.createStubInstance(LocalStorageApi);
+      localStorage = sinon.createStubInstance(LocalStorage);
       localStorage.isAvailable.returns(true);
     });
 

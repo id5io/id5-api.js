@@ -1,6 +1,5 @@
-import LocalStorage from '../../lib/localStorage.js';
 import sinon from 'sinon';
-import multiplexing from '@id5io/multiplexing';
+import multiplexing,  {LocalStorage, WindowStorage} from '@id5io/multiplexing';
 
 export const TEST_ID5_PARTNER_ID = 99;
 export const ID5_FETCH_ENDPOINT = `https://id5-sync.com/gm/v2`;
@@ -95,7 +94,7 @@ export function defaultInitBypassConsent(partnerId = TEST_ID5_PARTNER_ID) {
   }
 }
 
-export const localStorage = new LocalStorage(window);
+export const localStorage = new LocalStorage(new WindowStorage(window));
 
 export function resetAllInLocalStorage() {
   localStorage.removeItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG);

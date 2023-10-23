@@ -34,71 +34,6 @@ export class StorageConfig {
   }
 }
 
-/**
- * @interface
- */
-export class LocalStorageApi {
-  /**
-   * @returns {boolean} true if the localStorage is available
-   */
-  isAvailable() {
-    return false;
-  }
-
-  /**
-   * Gets a stored string from local storage
-   *
-   * @param {string} key
-   * @returns {string|null|undefined} the stored value, null if no value or expired were stored, undefined if no localStorage
-   */
-  getItem(key) {
-    return undefined;
-  }
-
-  /**
-   * Puts a string in local storage
-   *
-   * @param {string} key the key of the item
-   * @param {string} value the vaule to store
-   * @returns {undefined}
-   */
-  setItem(key, value) {
-  }
-
-  /**
-   * Removes a string from local storage
-   * @param {string} key the key of the item
-   */
-  removeItem(key) {
-  }
-
-  /**
-   * Gets a stored item from local storage dealing with expiration policy.
-   * @param {Object} config The item configuration
-   * @param {string} config.name The item name
-   * @returns {string|null} the stored value, null if no value, expired or no localStorage
-   */
-  getItemWithExpiration({ name }) {
-    return null;
-  }
-
-  /**
-   * Stores an item in local storage dealing with expiration policy.
-   * @param {Object} config The item configuration
-   * @param {string} config.name The item name
-   * @param {number} config.expiresDays The expiration in days
-   * @returns {undefined}
-   */
-  setItemWithExpiration({name, expiresDays}, value) {
-  }
-
-  /**
-   * Removes an item from local storage dealing with expiration policy.
-   */
-  removeItemWithExpiration({ name }) {
-  }
-}
-
 export class StoredDataState {
   storedResponse;
   storedDateTime;
@@ -130,8 +65,16 @@ export class StoredDataState {
 }
 
 export class Store {
+  /**
+   * @type {ClientStore}
+   * @private
+   */
   _clientStoreV1;
 
+  /**
+   *
+   * @param {ClientStore} clientStore
+   */
   constructor(clientStore) {
     this._clientStoreV1 = clientStore;
   }

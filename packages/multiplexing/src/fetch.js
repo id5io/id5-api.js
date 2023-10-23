@@ -44,7 +44,7 @@ export class UidFetcher {
    * @param {Logger} logger
    * @param {Extensions} extensions
    */
-  constructor(consentManager, store, metrics, logger, extensions = EXTENSIONS.createExtensions(metrics, logger)) {
+  constructor(consentManager, store, metrics, logger, extensions) {
     this._store = store;
     this._consentManager = consentManager;
     this._metrics = metrics;

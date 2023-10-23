@@ -7,9 +7,10 @@ import {
 import sinon from 'sinon';
 import sinonChai from 'sinon-chai';
 import chai, {expect} from 'chai';
-import {Follower, ProxyFollower} from "../../src/follower.js";
+import {Follower, ProxyFollower, ProxyStorage} from "../../src/follower.js";
 import {DiscoveredInstance, Properties} from '../../src/instance.js';
 import {Leader, ProxyLeader} from "../../src/leader.js";
+import {StorageApi} from '../../src/index.js';
 
 chai.use(sinonChai);
 
@@ -59,7 +60,7 @@ describe('Proxy Method Call', function () {
   });
 
   it('Proxy leader calls', function () {
-// given
+    // given
     const callerId = 'follower';
     const targetId = 'leader';
     const callerMessenger = new CrossInstanceMessenger(callerId, window);
@@ -83,6 +84,34 @@ describe('Proxy Method Call', function () {
       expect(targetLeader.refreshUid).has.been.calledWith({refresh: 'options'});
       expect(targetLeader.updateConsent).has.been.calledWith({consent: 'updated'});
       expect(targetLeader.updateFetchIdData).has.been.calledWith({instance: 'id'}, {fetch: 'id_data'});
+    });
+  });
+
+  it('Proxy storage calls', function () {
+
+    // given
+    const callerId = 'leader';
+    const targetId = 'follower';
+    const callerMessenger = new CrossInstanceMessenger(callerId, window);
+    const targetMessenger = new CrossInstanceMessenger(targetId, window);
+
+    const targetStorage = sinon.createStubInstance(StorageApi);
+    targetMessenger.onProxyMethodCall(
+        new ProxyMethodCallHandler().registerTarget(ProxyMethodCallTarget.STORAGE, targetStorage)
+    )
+
+    const proxyStorage = new ProxyStorage(callerMessenger, targetId);
+
+    // when
+    proxyStorage.setItem('key', 'value');
+    proxyStorage.removeItem('key1');
+    proxyStorage.getItem('key3');
+
+    // then
+    return pcmMessagesReceived(targetMessenger, 2).then(() => {
+      expect(targetStorage.setItem).has.been.calledWith('key','value');
+      expect(targetStorage.removeItem).has.been.calledWith('key1');
+      // getItem is not called
     });
   });
 });

@@ -13,6 +13,7 @@ import {
 } from './test_utils';
 import clone from 'clone';
 import {ApiEvent} from '@id5io/multiplexing';
+import {expect} from 'chai';
 
 function stubDelayedUserIdReady(id5Status, timeout, data = {fromCache: false}) {
   setTimeout(() => {
@@ -39,13 +40,12 @@ describe('Async Responses', function () {
 
   let clock;
   let multiplexingStub;
-  let createInstanceStub;
 
 
   beforeEach(function () {
     multiplexingStub = new MultiplexingStub();
-    createInstanceStub = multiplexingStub.interceptInstance(instance => {
-      sinon.stub(instance._uidFetcher, 'getId'); // bypass leader _getId
+    multiplexingStub.interceptInstance(instance => {
+      sinon.stub(instance, 'register').returns(instance); // bypass instance operating
       return instance;
     })
     clock = sinon.useFakeTimers(Date.now());

@@ -14,7 +14,7 @@ import {
   localStorage,
   DEFAULT_EXTENSIONS, MultiplexingStub
 } from './test_utils';
-import {expect} from "chai";
+import {expect} from 'chai';
 import {EXTENSIONS, Extensions, utils} from '@id5io/multiplexing';
 
 describe('Refresh ID Fetch Handling', function () {
@@ -61,7 +61,11 @@ describe('Refresh ID Fetch Handling', function () {
     beforeEach(function () {
       multiplexingStub = new MultiplexingStub();
       multiplexingStub.interceptInstance(instance => {
-        getIdSpy = sinon.spy(instance._uidFetcher, 'getId')
+        instance._leader.realAssignLeader = instance._leader.assignLeader;
+        sinon.stub(instance._leader, 'assignLeader').callsFake( (leader) => {
+          getIdSpy = sinon.spy(leader._fetcher, 'getId');
+          instance._leader.realAssignLeader(leader);// let instance complete election
+        });
         return instance;
       })
     });
@@ -273,7 +277,11 @@ describe('Refresh ID Fetch Handling', function () {
     beforeEach(function () {
       multiplexingStub = new MultiplexingStub();
       multiplexingStub.interceptInstance(instance => {
-        getIdSpy = sinon.spy(instance._uidFetcher, 'getId')
+        instance._leader.realAssignLeader = instance._leader.assignLeader;
+        sinon.stub(instance._leader, 'assignLeader').callsFake( (leader) => {
+          getIdSpy = sinon.spy(leader._fetcher, 'getId');
+          instance._leader.realAssignLeader(leader);// let instance complete election
+        });
         return instance;
       })
     });

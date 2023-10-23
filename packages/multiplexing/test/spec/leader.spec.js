@@ -4,11 +4,12 @@ import sinon, {stub} from 'sinon';
 import sinonChai from 'sinon-chai';
 import {CrossInstanceMessenger, ProxyMethodCallTarget} from '../../src/messaging.js';
 import {AwaitedLeader, ActualLeader, Leader, ProxyLeader, AddFollowerResult} from '../../src/leader.js';
-import {UidFetcher} from "../../src/fetch.js";
+import {UidFetcher} from '../../src/fetch.js';
 import {API_TYPE, ApiEvent, ConsentData, ConsentManagement, NoopLogger} from '../../src/index.js';
 import {Follower} from '../../src/follower.js';
-import {Properties} from "../../src/instance.js";
-import {Counter, Id5CommonMetrics} from "@id5io/diagnostics";
+import {Properties} from '../../src/instance.js';
+import {Counter, Id5CommonMetrics} from '@id5io/diagnostics';
+import {ReplicatingStorage} from '../../src/localStorage.js';
 
 chai.use(sinonChai);
 
@@ -173,6 +174,10 @@ describe('ActualLeader', () => {
    */
   let uidFetcher;
   /**
+   * @type {ReplicatingStorage}
+   */
+  let leaderStorage;
+  /**
    * @type {ConsentManagement}
    */
   let consentManager;
@@ -208,19 +213,25 @@ describe('ActualLeader', () => {
 
   let leaderProperties = new Properties('leaderId');
 
+  const leaderWindow = window;
+
   beforeEach(() => {
     uidFetcher = sinon.createStubInstance(UidFetcher);
     consentManager = sinon.createStubInstance(ConsentManagement);
+    leaderStorage = sinon.createStubInstance(ReplicatingStorage);
     follower1 = sinon.createStubInstance(Follower);
     follower1.getId.returns(follower1Id);
     follower1.getFetchIdData.returns(follower1FetchIdData);
+    follower1.getWindow.returns(leaderWindow);
     follower2 = sinon.createStubInstance(Follower);
     follower2.getId.returns(follower2Id);
     follower2.getFetchIdData.returns(follower2FetchIdData);
+    follower2.getWindow.returns(leaderWindow);
     follower3 = sinon.createStubInstance(Follower);
     follower3.getId.returns(follower3Id);
     follower3.getFetchIdData.returns(follower3FetchIdData);
-    leader = new ActualLeader(uidFetcher, consentManager, leaderProperties, sinon.createStubInstance(Id5CommonMetrics), NoopLogger);
+    follower3.getWindow.returns(leaderWindow);
+    leader = new ActualLeader(leaderWindow, uidFetcher, leaderProperties, leaderStorage, consentManager, sinon.createStubInstance(Id5CommonMetrics), NoopLogger);
   });
 
   it('should getId on start and notify followers when uid ready', function () {
@@ -560,6 +571,29 @@ describe('ActualLeader', () => {
     expect(follower1.notifyUidReady).to.be.calledWith(updatedUid);
     expect(follower2.notifyUidReady).to.be.calledWith(updatedUid);
     expect(follower3.notifyUidReady).to.be.calledWith(updatedUid);
+  });
+
+  it(`should add follower's storage as replica if follower form different window`, function () {
+    // given
+    const otherWindow = sinon.stub();
+    const follower1Storage = sinon.stub();
+    const follower2Storage = sinon.stub();
+    follower1.getWindow.reset();
+    follower1.getWindow.returns(leaderWindow);
+    follower1.getStorage.returns(follower1Storage)
+    follower2.getWindow.reset();
+    follower2.getWindow.returns(otherWindow);
+    follower2.getStorage.returns(follower2Storage);
+
+
+    // when
+    leader.addFollower(follower1);
+    leader.addFollower(follower2);
+
+    // then
+    expect(leaderStorage.addReplica).to.be.calledOnce;
+    expect(leaderStorage.addReplica).to.be.calledWith(follower2Storage);
+
   });
 
   it('should notify followers when uid fetch canceled', function () {

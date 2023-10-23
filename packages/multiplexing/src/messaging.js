@@ -85,7 +85,8 @@ export class HelloMessage {
 
 export const ProxyMethodCallTarget = Object.freeze({
   LEADER: 'leader',
-  FOLLOWER: 'follower'
+  FOLLOWER: 'follower',
+  STORAGE: 'storage'
 });
 
 export class ProxyMethodCallMessage {
