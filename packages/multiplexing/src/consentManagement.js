@@ -7,7 +7,7 @@ import {LazyValue} from './promise.js';
 import {API_TYPE, GRANT_TYPE, LocalStorageGrant, ConsentManager, ConsentData} from './consent.js';
 
 export class ConsentManagement extends ConsentManager {
-  /** @type LazyValue<ConsentData>} */
+  /** @type {LazyValue<ConsentData>} */
   _consentDataHolder;
 
   /**

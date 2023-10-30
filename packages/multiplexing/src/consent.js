@@ -7,7 +7,8 @@ export const API_TYPE = Object.freeze({
   TCF_V1: 'TCFv1',
   TCF_V2: 'TCFv2',
   USP_V1: 'USPv1',
-  ID5_ALLOWED_VENDORS: 'ID5'
+  ID5_ALLOWED_VENDORS: 'ID5',
+  PREBID: 'PBJS',
 });
 
 export class ConsentData {
@@ -15,7 +16,10 @@ export class ConsentData {
    * The API type which is used to determine consent to access local storage and call the ID5 back-end
    * @type {string}
    */
-  api = API_TYPE.NONE;
+  api;
+
+  /** @type {boolean} */
+  gdprApplies;
 
   /**
    * The GDPR consent string
@@ -23,10 +27,8 @@ export class ConsentData {
    */
   consentString;
 
-  /** @type {boolean} */
-  gdprApplies = false;
-
   /**
+   * Tells whether ID5 has consent from the user to use local storage
    * @type {boolean|undefined}
    */
   localStoragePurposeConsent;
@@ -38,12 +40,33 @@ export class ConsentData {
   allowedVendors;
 
   /** @type {boolean} */
-  hasCcpaString = false;
+  hasCcpaString;
 
   /** @type {string} */
-  ccpaString = '';
+  ccpaString;
 
-  forcedGrantByConfig = false;
+  /** @type {boolean} */
+  forcedGrantByConfig;
+
+  constructor(
+    api = API_TYPE.NONE,
+    gdprApplies = false,
+    consentString = undefined,
+    localStoragePurposeConsent = false,
+    hasCcpaString = false,
+    ccpaString = '',
+    allowedVendors = undefined,
+    forcedGrantByConfig = false
+  ) {
+    this.api = api;
+    this.gdprApplies = gdprApplies;
+    this.consentString = consentString;
+    this.localStoragePurposeConsent = localStoragePurposeConsent;
+    this.hasCcpaString = hasCcpaString;
+    this.ccpaString = ccpaString;
+    this.allowedVendors = allowedVendors;
+    this.forcedGrantByConfig = forcedGrantByConfig;
+  }
 
   localStorageGrant() {
     const grantType = (this.forcedGrantByConfig === true)
@@ -61,6 +84,7 @@ export class ConsentData {
       case API_TYPE.TCF_V1:
         return !this.gdprApplies || this.localStoragePurposeConsent === true;
       case API_TYPE.TCF_V2:
+      case API_TYPE.PREBID:
         return this.gdprApplies === false || this.localStoragePurposeConsent === true;
       case API_TYPE.ID5_ALLOWED_VENDORS:
         return this.allowedVendors.includes(ID5_GVL_ID);
