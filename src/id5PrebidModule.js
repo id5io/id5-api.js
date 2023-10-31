@@ -9,11 +9,10 @@ import {
   filterUaHints,
   versionCompare
 } from '../lib/utils.js';
-import Id5Status from '../lib/id5Status.js';
 import { version as currentVersion } from '../generated/version.js';
 import { Config } from '../lib/config.js';
 import { createPublisher, Id5CommonMetrics, partnerTag, startTimeMeasurement } from '@id5io/diagnostics';
-import multiplexing, { API_TYPE, ConsentData, ApiEvent, ClientStore, ConsentManagement, LocalStorage, WindowStorage } from '@id5io/multiplexing';
+import multiplexing, { API_TYPE, ConsentData, ApiEvent, WindowStorage } from '@id5io/multiplexing';
 
 /**
  * @typedef {Object} IdResponse
@@ -79,6 +78,9 @@ class Id5PrebidIntegration {
   /** @type {string} */
   _version = currentVersion;
 
+  /** @type {boolean} */
+  userIdReady = false;
+
   constructor() {
     this._isUsingCdn = !!(
       document &&
@@ -117,13 +119,8 @@ class Id5PrebidIntegration {
       metrics.invocationCountSummary().record(this.invocationId); // record invocation count
     }
     const storage = new WindowStorage(window);
-    const localStorage = new LocalStorage(storage);
-    const consentManagement = new ConsentManagement(localStorage, config.storageConfig, false, log);
-    consentManagement.setConsentData(this._buildConsentData(gdprConsentData, uspConsentData));
-    const localStorageGrantChecker = () => consentManagement.localStorageGrant();
-    const clientStore = new ClientStore(localStorageGrantChecker, localStorage, config.storageConfig, log);
     const instance = multiplexing.createInstance(window, log, metrics, storage);
-    const partnerStatus = new Id5Status(config, clientStore, consentManagement, undefined, metrics, undefined, log, instance);
+    instance.updateConsent(this._buildConsentData(gdprConsentData, uspConsentData));
     const userIdReadyTimer = startTimeMeasurement();
     const instancePromise = new Promise((resolve, reject) => {
       instance
@@ -135,13 +132,13 @@ class Id5PrebidIntegration {
             }
             userIdReadyTimer.record(metrics.userIdProvisioningDelayTimer(userIdData.isFromCache, {
               ...notificationContextTags,
-              isUpdate: partnerStatus._userIdAvailable
+              isUpdate: false
             }));
           } catch (e) {
             log.error('Failed to measure provisioning metrics', e);
           }
           const response = userIdData.responseObj;
-          partnerStatus.setUserId(response, userIdData.isFromCache);
+          this.userIdReady = true;
           resolve({
             universal_uid: response.universal_uid,
             ext: response.ext,
@@ -154,12 +151,12 @@ class Id5PrebidIntegration {
         });
     });
 
-    const fetchIdData = await this._gatherFetchIdData(partnerStatus);
+    const fetchIdData = await this._gatherFetchIdData(config, refererInfo, log);
     instance.register({
       source: ORIGIN,
       sourceVersion: currentVersion,
       sourceConfiguration: {
-        options: partnerStatus.getOptions()
+        options: config.getOptions()
       },
       fetchIdData,
       singletonMode: options?.multiplexing?._disabled === true,
@@ -224,37 +221,35 @@ class Id5PrebidIntegration {
 
   /**
    * @private
-   * @param {Id5Status} id5Status
+   * @param {Config} config
    * @param {PrebidRefererInfo} refererInfo
    * @returns
    */
-  async _gatherFetchIdData(id5Status, refererInfo) {
-    const options = id5Status.getOptions();
-    const log = id5Status._logger;
-    const uaHints = await this._gatherUaHints(options);
+  async _gatherFetchIdData(config, refererInfo, log) {
+    const options = config.getOptions();
+    const uaHints = await this._gatherUaHints(options, log);
     return {
       partnerId: options.partnerId,
       refererInfo: refererInfo,
       origin: ORIGIN,
       originVersion: this._version,
-      isLocalStorageAvailable: id5Status.clientStore.isLocalStorageAvailable(),
       isUsingCdn: this._isUsingCdn,
       att: options.att,
       uaHints: uaHints,
       abTesting: options.abTesting,
       segments: options.segments,
       // TODO replace with diagnostic metric  there is prometeus graph lateJoinerData.invalidSegmentsCount == knownData.invalidSegmentsCount
-      invalidSegmentsCount: id5Status.getInvalidSegments(),
+      invalidSegmentsCount: config.getInvalidSegments(),
       provider: options.provider,
       pd: options.pd,
       partnerUserId: options.partnerUserId,
       refreshInSeconds: options.refreshInSeconds, // TODO do we need this ?
-      providedRefreshInSeconds: id5Status.getProvidedOptions().refreshInSeconds,
+      providedRefreshInSeconds: config.getProvidedOptions().refreshInSeconds,
       trace: isGlobalTrace()
     };
   }
 
-  async _gatherUaHints(options) {
+  async _gatherUaHints(options, log) {
     if (!isDefined(window.navigator.userAgentData) || options.disableUaHints) {
       return undefined;
     }
