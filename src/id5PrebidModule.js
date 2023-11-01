@@ -256,7 +256,7 @@ class Id5PrebidIntegration {
     try {
       const hints = await window.navigator.userAgentData.getHighEntropyValues(['architecture', 'fullVersionList', 'model', 'platformVersion']);
       return filterUaHints(hints);
-    } catch(error) {
+    } catch (error) {
       log.error('Error while calling navigator.userAgentData.getHighEntropyValues()', error);
       return undefined;
     }
