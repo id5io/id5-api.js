@@ -1,4 +1,5 @@
-import { isDefined } from "./utils";
+import { isDefined } from './utils';
+
 export class LazyValue {
   _valuePromise;
   _value;

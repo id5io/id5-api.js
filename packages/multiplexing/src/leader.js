@@ -2,6 +2,9 @@ import {ApiEvent, ApiEventsDispatcher} from './apiEvent.js';
 import {NoopLogger} from './logger.js';
 import {ProxyMethodCallTarget} from './messaging.js';
 
+// eslint-disable-next-line no-unused-vars
+import { ConsentData } from './consent.js';
+
 export class AddFollowerResult {
   lateJoiner = false;
   uniqueLateJoiner = false;
@@ -22,14 +25,12 @@ export class Leader {
   }
 
   /**
-   *
    * @param {RefreshOptions} refreshOptions
    */
   refreshUid(refreshOptions) {
   }
 
   /**
-   *
    * @param {Follower} follower
    * @return {AddFollowerResult | undefined}
    */
@@ -365,6 +366,9 @@ export class AwaitedLeader extends Leader {
   _callsQueue = [];
   _assignedLeader;
 
+  /**
+   * @param {ConsentData} consentData
+   */
   updateConsent(consentData) {
     this._callOrBuffer('updateConsent', [consentData]);
   }

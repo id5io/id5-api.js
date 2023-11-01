@@ -8,7 +8,7 @@ export const API_TYPE = Object.freeze({
   TCF_V2: 'TCFv2',
   USP_V1: 'USPv1',
   ID5_ALLOWED_VENDORS: 'ID5',
-  PREBID: 'PBJS',
+  PREBID: 'PBJS'
 });
 
 export class ConsentData {
