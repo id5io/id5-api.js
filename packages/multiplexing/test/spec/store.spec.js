@@ -417,10 +417,14 @@ describe('Store', function () {
       const expectedNbReset = usedCachedResponse ? 0 : 1;
 
       // when
-      store.storeResponse(FETCH_ID_DATA, "response", usedCachedResponse);
+      const response = {
+        universal_uid: 'uid',
+        signature: 'sig'
+      };
+      store.storeResponse(FETCH_ID_DATA, response, usedCachedResponse);
 
       // then
-      expect(clientStoreV1.putResponse).to.have.been.calledWith("response");
+      expect(clientStoreV1.putResponse).to.have.been.calledWith(response);
       expect(clientStoreV1.setDateTime).to.have.been.called;
       expect(new Date(clientStoreV1.setDateTime.firstCall.args[0])).to.be.closeToTime(now, 1);
       expect(clientStoreV1.setNb).to.be.calledTwice;

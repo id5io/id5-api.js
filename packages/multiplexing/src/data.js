@@ -42,9 +42,8 @@
  */
 
 /**
- * FetchIdData data
+ * FetchIdData data provided by instance when registering to multiplexing
  * @typedef {Object} FetchIdData
- * @property {string} integrationId - unique multiplexing integration id
  * @property {string} origin
  * @property {string} originVersion
  * @property {number} partnerId

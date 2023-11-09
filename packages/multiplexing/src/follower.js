@@ -126,11 +126,8 @@ export class Follower {
   notifyCascadeNeeded(cascadeData) {
   }
 
-  /**
-   * @param {CascadePixelCall} cascadeData
-   */
-  canDoCascade(cascadeData) {
-    return this._instanceProperties.canDoCascade === true && cascadeData.partnerId === this._instanceProperties.fetchIdData.partnerId;
+  canDoCascade() {
+    return this._instanceProperties.canDoCascade === true;
   }
 
   /**

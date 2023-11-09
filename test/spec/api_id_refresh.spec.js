@@ -1,18 +1,19 @@
 import sinon from 'sinon';
 import ID5 from '../../lib/id5-api';
 import {
-  TEST_ID5ID_STORAGE_CONFIG,
-  TEST_LAST_STORAGE_CONFIG,
-  TEST_CONSENT_DATA_STORAGE_CONFIG,
-  TEST_PD_STORAGE_CONFIG,
-  JSON_RESPONSE_ID5_CONSENT,
-  ID5_FETCH_ENDPOINT,
-  TEST_RESPONSE_ID5ID,
-  TEST_RESPONSE_LINK_TYPE,
+  DEFAULT_EXTENSIONS,
   defaultInit,
   defaultInitBypassConsent,
+  ID5_FETCH_ENDPOINT,
   localStorage,
-  DEFAULT_EXTENSIONS, MultiplexingStub
+  MultiplexingStub, prepareMultiplexingResponse,
+  TEST_CONSENT_DATA_STORAGE_CONFIG,
+  TEST_ID5ID_STORAGE_CONFIG,
+  TEST_LAST_STORAGE_CONFIG,
+  TEST_PD_STORAGE_CONFIG,
+  TEST_RESPONSE_ID5_CONSENT,
+  TEST_RESPONSE_ID5ID,
+  TEST_RESPONSE_LINK_TYPE
 } from './test_utils';
 import {expect} from 'chai';
 import {EXTENSIONS, Extensions, utils} from '@id5io/multiplexing';
@@ -23,14 +24,16 @@ describe('Refresh ID Fetch Handling', function () {
   const TEST_REFRESH_RESPONSE_ID5ID = 'testrefreshresponseid5id';
   const TEST_REFRESH_RESPONSE_SIGNATURE = 'lmnopq';
   const TEST_REFRESH_RESPONSE_LINK_TYPE = 2;
-  const REFRESH_JSON_RESPONSE = JSON.stringify({
+  const REFRESH_RESPONSE = {
     'universal_uid': TEST_REFRESH_RESPONSE_ID5ID,
     'cascade_needed': false,
     'signature': TEST_REFRESH_RESPONSE_SIGNATURE,
     'ext': {
       'linkType': TEST_REFRESH_RESPONSE_LINK_TYPE
     }
-  });
+  };
+  const JSON_REFRESH_RESPONSE = JSON.stringify(REFRESH_RESPONSE);
+
 
   before(function () {
     localStorage.removeItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG);
@@ -40,7 +43,7 @@ describe('Refresh ID Fetch Handling', function () {
   });
   beforeEach(function () {
     ajaxStub = sinon.stub(utils, 'ajax').callsFake(function (url, callbacks, data, options) {
-      callbacks.success(JSON_RESPONSE_ID5_CONSENT);
+      callbacks.success(prepareMultiplexingResponse(TEST_RESPONSE_ID5_CONSENT, data));
     });
     extensionsStub = sinon.createStubInstance(Extensions);
     extensionsStub.gather.resolves(DEFAULT_EXTENSIONS);
@@ -84,7 +87,7 @@ describe('Refresh ID Fetch Handling', function () {
         extensionsStub.gather.resetHistory();
         ajaxStub.restore();
         ajaxStub = sinon.stub(utils, 'ajax').callsFake(function (url, callbacks, data, options) {
-          callbacks.success(REFRESH_JSON_RESPONSE);
+          callbacks.success(prepareMultiplexingResponse(REFRESH_RESPONSE, data));
         });
 
         ID5.refreshId(id5Status).onRefresh(function () {
@@ -95,7 +98,7 @@ describe('Refresh ID Fetch Handling', function () {
 
           expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
           expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
-          expect(localStorage.getItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(encodeURIComponent(JSON_RESPONSE_ID5_CONSENT));
+          expect(localStorage.getItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(encodeURIComponent(JSON.stringify(TEST_RESPONSE_ID5_CONSENT)));
           done();
         });
       });
@@ -118,7 +121,7 @@ describe('Refresh ID Fetch Handling', function () {
         extensionsStub.gather.resetHistory();
         ajaxStub.restore();
         ajaxStub = sinon.stub(utils, 'ajax').callsFake(function (url, callbacks, data, options) {
-          callbacks.success(REFRESH_JSON_RESPONSE);
+          callbacks.success(prepareMultiplexingResponse(REFRESH_RESPONSE, data));
         });
 
         ID5.refreshId(id5Status, false, {refreshInSeconds: 100}).onRefresh(function () {
@@ -128,7 +131,7 @@ describe('Refresh ID Fetch Handling', function () {
 
           expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
           expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
-          expect(localStorage.getItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(encodeURIComponent(JSON_RESPONSE_ID5_CONSENT));
+          expect(localStorage.getItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(encodeURIComponent(JSON.stringify(TEST_RESPONSE_ID5_CONSENT)));
           done();
         });
       });
@@ -146,7 +149,7 @@ describe('Refresh ID Fetch Handling', function () {
         extensionsStub.gather.resetHistory();
         ajaxStub.restore();
         ajaxStub = sinon.stub(utils, 'ajax').callsFake(function (url, callbacks, data, options) {
-          callbacks.success(REFRESH_JSON_RESPONSE);
+          callbacks.success(prepareMultiplexingResponse(REFRESH_RESPONSE, data));
         });
 
         ID5.refreshId(id5Status, false, {pd: 'abcdefg'}).onRefresh(function () {
@@ -160,7 +163,7 @@ describe('Refresh ID Fetch Handling', function () {
 
           expect(id5Status.getUserId()).to.be.equal(TEST_REFRESH_RESPONSE_ID5ID);
           expect(id5Status.getLinkType()).to.be.equal(TEST_REFRESH_RESPONSE_LINK_TYPE);
-          expect(localStorage.getItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(encodeURIComponent(REFRESH_JSON_RESPONSE));
+          expect(localStorage.getItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(encodeURIComponent(JSON_REFRESH_RESPONSE));
           done();
         });
       });
@@ -208,7 +211,7 @@ describe('Refresh ID Fetch Handling', function () {
           extensionsStub.gather.resetHistory();
           ajaxStub.restore();
           ajaxStub = sinon.stub(utils, 'ajax').callsFake(function (url, callbacks, data, options) {
-            callbacks.success(REFRESH_JSON_RESPONSE);
+            callbacks.success(prepareMultiplexingResponse(REFRESH_RESPONSE, data));
           });
 
           ID5.refreshId(id5Status).onRefresh(function () {
@@ -218,7 +221,7 @@ describe('Refresh ID Fetch Handling', function () {
 
             expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
             expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
-            expect(localStorage.getItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(encodeURIComponent(JSON_RESPONSE_ID5_CONSENT));
+            expect(localStorage.getItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(encodeURIComponent(JSON.stringify(TEST_RESPONSE_ID5_CONSENT)));
             done();
           });
         });
@@ -234,7 +237,7 @@ describe('Refresh ID Fetch Handling', function () {
           extensionsStub.gather.resetHistory();
           ajaxStub.restore();
           ajaxStub = sinon.stub(utils, 'ajax').callsFake(function (url, callbacks, data, options) {
-            callbacks.success(REFRESH_JSON_RESPONSE);
+            callbacks.success(prepareMultiplexingResponse(REFRESH_RESPONSE, data));
           });
 
           cmpStub.restore();
@@ -263,7 +266,7 @@ describe('Refresh ID Fetch Handling', function () {
 
             expect(id5Status.getUserId()).to.be.equal(TEST_REFRESH_RESPONSE_ID5ID);
             expect(id5Status.getLinkType()).to.be.equal(TEST_REFRESH_RESPONSE_LINK_TYPE);
-            expect(localStorage.getItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(encodeURIComponent(REFRESH_JSON_RESPONSE));
+            expect(localStorage.getItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(encodeURIComponent(JSON.stringify(REFRESH_RESPONSE)));
             done();
           });
         });
@@ -300,7 +303,7 @@ describe('Refresh ID Fetch Handling', function () {
         extensionsStub.gather.resetHistory();
         ajaxStub.restore();
         ajaxStub = sinon.stub(utils, 'ajax').callsFake(function (url, callbacks, data, options) {
-          callbacks.success(REFRESH_JSON_RESPONSE);
+          callbacks.success(prepareMultiplexingResponse(REFRESH_RESPONSE, data));
         });
 
         ID5.refreshId(id5Status, true).onRefresh(function () {
@@ -311,7 +314,7 @@ describe('Refresh ID Fetch Handling', function () {
 
           expect(id5Status.getUserId()).to.be.equal(TEST_REFRESH_RESPONSE_ID5ID);
           expect(id5Status.getLinkType()).to.be.equal(TEST_REFRESH_RESPONSE_LINK_TYPE);
-          expect(localStorage.getItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(encodeURIComponent(REFRESH_JSON_RESPONSE));
+          expect(localStorage.getItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(encodeURIComponent(JSON_REFRESH_RESPONSE));
           done();
         });
       });
