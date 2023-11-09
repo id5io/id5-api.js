@@ -2,18 +2,19 @@ import sinon from 'sinon';
 import ID5 from '../../lib/id5-api';
 import * as utils from '../../lib/utils';
 import {
+  DEFAULT_EXTENSIONS,
+  defaultInitBypassConsent,
   ID5_CALL_ENDPOINT,
   ID5_FETCH_ENDPOINT,
   ID5_SYNC_ENDPOINT,
-  JSON_RESPONSE_CASCADE,
-  JSON_RESPONSE_ID5_CONSENT,
+  TEST_RESPONSE_CASCADE,
   localStorage,
+  prepareMultiplexingResponse,
   STORED_JSON,
   TEST_ID5ID_STORAGE_CONFIG,
   TEST_LAST_STORAGE_CONFIG,
-  TEST_RESPONSE_ID5ID,
-  defaultInitBypassConsent,
-  DEFAULT_EXTENSIONS
+  TEST_RESPONSE_ID5_CONSENT,
+  TEST_RESPONSE_ID5ID
 } from './test_utils';
 import {EXTENSIONS, Extensions, utils as mxutils} from '@id5io/multiplexing';
 
@@ -28,7 +29,7 @@ describe('Fire Usersync Pixel', function () {
   });
 
   beforeEach(function () {
-    syncStub = sinon.stub(utils, 'deferPixelFire').callsFake(function(url, initCallback, callback) {
+    syncStub = sinon.stub(utils, 'deferPixelFire').callsFake(function (url, initCallback, callback) {
       if (utils.isFn(initCallback)) {
         initCallback();
       }
@@ -44,14 +45,14 @@ describe('Fire Usersync Pixel', function () {
   afterEach(function () {
     ajaxStub.restore();
     syncStub.restore();
-    extensionsCreatorStub.restore()
+    extensionsCreatorStub.restore();
     localStorage.removeItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG);
     localStorage.removeItemWithExpiration(TEST_LAST_STORAGE_CONFIG);
   });
 
   describe('Without Calling ID5', function () {
     beforeEach(function () {
-      ajaxStub = sinon.stub(mxutils, 'ajax').callsFake(function(url, callbacks, data, options) {
+      ajaxStub = sinon.stub(mxutils, 'ajax').callsFake(function (url, callbacks, data, options) {
         callbacks.success('{}');
       });
     });
@@ -71,8 +72,8 @@ describe('Fire Usersync Pixel', function () {
 
   describe('With Cascade Needed', function () {
     beforeEach(function () {
-      ajaxStub = sinon.stub(mxutils, 'ajax').callsFake(function(url, callbacks, data, options) {
-        callbacks.success(JSON_RESPONSE_CASCADE);
+      ajaxStub = sinon.stub(mxutils, 'ajax').callsFake(function (url, callbacks, data, options) {
+        callbacks.success(prepareMultiplexingResponse(TEST_RESPONSE_CASCADE, data));
       });
     });
 
@@ -143,8 +144,8 @@ describe('Fire Usersync Pixel', function () {
 
   describe('Without Cascade Needed', function () {
     beforeEach(function () {
-      ajaxStub = sinon.stub(mxutils, 'ajax').callsFake(function(url, callbacks, data, options) {
-        callbacks.success(JSON_RESPONSE_ID5_CONSENT);
+      ajaxStub = sinon.stub(mxutils, 'ajax').callsFake(function (url, callbacks, data, options) {
+        callbacks.success(prepareMultiplexingResponse(TEST_RESPONSE_ID5_CONSENT, data));
       });
     });
 

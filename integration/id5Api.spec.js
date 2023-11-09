@@ -8,6 +8,7 @@ import chai, {expect} from 'chai';
 import {version} from '../generated/version.js';
 import chaiDateTime from 'chai-datetime';
 import isDocker from 'is-docker';
+
 /**
  * If you want to debug in the browser, you can use "devtools: true" in
  * the launch configuration and block the browser using
@@ -51,11 +52,50 @@ const jsonWithCorsAllowed = (payload, status = 200) => {
     };
   };
 };
+
+const multiFetchResponseWithCorsAllowed = (payload, status = 200) => {
+  return async (request) => {
+    const requestObj = await request.body.getJson();
+    const responses = {};
+    requestObj.requests.forEach(rq => {
+      responses[rq.requestId] = {};
+    });
+    return {
+      status: status,
+      headers: {
+        'Access-Control-Allow-Origin': request.headers['origin'], 'Access-Control-Allow-Credentials': 'true'
+      },
+      json: {
+        generic: payload,
+        responses: responses
+      }
+    };
+  };
+};
+
+const multiFetchResponseWithHeaders = (payload, headers) => {
+  return async (request) => {
+    const requestObj = await request.body.getJson();
+    const responses = {};
+    requestObj.requests.forEach(rq => {
+      responses[rq.requestId] = {};
+    });
+    return {
+      status: 200,
+      headers: headers,
+      json: {
+        generic: payload,
+        responses: responses
+      }
+    };
+  };
+};
+
 const MOCK_LB_RESPONSE = {
   'lb': 'LB_DATA'
 };
 
-const FETCH_ENDPOINT = 'https://id5-sync.com/gm/v2';
+const FETCH_ENDPOINT = 'https://id5-sync.com/gm/v3';
 
 // Note: do not use lambda syntax in describes. https://mochajs.org/#arrow-functions
 describe('The ID5 API', function () {
@@ -78,7 +118,7 @@ describe('The ID5 API', function () {
     }
 
     browser = await puppeteer.launch({
-      headless: !_DEBUG, executablePath: chromePaths.chrome, devtools: _DEBUG, args,
+      headless: !_DEBUG, executablePath: chromePaths.chrome, devtools: _DEBUG, args
     });
   }
 
@@ -132,7 +172,7 @@ describe('The ID5 API', function () {
 
     it('can succesfully retrieve an ID, store in browser and fire callback', async () => {
       const mockId5 = await server.forPost(FETCH_ENDPOINT)
-        .thenJson(200, MOCK_FETCH_RESPONSE, MOCK_CORS_HEADERS);
+        .thenCallback(multiFetchResponseWithCorsAllowed(MOCK_FETCH_RESPONSE));
       const mockLbEndpoint = await server.forGet('https://lb.eu-1-id5-sync.com/lb/v1')
         .thenJson(200, MOCK_LB_RESPONSE, MOCK_CORS_HEADERS);
       const mockDummyImage = await server.forGet('https://dummyimage.com/600x200')
@@ -216,7 +256,7 @@ describe('The ID5 API', function () {
 
     it('reports it can use frame localStorage and detects referrer but not uses top localStorage', async () => {
       const mockId5 = await server.forPost(FETCH_ENDPOINT)
-        .thenJson(200, MOCK_FETCH_RESPONSE, NON_FRIENDLY_MOCK_CORS_HEADERS);
+        .thenCallback(multiFetchResponseWithHeaders(MOCK_FETCH_RESPONSE, NON_FRIENDLY_MOCK_CORS_HEADERS));
       await server.forGet('https://dummyimage.com/600x200').thenReply(200, '');
       const page = await browser.newPage();
       await page.goto('https://my-iframe-website.net');
@@ -253,7 +293,7 @@ describe('The ID5 API', function () {
       await server.forGet('https://my-publisher-website.net')
         .thenFromFile(200, TEST_PAGE_PATH);
       const mockId5 = await server.forPost(FETCH_ENDPOINT)
-        .thenJson(200, MOCK_FETCH_RESPONSE, MOCK_CORS_HEADERS);
+        .thenCallback(multiFetchResponseWithCorsAllowed(MOCK_FETCH_RESPONSE));
       const page = await browser.newPage();
       await page.goto('https://my-publisher-website.net');
 
@@ -298,7 +338,7 @@ describe('The ID5 API', function () {
       await server.forGet('https://lb.eu-1-id5-sync.com/lb/v1')
         .thenJson(200, MOCK_LB_RESPONSE, MOCK_CORS_HEADERS);
       await server.forPost(FETCH_ENDPOINT)
-        .thenJson(200, MOCK_FETCH_RESPONSE, MOCK_CORS_HEADERS);
+        .thenCallback(multiFetchResponseWithCorsAllowed(MOCK_FETCH_RESPONSE));
       await server.forGet('https://dummyimage.com/600x200')
         .thenReply(200, '');
       const diagnosticsEndpoint = await server.forPost('https://diagnostics.id5-sync.com/measurements')
@@ -330,7 +370,11 @@ describe('The ID5 API', function () {
             ...commonTags,
             cachedResponseUsed: false
           });
-          verifyContainsMeasurementWithTags(onlyRequest.measurements, 'id5.api.extensions.call.time', 'TIMER', {...commonTags, status: 'success', extensionType: 'lb'});
+          verifyContainsMeasurementWithTags(onlyRequest.measurements, 'id5.api.extensions.call.time', 'TIMER', {
+            ...commonTags,
+            status: 'success',
+            extensionType: 'lb'
+          });
           verifyContainsMeasurementWithTags(onlyRequest.measurements, 'id5.api.fetch.call.time', 'TIMER', {
             ...commonTags,
             status: 'success'
@@ -353,7 +397,7 @@ describe('The ID5 API', function () {
       await server.forGet('https://lb.eu-1-id5-sync.com/lb/v1')
         .thenJson(200, MOCK_LB_RESPONSE, MOCK_CORS_HEADERS);
       const fetchEndpoint = await server.forPost(FETCH_ENDPOINT)
-        .thenJson(200, MOCK_FETCH_RESPONSE, MOCK_CORS_HEADERS);
+        .thenCallback(multiFetchResponseWithCorsAllowed(MOCK_FETCH_RESPONSE));
       await server.forGet('https://dummyimage.com/600x200')
         .thenReply(200, '');
       const diagnosticsEndpoint = await server.forPost('https://diagnostics.id5-sync.com/measurements')
@@ -385,7 +429,11 @@ describe('The ID5 API', function () {
             ...commonTags,
             cachedResponseUsed: false
           });
-          verifyContainsMeasurementWithTags(onlyRequest.measurements, 'id5.api.extensions.call.time', 'TIMER', {...commonTags, status: 'success', extensionType: 'lb'});
+          verifyContainsMeasurementWithTags(onlyRequest.measurements, 'id5.api.extensions.call.time', 'TIMER', {
+            ...commonTags,
+            status: 'success',
+            extensionType: 'lb'
+          });
           verifyContainsMeasurementWithTags(onlyRequest.measurements, 'id5.api.fetch.call.time', 'TIMER', {
             ...commonTags,
             status: 'success'
@@ -431,7 +479,7 @@ describe('The ID5 API', function () {
       await server.forGet('https://lb.eu-1-id5-sync.com/lb/v1')
         .thenCallback(jsonWithCorsAllowed(MOCK_LB_RESPONSE));
       fetchEndpoint = await server.forPost(FETCH_ENDPOINT)
-        .thenCallback(jsonWithCorsAllowed(MOCK_FETCH_RESPONSE));
+        .thenCallback(multiFetchResponseWithCorsAllowed(MOCK_FETCH_RESPONSE));
       await server.forGet('https://dummyimage.com/600x200')
         .thenCallback(jsonWithCorsAllowed(''));
       diagnosticsEndpoint = await server.forPost('https://diagnostics.id5-sync.com/measurements')

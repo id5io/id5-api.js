@@ -5,8 +5,8 @@ import {
   defaultInit,
   defaultInitBypassConsent,
   ID5_FETCH_ENDPOINT,
-  JSON_RESPONSE_ID5_CONSENT,
   localStorage,
+  prepareMultiplexingResponse,
   resetAllInLocalStorage,
   STORED_JSON,
   TEST_CONSENT_DATA_STORAGE_CONFIG,
@@ -16,6 +16,7 @@ import {
   TEST_PD_STORAGE_CONFIG,
   TEST_PRIVACY_ALLOWED,
   TEST_PRIVACY_STORAGE_CONFIG,
+  TEST_RESPONSE_ID5_CONSENT,
   TEST_RESPONSE_ID5ID,
   TEST_RESPONSE_LINK_TYPE,
   TEST_RESPONSE_SIGNATURE
@@ -75,7 +76,7 @@ describe('ID5 JS API', function () {
 
     beforeEach(function () {
       ajaxStub = sinon.stub(utils, 'ajax').callsFake(function (url, callbacks, data, options) {
-        callbacks.success(JSON_RESPONSE_ID5_CONSENT);
+        callbacks.success(prepareMultiplexingResponse(TEST_RESPONSE_ID5_CONSENT, data));
       });
     });
     afterEach(function () {
@@ -104,7 +105,7 @@ describe('ID5 JS API', function () {
 
       beforeEach(function () {
         ajaxStub = sinon.stub(utils, 'ajax').callsFake(function (url, callbacks, data, options) {
-          callbacks.success(JSON_RESPONSE_ID5_CONSENT);
+          callbacks.success(prepareMultiplexingResponse(TEST_RESPONSE_ID5_CONSENT, data));
         });
       });
       afterEach(function () {
@@ -544,7 +545,7 @@ describe('ID5 JS API', function () {
 
       beforeEach(function () {
         ajaxStub = sinon.stub(utils, 'ajax').callsFake(function (url, callbacks, data, options) {
-          callbacks.success(JSON_RESPONSE_ID5_CONSENT);
+          callbacks.success(prepareMultiplexingResponse(TEST_RESPONSE_ID5_CONSENT, data));
         });
       });
       afterEach(function () {
@@ -635,7 +636,7 @@ describe('ID5 JS API', function () {
 
       beforeEach(function () {
         ajaxStub = sinon.stub(utils, 'ajax').callsFake(function (url, callbacks, data, options) {
-          callbacks.success(JSON_RESPONSE_ID5_CONSENT);
+          callbacks.success(prepareMultiplexingResponse(TEST_RESPONSE_ID5_CONSENT, data));
         });
         uaDataStub = sinon.stub(ID5, 'gatherUaHints');
       });
@@ -737,7 +738,7 @@ describe('ID5 JS API', function () {
 
       beforeEach(function () {
         ajaxStub = sinon.stub(utils, 'ajax').callsFake(function (url, callbacks, data, options) {
-          callbacks.success(JSON_RESPONSE_ID5_CONSENT);
+          callbacks.success(prepareMultiplexingResponse(TEST_RESPONSE_ID5_CONSENT, data));
         });
       });
 

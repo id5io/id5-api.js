@@ -5,7 +5,6 @@ import {
   defaultInit,
   defaultInitBypassConsent,
   execSequence,
-  JSON_RESPONSE_ID5_CONSENT,
   MultiplexingStub,
   TEST_RESPONSE_ID5_CONSENT,
   TEST_RESPONSE_ID5ID,
@@ -18,7 +17,7 @@ import {expect} from 'chai';
 function stubDelayedUserIdReady(id5Status, timeout, data = {fromCache: false}) {
   setTimeout(() => {
     id5Status.instance._dispatcher.emit(ApiEvent.USER_ID_READY, {
-      responseObj: data.response !== undefined ? data.response : JSON.parse(JSON_RESPONSE_ID5_CONSENT),
+      responseObj: data.response !== undefined ? data.response : JSON.parse(JSON.stringify(TEST_RESPONSE_ID5_CONSENT)),
       isFromCache: data.fromCache !== undefined ? data.fromCache : false
     });
   }, timeout);
@@ -26,7 +25,7 @@ function stubDelayedUserIdReady(id5Status, timeout, data = {fromCache: false}) {
 
 function stubUserIdReadyNow(id5Status, data = {fromCache: false}) {
   id5Status.instance._dispatcher.emit(ApiEvent.USER_ID_READY, {
-    responseObj: data.response !== undefined ? data.response : JSON.parse(JSON_RESPONSE_ID5_CONSENT),
+    responseObj: data.response !== undefined ? data.response : JSON.parse(JSON.stringify(TEST_RESPONSE_ID5_CONSENT)),
     isFromCache: data.fromCache !== undefined ? data.fromCache : false
   });
 }

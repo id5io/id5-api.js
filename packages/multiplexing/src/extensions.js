@@ -78,7 +78,7 @@ export class Extensions {
   };
 
   /**
-   * @param {Array<FetchIdData>} fetchDataList - fetch data used to decide if dev chunks should be collected
+   * @param {Array<FetchIdRequestData>} fetchDataList - fetch data used to decide if dev chunks should be collected
    * @param {{name: string, urlVersion: number, length:number, version: number}} chunksType a type of chunks gathered, should be supported by server
    * @returns {Promise} a promise that if successful contains an object containing an array of chunks
    */
@@ -109,7 +109,7 @@ export class Extensions {
 
   /**
    * Gathers extensions data
-   * @param {Array<FetchIdData>} fetchDataList - config for extensions
+   * @param {Array<FetchIdRequestData>} fetchDataList - config for extensions
    * @returns {Promise<ExtensionsData>} - extensions data
    */
   gather(fetchDataList) {

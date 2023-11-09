@@ -1,10 +1,11 @@
-import {ApiEvent, ApiEventsDispatcher} from './apiEvent.js';
 import {NoopLogger} from './logger.js';
 import {ProxyMethodCallTarget} from './messaging.js';
+import {NoConsentError} from './consent.js';
 
 export class AddFollowerResult {
   lateJoiner = false;
   uniqueLateJoiner = false;
+
   constructor(lateJoiner = false, uniqueLateJoiner = false) {
     this.lateJoiner = lateJoiner;
     this.uniqueLateJoiner = uniqueLateJoiner;
@@ -61,12 +62,6 @@ export class ActualLeader extends Leader {
   _fetcher;
 
   /**
-   * @type {ApiEventsDispatcher}
-   * @private
-   */
-  _dispatcher;
-
-  /**
    * @type {Logger}
    * @private
    */
@@ -99,7 +94,7 @@ export class ActualLeader extends Leader {
    */
   _lastConsentDataSet;
   /**
-   * @type Id5CommonMetrics
+   * @type {Id5CommonMetrics}
    * @private
    */
   _metrics;
@@ -109,6 +104,7 @@ export class ActualLeader extends Leader {
    * @private
    */
   _leaderStorage;
+
   /**
    * @param {Window} window
    * @param {UidFetcher} fetcher
@@ -128,27 +124,66 @@ export class ActualLeader extends Leader {
     this._window = window;
     this._leaderStorage = storage;
     this._log = logger;
-    const leader = this;
-    this._dispatcher = new ApiEventsDispatcher(logger);
-    this._dispatcher.on(ApiEvent.USER_ID_READY, uid => leader._handleUidReady(uid));
-    this._dispatcher.on(ApiEvent.USER_ID_FETCH_CANCELED, cancel => leader._handleCancel(cancel));
-    this._dispatcher.on(ApiEvent.USER_ID_FETCH_FAILED, event => leader._handleFailed(event));
-    this._dispatcher.on(ApiEvent.USER_ID_FETCH_COMPLETED, event => leader._handleFetchCompleted(event));
-    this._dispatcher.on(ApiEvent.CASCADE_NEEDED, cascade => leader._handleCascade(cascade));
   }
 
   /**
    *
-   * @param {Id5UserId} uid
+   * @param {RefreshResult} refreshResult
    * @private
    */
-  _handleUidReady(uid) {
-    for (const follower of this._followers) {
-      this._log.debug('Notify uid ready.', 'Follower:', follower.getId(), 'Uid:', uid);
-      this._notifyUidReady(follower, uid);
+  _handleRefreshResult(refreshResult) {
+    const refreshedResponse = refreshResult.refreshedResponse;
+    if (refreshedResponse !== undefined) {
+      const cascadeRequested = [];
+      for (const follower of this._followers) {
+        const responseForFollower = refreshedResponse.getResponseFor(follower.getId());
+        if (responseForFollower !== undefined) {
+          this._log.debug('Notify uid ready.', 'Follower:', follower.getId(), 'Uid:', responseForFollower);
+          this._notifyUidReady(follower, {
+            timestamp: refreshedResponse.timestamp,
+            responseObj: responseForFollower,
+            isFromCache: false
+          });
+          if (responseForFollower.cascade_needed === true) {
+            cascadeRequested.push(follower.getId());
+          }
+        }
+      }
+      // handle cascades
+      const consentData = refreshResult.consentData;
+      if (consentData !== undefined) {
+        if (cascadeRequested.length > 0 && this._consentManager.localStorageGrant().isDefinitivelyAllowed()) {
+          this._handleCascade(cascadeRequested, refreshedResponse, consentData);
+        }
+      }
+
+      // cache for further late joiners
+      this._cachedResponse = {
+        timestamp: refreshedResponse.timestamp,
+        responseObj: refreshedResponse.getGenericResponse(),
+        isFromCache: false
+      };
     }
-    this._cachedResponse = uid;
   }
+
+  /**
+   * @param {CachedResponse} cachedResponse
+   * @private
+   */
+  _handleCachedResponse(cachedResponse) {
+    const response = {
+      timestamp: cachedResponse.timestamp,
+      responseObj: cachedResponse.response,
+      isFromCache: true
+    };
+
+    for (const follower of this._followers) {
+      this._log.debug('Notify uid ready.', 'Follower:', follower.getId(), 'Uid:', response);
+      this._notifyUidReady(follower, response);
+    }
+    this._cachedResponse = response;
+  }
+
   _notifyUidReady(follower, uid, lateJoiner = false) {
     const notificationContext = {
       timestamp: Date.now(),
@@ -162,12 +197,15 @@ export class ActualLeader extends Leader {
 
   /**
    *
-   * @param {CascadePixelCall} cascade
+   * @param {Array<string>} cascadeRequested - follower selected to do cascade
+   * @param {RefreshedResponse} refreshedResponse
+   * @param {ConsentData} consentData
    * @private
    */
-  _handleCascade(cascade) {
+  _handleCascade(cascadeRequested, refreshedResponse, consentData) {
     const cascadeEligible =
-      this._followers.filter(follower => follower.canDoCascade(cascade))
+      this._followers
+        .filter(follower => cascadeRequested.find(id => follower.getId() === id) !== undefined && follower.canDoCascade())
         .sort((followerA, followerB) => {
           const getDepth = function (f) {
             return f.getFetchIdData().refererInfo?.stack?.length || Number.MAX_SAFE_INTEGER;
@@ -175,31 +213,57 @@ export class ActualLeader extends Leader {
           return getDepth(followerA) - getDepth(followerB);
         });
     if (cascadeEligible.length > 0) {
-      cascadeEligible[0].notifyCascadeNeeded(cascade);
+      const cascadeHandler = cascadeEligible[0];
+      cascadeHandler.notifyCascadeNeeded({
+        partnerId: cascadeHandler.getFetchIdData().partnerId, // just for backward compatibility , older multiplexing instances may need this
+        userId: refreshedResponse.getResponseFor(cascadeHandler.getId()).universal_uid,
+        gdprApplies: consentData.gdprApplies,
+        consentString: consentData.consentString
+      });
     } else {
       this._log.error(`Couldn't find cascade eligible follower`);
     }
   }
 
-  _handleCancel(cancel) {
+  _handleCancel(reason) {
     for (const follower of this._followers) {
-      follower.notifyFetchUidCanceled(cancel);
+      follower.notifyFetchUidCanceled({reason: reason});
     }
-    this._handleFetchCompleted();
   }
 
   _getId(forceRefresh = false) {
     const fetchIds = this._followers.map(follower => {
       const followerId = follower.getId();
       const requestCount = this._followersRequests[followerId] = (this._followersRequests[followerId] || 0) + 1;
+      const leaderId = this._properties.id;
       return {
         ...follower.getFetchIdData(),
         integrationId: followerId,
-        requestCount: requestCount
+        requestCount: requestCount,
+        role: leaderId === follower.getId() ? 'leader' : 'follower'
       };
     });
     this._inProgressFetch = true;
-    this._fetcher.getId(this._dispatcher, fetchIds, forceRefresh);
+
+    const result = this._fetcher.getId(fetchIds, forceRefresh);
+    if (result.cachedResponse) {
+      this._handleCachedResponse(result.cachedResponse);
+    }
+    result.refreshResult
+      .then(refreshResult => {
+        if (refreshResult.refreshedResponse) {
+          this._handleRefreshResult(refreshResult);
+        }
+        this._handleFetchCompleted();
+      })
+      .catch(error => {
+        if (error instanceof NoConsentError) {
+          this._handleCancel(error.message);
+        } else {
+          this._handleFailed(error);
+        }
+        this._handleFetchCompleted();
+      });
   }
 
   start() {
@@ -223,6 +287,7 @@ export class ActualLeader extends Leader {
     }
     this._getId(options.forceFetch === true);
   }
+
   /**
    *
    * @param {ConsentData} newConsentData
@@ -310,7 +375,6 @@ export class ActualLeader extends Leader {
     for (const follower of this._followers) {
       follower.notifyFetchUidCanceled({reason: 'error'});
     }
-    this._handleFetchCompleted();
   }
 }
 
