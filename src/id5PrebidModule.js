@@ -1,18 +1,18 @@
 import {
   delve,
+  gatherUaHints,
   isGlobalDebug,
   setGlobalDebug,
   InvocationLogger,
   isStr,
-  isGlobalTrace,
-  isDefined,
-  filterUaHints
+  isGlobalTrace
 } from '../lib/utils.js';
 import { version as currentVersion } from '../generated/version.js';
 import { Config } from '../lib/config.js';
 import { createPublisher, Id5CommonMetrics, partnerTag, startTimeMeasurement } from '@id5io/diagnostics';
 import multiplexing, { API_TYPE, ConsentData, ApiEvent, WindowStorage } from '@id5io/multiplexing';
 import { semanticVersionCompare } from '@id5io/multiplexing/src/utils.js';
+import 'regenerator-runtime/runtime';
 
 /**
  * @typedef {Object} IdResponse
@@ -222,11 +222,11 @@ class Id5PrebidIntegration {
    * @private
    * @param {Config} config
    * @param {PrebidRefererInfo} refererInfo
-   * @returns
+   * @returns {Promise<Object>} a JSON object to use to make the fetch request
    */
   async _gatherFetchIdData(config, refererInfo, log) {
     const options = config.getOptions();
-    const uaHints = await this._gatherUaHints(options, log);
+    const uaHints = await gatherUaHints(options.disableUaHints, log);
     return {
       partnerId: options.partnerId,
       refererInfo: refererInfo,
@@ -237,7 +237,7 @@ class Id5PrebidIntegration {
       uaHints: uaHints,
       abTesting: options.abTesting,
       segments: options.segments,
-      // TODO replace with diagnostic metric  there is prometeus graph lateJoinerData.invalidSegmentsCount == knownData.invalidSegmentsCount
+      // TODO replace with diagnostic metric  there is prometheus graph lateJoinerData.invalidSegmentsCount == knownData.invalidSegmentsCount
       invalidSegmentsCount: config.getInvalidSegments(),
       provider: options.provider,
       pd: options.pd,
@@ -246,19 +246,6 @@ class Id5PrebidIntegration {
       providedRefreshInSeconds: config.getProvidedOptions().refreshInSeconds,
       trace: isGlobalTrace()
     };
-  }
-
-  async _gatherUaHints(options, log) {
-    if (!isDefined(window.navigator.userAgentData) || options.disableUaHints) {
-      return undefined;
-    }
-    try {
-      const hints = await window.navigator.userAgentData.getHighEntropyValues(['architecture', 'fullVersionList', 'model', 'platformVersion']);
-      return filterUaHints(hints);
-    } catch (error) {
-      log.error('Error while calling navigator.userAgentData.getHighEntropyValues()', error);
-      return undefined;
-    }
   }
 }
 

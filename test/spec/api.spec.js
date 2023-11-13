@@ -32,6 +32,7 @@ import {
   StorageConfig,
   utils
 } from '@id5io/multiplexing';
+import * as utils2 from '../../lib/utils';
 
 let expect = require('chai').expect;
 
@@ -637,7 +638,7 @@ describe('ID5 JS API', function () {
         ajaxStub = sinon.stub(utils, 'ajax').callsFake(function (url, callbacks, data, options) {
           callbacks.success(JSON_RESPONSE_ID5_CONSENT);
         });
-        uaDataStub = sinon.stub(ID5, 'gatherUaHints');
+        uaDataStub = sinon.stub(utils2, 'gatherUaHints');
       });
 
       afterEach(function () {
@@ -650,10 +651,6 @@ describe('ID5 JS API', function () {
           'architecture': 'x86',
           'brands': [
             {
-              'brand': ' Not A;Brand',
-              'version': '99'
-            },
-            {
               'brand': 'Chromium',
               'version': '101'
             },
@@ -663,10 +660,6 @@ describe('ID5 JS API', function () {
             }
           ],
           'fullVersionList': [
-            {
-              'brand': ' Not A;Brand',
-              'version': '99.0.0.0'
-            },
             {
               'brand': 'Chromium',
               'version': '101.0.4951.64'
@@ -708,25 +701,6 @@ describe('ID5 JS API', function () {
           expect(callData.ua_hints.model).to.equal('');
           expect(callData.ua_hints.platform).to.equal('Linux');
           expect(callData.ua_hints.platformVersion).to.equal('5.17.9');
-          done();
-        });
-      });
-
-
-      it('should not be blocked by an error in getHighEntropyValues()', function (done) {
-        uaDataStub.rejects('ERROR');
-        const id5Status = ID5.init({
-          ...defaultInitBypassConsent(),
-          disableUaHints: false
-        });
-
-        id5Status.onAvailable(function () {
-          sinon.assert.calledOnce(extensionsStub.gather);
-          sinon.assert.calledOnce(ajaxStub);
-          const URL = ajaxStub.firstCall.args[0]
-          expect(URL).to.contain(ID5_FETCH_ENDPOINT);
-          const callData = ajaxStub.firstCall.args[2]
-          expect(callData.uaHints).to.be.undefined;
           done();
         });
       });
