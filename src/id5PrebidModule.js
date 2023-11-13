@@ -109,8 +109,7 @@ class Id5PrebidIntegration {
       diagnostics: prebidConfig.diagnostics,
       segments: prebidConfig.segments,
       disableUaHints: prebidConfig.disableUaHints,
-      dynamicConfig,
-      maxCascades: 0 // Disable cascading within prebid
+      dynamicConfig
     }, log);
     const options = config.getOptions();
     const metrics = this._configureDiagnostics(options.partnerId, options.diagnostics, refererInfo, log);
@@ -160,7 +159,7 @@ class Id5PrebidIntegration {
       },
       fetchIdData,
       singletonMode: options?.multiplexing?._disabled === true,
-      canDoCascade: false,
+      canDoCascade: false, // Disable cascading within prebid
       forceAllowLocalStorageGrant: false,
       storageExpirationDays: options.storageExpirationDays
     });
