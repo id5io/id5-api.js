@@ -94,30 +94,11 @@ describe('Follower', function () {
   });
 
   [undefined, true, false].forEach(canDoCascade => {
-    it(`should tell if handle cascade canDoCascade=${canDoCascade}, same partner`, function () {
+    it(`should tell if handle cascade canDoCascade=${canDoCascade}`, function () {
       // given
       properties.canDoCascade = canDoCascade;
-      properties.fetchIdData = {
-        partnerId: 1
-      };
-      const cascade = {
-        partnerId: 1
-      };
       //
-      expect(follower.canDoCascade(cascade)).to.be.eq(canDoCascade === true);
-    });
-
-    it(`should tell if handle cascade canDoCascade=${canDoCascade}, different partner`, function () {
-      // given
-      properties.canDoCascade = canDoCascade;
-      properties.fetchIdData = {
-        partnerId: 1
-      };
-      const cascade = {
-        partnerId: 2
-      };
-      //
-      expect(follower.canDoCascade(cascade)).to.be.eq(false);
+      expect(follower.canDoCascade()).to.be.eq(canDoCascade === true);
     });
   });
 

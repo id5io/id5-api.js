@@ -5,7 +5,6 @@ export const ApiEvent = Object.freeze({
   USER_ID_READY: 'user_id_ready',
   CASCADE_NEEDED: 'fire_sync_pixel',
   USER_ID_FETCH_CANCELED: 'user_id_fetch_canceled',
-  USER_ID_FETCH_COMPLETED: 'user_id_fetch_completed',
   USER_ID_FETCH_FAILED: 'user_id_fetch_failed'
 });
 

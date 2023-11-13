@@ -11,6 +11,23 @@ export const API_TYPE = Object.freeze({
   PREBID: 'PBJS'
 });
 
+export class NoConsentError extends Error {
+  /**
+   * @type {ConsentData}
+   */
+  consentData;
+
+  /**
+   *
+   * @param {ConsentData} consentData
+   * @param {String} message
+   */
+  constructor(consentData, message) {
+    super(message);
+    this.consentData = consentData;
+  }
+}
+
 export class ConsentData {
   /**
    * The API type which is used to determine consent to access local storage and call the ID5 back-end

@@ -40,6 +40,10 @@ export class StoredDataState {
   pdHasChanged;
   segmentsHaveChanged;
   refreshInSeconds;
+  /**
+   * nb counters per partner
+   * @type {Map<number, number>}
+   */
   nb;
   consentHasChanged;
 
@@ -81,7 +85,7 @@ export class Store {
 
   /**
    * @type {StoredDataState}
-   * @param {array<FetchIdData>}  fetchIdData
+   * @param {array<FetchIdRequestData>}  fetchIdData
    * @param {ConsentData} consentData
    */
   getStoredDataState(fetchIdData, consentData = undefined) {
@@ -124,7 +128,7 @@ export class Store {
 
   /**
    * @param {ConsentData} consentData
-   * @param {array<FetchIdData>} fetchIdData
+   * @param {array<FetchIdRequestData>} fetchIdData
    */
   storeRequestData(consentData, fetchIdData) {
     // TODO store partners in party
@@ -144,7 +148,7 @@ export class Store {
   }
 
   /**
-   * @param {array<FetchIdData>}  fetchIdData
+   * @param {array<FetchIdRequestData>}  fetchIdData
    * @param {StoredDataState} state
    */
   incNbs(fetchIdData, state) {
@@ -155,8 +159,8 @@ export class Store {
   }
 
   /**
-   * @param {array<FetchIdData>} fetchIdData
-   * @param {Object} response
+   * @param {array<FetchIdRequestData>} fetchIdData
+   * @param {FetchResponse} response
    * @param {boolean} cachedResponseUsed
    */
   storeResponse(fetchIdData, response, cachedResponseUsed) {

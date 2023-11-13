@@ -2,21 +2,19 @@ import * as chai from 'chai';
 import {expect} from 'chai';
 import sinonChai from 'sinon-chai';
 import sinon from 'sinon';
-import {UidFetcher} from '../../src/fetch.js';
+import {UidFetcher, RefreshResult, RefreshedResponse} from '../../src/fetch.js';
 import {Extensions} from '../../src/extensions.js';
 import {
   API_TYPE,
-  ApiEvent,
-  ApiEventsDispatcher,
   ConsentData,
   ConsentManager,
   GRANT_TYPE,
-  LocalStorageGrant,
+  LocalStorageGrant, NoConsentError,
   NoopLogger
 } from '../../src/index.js';
 import {Id5CommonMetrics} from '@id5io/diagnostics';
 import * as utils from '../../src/utils.js';
-import {Store, StoredDataState} from "../../src/store.js";
+import {Store, StoredDataState} from '../../src/store.js';
 
 chai.use(sinonChai);
 
@@ -28,15 +26,22 @@ const CONSENT_DATA_GDPR_ALLOWED = Object.assign(new ConsentData(), {
   api: API_TYPE.TCF_V2
 });
 
+const CONSENT_DATA_GDPR_NOT_ALLOWED = Object.assign(new ConsentData(), {
+  consentString: 'CONSENT_STRING',
+  localStoragePurposeConsent: false,
+  gdprApplies: true,
+  api: API_TYPE.TCF_V2
+});
+
 const DEFAULT_EXTENSIONS = {
   lb: 'lbValue',
   lbCDN: '%%LB_CDN%%'
-}
+};
 
 const origin = 'api';
 const originVersion = '1.0.36';
 
-const PRIVACY_DATA_RETURNED = {jurisdiction: 'gdpr', id5_consent: true}
+const PRIVACY_DATA_RETURNED = {jurisdiction: 'gdpr', id5_consent: true};
 
 const _DEBUG = false;
 
@@ -71,13 +76,12 @@ const FETCH_RESPONSE_OBJ_NO_CONSENT = {
   }
 };
 
-const FETCH_RESPONSE_STRING = JSON.stringify(FETCH_RESPONSE_OBJ);
-
 /**
- * @type {FetchIdData}
+ * @type {FetchIdRequestData}
  */
 const DEFAULT_FETCH_DATA = {
   integrationId: 'default-integration',
+  role: 'leader',
   requestCount: 1,
   origin: origin,
   originVersion: originVersion,
@@ -107,24 +111,81 @@ const DEFAULT_FETCH_DATA = {
   invalidSegmentsCount: undefined,
   refreshInSeconds: 3600,
   providedRefreshInSeconds: undefined
+};
+
+describe('RefreshedResponse', function () {
+  it('should return generic response', function () {
+    // given
+    const refreshedResponse = new RefreshedResponse({
+      generic: FETCH_RESPONSE_OBJ
+    });
+
+    // when
+    const generic = refreshedResponse.getGenericResponse();
+
+    // then
+    expect(generic).to.be.eql(FETCH_RESPONSE_OBJ);
+  });
+
+  it('should return merged response when present', function () {
+    // given
+    const refreshedResponse = new RefreshedResponse({
+      generic: FETCH_RESPONSE_OBJ,
+      responses: {
+        '1': {
+          cascade_needed: true,
+          universal_uid: 'uid-1'
+        },
+        '2': {
+          universal_uid: 'uid-2'
+        },
+        '3': {}
+      }
+    });
+
+    // when
+    const responseFor1 = refreshedResponse.getResponseFor('1');
+    const responseFor2 = refreshedResponse.getResponseFor('2');
+    const responseFor3 = refreshedResponse.getResponseFor('3');
+    const responseFor4 = refreshedResponse.getResponseFor('4');
+
+    // then
+    expect(responseFor1).to.be.eql({
+      ...FETCH_RESPONSE_OBJ,
+      cascade_needed: true,
+      universal_uid: 'uid-1'
+    });
+    expect(responseFor2).to.be.eql({
+      ...FETCH_RESPONSE_OBJ,
+      universal_uid: 'uid-2'
+    });
+    expect(responseFor3).to.be.eql(FETCH_RESPONSE_OBJ);
+    expect(responseFor4).to.be.undefined;
+  });
+});
+
+/**
+ *
+ * @param {FetchResponse} generic
+ * @param {Array<FetchIdRequestData>} fetchData
+ * @return {{responses: {}, generic}}
+ */
+function createResponse(generic, fetchData) {
+  const expectedResponse = {
+    generic: generic,
+    responses: {}
+  };
+  fetchData.forEach(data => {
+    expectedResponse.responses[data.integrationId] = {};
+  });
+  return expectedResponse;
 }
 
-class Dispatcher4Test extends ApiEventsDispatcher {
-
-  constructor(logger) {
-    super(logger);
-  }
-
-  /**
-   *
-   * @param event
-   * @return {Promise<Object>}
-   */
-  when(event) {
-    return new Promise((resolve, reject) => {
-      this.on(event, resolve);
-    });
-  }
+function prepareJsonResponse(genericResponse, requestString) {
+  const request = JSON.parse(requestString);
+  const responses = {};
+  request.requests.forEach(rq => responses[rq.requestId] = {});
+  return JSON.stringify({generic: genericResponse, responses: responses});
 }
 
 describe('UidFetcher', function () {
@@ -132,10 +193,6 @@ describe('UidFetcher', function () {
    * @type {UidFetcher}
    */
   let fetcher;
-  /**
-   * @type {ApiEventsDispatcher}
-   */
-  let dispatcher;
   /**
    * @type {ConsentManager}
    */
@@ -158,7 +215,6 @@ describe('UidFetcher', function () {
   beforeEach(function () {
     let log = _DEBUG ? console : NoopLogger;
     consentManager = sinon.createStubInstance(ConsentManager);
-    dispatcher = new Dispatcher4Test(log);
     store = sinon.createStubInstance(Store);
     extensions = sinon.createStubInstance(Extensions);
     metrics = new Id5CommonMetrics(origin, originVersion);
@@ -170,7 +226,7 @@ describe('UidFetcher', function () {
   describe('when server response does grant consent', function () {
     beforeEach(function () {
       ajaxStub = sinon.stub(utils, 'ajax').callsFake(function (url, callbacks, data, options, log) {
-        callbacks.success(FETCH_RESPONSE_STRING);
+        callbacks.success(prepareJsonResponse(FETCH_RESPONSE_OBJ, data));
       });
     });
     afterEach(function () {
@@ -185,7 +241,7 @@ describe('UidFetcher', function () {
           nb: {},
           refreshInSeconds: 7200
         });
-        store.getStoredDataState.returns(storedDataState)
+        store.getStoredDataState.returns(storedDataState);
         consentManager.localStorageGrant.onCall(0).returns(new LocalStorageGrant(true, GRANT_TYPE.PROVISIONAL, API_TYPE.NONE));
         consentManager.localStorageGrant.returns(LOCAL_STORAGE_GRANT_ALLOWED_BY_API);
       });
@@ -217,7 +273,7 @@ describe('UidFetcher', function () {
           segments: [
             {destination: '22', ids: ['abc']}
           ],
-          invalidSegmentsCount: 10,
+          invalidSegmentsCount: 10
         }, {
           segments: [
             {destination: '22', ids: ['abc']}
@@ -230,12 +286,12 @@ describe('UidFetcher', function () {
             refresh_in_seconds: 1000
           }
         }],
-        ['with trace', {trace: true}, {_trace: true}],
+        ['with trace', {trace: true}, {_trace: true}]
       ].forEach(([description, data, expectedInRequest]) => {
         it(`should call multi-fetch and correctly use parameters to create the fetch request body (${description})`, async () => {
           // given
           /**
-           * @type {FetchIdData}
+           * @type {FetchIdRequestData}
            */
           const fetchData = {
             ...DEFAULT_FETCH_DATA,
@@ -247,42 +303,42 @@ describe('UidFetcher', function () {
           storedDataState.nb[fetchData.partnerId] = nbPage;
 
           // when
-          const userIdPromise = dispatcher.when(ApiEvent.USER_ID_READY);
-          fetcher.getId(dispatcher, inputFetchData)
+          const fetchIdResult = fetcher.getId(inputFetchData);
 
           // then
-          return userIdPromise.then(data => {
+          return fetchIdResult.refreshResult.then(data => {
             expect(store.storeRequestData).to.have.been.calledWith(CONSENT_DATA_GDPR_ALLOWED, inputFetchData);
 
             expect(consentManager.setStoredPrivacy).to.have.been.calledWith(PRIVACY_DATA_RETURNED);
 
-            expectHttpPOST(ajaxStub.firstCall, `https://id5-sync.com/gm/v2`, {
+            expectHttpPOST(ajaxStub.firstCall, `https://id5-sync.com/gm/v3`, {
               requests: [
                 expectedRequestFor(fetchData, CONSENT_DATA_GDPR_ALLOWED, DEFAULT_EXTENSIONS, nbPage, storedDataState, expectedInRequest)
               ]
             });
 
-            expect(store.storeResponse).to.have.been.calledWith(inputFetchData, FETCH_RESPONSE_STRING, false);
+            expect(store.storeResponse).to.have.been.calledWith(inputFetchData, FETCH_RESPONSE_OBJ, false);
             expect(store.incNbs).to.have.not.been.called;
 
-            expect(data.timestamp).is.not.null;
-            expect(data.timestamp).is.not.undefined;
-            expect(data.isFromCache).is.false;
-            expect(data.responseObj).is.eql(FETCH_RESPONSE_OBJ);
+            const expectedResponse = createResponse(FETCH_RESPONSE_OBJ, [fetchData]);
+            expect(data.refreshedResponse.timestamp).is.not.null;
+            expect(data.refreshedResponse.timestamp).is.not.undefined;
+            expect(data.refreshedResponse.response).is.eql(expectedResponse);
           });
         });
 
         it(`should call fetch with multiple requests and correct parameters (${description})`, async () => {
           // given
           /**
-           * @type {FetchIdData}
+           * @type {FetchIdRequestData}
            */
           const firstInstanceData = {
             ...DEFAULT_FETCH_DATA,
-            integrationId: crypto.randomUUID()
+            integrationId: crypto.randomUUID(),
+            role: 'leader'
           };
           /**
-           * @type {FetchIdData}
+           * @type {FetchIdRequestData}
            */
           const secondInstanceData = {
             integrationId: crypto.randomUUID(),
@@ -306,66 +362,36 @@ describe('UidFetcher', function () {
             isUsingCdn: false,
             att: 10,
             refreshInSeconds: 3600,
+            role: 'follower',
             ...data
           };
           const nbPage1 = 3;
           const nbPage2 = 4;
           storedDataState.nb[firstInstanceData.partnerId] = nbPage1;
           storedDataState.nb[secondInstanceData.partnerId] = nbPage2;
-          const userIdPromise = dispatcher.when(ApiEvent.USER_ID_READY);
 
           // when
-          fetcher.getId(dispatcher, [firstInstanceData, secondInstanceData])
+          const fetchIdResult = fetcher.getId([firstInstanceData, secondInstanceData]);
 
           // then
-          return userIdPromise.then(data => {
+          return fetchIdResult.refreshResult.then(data => {
             expect(consentManager.setStoredPrivacy).to.have.been.calledWith(PRIVACY_DATA_RETURNED);
 
             expect(store.storeRequestData).to.have.been.calledWith(CONSENT_DATA_GDPR_ALLOWED, [firstInstanceData, secondInstanceData]);
-            expect(store.storeResponse).to.have.been.calledWith([firstInstanceData, secondInstanceData], FETCH_RESPONSE_STRING, false);
+            expect(store.storeResponse).to.have.been.calledWith([firstInstanceData, secondInstanceData], FETCH_RESPONSE_OBJ, false);
 
-            expectHttpPOST(ajaxStub.firstCall, `https://id5-sync.com/gm/v2`, {
+            expectHttpPOST(ajaxStub.firstCall, `https://id5-sync.com/gm/v3`, {
               requests: [
                 expectedRequestFor(firstInstanceData, CONSENT_DATA_GDPR_ALLOWED, DEFAULT_EXTENSIONS, nbPage1, storedDataState),
                 expectedRequestFor(secondInstanceData, CONSENT_DATA_GDPR_ALLOWED, DEFAULT_EXTENSIONS, nbPage2, storedDataState, expectedInRequest)
               ]
             });
 
-            expect(data.timestamp).is.not.null;
-            expect(data.timestamp).is.not.undefined;
-            expect(data.isFromCache).is.false;
-            expect(data.responseObj).is.eql(FETCH_RESPONSE_OBJ);
-          });
-        })
-      });
+            const expectedResponse = createResponse(FETCH_RESPONSE_OBJ, [firstInstanceData, secondInstanceData]);
 
-      it('should notify if cascade is needed', () => {
-        // given
-        const fetchIdData = {
-          ...DEFAULT_FETCH_DATA,
-          integrationId: crypto.randomUUID()
-        };
-
-        const cascadePromise = dispatcher.when(ApiEvent.CASCADE_NEEDED);
-
-        ajaxStub.restore();
-        ajaxStub = sinon.stub(utils, 'ajax').callsFake(function (url, callbacks, data, options) {
-          callbacks.success(JSON.stringify({
-            ...FETCH_RESPONSE_OBJ,
-            cascade_needed: true
-          }));
-        });
-
-        // when
-        fetcher.getId(dispatcher, [fetchIdData])
-
-        // then
-        return cascadePromise.then(data => {
-          expect(data).to.be.eql({
-            partnerId: fetchIdData.partnerId,
-            consentString: CONSENT_DATA_GDPR_ALLOWED.consentString,
-            gdprApplies: CONSENT_DATA_GDPR_ALLOWED.gdprApplies,
-            userId: FETCH_RESPONSE_OBJ.universal_uid
+            expect(data.refreshedResponse.timestamp).is.not.null;
+            expect(data.refreshedResponse.timestamp).is.not.undefined;
+            expect(data.refreshedResponse.response).is.eql(expectedResponse);
           });
         });
       });
@@ -392,29 +418,28 @@ describe('UidFetcher', function () {
         stateStub.segmentsHaveChanged = false;
         stateStub.hasValidUid.returns(true);
         stateStub.consentHasChanged = false;
-        stateStub.nb = {}
+        stateStub.nb = {};
 
         store.getStoredDataState.returns(stateStub);
 
         // when
-        const userIdPromise = dispatcher.when(ApiEvent.USER_ID_READY);
-
-        fetcher.getId(dispatcher, [DEFAULT_FETCH_DATA]);
+        const fetchIdResult = fetcher.getId([DEFAULT_FETCH_DATA]);
 
         // then
-        return userIdPromise.then(fromCacheData => {
-          expect(extensions.gather).to.have.not.been.called;
-          expect(ajaxStub).to.have.not.been.called;
+        const fromCacheData = fetchIdResult.cachedResponse;
+        expect(extensions.gather).to.have.not.been.called;
+        expect(ajaxStub).to.have.not.been.called;
 
-          expect(fromCacheData.timestamp).is.eq(stateStub.storedDateTime);
-          expect(fromCacheData.isFromCache).is.true;
-          expect(fromCacheData.responseObj).is.eql(stateStub.storedResponse);
+        expect(fromCacheData.timestamp).is.eq(stateStub.storedDateTime);
+        expect(fromCacheData.response).is.eql(stateStub.storedResponse);
 
+        return fetchIdResult.refreshResult.then(result => {
           expect(store.incNbs).to.have.been.calledWith([DEFAULT_FETCH_DATA], stateStub);
           expect(store.storeRequestData).to.have.been.calledWith(CONSENT_DATA_GDPR_ALLOWED, [DEFAULT_FETCH_DATA]);
 
           expect(consentManager.setStoredPrivacy).to.have.not.been.called;
-        })
+          expect(result).to.be.eql(new RefreshResult(CONSENT_DATA_GDPR_ALLOWED));
+        });
       });
 
       [
@@ -436,7 +461,7 @@ describe('UidFetcher', function () {
           stateStub.isResponsePresent.returns(true);
           stateStub.segmentsHaveChanged = false;
           stateStub.hasValidUid.returns(true);
-          stateStub.nb = {}
+          stateStub.nb = {};
 
           store.getStoredDataState.returns(stateStub);
           consentManager.getConsentData.reset();
@@ -446,34 +471,30 @@ describe('UidFetcher', function () {
           }));
 
           // when
-          const userIdFromCachePromise = dispatcher.when(ApiEvent.USER_ID_READY);
-
-          fetcher.getId(dispatcher, [DEFAULT_FETCH_DATA]);
+          const fetchIdResult = fetcher.getId([DEFAULT_FETCH_DATA]);
 
           // then
-          return userIdFromCachePromise.then(fromCacheData => {
-            expect(extensions.gather).to.not.have.been.called;
-            expect(ajaxStub).to.not.have.been.called;
+          const fromCacheData = fetchIdResult.cachedResponse;
+          expect(extensions.gather).to.not.have.been.called;
+          expect(ajaxStub).to.not.have.been.called;
 
-            expect(fromCacheData.timestamp).is.eq(stateStub.storedDateTime);
-            expect(fromCacheData.isFromCache).is.true;
-            expect(fromCacheData.responseObj).is.eql(stateStub.storedResponse);
+          expect(fromCacheData.timestamp).is.eq(stateStub.storedDateTime);
+          expect(fromCacheData.response).is.eql(stateStub.storedResponse);
 
-            expect(store.incNbs).to.have.been.calledWith([DEFAULT_FETCH_DATA], stateStub);
+          expect(store.incNbs).to.have.been.calledWith([DEFAULT_FETCH_DATA], stateStub);
 
-            const refreshedIdPromise = dispatcher.when(ApiEvent.USER_ID_READY);
-            resolveConsent(CONSENT_DATA_GDPR_ALLOWED);
-            return refreshedIdPromise;
-          }).then(refreshedData => {
+          resolveConsent(CONSENT_DATA_GDPR_ALLOWED);
+          return fetchIdResult.refreshResult.then(refreshedData => {
             expect(extensions.gather).to.have.been.called;
             expect(ajaxStub).to.have.been.called;
 
-            expect(refreshedData.timestamp).is.not.eq(stateStub.storedDateTime);
-            expect(refreshedData.isFromCache).is.false;
-            expect(refreshedData.responseObj).is.eql(FETCH_RESPONSE_OBJ);
+            expect(refreshedData.refreshedResponse).to.not.be.undefined;
+            expect(refreshedData.refreshedResponse.timestamp).to.not.be.undefined;
+            expect(refreshedData.refreshedResponse.timestamp).is.not.eq(stateStub.storedDateTime);
+            expect(refreshedData.refreshedResponse.response).is.eql(createResponse(FETCH_RESPONSE_OBJ, [DEFAULT_FETCH_DATA]));
 
             expect(store.storeRequestData).to.have.been.calledWith(CONSENT_DATA_GDPR_ALLOWED, [DEFAULT_FETCH_DATA]);
-            expect(store.storeResponse).to.have.been.calledWith([DEFAULT_FETCH_DATA], FETCH_RESPONSE_STRING, true);
+            expect(store.storeResponse).to.have.been.calledWith([DEFAULT_FETCH_DATA], FETCH_RESPONSE_OBJ, true);
             expect(consentManager.setStoredPrivacy).to.have.been.calledWith(PRIVACY_DATA_RETURNED);
           });
         });
@@ -499,31 +520,30 @@ describe('UidFetcher', function () {
           stateStub.isResponsePresent.returns(true);
           stateStub.segmentsHaveChanged = testCase.segmentsHaveChanged;
           stateStub.hasValidUid.returns(testCase.hasValidUid);
-          stateStub.nb = {}
+          stateStub.nb = {};
 
           store.getStoredDataState.returns(stateStub);
 
           // when
-          const userIdPromise = dispatcher.when(ApiEvent.USER_ID_READY);
-
-          fetcher.getId(dispatcher, [DEFAULT_FETCH_DATA]);
+          const fetchIdResult = fetcher.getId([DEFAULT_FETCH_DATA]);
 
           // then
-          return userIdPromise.then(data => {
+          expect(fetchIdResult.cachedResponse).to.be.undefined;
+          return fetchIdResult.refreshResult.then(data => {
             expect(extensions.gather).to.have.been.called;
             expect(ajaxStub).to.have.been.called;
 
-            expect(data.timestamp).is.not.undefined;
-            expect(data.timestamp).is.not.eq(stateStub.storedDateTime);
-            expect(data.isFromCache).is.false;
-            expect(data.responseObj).is.eql(FETCH_RESPONSE_OBJ);
+            expect(data.refreshedResponse).to.not.be.undefined;
+            expect(data.refreshedResponse.timestamp).is.not.undefined;
+            expect(data.refreshedResponse.timestamp).is.not.eq(stateStub.storedDateTime);
+            expect(data.refreshedResponse.response).is.eql(createResponse(FETCH_RESPONSE_OBJ, [DEFAULT_FETCH_DATA]));
 
             expect(store.storeRequestData).to.have.been.calledWith(CONSENT_DATA_GDPR_ALLOWED, [DEFAULT_FETCH_DATA]);
-            expect(store.storeResponse).to.have.been.calledWith([DEFAULT_FETCH_DATA], FETCH_RESPONSE_STRING, false);
+            expect(store.storeResponse).to.have.been.calledWith([DEFAULT_FETCH_DATA], FETCH_RESPONSE_OBJ, false);
             expect(store.incNbs).to.have.not.been.called;
 
             expect(consentManager.setStoredPrivacy).to.have.been.calledWith(PRIVACY_DATA_RETURNED);
-          })
+          });
         });
       });
 
@@ -541,7 +561,7 @@ describe('UidFetcher', function () {
         stateStub.isResponsePresent.returns(true);
         stateStub.segmentsHaveChanged = false;
         stateStub.hasValidUid.returns(true);
-        stateStub.nb = {}
+        stateStub.nb = {};
 
         store.getStoredDataState.returns(stateStub);
 
@@ -551,26 +571,25 @@ describe('UidFetcher', function () {
         consentManager.localStorageGrant.onCall(2).returns(LOCAL_STORAGE_GRANT_ALLOWED_BY_API);
 
         // when
-        const userIdPromise = dispatcher.when(ApiEvent.USER_ID_READY);
-
-        fetcher.getId(dispatcher, [DEFAULT_FETCH_DATA]);
+        const fetchIdResult = fetcher.getId([DEFAULT_FETCH_DATA]);
 
         // then
-        return userIdPromise.then(data => {
+        expect(fetchIdResult.cachedResponse).to.be.undefined;
+        return fetchIdResult.refreshResult.then(data => {
           expect(extensions.gather).to.have.been.called;
           expect(ajaxStub).to.have.been.called;
 
-          expect(data.timestamp).is.not.undefined;
-          expect(data.timestamp).is.not.eq(stateStub.storedDateTime);
-          expect(data.isFromCache).is.false;
-          expect(data.responseObj).is.eql(FETCH_RESPONSE_OBJ);
+          expect(data.refreshedResponse).to.not.be.undefined;
+          expect(data.refreshedResponse.timestamp).is.not.undefined;
+          expect(data.refreshedResponse.timestamp).is.not.eq(stateStub.storedDateTime);
+          expect(data.refreshedResponse.response).is.eql(createResponse(FETCH_RESPONSE_OBJ, [DEFAULT_FETCH_DATA]));
 
           expect(store.storeRequestData).to.have.been.calledWith(CONSENT_DATA_GDPR_ALLOWED, [DEFAULT_FETCH_DATA]);
-          expect(store.storeResponse).to.have.been.calledWith([DEFAULT_FETCH_DATA], FETCH_RESPONSE_STRING, false);
+          expect(store.storeResponse).to.have.been.calledWith([DEFAULT_FETCH_DATA], FETCH_RESPONSE_OBJ, false);
           expect(store.incNbs).to.have.not.been.called;
 
           expect(consentManager.setStoredPrivacy).to.have.been.calledWith(PRIVACY_DATA_RETURNED);
-        })
+        });
       });
     });
   });
@@ -578,7 +597,7 @@ describe('UidFetcher', function () {
   describe('when server response does not grant consent', function () {
     beforeEach(function () {
       ajaxStub = sinon.stub(utils, 'ajax').callsFake(function (url, callbacks, data, options) {
-        callbacks.success(JSON.stringify(FETCH_RESPONSE_OBJ_NO_CONSENT));
+        callbacks.success(prepareJsonResponse(FETCH_RESPONSE_OBJ_NO_CONSENT, data));
       });
     });
     afterEach(function () {
@@ -593,7 +612,7 @@ describe('UidFetcher', function () {
           nb: {},
           refreshInSeconds: 7200
         });
-        store.getStoredDataState.returns(storedDataState)
+        store.getStoredDataState.returns(storedDataState);
         consentManager.localStorageGrant.reset();
         consentManager.localStorageGrant.onCall(0).returns(new LocalStorageGrant(true, GRANT_TYPE.PROVISIONAL, API_TYPE.NONE));
         consentManager.localStorageGrant.onCall(1).returns(new LocalStorageGrant(true, GRANT_TYPE.CONSENT_API, API_TYPE.TCF_V2));
@@ -603,17 +622,18 @@ describe('UidFetcher', function () {
       it('should not store response in storage but rather clear it but still stores the privacy object', function () {
         const fetchData = [{
           ...DEFAULT_FETCH_DATA,
-          integrationId: crypto.randomUUID(),
+          integrationId: crypto.randomUUID()
         }];
 
         // when
-        const userIdPromise = dispatcher.when(ApiEvent.USER_ID_READY);
-        fetcher.getId(dispatcher, fetchData);
+        const fetchIdResult = fetcher.getId(fetchData);
 
         // then
-        return userIdPromise.then(data => {
+        expect(fetchIdResult.cachedResponse).to.be.undefined;
+        return fetchIdResult.refreshResult.then(data => {
           expect(extensions.gather).to.have.been.called;
           expect(ajaxStub).to.have.been.called;
+          expect(data.refreshedResponse.response).to.be.eql(createResponse(FETCH_RESPONSE_OBJ_NO_CONSENT, fetchData));
           expect(consentManager.setStoredPrivacy).to.have.been.calledWith({
             jurisdiction: 'gdpr',
             id5_consent: false
@@ -632,42 +652,156 @@ describe('UidFetcher', function () {
           nb: {},
           refreshInSeconds: 7200
         });
-        store.getStoredDataState.returns(storedDataState)
+        store.getStoredDataState.returns(storedDataState);
+        consentManager.getConsentData.reset();
+        consentManager.getConsentData.resolves(CONSENT_DATA_GDPR_NOT_ALLOWED);
         consentManager.localStorageGrant.returns(new LocalStorageGrant(false, GRANT_TYPE.JURISDICTION, API_TYPE.NONE));
       });
 
       it('should neither make a request to the backend nor read previous response from local storage nor store request state', function () {
         const fetchData = [{
           ...DEFAULT_FETCH_DATA,
-          integrationId: crypto.randomUUID(),
+          integrationId: crypto.randomUUID()
         }];
 
         // when
-        const userIdPromise = dispatcher.when(ApiEvent.USER_ID_FETCH_CANCELED);
-        fetcher.getId(dispatcher, fetchData);
+        const fetchIdResult = fetcher.getId(fetchData);
 
         // then
-        return userIdPromise.then(data => {
+        expect(fetchIdResult.cachedResponse).to.be.undefined;
+        return fetchIdResult.refreshResult.catch(error => {
           expect(extensions.gather).to.not.have.been.called;
           expect(ajaxStub).to.not.have.been.called;
           expect(store.getStoredDataState).to.not.have.been.called;
           expect(store.storeRequestData).to.not.have.been.called;
+          expect(error).to.be.eql(new NoConsentError(CONSENT_DATA_GDPR_NOT_ALLOWED, 'No legal basis to use ID5'));
         });
       });
     });
   });
 
+
+  describe('should handle fetch refresh error', function () {
+    const fetchData = DEFAULT_FETCH_DATA;
+
+    beforeEach(function () {
+      /**
+       * @type {FetchIdRequestData}
+       */
+
+      consentManager.localStorageGrant.returns(LOCAL_STORAGE_GRANT_ALLOWED_BY_API);
+      store.getStoredDataState.returns(Object.assign(new StoredDataState(), {
+        nb: {},
+        refreshInSeconds: 7200
+      }));
+    });
+
+    afterEach(function () {
+      if (ajaxStub) {
+        ajaxStub.restore();
+      }
+    });
+
+    it('when empty response', function () {
+      // given
+      ajaxStub = sinon.stub(utils, 'ajax').callsFake(function (url, callbacks, data, options, log) {
+        callbacks.success('');
+      });
+
+
+      // when
+      const fetchIdResult = fetcher.getId([fetchData]);
+
+      // then
+      return fetchIdResult.refreshResult.catch(error => {
+        // done
+        expect(error).is.eql(new Error('Empty fetch response from ID5 servers: ""'));
+      });
+    });
+
+    it('when invalid json response', function () {
+      // given
+      ajaxStub = sinon.stub(utils, 'ajax').callsFake(function (url, callbacks, data, options, log) {
+        callbacks.success('{');
+      });
+
+
+      // when
+      const fetchIdResult = fetcher.getId([fetchData]);
+
+
+      // then
+      return fetchIdResult.refreshResult.catch(error => {
+        // done
+        expect(error).is.instanceof(SyntaxError);
+      });
+    });
+
+    it('when ajax fails', function () {
+      // given
+      const someError = new Error('some error');
+      ajaxStub = sinon.stub(utils, 'ajax').callsFake(function (url, callbacks, data, options, log) {
+        callbacks.error(someError);
+      });
+
+      // when
+      const fetchIdResult = fetcher.getId([fetchData]);
+
+      // then
+      return fetchIdResult.refreshResult.catch(error => {
+        // done
+        expect(error).is.eql(someError);
+      });
+    });
+
+    it('when missing universal_uid', function () {
+      // given
+      ajaxStub = sinon.stub(utils, 'ajax').callsFake(function (url, callbacks, data, options, log) {
+        callbacks.success(`{ "property" : 10 }`);
+      });
+
+
+      // when
+      const fetchIdResult = fetcher.getId([fetchData]);
+
+
+      // then
+      return fetchIdResult.refreshResult.catch(error => {
+        // done
+        expect(error).is.eql(new Error(`Server response failed to validate: { "property" : 10 }`));
+      });
+    });
+
+    it('when failed while handling valid response', function () {
+      // given
+      const someError = new Error('error while storing privacy');
+      ajaxStub = sinon.stub(utils, 'ajax').callsFake(function (url, callbacks, data, options, log) {
+        callbacks.success(prepareJsonResponse(FETCH_RESPONSE_OBJ, data));
+      });
+      consentManager.setStoredPrivacy.throws(someError);
+
+      // when
+      const fetchIdResult = fetcher.getId([fetchData]);
+
+      // then
+      return fetchIdResult.refreshResult.catch(error => {
+        // done
+        expect(error).is.eql(someError);
+      });
+    });
+  });
 });
 
 // Helper functions
 
 /**
- * @type FetchIdData
+ * @type FetchIdRequestData
  */
 function expectedRequestFor(fetchIdData, consentData, extensions, nbPage, storedDataState, other = undefined) {
   return {
     requestId: fetchIdData.integrationId,
     requestCount: fetchIdData.requestCount,
+    role: fetchIdData.role,
     att: fetchIdData.att,
     extensions: extensions,
     gdpr: consentData.gdprApplies ? 1 : 0,
@@ -687,7 +821,7 @@ function expectedRequestFor(fetchIdData, consentData, extensions, nbPage, stored
     used_refresh_in_seconds: storedDataState.refreshInSeconds,
     nbPage: nbPage,
     ...other
-  }
+  };
 }
 
 function expectHttpPOST(call, url, body) {

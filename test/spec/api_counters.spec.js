@@ -1,9 +1,13 @@
 import sinon from 'sinon';
 import ID5 from '../../lib/id5-api';
 import {
+  DEFAULT_EXTENSIONS,
+  defaultInit,
+  defaultInitBypassConsent,
   ID5_FETCH_ENDPOINT,
-  JSON_RESPONSE_ID5_CONSENT,
   localStorage,
+  prepareMultiplexingResponse,
+  resetAllInLocalStorage,
   STORED_JSON,
   TEST_ID5ID_STORAGE_CONFIG,
   TEST_LAST_STORAGE_CONFIG,
@@ -11,12 +15,9 @@ import {
   TEST_PRIVACY_ALLOWED,
   TEST_PRIVACY_DISALLOWED,
   TEST_PRIVACY_STORAGE_CONFIG,
-  resetAllInLocalStorage,
-  defaultInit,
-  defaultInitBypassConsent,
-  DEFAULT_EXTENSIONS
+  TEST_RESPONSE_ID5_CONSENT
 } from './test_utils';
-import {EXTENSIONS, Extensions, ApiEvent, utils} from "@id5io/multiplexing";
+import {ApiEvent, Extensions, EXTENSIONS, utils} from '@id5io/multiplexing';
 
 describe('Counters', function () {
   let ajaxStub;
@@ -28,7 +29,7 @@ describe('Counters', function () {
 
   beforeEach(function () {
     ajaxStub = sinon.stub(utils, 'ajax').callsFake(function (url, callbacks, data, options) {
-      callbacks.success(JSON_RESPONSE_ID5_CONSENT);
+      callbacks.success(prepareMultiplexingResponse(TEST_RESPONSE_ID5_CONSENT, data));
     });
     extensionsStub = sinon.createStubInstance(Extensions);
     extensionsStub.gather.resolves(DEFAULT_EXTENSIONS);
@@ -83,7 +84,7 @@ describe('Counters', function () {
       const nb = parseInt(localStorage.getItemWithExpiration(TEST_NB_STORAGE_CONFIG));
       expect(nb).to.be.equal(5);
       done();
-    })
+    });
   });
 
   it('should reset counter to 0 after calling ID5 servers if ID in local storage with a previous counter', function (done) {

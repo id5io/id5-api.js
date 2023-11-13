@@ -9,6 +9,8 @@ function createFetchStub(lbResponse) {
   return sinon.stub(window, 'fetch').callsFake(function (url) {
     if (url.includes('eu-3-id5-sync.com')) {
       return Promise.resolve(new window.Response('1', {status: 200}));
+    } else if(url.includes('eu-4-id5-sync.com')){
+      return Promise.resolve(new window.Response('2', {status: 200}));
     } else if (url.includes(ID5_LB_ENDPOINT)) {
       return Promise.resolve(new window.Response(JSON.stringify(lbResponse), {status: 200}));
     } else {
@@ -42,7 +44,9 @@ describe('Extensions', function () {
           ...LB_EXTENSIONS,
           lbCDN: '%%LB_CDN%%',
           devChunks: Array.from({length: 8}, v => '1'),
-          devChunksVersion: '4'
+          devChunksVersion: '4',
+          groupChunks: Array.from({length: 8}, v => '2'),
+          groupChunksVersion: '4'
         });
       });
   });

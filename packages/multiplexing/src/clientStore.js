@@ -2,7 +2,7 @@
  * Module for managing storage of information in browser Local Storage and/or cookies
  */
 
-import {cyrb53Hash, isEmpty} from './utils.js';
+import {cyrb53Hash, isEmpty, isStr} from './utils.js';
 
 /* eslint-disable no-unused-vars */
 import {ConsentData, LocalStorageGrant} from './consent.js';
@@ -119,7 +119,7 @@ export class ClientStore {
   }
 
   putResponse(response) {
-    this.put(this.storageConfig.ID5, encodeURIComponent(response));
+    this.put(this.storageConfig.ID5, encodeURIComponent(isStr(response) ? response : JSON.stringify(response)));
   }
 
   getHashedConsentData() {

@@ -5,11 +5,12 @@ import {
   defaultInit,
   defaultInitBypassConsent,
   ID5_FETCH_ENDPOINT,
-  JSON_RESPONSE_ID5_CONSENT,
   localStorage,
+  prepareMultiplexingResponse,
   TEST_ID5ID_STORAGE_CONFIG,
   TEST_LAST_STORAGE_CONFIG,
   TEST_PRIVACY_ALLOWED,
+  TEST_RESPONSE_ID5_CONSENT,
   TEST_RESPONSE_SIGNATURE
 } from './test_utils';
 import {CONSTANTS, EXTENSIONS, Extensions, utils} from '@id5io/multiplexing';
@@ -45,7 +46,7 @@ describe('A/B Testing', function () {
   describe('Function Availability', function () {
     beforeEach(function () {
       ajaxStub = sinon.stub(utils, 'ajax').callsFake(function (url, callbacks, data, options) {
-        callbacks.success(JSON_RESPONSE_ID5_CONSENT);
+        callbacks.success(prepareMultiplexingResponse(TEST_RESPONSE_ID5_CONSENT, data));
       });
     });
     afterEach(function () {
@@ -75,18 +76,18 @@ describe('A/B Testing', function () {
   });
 
   describe('Not in Control Group', function () {
-    const JSON_ABTEST = JSON.stringify({
+    const TEST_RESPONSE_ABTEST = {
       'universal_uid': 'whateverID_AB_NORMAL',
       'cascade_needed': false,
       'signature': TEST_RESPONSE_SIGNATURE,
-      'privacy': JSON.parse(TEST_PRIVACY_ALLOWED),
+      'privacy': TEST_PRIVACY_ALLOWED,
       'ab_testing': {
         'result': 'normal'
       }, 'ext': {
         'linkType': 1
       }
-    });
-    const ENCODED_STORED_JSON_ABSTEST = encodeURIComponent(JSON_ABTEST);
+    };
+    const ENCODED_STORED_JSON_ABTEST = encodeURIComponent(JSON.stringify(TEST_RESPONSE_ABTEST));
     const TEST_RESPONSE_EID_AB_NORMAL = {
       source: CONSTANTS.ID5_EIDS_SOURCE,
       uids: [{
@@ -101,7 +102,7 @@ describe('A/B Testing', function () {
 
     beforeEach(function () {
       ajaxStub = sinon.stub(utils, 'ajax').callsFake(function (url, callbacks, data, options) {
-        callbacks.success(JSON_ABTEST);
+        callbacks.success(prepareMultiplexingResponse(TEST_RESPONSE_ABTEST, data));
       });
     });
     afterEach(function () {
@@ -109,7 +110,7 @@ describe('A/B Testing', function () {
     });
 
     it('should expose ID5.userId from a stored response', function (done) {
-      localStorage.setItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG, ENCODED_STORED_JSON_ABSTEST);
+      localStorage.setItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG, ENCODED_STORED_JSON_ABTEST);
       localStorage.setItemWithExpiration(TEST_LAST_STORAGE_CONFIG, new Date().toUTCString());
 
       const id5Status = ID5.init(API_CONFIG);
@@ -143,7 +144,7 @@ describe('A/B Testing', function () {
   describe('In Control Group', function () {
     let onAvailableSpy, onUpdateSpy, onRefreshSpy;
     let ajaxStub;
-    const JSON_ABTEST = JSON.stringify({
+    const RESPONSE_ABTEST = {
       'universal_uid': 'whateverID_AB_NORMAL',
       'cascade_needed': false,
       'signature': TEST_RESPONSE_SIGNATURE,
@@ -154,8 +155,8 @@ describe('A/B Testing', function () {
       'ab_testing': {
         'result': 'control'
       }
-    });
-    const ENCODED_STORED_JSON_ABSTEST = encodeURIComponent(JSON_ABTEST);
+    };
+    const ENCODED_STORED_JSON_ABTEST = encodeURIComponent(JSON.stringify(RESPONSE_ABTEST));
     const TEST_RESPONSE_EID_AB_CONTROL_GROUP = {
       source: CONSTANTS.ID5_EIDS_SOURCE,
       uids: [{
@@ -182,7 +183,7 @@ describe('A/B Testing', function () {
 
     it('should not expose ID5.userId from a server response', function (done) {
       ajaxStub = sinon.stub(utils, 'ajax').callsFake(function (url, callbacks, data, options) {
-        callbacks.success(JSON_ABTEST);
+        callbacks.success(prepareMultiplexingResponse(RESPONSE_ABTEST, data));
       });
       const id5Status = ID5.init(API_CONFIG);
       id5Status.onAvailable(function () {
@@ -191,7 +192,7 @@ describe('A/B Testing', function () {
         expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
         expect(id5Status.getUserId()).to.be.equal('0');
         expect(id5Status.getLinkType()).to.be.equal(0);
-        expect(localStorage.getItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(encodeURIComponent(JSON_ABTEST));
+        expect(localStorage.getItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(encodeURIComponent(JSON.stringify(RESPONSE_ABTEST)));
         expect(id5Status.exposeUserId()).to.be.false;
         expect(id5Status.getUserIdAsEid()).to.be.eql(TEST_RESPONSE_EID_AB_CONTROL_GROUP);
         done();
@@ -200,9 +201,9 @@ describe('A/B Testing', function () {
 
     it('should not expose ID5.userId from a stored response', function (done) {
       ajaxStub = sinon.stub(utils, 'ajax').callsFake(function (url, callbacks, data, options) {
-        callbacks.success(JSON_ABTEST);
+        callbacks.success(prepareMultiplexingResponse(RESPONSE_ABTEST, data));
       });
-      localStorage.setItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG, ENCODED_STORED_JSON_ABSTEST);
+      localStorage.setItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG, ENCODED_STORED_JSON_ABTEST);
       localStorage.setItemWithExpiration(TEST_LAST_STORAGE_CONFIG, new Date().toUTCString());
 
       const id5Status = ID5.init(API_CONFIG);

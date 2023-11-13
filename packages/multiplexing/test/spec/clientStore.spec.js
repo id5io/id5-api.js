@@ -122,6 +122,28 @@ describe('ClientStore', function() {
         expect(cachedResponse).to.deep.eq(TEST_RESPONSE_ID5_CONSENT);
       });
 
+      it('should store response object', function() {
+        // given
+        const clientStore = new ClientStore(grantChecker, localStorage, DEFAULT_STORAGE_CONFIG, log);
+
+        // when
+        clientStore.putResponse(TEST_RESPONSE_ID5_CONSENT)
+
+        // then
+        expect(localStorage.setItemWithExpiration).to.be.calledWith(DEFAULT_STORAGE_CONFIG.ID5, encodeURIComponent(JSON.stringify(TEST_RESPONSE_ID5_CONSENT)))
+      });
+
+      it('should store response json', function() {
+        // given
+        const clientStore = new ClientStore(grantChecker, localStorage, DEFAULT_STORAGE_CONFIG, log);
+
+        // when
+        clientStore.putResponse(JSON.stringify(TEST_RESPONSE_ID5_CONSENT))
+
+        // then
+        expect(localStorage.setItemWithExpiration).to.be.calledWith(DEFAULT_STORAGE_CONFIG.ID5, encodeURIComponent(JSON.stringify(TEST_RESPONSE_ID5_CONSENT)))
+      });
+
       it('should store a hash of the pd string for later comparison', function() {
         // given
         const clientStore = new ClientStore(grantChecker, localStorage, DEFAULT_STORAGE_CONFIG, log);

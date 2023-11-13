@@ -1,8 +1,8 @@
 import sinon from 'sinon';
-import multiplexing,  {LocalStorage, WindowStorage} from '@id5io/multiplexing';
+import multiplexing, {LocalStorage, WindowStorage} from '@id5io/multiplexing';
 
 export const TEST_ID5_PARTNER_ID = 99;
-export const ID5_FETCH_ENDPOINT = `https://id5-sync.com/gm/v2`;
+export const ID5_FETCH_ENDPOINT = `https://id5-sync.com/gm/v3`;
 export const ID5_CALL_ENDPOINT = `https://id5-sync.com/i/${TEST_ID5_PARTNER_ID}`;
 export const ID5_SYNC_ENDPOINT = `https://id5-sync.com/s/${TEST_ID5_PARTNER_ID}`;
 
@@ -60,10 +60,9 @@ export const TEST_RESPONSE_ID5_CONSENT = {
   },
   'privacy': JSON.parse(TEST_PRIVACY_ALLOWED)
 };
-export const JSON_RESPONSE_ID5_CONSENT = JSON.stringify(TEST_RESPONSE_ID5_CONSENT);
-export const STORED_JSON = encodeURIComponent(JSON_RESPONSE_ID5_CONSENT);
+export const STORED_JSON = encodeURIComponent(JSON.stringify(TEST_RESPONSE_ID5_CONSENT));
 
-export const JSON_RESPONSE_CASCADE = JSON.stringify({
+export const TEST_RESPONSE_CASCADE = {
   'universal_uid': TEST_RESPONSE_ID5ID,
   'cascade_needed': true,
   'signature': TEST_RESPONSE_SIGNATURE,
@@ -71,11 +70,18 @@ export const JSON_RESPONSE_CASCADE = JSON.stringify({
     'linkType': TEST_RESPONSE_LINK_TYPE
   },
   'privacy': JSON.parse(TEST_PRIVACY_ALLOWED)
-});
+};
 
 export const DEFAULT_EXTENSIONS = {
   lb: 'lbValue',
   lbCDN: '%%LB_CDN%%'
+}
+
+export function prepareMultiplexingResponse(genericResponse, requestString) {
+  const request = JSON.parse(requestString);
+  const responses = {};
+  request.requests.forEach(rq => responses[rq.requestId] = {});
+  return JSON.stringify({generic: genericResponse, responses: responses});
 }
 
 export function defaultInit(partnerId = TEST_ID5_PARTNER_ID) {
