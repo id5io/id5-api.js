@@ -6,13 +6,13 @@ import {
   isStr,
   isGlobalTrace,
   isDefined,
-  filterUaHints,
-  versionCompare
+  filterUaHints
 } from '../lib/utils.js';
 import { version as currentVersion } from '../generated/version.js';
 import { Config } from '../lib/config.js';
 import { createPublisher, Id5CommonMetrics, partnerTag, startTimeMeasurement } from '@id5io/diagnostics';
 import multiplexing, { API_TYPE, ConsentData, ApiEvent, WindowStorage } from '@id5io/multiplexing';
+import { semanticVersionCompare } from '@id5io/multiplexing/src/utils.js';
 
 /**
  * @typedef {Object} IdResponse
@@ -268,7 +268,7 @@ if (!window.id5Prebid) {
   window.id5Prebid = {};
 }
 
-if (!window.id5Prebid.version || versionCompare(window.id5Prebid.version, currentVersion) <= 0) {
+if (!window.id5Prebid.version || semanticVersionCompare(window.id5Prebid.version, currentVersion) <= 0) {
   // There is no previous API or it's an older one. We override with our code.
   window.id5Prebid.integration = new Id5PrebidIntegration();
 }
