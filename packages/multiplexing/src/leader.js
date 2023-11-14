@@ -1,9 +1,8 @@
 import {NoopLogger} from './logger.js';
 import {ProxyMethodCallTarget} from './messaging.js';
-import {NoConsentError} from './consent.js';
 
 // eslint-disable-next-line no-unused-vars
-import { ConsentData } from './consent.js';
+import { ConsentData, NoConsentError } from './consent.js';
 
 export class AddFollowerResult {
   lateJoiner = false;
