@@ -1,21 +1,23 @@
+import { isDefined } from './utils';
+
 export class LazyValue {
   _valuePromise;
   _value;
+  _resolve;
 
   constructor() {
     this.reset();
   }
 
   reset() {
-    const holder = this;
-    holder._value = undefined;
-    holder._valuePromise = new Promise((resolve, reject) => {
-      holder._resolve = resolve;
+    const self = this;
+    self._value = undefined;
+    self._valuePromise = new Promise((resolve, reject) => {
+      self._resolve = resolve;
     });
   }
 
   /**
-   *
    * @param {T} value
    */
   set(value) {
@@ -31,11 +33,10 @@ export class LazyValue {
   }
 
   /**
-   *
    * @return {boolean}
    */
   hasValue() {
-    return this._value !== undefined;
+    return isDefined(this._value);
   }
 
   getValue() {

@@ -91,33 +91,30 @@ var banner = `/**
 
 const isNotMap = file => file.extname !== '.map';
 
-function makeDevpackPkg() {
-  var cloned = _.cloneDeep(webpackConfig);
-  return gulp.src(['src/index.js'])
-    .pipe(webpackStream(cloned, webpack))
-    .pipe(gulpif(isNotMap, header(banner)))
-    .pipe(gulp.dest('build/dev'))
-    .pipe(connect.reload());
+function makeDev(entryPoint, outputFileName) {
+  return () => {
+    var cloned = _.cloneDeep(webpackConfig);
+    cloned.output.filename = outputFileName;
+    return gulp.src([entryPoint])
+      .pipe(webpackStream(cloned, webpack))
+      .pipe(gulpif(isNotMap, header(banner)))
+      .pipe(gulp.dest('build/dev'))
+      .pipe(connect.reload());
+  }
 }
 
-function makeEspJsDevPkg() {
-  var cloned = _.cloneDeep(webpackConfig);
-  cloned.output.filename = 'esp.js';
-  return gulp.src(['src/esp.js'])
-  .pipe(webpackStream(cloned, webpack))
-  .pipe(gulpif(isNotMap, header(banner)))
-  .pipe(gulp.dest('build/dev'))
-  .pipe(connect.reload());
+function makeProd(entryPoint, outputFileName) {
+  return () => {
+    var cloned = _.cloneDeep(webpackConfig);
+    cloned.output.filename = outputFileName;
+    return gulp.src([entryPoint])
+      .pipe(webpackStream(cloned, webpack))
+      .pipe(gulpif(isNotMap, uglify()))
+      .pipe(gulpif(isNotMap, header(banner)))
+      .pipe(gulp.dest('build/dist'));
+  }
 }
 
-function makeWebpackPkg() {
-  var cloned = _.cloneDeep(webpackConfig);
-  return gulp.src(['src/index.js'])
-    .pipe(webpackStream(cloned, webpack))
-    .pipe(gulpif(isNotMap, uglify()))
-    .pipe(gulpif(isNotMap, header(banner)))
-    .pipe(gulp.dest('build/dist'));
-}
 
 
 function makeEspJsPkg() {
@@ -177,8 +174,17 @@ gulp.task('generate', (done) => {
   gv.generate('generated/version.js', { useEs6Syntax: true }, done);
 });
 
-gulp.task('build-bundle-dev', gulp.series(makeDevpackPkg, makeEspJsDevPkg));
-gulp.task('build-bundle-prod', gulp.series(makeWebpackPkg, makeEspJsPkg));
+gulp.task('build-bundle-dev', gulp.series(
+  makeDev('src/index.js','id5-api.js'),
+  makeDev('src/esp.js','esp.js'),
+  makeDev('src/id5PrebidModule.js','id5PrebidModule.js'),
+));
+
+gulp.task('build-bundle-prod', gulp.series(
+  makeProd('src/index.js', 'id5-api.js'),
+  makeProd('src/esp.js', 'esp.js'),
+  makeProd('src/id5PrebidModule.js', 'id5PrebidModule.js'),
+));
 
 gulp.task('inttest', () => (
   gulp.src('integration/**/*.spec.js', {read: false})

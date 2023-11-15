@@ -1,5 +1,5 @@
 import {expect} from 'chai';
-import Config, {StorageConfig} from '../../lib/config';
+import {Config} from '../../lib/config';
 
 describe('config API', function () {
 
