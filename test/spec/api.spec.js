@@ -150,6 +150,20 @@ describe('ID5 JS API', function () {
           });
         });
 
+        it('does not drop local storage items when options.acr', function (done) {
+          const id5Status = ID5.init({
+            ...defaultInitBypassConsent(),
+            acr: true
+          });
+
+          id5Status.onAvailable(function () {
+            expect(localStorage.getItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG)).to.be.null;
+            expect(localStorage.getItemWithExpiration(TEST_PRIVACY_STORAGE_CONFIG)).to.be.null;
+            expect(localStorage.getItemWithExpiration(TEST_PD_STORAGE_CONFIG)).to.be.null;
+            done();
+          });
+        });
+
         it('should not set ab features flag when abTesting is disabled', function (done) {
           ID5.init({
             ...defaultInitBypassConsent(),
