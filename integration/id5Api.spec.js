@@ -20,8 +20,10 @@ const _DEBUG = false;
 chai.use(chaiDateTime);
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
-const ID5_API_JS_FILE = path.join(SCRIPT_DIR, '..', 'build', 'dist', 'id5-api.js');
-const ID5_ESP_JS_FILE = path.join(SCRIPT_DIR, '..', 'build', 'dist', 'esp.js');
+const RESOURCES_DIR = path.join(SCRIPT_DIR, 'resources');
+const TARGET_DIR = _DEBUG ? 'dev' : 'dist';
+const ID5_API_JS_FILE = path.join(SCRIPT_DIR, '..', 'build', TARGET_DIR, 'id5-api.js');
+const ID5_ESP_JS_FILE = path.join(SCRIPT_DIR, '..', 'build', TARGET_DIR, 'esp.js');
 
 const DAYS_TO_MILLISECONDS = (60 * 60 * 24 * 1000);
 const MOCK_FETCH_RESPONSE = {
@@ -101,7 +103,7 @@ const FETCH_ENDPOINT = 'https://id5-sync.com/gm/v3';
 describe('The ID5 API', function () {
   let browser, server, profileDir, caFingerprint;
 
-  this.timeout((_DEBUG ? 300 : 30) * 1000);
+  this.timeout((_DEBUG ? 3000 : 30) * 1000);
 
   async function startBrowser() {
     profileDir = await tmp.dir({unsafeCleanup: true});
@@ -110,7 +112,8 @@ describe('The ID5 API', function () {
       `--ignore-certificate-errors-spki-list=${caFingerprint}`,
       `--user-data-dir=${profileDir.path}`,
       '--no-first-run',
-      '--disable-features=site-per-process'
+      '--disable-features=site-per-process',
+      '--disable-component-update'
     ];
 
     if (isDocker()) {
@@ -158,10 +161,10 @@ describe('The ID5 API', function () {
 
   describe('when included directly in the publishers page', function () {
     beforeEach(async () => {
-      const TEST_PAGE_PATH = path.join(SCRIPT_DIR, 'integration.html');
+      const TEST_PAGE_PATH = path.join(RESOURCES_DIR, 'integration.html');
       await server.forGet('https://my-publisher-website.net')
         .thenFromFile(200, TEST_PAGE_PATH);
-      const TEST_REFERER_PAGE_PATH = path.join(SCRIPT_DIR, 'referer.html');
+      const TEST_REFERER_PAGE_PATH = path.join(RESOURCES_DIR, 'referer.html');
       await server.forGet('https://referer-page.com')
         .thenFromFile(200, TEST_REFERER_PAGE_PATH);
     });
@@ -237,6 +240,45 @@ describe('The ID5 API', function () {
     });
   });
 
+  describe('with creative restrictions', function () {
+    beforeEach(async () => {
+      const TEST_PAGE_PATH = path.join(RESOURCES_DIR, 'creativeRestrictions.html');
+      await server.forGet('https://my-publisher-website.net')
+        .thenFromFile(200, TEST_PAGE_PATH);
+    });
+
+    afterEach(async () => {
+      await server.reset();
+    });
+
+    it('can send an event to ID5 backend', async function() {
+      const mockId5Event = await server.forPost('https://id5-sync.com/event')
+        .thenReply(204, '');
+
+      await server.forPost(FETCH_ENDPOINT)
+        .thenCallback(multiFetchResponseWithCorsAllowed(MOCK_FETCH_RESPONSE));
+      await server.forGet('https://lb.eu-1-id5-sync.com/lb/v1')
+        .thenJson(200, MOCK_LB_RESPONSE, MOCK_CORS_HEADERS);
+      await server.forGet('https://dummyimage.com/600x200')
+        .thenReply(200, '');
+
+      const page = await browser.newPage();
+      await page.goto('https://my-publisher-website.net');
+      await page.waitForSelector('p#done');
+      await page.waitForSelector('p#done_event');
+
+      const eventRequests = await mockId5Event.getSeenRequests();
+      expect(eventRequests).to.have.lengthOf(1);
+      expect(eventRequests[0].url).to.eq('https://id5-sync.com/event');
+
+      const requestBody = (await eventRequests[0].body.getJson());
+      expect(requestBody.partnerId).to.eq(99);
+      expect(requestBody.id5id).to.eq(MOCK_FETCH_RESPONSE.universal_uid);
+      expect(requestBody.eventType).to.eq('view');
+      expect(requestBody.metadata).to.deep.eq({ eventId: 'TEST_TEST' });
+    });
+  });
+
   describe('in a non-friendly iframe', function () {
     const NON_FRIENDLY_MOCK_CORS_HEADERS = {
       'Access-Control-Allow-Origin': 'https://non-friendly-stuff.com',
@@ -244,8 +286,8 @@ describe('The ID5 API', function () {
     };
 
     beforeEach(async () => {
-      const TEST_PAGE_PATH = path.join(SCRIPT_DIR, 'nonFriendlyIframeTop.html');
-      const TEST_IFRAME_PATH = path.join(SCRIPT_DIR, 'nonFriendlyIframeContent.html');
+      const TEST_PAGE_PATH = path.join(RESOURCES_DIR, 'nonFriendlyIframeTop.html');
+      const TEST_IFRAME_PATH = path.join(RESOURCES_DIR, 'nonFriendlyIframeContent.html');
       await server.forGet('https://my-iframe-website.net').thenFromFile(200, TEST_PAGE_PATH);
       await server.forGet('https://non-friendly-stuff.com').thenFromFile(200, TEST_IFRAME_PATH);
     });
@@ -289,7 +331,7 @@ describe('The ID5 API', function () {
     });
 
     it('can integrate succesfully with google ESP', async () => {
-      const TEST_PAGE_PATH = path.join(SCRIPT_DIR, 'esp.html');
+      const TEST_PAGE_PATH = path.join(RESOURCES_DIR, 'esp.html');
       await server.forGet('https://my-publisher-website.net')
         .thenFromFile(200, TEST_PAGE_PATH);
       const mockId5 = await server.forPost(FETCH_ENDPOINT)
@@ -306,7 +348,7 @@ describe('The ID5 API', function () {
     });
 
     it('calls the API endpoint to increment metrics if no config detected', async () => {
-      const TEST_PAGE_PATH = path.join(SCRIPT_DIR, 'esp_no_config.html');
+      const TEST_PAGE_PATH = path.join(RESOURCES_DIR, 'esp_no_config.html');
       await server.forGet('https://my-publisher-website.net')
         .thenFromFile(200, TEST_PAGE_PATH);
       const mockId5 = await server.forGet('https://id5-sync.com/api/esp/increment')
@@ -332,7 +374,7 @@ describe('The ID5 API', function () {
     });
 
     it('should publish measurements after fixed delay', async () => {
-      const TEST_PAGE_PATH = path.join(SCRIPT_DIR, 'diagnostics.html');
+      const TEST_PAGE_PATH = path.join(RESOURCES_DIR, 'diagnostics.html');
       await server.forGet('https://my-publisher-website.net')
         .thenFromFile(200, TEST_PAGE_PATH);
       await server.forGet('https://lb.eu-1-id5-sync.com/lb/v1')
@@ -391,7 +433,7 @@ describe('The ID5 API', function () {
     });
 
     it('should publish measurements before unload', async () => {
-      const TEST_PAGE_PATH = path.join(SCRIPT_DIR, 'diagnostics_on_unload.html');
+      const TEST_PAGE_PATH = path.join(RESOURCES_DIR, 'diagnostics_on_unload.html');
       await server.forGet('https://my-publisher-website.net')
         .thenFromFile(200, TEST_PAGE_PATH);
       await server.forGet('https://lb.eu-1-id5-sync.com/lb/v1')
@@ -457,12 +499,12 @@ describe('The ID5 API', function () {
     let fetchEndpoint;
     let onAvailableEndpoint;
     beforeEach(async () => {
-      const INDEX_PAGE_PATH = path.join(SCRIPT_DIR, 'resources', 'multiplexing', 'index.html');
-      const LATE_JOINER_INDEX_PAGE_PATH = path.join(SCRIPT_DIR, 'resources', 'multiplexing', 'index-latejoiner.html');
-      const LATE_JOINER_REFRESH_INDEX_PAGE_PATH = path.join(SCRIPT_DIR, 'resources', 'multiplexing', 'index-latejoiner-refresh.html');
-      const SINGLETON_INDEX_PAGE = path.join(SCRIPT_DIR, 'resources', 'multiplexing', 'index-singleton.html');
-      const NF_FRAME_PAGE_PATH = path.join(SCRIPT_DIR, 'resources', 'multiplexing', 'single-integration.html');
-      const F_FRAME_PAGE_PATH = path.join(SCRIPT_DIR, 'resources', 'multiplexing', 'multiple-integrations.html');
+      const INDEX_PAGE_PATH = path.join(RESOURCES_DIR, 'multiplexing', 'index.html');
+      const LATE_JOINER_INDEX_PAGE_PATH = path.join(RESOURCES_DIR, 'multiplexing', 'index-latejoiner.html');
+      const LATE_JOINER_REFRESH_INDEX_PAGE_PATH = path.join(RESOURCES_DIR, 'multiplexing', 'index-latejoiner-refresh.html');
+      const SINGLETON_INDEX_PAGE = path.join(RESOURCES_DIR, 'multiplexing', 'index-singleton.html');
+      const NF_FRAME_PAGE_PATH = path.join(RESOURCES_DIR, 'multiplexing', 'single-integration.html');
+      const F_FRAME_PAGE_PATH = path.join(RESOURCES_DIR, 'multiplexing', 'multiple-integrations.html');
 
       await server.forGet('https://my-publisher-website.net')
         .thenFromFile(200, INDEX_PAGE_PATH);

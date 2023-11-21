@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>ID5 API Integration</title>
+    <link rel="canonical" href="https://www.id5.io"/>
+</head>
+<body>
+    <div id="placeholder"></div>
+    <!-- ID5 API -->
+    <script type="text/javascript" src="https://cdn.id5-sync.com/api/integration/id5-api.js"></script>
+    <script>
+        function appendParagraph(id) {
+            var doneParagraph = document.createElement('p');
+            doneParagraph.setAttribute('id', id);
+            var placeholder = document.getElementById('placeholder');
+            placeholder.appendChild(doneParagraph);
+        }
+        var id5Callback = function (id5Status) {
+            appendParagraph('done');
+        };
+        ID5.debug = true;
+        var id5Status = ID5.init({
+            partnerId: 99,
+            refreshInSeconds: 5,
+            applyCreativeRestrictions: true,
+            cmpApi: 'static',
+            consentData: {
+                getTCData: {
+                    gdprApplies: true,
+                    tcString: "CPBZjR9PBZjR9AKAZAENBMCsAP_AAH_AAAqIHWtf_X_fb39j-_59_9t0eY1f9_7_v-0zjhfds-8Nyf_X_L8X42M7vF36pq4KuR4Eu3LBIQFlHOHUTUmw6okVrTPsak2Mr7NKJ7LEinMbe2dYGHtfn9VTuZKYr97s___z__-__v__79f_r-3_3_vp9X---_e_V3dgdYASYal8BFmJY4Ek0aVQogQhXEh0AoAKKEYWiawgJXBTsrgI9QQMAEBqAjAiBBiCjFgEAAAAASURASAHggEQBEAgABACpAQgAIkAQWAFgYBAAKAaFgBFAEIEhBkcFRymBARItFBPJWAJRd7GGEIZRYAUCj-iowEAAAAA.cAAAAAAAAAAA",
+                    purpose: {
+                        consents: {
+                            '1': true
+                        }
+                    }
+                }
+            },
+            segments: [{ destination: '22', ids: ['abc']}]
+        });
+        id5Status.onAvailable(id5Callback);
+        id5Status.collectEvent("view", { eventId:"TEST_TEST" }).then(() => {
+            appendParagraph('done_event');
+        });
+    </script>
+    <!-- /ID5 API -->
+
+</body>
+</html>
