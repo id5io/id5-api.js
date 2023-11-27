@@ -176,12 +176,14 @@ gulp.task('generate', (done) => {
 
 gulp.task('build-bundle-dev', gulp.series(
   makeDev('src/index.js','id5-api.js'),
+  makeDev('src/index.js','id5-api-lite.js'),
   makeDev('src/esp.js','esp.js'),
   makeDev('src/id5PrebidModule.js','id5PrebidModule.js'),
 ));
 
 gulp.task('build-bundle-prod', gulp.series(
   makeProd('src/index.js', 'id5-api.js'),
+  makeProd('src/index.js', 'id5-api-lite.js'),
   makeProd('src/esp.js', 'esp.js'),
   makeProd('src/id5PrebidModule.js', 'id5PrebidModule.js'),
 ));
