@@ -98,13 +98,6 @@ export class ClientStore {
     return this.localStorageGrantChecker();
   }
 
-  /**
-   * @returns {boolean} true if localStorage is available
-   */
-  isLocalStorageAvailable() {
-    return this.localStorage.isAvailable();
-  }
-
   getResponse() {
     let storedValue = this.get(this.storageConfig.ID5);
     if (storedValue) {

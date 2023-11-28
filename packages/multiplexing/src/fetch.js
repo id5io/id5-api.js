@@ -9,6 +9,7 @@ import {startTimeMeasurement} from '@id5io/diagnostics';
 
 /* eslint-disable no-unused-vars */
 import {Store} from './store.js';
+import {WindowStorage} from './localStorage.js';
 /* eslint-enable no-unused-vars */
 
 const HOST = 'https://id5-sync.com';
@@ -114,13 +115,14 @@ export class UidRefresher {
    * @param {Map<number, number>} nbs
    * @param {String} signature
    * @param {number} refreshInSecondUsed
+   * @param {boolean} isLocalStorageAvailable
    * @return {Promise<MultiFetchResponse>}
    */
-  refreshUid(fetchRequestIdData, consentData, nbs, signature, refreshInSecondUsed) {
+  refreshUid(fetchRequestIdData, consentData, nbs, signature, refreshInSecondUsed, isLocalStorageAvailable) {
     return this._extensionsProvider.gather(fetchRequestIdData)
       .then(extensions => {
         const requests = fetchRequestIdData.map(fetchIdData => {
-          return this._createRequest(consentData, fetchIdData, signature, nbs, refreshInSecondUsed, extensions);
+          return this._createRequest(consentData, fetchIdData, signature, nbs, refreshInSecondUsed, extensions, isLocalStorageAvailable);
         });
         const log = this._log;
         const metrics = this._metrics;
@@ -166,9 +168,10 @@ export class UidRefresher {
    * @param {String} signature
    * @param {number} refreshInSecondUsed
    * @param {Object} extensions
+   * @param {boolean|undefined} isLocalStorageAvaliable
    * @return {Object}
    */
-  _createRequest(consentData, fetchIdData, signature, nbs, refreshInSecondUsed, extensions) {
+  _createRequest(consentData, fetchIdData, signature, nbs, refreshInSecondUsed, extensions, isLocalStorageAvaliable) {
     this._log.info('Create request data for', {
       fetchIdData,
       consentData,
@@ -190,7 +193,7 @@ export class UidRefresher {
       'cu': fetchIdData.refererInfo?.canonicalUrl,
       'u': fetchIdData.refererInfo?.stack[0] || window.location.href,
       'top': fetchIdData.refererInfo?.reachedTop ? 1 : 0,
-      'localStorage': fetchIdData.isLocalStorageAvailable ? 1 : 0,
+      'localStorage': isLocalStorageAvaliable === true ? 1 : 0,
       'nbPage': nbs[partner],
       'id5cdn': fetchIdData.isUsingCdn,
       'ua': window.navigator.userAgent,
@@ -387,6 +390,10 @@ export class UidFetcher {
         log.info('No legal basis to use ID5', consentData);
         throw new NoConsentError(consentData, 'No legal basis to use ID5');
       }
+
+      // with given consent we can check if it is accessible
+      const isLocalStorageAvailable = WindowStorage.checkIfAccessible();
+
       // refresh storage state
       storedDataState = store.getStoredDataState(fetchRequestIdData, consentData);
       const consentHasChanged = storedDataState.consentHasChanged;
@@ -430,7 +437,7 @@ export class UidFetcher {
         const refreshInSecondUsed = storedDataState?.refreshInSeconds;
         const fetcher = this;
         log.info(`Fetching ID5 ID (forceFetch:${forceFetch})`);
-        return this._uidRefresher.refreshUid(fetchRequestIdData, consentData, nbs, signature, refreshInSecondUsed)
+        return this._uidRefresher.refreshUid(fetchRequestIdData, consentData, nbs, signature, refreshInSecondUsed, isLocalStorageAvailable)
           .then(response => {
             return fetcher.handleSuccessfulFetchResponse(response, fetchRequestIdData, cachedResponseUsed, consentData);
           });

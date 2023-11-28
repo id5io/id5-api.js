@@ -2,8 +2,6 @@ const EXP_SUFFIX = '_exp';
 const DAY_MS = 60 * 60 * 24 * 1000;
 
 export class LocalStorage {
-  /** @type {boolean} */
-  available = false;
   /** @type {StorageApi} */
   storage;
 
@@ -14,23 +12,6 @@ export class LocalStorage {
    */
   constructor(storage) {
     this.storage = storage;
-
-    // Test for availability
-    const test = '__id5test';
-    try {
-      this.storage.setItem(test, test);
-      this.storage.removeItem(test);
-      this.available = true;
-    } catch (e) {
-      // do nothing
-    }
-  }
-
-  /**
-   * @returns {boolean} true if the localStorage is available
-   */
-  isAvailable() {
-    return this.available;
   }
 
   /**
@@ -40,8 +21,9 @@ export class LocalStorage {
    * @returns {string|null|undefined} the stored value, null if no value or expired were stored, undefined if no localStorage
    */
   getItem(key) {
-    if (this.available) {
+    try {
       return this.storage.getItem(key);
+    } catch (e) {
     }
   }
 
@@ -53,8 +35,9 @@ export class LocalStorage {
    * @returns {undefined}
    */
   setItem(key, value) {
-    if (this.available) {
+    try {
       this.storage.setItem(key, value);
+    } catch (e) {
     }
   }
 
@@ -63,8 +46,9 @@ export class LocalStorage {
    * @param {string} key the key of the item
    */
   removeItem(key) {
-    if (this.available) {
+    try {
       this.storage.removeItem(key);
+    } catch (e) {
     }
   }
 
@@ -174,6 +158,17 @@ export class WindowStorage extends StorageApi {
         this._underlying.setItem(key, value);
       }
     } catch (e) {
+    }
+  }
+
+  static checkIfAccessible() {
+    const test = '__id5test';
+    try {
+      window.localStorage.setItem(test, test);
+      window.localStorage.removeItem(test);
+      return true;
+    } catch (e) {
+      return false;
     }
   }
 }

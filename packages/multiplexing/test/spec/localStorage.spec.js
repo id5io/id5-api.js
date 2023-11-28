@@ -9,11 +9,6 @@ describe('LocalStorage', function() {
   describe('when not available', function() {
     let storageMock =  undefined
 
-    it('detects unavailability', () => {
-      const testStorage = new LocalStorage(storageMock);
-      expect(testStorage.isAvailable()).to.equal(false);
-    });
-
     it('returns undefined / null when reading', () => {
       const testStorage = new LocalStorage(storageMock);
       expect(testStorage.getItem('test')).to.equal(undefined);
@@ -41,11 +36,6 @@ describe('LocalStorage', function() {
 
     afterEach(() => {
       clock.restore();
-    });
-
-    it('detects availability', () => {
-      const testStorage = new LocalStorage(storageMock);
-      expect(testStorage.isAvailable()).to.equal(true);
     });
 
     it('calls the browser API for basic operations', () => {
@@ -142,6 +132,26 @@ describe('WindowStorage', function () {
 
       // then
       expect(storageMock.removeItem).to.be.calledWith('A');
+    });
+  });
+
+  describe('when local storage inaccessible', function () {
+    let localStorageStub;
+    beforeEach(function () {
+      localStorageStub = sinon.stub(window.localStorage, "setItem").throws(new Error());
+    });
+    afterEach(function () {
+      localStorageStub.restore();
+    });
+    it('returns false when accessibility checked', function () {
+      expect(WindowStorage.checkIfAccessible()).to.be.eq(false)
+    });
+  })
+
+  describe('when local storage accessible', function () {
+    // by default accessible
+    it('returns true when accessibility checked', function () {
+      expect(WindowStorage.checkIfAccessible()).to.be.eq(true)
     });
   });
 });

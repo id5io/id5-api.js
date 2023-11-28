@@ -34,27 +34,11 @@ describe('ClientStore', function() {
     log = _DEBUG ? console : NoopLogger;
   });
 
-  [true, false].forEach(casus => {
-    it(`should tell whether local storage is available in case ${casus}`, function() {
-      // given
-      const localStorage = sinon.createStubInstance(LocalStorage);
-      localStorage.isAvailable.returns(casus);
-      const clientStore = new ClientStore(undefined, localStorage, DEFAULT_STORAGE_CONFIG, log);
-
-      // when
-      const isAvailable = clientStore.isLocalStorageAvailable();
-
-      // then
-      expect(isAvailable).to.eq(casus);
-    });
-  });
-
   describe('with available local storage', function() {
     let localStorage;
 
     beforeEach(function() {
       localStorage = sinon.createStubInstance(LocalStorage);
-      localStorage.isAvailable.returns(true);
     });
 
     it('should not retrieve the previous response from local storage if local storage usage is not granted', function() {
