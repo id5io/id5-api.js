@@ -30,7 +30,6 @@ export class StorageConfig {
     this.PD = createConfig(defaultStorageConfig.PD);
     this.PRIVACY = createConfig(defaultStorageConfig.PRIVACY);
     this.SEGMENTS = createConfig(defaultStorageConfig.SEGMENTS);
-    this.LIVE_INTENT = createConfig(defaultStorageConfig.LIVE_INTENT);
   }
 }
 

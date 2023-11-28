@@ -88,7 +88,6 @@ export function defaultInit(partnerId = TEST_ID5_PARTNER_ID) {
   return {
     partnerId,
     disableUaHints: true,
-    disableLiveIntentIntegration: true,
     multiplexing: {_disabled: true}
   }
 }
