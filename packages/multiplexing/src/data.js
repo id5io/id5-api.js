@@ -52,7 +52,6 @@
  * @property {boolean} isUsingCdn
  * @property {number} att - Indication of whether the event came from an Apple ATT event (value of 1 is yes)
  * @property {Object} [uaHints] - user agent high entropy values
- * @property {string} [liveIntentId]
  * @property {AbTestConfig} [abTesting]
  * @property {string} [pd] - Partner Data that can be passed to help with cross-domain reconciliation of the ID5 ID
  * @property {string} [partnerUserId] - User ID for the platform deploying the API, to be stored by ID5 for further cookie matching if provided

@@ -102,7 +102,6 @@ const DEFAULT_FETCH_DATA = {
   isUsingCdn: true,
   att: 0,
   uaHints: undefined,
-  liveIntentId: undefined,
   abTesting: undefined,
   pd: undefined,
   partnerUserId: undefined,
@@ -280,7 +279,6 @@ describe('UidFetcher', function () {
           ],
           _invalid_segments: 10
         }],
-        ['with liveIntentId', {liveIntentId: 'LID'}, {li: 'LID'}],
         ['with provided refreshInSeconds', {providedRefreshInSeconds: 1000}, {
           provided_options: {
             refresh_in_seconds: 1000

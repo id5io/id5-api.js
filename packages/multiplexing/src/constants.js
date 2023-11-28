@@ -23,10 +23,6 @@ export default Object.freeze({
     PRIVACY: {
       name: 'id5id_privacy',
       expiresDays: 30
-    },
-    LIVE_INTENT: {
-      name: 'id5li',
-      expiresDays: 90
     }
   },
   LEGACY_COOKIE_NAMES: [
@@ -41,6 +37,5 @@ export default Object.freeze({
       other: false
     }
   },
-  ID5_EIDS_SOURCE: 'id5-sync.com',
-  LIVE_INTENT_POLL_INTERVAL_MS: 500
+  ID5_EIDS_SOURCE: 'id5-sync.com'
 });

@@ -469,7 +469,6 @@ describe("Storage config", function () {
     verifyConfig(storageConfig.PRIVACY, STORAGE_CONFIG.PRIVACY);
     verifyConfig(storageConfig.CONSENT_DATA, STORAGE_CONFIG.CONSENT_DATA);
     verifyConfig(storageConfig.SEGMENTS, STORAGE_CONFIG.SEGMENTS);
-    verifyConfig(storageConfig.LIVE_INTENT, STORAGE_CONFIG.LIVE_INTENT);
   });
 
   it('should return configured expiration', function () {
@@ -485,7 +484,6 @@ describe("Storage config", function () {
     verifyConfig(storageConfig.PRIVACY, STORAGE_CONFIG.PRIVACY);
     verifyConfig(storageConfig.CONSENT_DATA, STORAGE_CONFIG.CONSENT_DATA);
     verifyConfig(storageConfig.SEGMENTS, STORAGE_CONFIG.SEGMENTS);
-    verifyConfig(storageConfig.LIVE_INTENT, STORAGE_CONFIG.LIVE_INTENT);
   });
 
   it('should apply minimum expiration', function () {
@@ -501,7 +499,6 @@ describe("Storage config", function () {
     verifyConfig(storageConfig.PRIVACY, STORAGE_CONFIG.PRIVACY);
     verifyConfig(storageConfig.CONSENT_DATA, STORAGE_CONFIG.CONSENT_DATA);
     verifyConfig(storageConfig.SEGMENTS, STORAGE_CONFIG.SEGMENTS);
-    verifyConfig(storageConfig.LIVE_INTENT, STORAGE_CONFIG.LIVE_INTENT);
   });
 });
 

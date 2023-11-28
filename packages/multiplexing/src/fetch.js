@@ -221,10 +221,6 @@ export class UidRefresher {
       data.us_privacy = consentData.ccpaString;
     }
 
-    if (fetchIdData.liveIntentId) {
-      data.li = fetchIdData.liveIntentId;
-    }
-
     objectEntries({
       pd: 'pd',
       partnerUserId: 'puid',

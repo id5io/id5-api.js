@@ -139,11 +139,6 @@ describe('Follower', function () {
       {partnerId: 1, att: 2},
       true
     ],
-    ['similar - partnerId and liveIntentId',
-      {partnerId: 1, liveIntentId: 'lid'},
-      {partnerId: 1, liveIntentId: 'lid'},
-      true
-    ],
     ['similar - partnerId and provider',
       {partnerId: 1, provider: 'provider'},
       {partnerId: 1, provider: 'provider'},
@@ -169,7 +164,6 @@ describe('Follower', function () {
         partnerId: 1,
         pd: 'a',
         att: 2,
-        liveIntentId: 'lid',
         provider: 'provider',
         abTesting: {enabled: true, controlGroupPct: 0.8},
         segments: [{destination: '22', ids: ['abc']}, {destination: '23', ids: ['a', 'b', 'c']}],
@@ -179,7 +173,6 @@ describe('Follower', function () {
         partnerId: 1,
         pd: 'a',
         att: 2,
-        liveIntentId: 'lid',
         provider: 'provider',
         abTesting: {enabled: true, controlGroupPct: 0.8},
         segments: [{destination: '22', ids: ['abc']}, {destination: '23', ids: ['a', 'b', 'c']}],
@@ -214,16 +207,6 @@ describe('Follower', function () {
     ],
     ['different - att missing',
       {partnerId: 1, att: 2},
-      {partnerId: 1},
-      false
-    ],
-    ['different - liveIntentId',
-      {partnerId: 1, liveIntentId: 'lid'},
-      {partnerId: 1, liveIntentId: 'lid2'},
-      false
-    ],
-    ['different - liveIntentId missing',
-      {partnerId: 1, liveIntentId: 'lid'},
       {partnerId: 1},
       false
     ],
@@ -272,7 +255,6 @@ describe('Follower', function () {
         partnerId: 1,
         pd: 'a',
         att: 2,
-        liveIntentId: 'lid',
         provider: 'provider',
         abTesting: {enabled: true, controlGroupPct: 0.8},
         segments: [{destination: '22', ids: ['abc']}, {destination: '23', ids: ['a', 'b', 'c']}],

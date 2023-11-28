@@ -87,17 +87,15 @@ export class Follower {
     const thisData = this._instanceProperties.fetchIdData;
     const samePartner = otherData.partnerId === thisData.partnerId;
     const sameAtt = otherData.att === thisData.att;
-    const sameLiveIntentId = otherData.liveIntentId === thisData.liveIntentId;
     const samePd = otherData.pd === thisData.pd;
     const sameProvider = otherData.provider === thisData.provider;
     const sameAbTesting = JSON.stringify(otherData.abTesting) === JSON.stringify(thisData.abTesting);
     const sameSegments = JSON.stringify(otherData.segments) === JSON.stringify(thisData.segments);
     const sameProvidedRefresh = otherData.providedRefreshInSeconds === thisData.providedRefreshInSeconds;
-    const isSimilar = samePartner && sameAtt && sameLiveIntentId && samePd && sameProvider && sameAbTesting && sameSegments && sameProvidedRefresh;
+    const isSimilar = samePartner && sameAtt && samePd && sameProvider && sameAbTesting && sameSegments && sameProvidedRefresh;
     this._log.debug('Comparing followers this:', this.getId(), 'other:', other.getId(), 'areSimilar:', isSimilar, 'reason:', {
       samePartner,
       sameAtt,
-      sameLiveIntentId,
       samePd,
       sameProvider,
       sameSegments,
