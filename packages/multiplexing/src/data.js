@@ -48,7 +48,6 @@
  * @property {string} originVersion
  * @property {number} partnerId
  * @property {RefererInfo} refererInfo
- * @property {boolean} isLocalStorageAvailable
  * @property {boolean} isUsingCdn
  * @property {number} att - Indication of whether the event came from an Apple ATT event (value of 1 is yes)
  * @property {Object} [uaHints] - user agent high entropy values

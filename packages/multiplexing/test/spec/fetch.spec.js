@@ -5,12 +5,13 @@ import sinon from 'sinon';
 import {UidFetcher, RefreshResult, RefreshedResponse} from '../../src/fetch.js';
 import {Extensions} from '../../src/extensions.js';
 import {
-  API_TYPE,
-  ConsentData,
-  ConsentManager,
-  GRANT_TYPE,
-  LocalStorageGrant, NoConsentError,
-  NoopLogger
+    API_TYPE,
+    ConsentData,
+    ConsentManager,
+    GRANT_TYPE,
+    LocalStorageGrant, NoConsentError,
+    NoopLogger,
+    WindowStorage
 } from '../../src/index.js';
 import {Id5CommonMetrics} from '@id5io/diagnostics';
 import * as utils from '../../src/utils.js';
@@ -98,7 +99,6 @@ const DEFAULT_FETCH_DATA = {
     ],
     canonicalUrl: 'https://id5.io'
   },
-  isLocalStorageAvailable: true,
   isUsingCdn: true,
   att: 0,
   uaHints: undefined,
@@ -209,6 +209,7 @@ describe('UidFetcher', function () {
    */
   let metrics;
   let ajaxStub;
+  let localStorageCheckStub;
 
 
   beforeEach(function () {
@@ -220,6 +221,11 @@ describe('UidFetcher', function () {
     fetcher = new UidFetcher(consentManager, store, metrics, log, extensions);
     consentManager.getConsentData.resolves(CONSENT_DATA_GDPR_ALLOWED);
     extensions.gather.resolves(DEFAULT_EXTENSIONS);
+    localStorageCheckStub = sinon.stub(WindowStorage, "checkIfAccessible").returns(true)
+  });
+
+  afterEach( function () {
+    localStorageCheckStub.restore();
   });
 
   describe('when server response does grant consent', function () {
@@ -356,7 +362,6 @@ describe('UidFetcher', function () {
               ],
               canonicalUrl: 'https://id5.io'
             },
-            isLocalStorageAvailable: false,
             isUsingCdn: false,
             att: 10,
             refreshInSeconds: 3600,
@@ -390,6 +395,30 @@ describe('UidFetcher', function () {
             expect(data.refreshedResponse.timestamp).is.not.null;
             expect(data.refreshedResponse.timestamp).is.not.undefined;
             expect(data.refreshedResponse.response).is.eql(expectedResponse);
+          });
+        });
+      });
+
+      [true, false, undefined].forEach( accessibilityResult => {
+        it(`checks local storage accessibility result when (${accessibilityResult})`, function () {
+          const nbPage = 3;
+          storedDataState.nb[DEFAULT_FETCH_DATA.partnerId] = nbPage;
+          localStorageCheckStub.reset();
+          localStorageCheckStub.returns(accessibilityResult);
+
+          // when
+          const inputFetchData = [DEFAULT_FETCH_DATA];
+          const fetchIdResult = fetcher.getId(inputFetchData);
+
+          // then
+          return fetchIdResult.refreshResult.then(data => {
+
+            expectHttpPOST(ajaxStub.firstCall, `https://id5-sync.com/gm/v3`, {
+              requests: [
+                expectedRequestFor(DEFAULT_FETCH_DATA, CONSENT_DATA_GDPR_ALLOWED, DEFAULT_EXTENSIONS, nbPage, storedDataState, {
+                  localStorage: accessibilityResult === true ? 1 : 0
+                })]
+            });
           });
         });
       });
@@ -805,7 +834,7 @@ function expectedRequestFor(fetchIdData, consentData, extensions, nbPage, stored
     gdpr: consentData.gdprApplies ? 1 : 0,
     gdpr_consent: consentData.consentString,
     id5cdn: fetchIdData.isUsingCdn,
-    localStorage: fetchIdData.isLocalStorageAvailable ? 1 : 0,
+    localStorage: 1,
     o: fetchIdData.origin,
     v: fetchIdData.originVersion,
     partner: fetchIdData.partnerId,
