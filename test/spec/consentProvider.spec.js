@@ -1,13 +1,13 @@
 import sinon, {spy, stub} from 'sinon';
 import chai, {expect} from 'chai';
 import sinonChai from 'sinon-chai';
+import {ConsentDataProvider} from '../../lib/consentProvider.js';
+import clone from 'clone';
+import {API_TYPE, GRANT_TYPE, ID5_GVL_ID, NoopLogger} from "@id5io/multiplexing";
+import {Id5CommonMetrics} from "@id5io/diagnostics";
 
 chai.should();
 chai.use(sinonChai);
-import {ConsentDataProvider} from '../../lib/consentProvider.js';
-import clone from 'clone';
-import {API_TYPE, GRANT_TYPE, NoopLogger} from "@id5io/multiplexing";
-import {Id5CommonMetrics} from "@id5io/diagnostics";
 
 const TEST_CONSENT_DATA_V1 = {
     getConsentData: {
@@ -255,7 +255,6 @@ describe('Consent Data Provider', function () {
                 expect(consentData.api).to.equal(API_TYPE.TCF_V1);
                 expect(consentData.consentString).to.equal(TEST_CONSENT_DATA_V1.getConsentData.consentData);
                 expect(consentData.gdprApplies).to.be.true;
-                expect(consentData.hasCcpaString).to.be.false;
                 expect(consentData.isGranted()).to.be.true;
                 const localStorageGrant = consentData.localStorageGrant();
                 expect(localStorageGrant.allowed).is.eq(true);
@@ -277,7 +276,6 @@ describe('Consent Data Provider', function () {
                 expect(consentData.api).to.equal(API_TYPE.NONE);
                 expect(consentData.consentString).to.equal(undefined);
                 expect(consentData.gdprApplies).to.be.false;
-                expect(consentData.hasCcpaString).to.be.false;
                 expect(consentData.isGranted()).to.be.true;
                 const localStorageGrant = consentData.localStorageGrant();
                 expect(localStorageGrant.allowed).is.eq(true);
@@ -296,7 +294,6 @@ describe('Consent Data Provider', function () {
                 expect(consentData.api).to.equal(API_TYPE.NONE);
                 expect(consentData.consentString).to.equal(undefined);
                 expect(consentData.gdprApplies).to.be.false;
-                expect(consentData.hasCcpaString).to.be.false;
                 expect(consentData.isGranted()).to.be.true;
                 const localStorageGrant = consentData.localStorageGrant();
                 expect(localStorageGrant.allowed).is.eq(true);
@@ -316,7 +313,6 @@ describe('Consent Data Provider', function () {
                 expect(consentData.api).to.equal(API_TYPE.TCF_V2);
                 expect(consentData.consentString).to.equal(TEST_CONSENT_DATA_V2.getTCData.tcString);
                 expect(consentData.gdprApplies).to.be.true;
-                expect(consentData.hasCcpaString).to.be.false;
                 expect(consentData.isGranted()).to.be.true;
                 const localStorageGrant = consentData.localStorageGrant();
                 expect(localStorageGrant.allowed).is.eq(true);
@@ -335,7 +331,6 @@ describe('Consent Data Provider', function () {
                 expect(consentData.api).to.equal(API_TYPE.NONE);
                 expect(consentData.consentString).to.equal(undefined);
                 expect(consentData.gdprApplies).to.be.false;
-                expect(consentData.hasCcpaString).to.be.false;
                 expect(consentData.isGranted()).to.be.true;
                 const localStorageGrant = consentData.localStorageGrant();
                 expect(localStorageGrant.allowed).is.eq(true);
@@ -353,7 +348,6 @@ describe('Consent Data Provider', function () {
                 expect(consentData.api).to.equal(API_TYPE.USP_V1);
                 expect(consentData.consentString).to.equal(undefined);
                 expect(consentData.gdprApplies).to.be.false;
-                expect(consentData.hasCcpaString).to.be.true;
                 expect(consentData.ccpaString).to.be.equal('1YNN');
                 expect(consentData.isGranted()).to.be.true;
                 const localStorageGrant = consentData.localStorageGrant();
@@ -373,8 +367,7 @@ describe('Consent Data Provider', function () {
                 expect(consentData.api).to.equal(API_TYPE.NONE);
                 expect(consentData.consentString).to.equal(undefined);
                 expect(consentData.gdprApplies).to.be.false;
-                expect(consentData.hasCcpaString).to.be.false;
-                expect(consentData.ccpaString).to.be.equal('');
+                expect(consentData.ccpaString).to.equal(undefined);
                 expect(consentData.isGranted()).to.be.true;
                 const localStorageGrant = consentData.localStorageGrant();
                 expect(localStorageGrant.allowed).is.eq(true);
@@ -394,7 +387,6 @@ describe('Consent Data Provider', function () {
                 expect(consentData.api).to.equal(API_TYPE.ID5_ALLOWED_VENDORS);
                 expect(consentData.consentString).to.be.undefined;
                 expect(consentData.gdprApplies).to.be.true;
-                expect(consentData.hasCcpaString).to.be.false;
                 expect(consentData.allowedVendors).to.deep.equal(['131']);
                 expect(consentData.isGranted()).to.be.true;
                 const localStorageGrant = consentData.localStorageGrant();
@@ -415,7 +407,6 @@ describe('Consent Data Provider', function () {
                 expect(consentData.api).to.equal(API_TYPE.ID5_ALLOWED_VENDORS);
                 expect(consentData.consentString).to.be.undefined;
                 expect(consentData.gdprApplies).to.be.true;
-                expect(consentData.hasCcpaString).to.be.false;
                 expect(consentData.allowedVendors).to.deep.equal(['66']);
                 expect(consentData.isGranted()).to.be.false;
                 const localStorageGrant = consentData.localStorageGrant();
@@ -448,6 +439,18 @@ describe('Consent Data Provider', function () {
             expect(logWarnSpy).to.be.calledWith('cmpApi: USP not found! Using defaults for CCPA.');
             delete window.__tcfapi;
         });
+
+        it('should print a warning when no GPP is found', async function () {
+            // when
+            let consentData = await consentProvider.refreshConsentData(false, 'iab', undefined);
+
+            // then
+            expect(consentData.api).to.eq(API_TYPE.NONE);
+            expect(logWarnSpy).to.be.calledWith('cmpApi: GPP not found! Using defaults.');
+            let measurements = metrics.getAllMeasurements();
+            expect(measurements.find(m => m.name === 'id5.api.gpp.failure')).is.undefined
+
+        });
     });
     describe('with TCFv1 IAB compliant CMP', function () {
         let cmpStub;
@@ -477,7 +480,6 @@ describe('Consent Data Provider', function () {
                 expect(consentData.localStoragePurposeConsent).to.equal(TEST_CONSENT_DATA_V1.getVendorConsents.purposeConsents['1']);
                 expect(consentData.gdprApplies).to.be.true;
                 expect(consentData.api).to.equal(API_TYPE.TCF_V1);
-                expect(consentData.hasCcpaString).to.be.false;
                 let localStorageGrant = consentData.localStorageGrant();
                 expect(localStorageGrant.grantType).to.be.eq(GRANT_TYPE.CONSENT_API);
                 expect(localStorageGrant.api).to.be.eq(API_TYPE.TCF_V1);
@@ -503,7 +505,6 @@ describe('Consent Data Provider', function () {
                     expect(consentData.localStoragePurposeConsent).to.equal(value);
                     expect(consentData.gdprApplies).to.be.true;
                     expect(consentData.api).to.equal(API_TYPE.TCF_V1);
-                    expect(consentData.hasCcpaString).to.be.false;
                     let localStorageGrant = consentData.localStorageGrant();
                     expect(localStorageGrant.grantType).to.be.eq(GRANT_TYPE.CONSENT_API);
                     expect(localStorageGrant.api).to.be.eq(API_TYPE.TCF_V1);
@@ -530,7 +531,6 @@ describe('Consent Data Provider', function () {
                 expect(consentData.localStoragePurposeConsent).to.equal(false);
                 expect(consentData.gdprApplies).to.be.false;
                 expect(consentData.api).to.equal(API_TYPE.TCF_V1);
-                expect(consentData.hasCcpaString).to.be.false;
                 let localStorageGrant = consentData.localStorageGrant();
                 expect(localStorageGrant.grantType).to.be.eq(GRANT_TYPE.CONSENT_API);
                 expect(localStorageGrant.api).to.be.eq(API_TYPE.TCF_V1);
@@ -823,7 +823,6 @@ describe('Consent Data Provider', function () {
                 .then(consent => {
                     expect(cmpStub).to.be.calledWith('getUSPData', 1);
                     expect(consent.gdprApplies).to.be.false;
-                    expect(consent.hasCcpaString).to.be.true;
                     expect(consent.ccpaString).to.equal('1YYN');
                     expect(consent.api).to.be.eq(API_TYPE.USP_V1);
                     expect(consent.isGranted()).to.be.true;
@@ -862,7 +861,7 @@ describe('Consent Data Provider', function () {
         describe('with invalid data', function () {
             [
                 {},
-                {uspString: null},
+                {uspString: null}
             ].forEach((dataObj) =>
                 it('prints an error when USP data is invalid', async () => {
                     cmpStub.callsFake((command, version, callback) => {
@@ -889,7 +888,259 @@ describe('Consent Data Provider', function () {
         });
     });
 
-  describe('when API is running in iframe and CMP in top frame', function () {
+    function createGppV10Flow() {
+        return {
+            ping: {
+                gppVersion: "1.0",
+                cmpStatus: "loading",
+                cmpDisplayStatus: "hidden"
+            },
+            firstEvent: {
+                eventName: 'cmpStatus',
+                pingData: {
+                    cmpStatus: "loaded",
+                    cmpDisplayStatus: "visible"
+                }
+            },
+            secondEvent: {
+                eventName: 'cmpStatus',
+                pingData: {
+                    cmpStatus: "loaded",
+                    cmpDisplayStatus: "hidden"
+                }
+            },
+            gppData: {
+                gppString: "GPP_STRING",
+                applicableSections: [2] //tcfv2
+            },
+            tcfData: {
+                PurposeConsent: [true],
+                VendorConsent: [ID5_GVL_ID]
+            }
+        };
+    }
+
+    function createGppV10Stub(modify = (flow) => flow, responses = createGppV10Flow()) {
+        modify(responses);
+        return (command, callback, parameter) => {
+            expect(command).to.be.oneOf(['addEventListener', 'ping', 'getGPPData', 'getSection']);
+            if (command === 'ping') {
+                callback(responses.ping);
+            } else if (command === 'addEventListener') {
+                callback(responses.firstEvent);
+                callback(responses.secondEvent);
+            } else if (command === 'getGPPData') {
+                callback(responses.gppData);
+            } else if (command === 'getSection' && parameter === 'tcfeuv2') {
+                callback(responses.tcfData);
+            }
+        };
+    }
+
+    describe('with GPPv1.0 IAB compliant CMP', function () {
+        let cmpStub;
+
+        beforeEach(function () {
+            window.__gpp = cmpStub = stub();
+        });
+
+        afterEach(function () {
+            delete window.__gpp;
+        });
+
+        it('can receive the data in a normal call flow', async () => {
+            cmpStub.callsFake(createGppV10Stub());
+            return consentProvider.refreshConsentData(false, 'iab', undefined)
+                .then(consent => {
+                    expect(cmpStub).to.be.callCount(4);
+                    expect(consent.api).to.be.eq(API_TYPE.GPP_V1_0);
+                    expect(consent.isGranted()).to.be.true;
+                    expect(consent.gppData.gppString).is.eq("GPP_STRING");
+                    expect(consent.gppData.applicableSections).deep.equal([2]);
+                    expect(consent.gppData.version).is.eq(API_TYPE.GPP_V1_0);
+                    expect(consent.gppData.localStoragePurposeConsent).is.true;
+                    let lsGrant = consent.localStorageGrant();
+                    expect(lsGrant.allowed).to.be.true;
+                    expect(lsGrant.grantType).to.be.eq(GRANT_TYPE.CONSENT_API);
+                    expect(lsGrant.api).to.be.eq(API_TYPE.GPP_V1_0);
+
+                });
+        });
+
+        [false, null, undefined, "xxx"].forEach(value => {
+            it(`disallows local storage when vendor purpose 1 has value ${value}`, async () => {
+                cmpStub.callsFake(createGppV10Stub((responses) => responses.tcfData = {
+                    PurposeConsent: [value],
+                    VendorConsent: [ID5_GVL_ID]
+                }));
+                return consentProvider.refreshConsentData(false, 'iab', undefined)
+                    .then(consent => {
+                        expect(consent.api).to.be.eq(API_TYPE.GPP_V1_0);
+                        expect(consent.localStoragePurposeConsent).to.equal(false);
+                    });
+            });
+        });
+
+        it('allows local storage when not in GDPR jurisdiction', async () => {
+            cmpStub.callsFake(createGppV10Stub((responses) => {
+                responses.gppData.applicableSections = [6];
+                responses.tcfData.PurposeConsent = [false];
+            }));
+            return consentProvider.refreshConsentData(false, 'iab', undefined)
+                .then(consent => {
+                    expect(consent.api).to.be.eq(API_TYPE.GPP_V1_0);
+                    expect(consent.isGranted()).to.equal(true);
+                });
+        });
+
+        describe('with invalid data', function () {
+            it('prints an error when gpp version is invalid', async () => {
+                cmpStub.callsFake(createGppV10Stub((responses) => {
+                    responses.ping.gppVersion = 2;
+                }));
+                return consentProvider.refreshConsentData(false, 'iab', undefined)
+                    .then(consent => {
+                        expect(consent.api).to.be.eq(API_TYPE.NONE);
+                        expect(consent.gppData).to.be.undefined
+                        expect(logErrorSpy).to.be.calledWith('cmpApi: creating GPP client not successful. Using defaults for Gpp.')
+                    });
+            })
+            it('prints an error when no gpp data', async () => {
+                cmpStub.callsFake(createGppV10Stub((responses) => {
+                    responses.gppData = undefined;
+                }));
+                return consentProvider.refreshConsentData(false, 'iab', undefined)
+                    .then(consent => {
+                        expect(consent.api).to.be.eq(API_TYPE.NONE);
+                        expect(consent.gppData).to.be.undefined
+                        expect(logErrorSpy).to.be.calledWith('cmpApi: getting GPP consent not successful. Using defaults for Gpp.')
+                    });
+            })
+        });
+    });
+
+    function createGppV11Flow() {
+        return {
+            ping: {
+                gppVersion: "1.1",
+                signalStatus: "not ready"
+            },
+            firstEvent: {
+                eventName: 'signalStatus',
+                pingData: {
+                    signalStatus: "not ready"
+                }
+            },
+            secondEvent: {
+                eventName: 'signalStatus',
+                pingData: {
+                    signalStatus: "ready",
+                    gppString: "GPP_STRING_V1_1",
+                    applicableSections: [1, 2],
+                    parsedSections: {
+                        tcfeuv2: [{
+                            PurposeConsent: [true],
+                            VendorConsent: [ID5_GVL_ID]
+                        }]
+                    }
+                }
+            }
+        };
+    }
+
+    function createGppV11Stub(modify = (flow) => flow, responses = createGppV11Flow()) {
+        modify(responses);
+        return (command, callback, parameter) => {
+            expect(command).to.be.oneOf(['addEventListener', 'ping']);
+            if (command === 'ping') {
+                callback(responses.ping);
+            } else if (command === 'addEventListener') {
+                callback(responses.firstEvent);
+                callback(responses.secondEvent);
+            }
+        };
+    }
+
+    describe('with GPPv1.1 IAB compliant CMP', function () {
+        let cmpStub;
+
+        beforeEach(function () {
+            window.__gpp = cmpStub = stub();
+        });
+
+        afterEach(function () {
+            delete window.__gpp;
+        });
+
+        it('can receive the data in a normal call flow', async () => {
+            cmpStub.callsFake(createGppV11Stub());
+            return consentProvider.refreshConsentData(false, 'iab', undefined)
+                .then(consent => {
+                    expect(cmpStub).to.be.callCount(2);
+                    expect(consent.api).to.be.eq(API_TYPE.GPP_V1_1);
+                    expect(consent.isGranted()).to.be.true;
+                    expect(consent.gppData.gppString).is.eq("GPP_STRING_V1_1");
+                    expect(consent.gppData.applicableSections).deep.equal([1, 2]);
+                    expect(consent.gppData.version).is.eq(API_TYPE.GPP_V1_1);
+                    expect(consent.gppData.localStoragePurposeConsent).is.true;
+                    let lsGrant = consent.localStorageGrant();
+                    expect(lsGrant.allowed).to.be.true;
+                    expect(lsGrant.grantType).to.be.eq(GRANT_TYPE.CONSENT_API);
+                    expect(lsGrant.api).to.be.eq(API_TYPE.GPP_V1_1);
+
+                });
+        });
+
+        [false, null, undefined, "xxx"].forEach(value => {
+            it(`disallows local storage when vendor purpose 1 has value ${value}`, async () => {
+                cmpStub.callsFake(createGppV11Stub((responses) => responses.secondEvent.pingData.parsedSections.tcfeuv2[0].PurposeConsent = [value]));
+                return consentProvider.refreshConsentData(false, 'iab', undefined)
+                    .then(consent => {
+                        expect(consent.api).to.be.eq(API_TYPE.GPP_V1_1);
+                        expect(consent.localStoragePurposeConsent).to.equal(false);
+                    });
+            });
+        });
+
+        it('allows local storage when not in GDPR jurisdiction', async () => {
+            cmpStub.callsFake(createGppV11Stub((responses) => {
+                responses.secondEvent.pingData.applicableSections = [6];
+                responses.secondEvent.pingData.parsedSections.tcfeuv2[0].PurposeConsent = [false];
+            }));
+            return consentProvider.refreshConsentData(false, 'iab', undefined)
+                .then(consent => {
+                    expect(consent.api).to.be.eq(API_TYPE.GPP_V1_1);
+                    expect(consent.isGranted()).to.equal(true);
+                });
+        });
+
+        describe('with invalid data', function () {
+            it('prints an error when gpp version is invalid', async () => {
+                cmpStub.callsFake(createGppV11Stub((responses) => {
+                    responses.ping.gppVersion = 2;
+                }));
+                return consentProvider.refreshConsentData(false, 'iab', undefined)
+                    .then(consent => {
+                        expect(consent.api).to.be.eq(API_TYPE.NONE);
+                        expect(consent.gppData).to.be.undefined
+                        expect(logErrorSpy).to.be.calledWith('cmpApi: creating GPP client not successful. Using defaults for Gpp.')
+                    });
+            })
+            it('prints an error when no gpp data', async () => {
+                cmpStub.callsFake(createGppV11Stub((responses) => {
+                    responses.secondEvent.pingData = undefined;
+                }));
+                return consentProvider.refreshConsentData(false, 'iab', undefined)
+                    .then(consent => {
+                        expect(consent.api).to.be.eq(API_TYPE.NONE);
+                        expect(consent.gppData).to.be.undefined
+                        expect(logErrorSpy).to.be.calledWith('cmpApi: getting GPP consent not successful. Using defaults for Gpp.')
+                    });
+            })
+        });
+    })
+
+    describe('when API is running in iframe and CMP in top frame', function () {
         describe('with TCFv1', function () {
             let eventListener;
             beforeEach(function () {
@@ -928,18 +1179,18 @@ describe('Consent Data Provider', function () {
         });
 
         function uspApiMessageResponse(event) {
-          if (event.data.__uspapiCall) {
-            expect(event.data.__uspapiCall.version).to.equal(1);
-            expect(event.data.__uspapiCall.command).to.equal('getUSPData');
-            const returnMessage = {
-              __uspapiReturn: {
-                returnValue: {uspString: '1YYN'},
-                success: true,
-                callId: event.data.__uspapiCall.callId
-              }
+            if (event.data.__uspapiCall) {
+                expect(event.data.__uspapiCall.version).to.equal(1);
+                expect(event.data.__uspapiCall.command).to.equal('getUSPData');
+                const returnMessage = {
+                    __uspapiReturn: {
+                        returnValue: {uspString: '1YYN'},
+                        success: true,
+                        callId: event.data.__uspapiCall.callId
+                    }
+                }
+                event.source.postMessage(returnMessage, '*');
             }
-            event.source.postMessage(returnMessage, '*');
-          }
         }
 
         describe('with USPv2', function () {
@@ -960,7 +1211,6 @@ describe('Consent Data Provider', function () {
             it('can receive the data', async () => {
                 return consentProvider.refreshConsentData(false, 'iab', undefined)
                     .then(consentData => {
-                        expect(consentData.hasCcpaString).to.be.true;
                         expect(consentData.ccpaString).to.equal('1YYN');
                         expect(consentData.gdprApplies).to.be.false;
                         expect(consentData.api).to.equal(API_TYPE.USP_V1);
@@ -968,49 +1218,99 @@ describe('Consent Data Provider', function () {
             });
         });
 
-      describe('with GPP', function () {
-        let eventListener;
-        beforeEach(function () {
-          eventListener = (event) => {
-            if (event.data.__gppCall) {
-              expect(event.data.__gppCall.command).to.equal('addEventListener');
-              const returnMessage = {
+        function wrapReturnData(returnData, event) {
+            return {
                 __gppReturn: {
-                  returnValue: {
-                    eventName: 'cmpStatus', pingData: {
-                      gppVersion: "1.0",
-                      cmpStatus: "loaded",
-                      supportedAPIs: [],
-
-                    }
-                  },
-                  success: true,
-                  callId: event.data.__gppCall.callId
+                    returnValue: returnData,
+                    success: true,
+                    callId: event.data.__gppCall.callId
                 }
-              }
-              event.source.postMessage(returnMessage, '*');
-            }
-            uspApiMessageResponse(event)
-          };
-          window.frames['__gppLocator'] = {};
-          window.frames['__uspapiLocator'] = {};
-          window.addEventListener('message', eventListener);
-        });
+            };
+        }
 
-        afterEach(function () {
-          delete window.frames['__gppLocator'];
-          window.removeEventListener('message', eventListener);
-        });
+        function postResponse(event, returnData) {
+            event.source.postMessage(wrapReturnData(returnData, event), '*');
+        }
 
-        it('marks the gpp information on metrics', async () => {
-          return consentProvider.refreshConsentData(false, 'iab', undefined)
-            .then(consentData => {
-              let measurements = metrics.getAllMeasurements();
-              expect(measurements.length).is.eq(2);
-              expect(measurements.find(m => m.name==='id5.api.gpp.delay')).is.not.undefined
-              expect(measurements.find(m => m.name==='id5.api.gpp.otherCmp.delay')).is.not.undefined
+        describe('with GPP v1_0', function () {
+
+            let gpp10NormalFlow = createGppV10Flow()
+            let eventListener;
+            beforeEach(function () {
+                eventListener = (event) => {
+                    if (event.data.__gppCall) {
+                        expect(event.data.__gppCall.command).to.be.oneOf(['addEventListener', 'ping', 'getGPPData', 'getSection']);
+                        if (event.data.__gppCall.command === 'ping') {
+                            postResponse(event, gpp10NormalFlow.ping);
+                        } else if (event.data.__gppCall.command === 'addEventListener') {
+                            postResponse(event, gpp10NormalFlow.firstEvent);
+                            postResponse(event, gpp10NormalFlow.secondEvent);
+                        } else if (event.data.__gppCall.command === 'getGPPData') {
+                            postResponse(event, gpp10NormalFlow.gppData);
+                        } else if (event.data.__gppCall.command === 'getSection' && event.data.__gppCall.parameter === 'tcfeuv2') {
+                            postResponse(event, gpp10NormalFlow.tcfData);
+                        }
+                    }
+                };
+                window.frames['__gppLocator'] = {};
+                window.addEventListener('message', eventListener);
             });
-        });
-      })
+
+            afterEach(function () {
+                delete window.frames['__gppLocator'];
+                window.removeEventListener('message', eventListener);
+            });
+
+            it('returns consent data', async () => {
+                return consentProvider.refreshConsentData(false, 'iab', undefined)
+                    .then(consentData => {
+                        expect(consentData.gppData.gppString).is.eq("GPP_STRING");
+                        expect(consentData.gppData.applicableSections).deep.equal([2]);
+                        expect(consentData.gppData.version).is.eq(API_TYPE.GPP_V1_0);
+                        expect(consentData.gppData.localStoragePurposeConsent).is.true;
+                        let measurements = metrics.getAllMeasurements();
+                        expect(measurements.length).is.eq(1);
+                        expect(measurements.find(m => m.name === 'id5.api.gpp.delay')).is.not.undefined
+                    });
+            });
+        })
+
+        describe('with GPP v1_1', function () {
+            let eventListener;
+            let gpp11NormalFlow = createGppV11Flow()
+            beforeEach(function () {
+                eventListener = (event) => {
+                    if (event.data.__gppCall) {
+                        expect(event.data.__gppCall.command).to.be.oneOf(['addEventListener', 'ping']);
+                        if (event.data.__gppCall.command === 'ping') {
+                            postResponse(event, gpp11NormalFlow.ping);
+                        } else if (event.data.__gppCall.command === 'addEventListener') {
+                            postResponse(event, gpp11NormalFlow.firstEvent);
+                            postResponse(event, gpp11NormalFlow.secondEvent);
+                        }
+                    }
+                };
+                window.frames['__gppLocator'] = {};
+                window.addEventListener('message', eventListener);
+            });
+
+            afterEach(function () {
+                delete window.frames['__gppLocator'];
+                window.removeEventListener('message', eventListener);
+            });
+
+            it('returns consent data', async () => {
+                return consentProvider.refreshConsentData(false, 'iab', undefined)
+                    .then(consentData => {
+                        expect(consentData.gppData.gppString).is.eq("GPP_STRING_V1_1");
+                        expect(consentData.gppData.applicableSections).deep.equal([1, 2]);
+                        expect(consentData.gppData.version).is.eq(API_TYPE.GPP_V1_1);
+                        expect(consentData.gppData.localStoragePurposeConsent).is.true;
+                        let measurements = metrics.getAllMeasurements();
+                        expect(measurements.length).is.eq(1);
+                        expect(measurements.find(m => m.name === 'id5.api.gpp.delay')).is.not.undefined
+                    });
+            });
+        })
     });
 });

@@ -1,6 +1,6 @@
 import {cyrb53Hash} from './utils.js';
 
-const ID5_GVL_ID = '131';
+export const ID5_GVL_ID = '131';
 
 export const API_TYPE = Object.freeze({
   NONE: 'none',
@@ -8,7 +8,9 @@ export const API_TYPE = Object.freeze({
   TCF_V2: 'TCFv2',
   USP_V1: 'USPv1',
   ID5_ALLOWED_VENDORS: 'ID5',
-  PREBID: 'PBJS'
+  PREBID: 'PBJS',
+  GPP_V1_0: 'GPPv1.0',
+  GPP_V1_1: 'GPPv1.1'
 });
 
 export class NoConsentError extends Error {
@@ -25,6 +27,38 @@ export class NoConsentError extends Error {
   constructor(consentData, message) {
     super(message);
     this.consentData = consentData;
+  }
+}
+
+export class GppConsentData {
+  /** Version of gpp specification, reusing API_TYPE values for consistency
+   * @type {string}
+   * */
+  version;
+
+  /**
+   * Tells whether ID5 has consent from the user to use local storage
+   * @type {boolean|undefined}
+   */
+  localStoragePurposeConsent;
+
+  /** @type {number[]}   */
+  applicableSections;
+
+  /** @type {string}   */
+  gppString;
+
+  // section mapping from https://github.com/InteractiveAdvertisingBureau/Global-Privacy-Platform/blob/main/Sections/Section%20Information.md
+  isGranted() {
+    if (this.applicableSections.includes(2)) {
+      return this.localStoragePurposeConsent;
+    } else if (this.applicableSections.includes(6)) {
+      return true;
+    } else if (this.applicableSections.includes(0) || this.applicableSections.includes(-1) || this.applicableSections.length === 0) {
+      return this.localStoragePurposeConsent !== undefined ? this.localStoragePurposeConsent : true;
+    } else {
+      return false;
+    }
   }
 }
 
@@ -56,33 +90,33 @@ export class ConsentData {
    */
   allowedVendors;
 
-  /** @type {boolean} */
-  hasCcpaString;
-
   /** @type {string} */
   ccpaString;
 
   /** @type {boolean} */
   forcedGrantByConfig;
 
+  /** @type {GppConsentData} */
+  gppData;
+
   constructor(
     api = API_TYPE.NONE,
     gdprApplies = false,
     consentString = undefined,
     localStoragePurposeConsent = false,
-    hasCcpaString = false,
-    ccpaString = '',
+    ccpaString = undefined,
     allowedVendors = undefined,
-    forcedGrantByConfig = false
+    forcedGrantByConfig = false,
+    gppData = undefined
   ) {
     this.api = api;
     this.gdprApplies = gdprApplies;
     this.consentString = consentString;
     this.localStoragePurposeConsent = localStoragePurposeConsent;
-    this.hasCcpaString = hasCcpaString;
     this.ccpaString = ccpaString;
     this.allowedVendors = allowedVendors;
     this.forcedGrantByConfig = forcedGrantByConfig;
+    this.gppData = gppData;
   }
 
   localStorageGrant() {
@@ -108,6 +142,9 @@ export class ConsentData {
       case API_TYPE.USP_V1:
         // CCPA never disallows local storage
         return true;
+      case API_TYPE.GPP_V1_0:
+      case API_TYPE.GPP_V1_1:
+        return this.gppData.isGranted();
     }
   }
 

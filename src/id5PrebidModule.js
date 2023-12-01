@@ -4,7 +4,6 @@ import {
   isGlobalDebug,
   setGlobalDebug,
   InvocationLogger,
-  isStr,
   isGlobalTrace
 } from '../lib/utils.js';
 import { version as currentVersion } from '../generated/version.js';
@@ -95,6 +94,7 @@ class Id5PrebidIntegration {
    * @param {Id5PrebidConfig} [prebidConfig] - Static configuration from Prebid modue
    * @param {PrebidRefererInfo} [refererInfo] - Information about the page related URLs
    * @param {PrebidConsentData} [gdprConsentData] - GDPR Consent information from Prebid
+   * @param {string|undefined} [uspConsentData] - USP Consent information from Prebid
    * @returns {Promise<IdResponse>}
    */
   async fetchId5Id(dynamicConfig, prebidConfig, refererInfo, gdprConsentData, uspConsentData) {
@@ -181,7 +181,6 @@ class Id5PrebidIntegration {
       consentData.localStoragePurposeConsent = delve(gdprConsentData.vendorData, 'purpose.consents.1');
     }
     if (uspConsentData) {
-      consentData.hasCcpaString = isStr(uspConsentData);
       consentData.ccpaString = uspConsentData;
       consentData.localStoragePurposeConsent = true;
     }
