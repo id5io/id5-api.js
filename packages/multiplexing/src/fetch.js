@@ -214,7 +214,7 @@ export class UidRefresher {
 
     if (isDefined(consentData.gppData)) {
       data.gpp_string = consentData.gppData.gppString;
-      data.gpp_sid = consentData.gppData.applicableSections;
+      data.gpp_sid = consentData.gppData.applicableSections.join(',');
     }
 
     if (isDefined(signature)) {

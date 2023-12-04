@@ -38,7 +38,7 @@ export class GppConsentData {
 
   /**
    * Tells whether ID5 has consent from the user to use local storage
-   * @type {boolean|undefined}
+   * @type {boolean}
    */
   localStoragePurposeConsent;
 
@@ -47,6 +47,20 @@ export class GppConsentData {
 
   /** @type {string}   */
   gppString;
+
+  /**
+   *
+   * @param {string} version
+   * @param {boolean} localStoragePurposeConsent
+   * @param {number[]} applicableSections
+   * @param {string} gppString
+   */
+  constructor(version, localStoragePurposeConsent, applicableSections, gppString) {
+    this.version = version;
+    this.localStoragePurposeConsent = localStoragePurposeConsent;
+    this.applicableSections = applicableSections;
+    this.gppString = gppString;
+  }
 
   // section mapping from https://github.com/InteractiveAdvertisingBureau/Global-Privacy-Platform/blob/main/Sections/Section%20Information.md
   isGranted() {

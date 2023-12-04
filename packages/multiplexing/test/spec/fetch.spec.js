@@ -2,16 +2,18 @@ import * as chai from 'chai';
 import {expect} from 'chai';
 import sinonChai from 'sinon-chai';
 import sinon from 'sinon';
-import {UidFetcher, RefreshResult, RefreshedResponse} from '../../src/fetch.js';
+import {RefreshedResponse, RefreshResult, UidFetcher} from '../../src/fetch.js';
 import {Extensions} from '../../src/extensions.js';
 import {
-    API_TYPE,
-    ConsentData,
-    ConsentManager,
-    GRANT_TYPE,
-    LocalStorageGrant, NoConsentError,
-    NoopLogger,
-    WindowStorage
+  API_TYPE,
+  ConsentData,
+  ConsentManager,
+  GppConsentData,
+  GRANT_TYPE,
+  LocalStorageGrant,
+  NoConsentError,
+  NoopLogger,
+  WindowStorage
 } from '../../src/index.js';
 import {Id5CommonMetrics} from '@id5io/diagnostics';
 import * as utils from '../../src/utils.js';
@@ -224,7 +226,7 @@ describe('UidFetcher', function () {
     localStorageCheckStub = sinon.stub(WindowStorage, "checkIfAccessible").returns(true)
   });
 
-  afterEach( function () {
+  afterEach(function () {
     localStorageCheckStub.restore();
   });
 
@@ -399,7 +401,7 @@ describe('UidFetcher', function () {
         });
       });
 
-      [true, false, undefined].forEach( accessibilityResult => {
+      [true, false, undefined].forEach(accessibilityResult => {
         it(`checks local storage accessibility result when (${accessibilityResult})`, function () {
           const nbPage = 3;
           storedDataState.nb[DEFAULT_FETCH_DATA.partnerId] = nbPage;
@@ -422,6 +424,26 @@ describe('UidFetcher', function () {
           });
         });
       });
+
+      it(`passes GPP consent information to server`, function () {
+        const gppAllowed = new ConsentData(API_TYPE.GPP_V1_1)
+        gppAllowed.gppData = new GppConsentData(API_TYPE.GPP_V1_1, true, [2,6], "GPP_STRING")
+
+        // when
+        consentManager.getConsentData.resolves(gppAllowed);
+        const inputFetchData = [DEFAULT_FETCH_DATA];
+        const fetchIdResult = fetcher.getId(inputFetchData);
+
+        // then
+        return fetchIdResult.refreshResult.then(data => {
+          expect(ajaxStub.firstCall.args[0]).is.eq(`https://id5-sync.com/gm/v3`);
+          let requests = JSON.parse(ajaxStub.firstCall.args[2]).requests;
+          expect(requests).to.have.lengthOf(1);
+          expect(requests[0].gpp_string).is.eq("GPP_STRING");
+          expect(requests[0].gpp_sid).is.eq("2,6");
+        });
+      });
+
     });
 
     describe('when previous response is in cache', function () {
