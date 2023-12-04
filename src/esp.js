@@ -1,6 +1,5 @@
 import ID5 from '../lib/id5-api';
 import { logError, isPlainObject, ajax } from '../lib/utils';
-import 'regenerator-runtime/runtime';
 
 const gt = window.googletag = window.googletag || {};
 gt.encryptedSignalProviders = gt.encryptedSignalProviders || [];

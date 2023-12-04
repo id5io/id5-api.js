@@ -11,7 +11,6 @@ import { Config } from '../lib/config.js';
 import { createPublisher, Id5CommonMetrics, partnerTag, startTimeMeasurement } from '@id5io/diagnostics';
 import multiplexing, { API_TYPE, ConsentData, ApiEvent, WindowStorage } from '@id5io/multiplexing';
 import { semanticVersionCompare } from '@id5io/multiplexing/src/utils.js';
-import 'regenerator-runtime/runtime';
 
 /**
  * @typedef {Object} IdResponse

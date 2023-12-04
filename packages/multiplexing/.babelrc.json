@@ -6,11 +6,11 @@
         "targets": {
           "browsers": [
             "chrome >= 61",
-            "safari >=8",
+            "safari >= 11",
             "edge >= 14",
-            "ff >= 57",
-            "ie >= 10",
-            "ios >= 8"
+            "firefox >= 57",
+            "ios >= 11",
+            "node >= 18"
           ]
         }
       }
