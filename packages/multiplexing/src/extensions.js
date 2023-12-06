@@ -78,12 +78,12 @@ export class Extensions {
   };
 
   /**
-   * @param {Array<FetchIdRequestData>} fetchDataList - fetch data used to decide if dev chunks should be collected
+   * @param {boolean} enabled - if dev chunks should be collected
    * @param {{name: string, urlVersion: number, length:number, version: number}} chunksType a type of chunks gathered, should be supported by server
    * @returns {Promise} a promise that if successful contains an object containing an array of chunks
    */
-  gatherChunks(fetchDataList, chunksType) {
-    if (fetchDataList.some(value => value.pd != null && value.pd.trim() !== '')) {
+  gatherChunks(enabled, chunksType) {
+    if (enabled) {
       let extensionsCallTimeMeasurement = startTimeMeasurement();
       return Promise.all(Array.from({length: chunksType.length}, (_, i) => {
         const chunkUrl = Extensions.getChunkUrl(i, chunksType.urlVersion);
@@ -114,11 +114,15 @@ export class Extensions {
    */
   gather(fetchDataList) {
     let extensionsCallTimeMeasurement = startTimeMeasurement();
-    return Promise.allSettled([this.submitExtensionCall(ID5_LB_ENDPOINT, 'lb'),
-      this.gatherChunks(fetchDataList, Extensions.CHUNKS_CONFIGS.devChunks),
-      this.gatherChunks(fetchDataList, Extensions.CHUNKS_CONFIGS.groupChunks)
-    ])
-      .then((results) => {
+    return this.submitExtensionCall(ID5_LB_ENDPOINT, 'lb')
+      .then(lbResult => {
+        let chunksEnabled = this.getChunksEnabled(fetchDataList, lbResult);
+        return Promise.allSettled([
+          Promise.resolve(lbResult),
+          this.gatherChunks(chunksEnabled, Extensions.CHUNKS_CONFIGS.devChunks),
+          this.gatherChunks(chunksEnabled, Extensions.CHUNKS_CONFIGS.groupChunks)
+        ]);
+      }).then((results) => {
         extensionsCallTimeMeasurement.record(this._metrics.extensionsCallTimer('all', true));
         let extensions = Extensions.DEFAULT_RESPONSE;
         results.forEach(result => {
@@ -132,6 +136,17 @@ export class Extensions {
         this._log.error(`Got error ${error} when gathering extensions data`);
         return Extensions.DEFAULT_RESPONSE;
       });
+  }
+
+  /**
+   * @param {Array<FetchIdRequestData>} fetchDataList
+   * @param {{chunks: boolean | undefined}|undefined} lbResponse
+   * @returns {boolean}
+   */
+  getChunksEnabled(fetchDataList, lbResponse) {
+    let pdEnabled = fetchDataList.some(value => value.pd && value.pd.trim() !== '');
+    let lbEnabled = lbResponse?.chunks;
+    return pdEnabled || lbEnabled;
   }
 }
 

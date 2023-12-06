@@ -89,4 +89,24 @@ describe('Extensions', function () {
       });
   });
 
+  it('should call chunks when lb returned chunks:true', function () {
+    let lbExtensions = {
+      lb: 'lbValue',
+      chunks: true
+    };
+    fetchStub = createFetchStub(lbExtensions);
+
+    return extensions.gather([{pd: null}, {}])
+      .then(response => {
+        expect(response).to.be.deep.equal({
+          ...lbExtensions,
+          lbCDN: '%%LB_CDN%%',
+          devChunks: Array.from({length: 8}, v => '1'),
+          devChunksVersion: '4',
+          groupChunks: Array.from({length: 8}, v => '2'),
+          groupChunksVersion: '4'
+        });
+      });
+  });
+
 });
