@@ -1313,6 +1313,10 @@ describe('ActualLeader', () => {
     const consentData = new ConsentData();
     consentData.gdprApplies = true;
     consentData.consentString = 'gdprConsentString';
+    consentData.gppData = {
+      gppString: "GPP_STRING",
+      applicableSections: [7, 8]
+    }
 
     follower1.canDoCascade.returns(true);
     follower1FetchIdData.refererInfo = {
@@ -1362,7 +1366,9 @@ describe('ActualLeader', () => {
       userId: 'id5-uid',
       partnerId: 3,
       consentString: 'gdprConsentString',
-      gdprApplies: true
+      gdprApplies: true,
+      gppString: "GPP_STRING",
+      gppSid: "7,8"
     });
 
   });
@@ -1427,7 +1433,9 @@ describe('ActualLeader', () => {
       userId: 'id5-uid-2',
       partnerId: 2,
       consentString: 'gdprConsentString',
-      gdprApplies: true
+      gdprApplies: true,
+      gppString: undefined,
+      gppSid: undefined
     });
     // follower3 is the closest to the top can can do cascade but not requested in response
     expect(follower3.canDoCascade).to.have.not.been.called;

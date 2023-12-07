@@ -112,6 +112,10 @@ export function setupGppV11Stub(){
     }
   }
 }
+export function clearGppStub(){
+  window.__gpp = undefined;
+}
+
 
 export const localStorage = new LocalStorage(new WindowStorage(window));
 

@@ -14,7 +14,7 @@ import {
   TEST_ID5ID_STORAGE_CONFIG,
   TEST_LAST_STORAGE_CONFIG,
   TEST_RESPONSE_ID5_CONSENT,
-  TEST_RESPONSE_ID5ID, defaultInit, setupGppV11Stub
+  TEST_RESPONSE_ID5ID, defaultInit, setupGppV11Stub, clearGppStub
 } from './test_utils';
 import {EXTENSIONS, Extensions, utils as mxutils} from '@id5io/multiplexing';
 
@@ -50,6 +50,7 @@ describe('Fire Usersync Pixel', function () {
     extensionsCreatorStub.restore();
     localStorage.removeItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG);
     localStorage.removeItemWithExpiration(TEST_LAST_STORAGE_CONFIG);
+    clearGppStub();
   });
 
   describe('Without Calling ID5', function () {

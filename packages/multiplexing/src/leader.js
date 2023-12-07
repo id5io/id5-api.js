@@ -220,7 +220,7 @@ export class ActualLeader extends Leader {
         gdprApplies: consentData.gdprApplies,
         consentString: consentData.consentString,
         gppString: consentData.gppData?.gppString,
-        gppSid: consentData.gppData?.applicableSections?.join(",")
+        gppSid: consentData.gppData?.applicableSections?.join(',')
       });
     } else {
       this._log.error(`Couldn't find cascade eligible follower`);
