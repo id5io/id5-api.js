@@ -9,7 +9,7 @@ function createFetchStub(lbResponse) {
   return sinon.stub(window, 'fetch').callsFake(function (url) {
     if (url.includes('eu-3-id5-sync.com')) {
       return Promise.resolve(new window.Response('1', {status: 200}));
-    } else if(url.includes('eu-4-id5-sync.com')){
+    } else if (url.includes('eu-4-id5-sync.com')) {
       return Promise.resolve(new window.Response('2', {status: 200}));
     } else if (url.includes(ID5_LB_ENDPOINT)) {
       return Promise.resolve(new window.Response(JSON.stringify(lbResponse), {status: 200}));
@@ -43,9 +43,9 @@ describe('Extensions', function () {
         expect(response).to.be.deep.equal({
           ...LB_EXTENSIONS,
           lbCDN: '%%LB_CDN%%',
-          devChunks: Array.from({length: 8}, v => '1'),
+          devChunks: Array.from({length: 8}, () => '1'),
           devChunksVersion: '4',
-          groupChunks: Array.from({length: 8}, v => '2'),
+          groupChunks: Array.from({length: 8}, () => '2'),
           groupChunksVersion: '4'
         });
       });
@@ -89,10 +89,10 @@ describe('Extensions', function () {
       });
   });
 
-  it('should call chunks when lb returned chunks:true', function () {
+  it('should call chunks when lb returned chunks:1', function () {
     let lbExtensions = {
       lb: 'lbValue',
-      chunks: true
+      chunks: 1
     };
     fetchStub = createFetchStub(lbExtensions);
 
@@ -108,5 +108,22 @@ describe('Extensions', function () {
         });
       });
   });
+
+  it('should never call chunks when lb returned chunks:0', function () {
+    let lbExtensions = {
+      lb: 'lbValue',
+      chunks: 0
+    };
+    fetchStub = createFetchStub(lbExtensions);
+
+    return extensions.gather([{pd: 'some'}, {}])
+      .then(response => {
+        expect(response).to.be.deep.equal({
+          ...lbExtensions,
+          lbCDN: '%%LB_CDN%%'
+        });
+      });
+  });
+
 
 });

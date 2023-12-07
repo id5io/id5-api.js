@@ -140,13 +140,17 @@ export class Extensions {
 
   /**
    * @param {Array<FetchIdRequestData>} fetchDataList
-   * @param {{chunks: boolean | undefined}|undefined} lbResponse
+   * @param {{chunks: integer | undefined}|undefined} lbResponse
    * @returns {boolean}
    */
   getChunksEnabled(fetchDataList, lbResponse) {
     let pdEnabled = fetchDataList.some(value => value.pd && value.pd.trim() !== '');
     let lbEnabled = lbResponse?.chunks;
-    return pdEnabled || lbEnabled;
+    if (lbEnabled === 0) {
+      return false;
+    } else {
+      return pdEnabled || lbEnabled;
+    }
   }
 }
 
