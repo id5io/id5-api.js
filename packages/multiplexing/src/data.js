@@ -23,6 +23,8 @@
  * @property {string} consentString
  * @property {boolean} gdprApplies
  * @property {string} userId
+ * @property {string} gppString
+ * @property {string} gppSid
  */
 /**
  * Referer info

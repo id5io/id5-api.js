@@ -14,9 +14,11 @@ import {
   TEST_ID5ID_STORAGE_CONFIG,
   TEST_LAST_STORAGE_CONFIG,
   TEST_RESPONSE_ID5_CONSENT,
-  TEST_RESPONSE_ID5ID
+  TEST_RESPONSE_ID5ID, defaultInit, setupGppV11Stub
 } from './test_utils';
 import {EXTENSIONS, Extensions, utils as mxutils} from '@id5io/multiplexing';
+
+let expect = require('chai').expect;
 
 describe('Fire Usersync Pixel', function () {
   let ajaxStub;
@@ -123,6 +125,21 @@ describe('Fire Usersync Pixel', function () {
         expect(syncStub.args[0][0]).to.contain('puid=abc123');
         expect(syncStub.args[0][0]).to.not.contain('fs=');
         expect(syncStub.args[0][0]).to.contain(`id5id=${TEST_RESPONSE_ID5ID}`);
+        done();
+      });
+    });
+
+    it('should include gpp consent string if gpp is available on the page', function (done) {
+      setupGppV11Stub()
+      ID5.init({
+        ...defaultInit(),
+        cmpApi: 'iab',
+        partnerUserId: 'abc123'
+      }).onAvailable(function () {
+        sinon.assert.calledOnce(syncStub);
+        expect(syncStub.args[0][0]).to.contain(`${ID5_SYNC_ENDPOINT}/8.gif`);
+        expect(syncStub.args[0][0]).to.contain('gpp_string=GPP_STRING');
+        expect(syncStub.args[0][0]).to.contain('gpp_sid=-1,0');
         done();
       });
     });

@@ -218,7 +218,9 @@ export class ActualLeader extends Leader {
         partnerId: cascadeHandler.getFetchIdData().partnerId, // just for backward compatibility , older multiplexing instances may need this
         userId: refreshedResponse.getResponseFor(cascadeHandler.getId()).universal_uid,
         gdprApplies: consentData.gdprApplies,
-        consentString: consentData.consentString
+        consentString: consentData.consentString,
+        gppString: consentData.gppData?.gppString,
+        gppSid: consentData.gppData?.applicableSections?.join(",")
       });
     } else {
       this._log.error(`Couldn't find cascade eligible follower`);
