@@ -212,6 +212,11 @@ export class UidRefresher {
       data.allowed_vendors = consentData.allowedVendors;
     }
 
+    if (isDefined(consentData.gppData)) {
+      data.gpp_string = consentData.gppData.gppString;
+      data.gpp_sid = consentData.gppData.applicableSections.join(',');
+    }
+
     if (isDefined(signature)) {
       data.s = signature;
     }
@@ -220,7 +225,7 @@ export class UidRefresher {
       data.ua_hints = uaHints;
     }
 
-    if (consentData.hasCcpaString) {
+    if (isDefined(consentData.ccpaString) && !(consentData.ccpaString === '')) {
       data.us_privacy = consentData.ccpaString;
     }
 

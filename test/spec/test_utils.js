@@ -99,6 +99,24 @@ export function defaultInitBypassConsent(partnerId = TEST_ID5_PARTNER_ID) {
   }
 }
 
+export function setupGppV11Stub(){
+  window.__gpp = function (command, callback, parameter) {
+    if(command==='ping'){
+      return {
+        gppVersion        : '1.1',
+        cmpStatus         : 'stub',
+        signalStatus    : 'ready',
+        applicableSections: [-1, 0],
+        gppString         : 'GPP_STRING'
+      };
+    }
+  }
+}
+export function clearGppStub(){
+  window.__gpp = undefined;
+}
+
+
 export const localStorage = new LocalStorage(new WindowStorage(window));
 
 export function resetAllInLocalStorage() {
