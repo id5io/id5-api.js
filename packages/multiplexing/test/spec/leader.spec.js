@@ -245,14 +245,17 @@ describe('ActualLeader', () => {
     follower1.getId.returns(follower1Id);
     follower1.getFetchIdData.returns(follower1FetchIdData);
     follower1.getWindow.returns(leaderWindow);
+    follower1.getCacheId.returns('cacheId1');
     follower2 = sinon.createStubInstance(Follower);
     follower2.getId.returns(follower2Id);
     follower2.getFetchIdData.returns(follower2FetchIdData);
     follower2.getWindow.returns(leaderWindow);
+    follower2.getCacheId.returns('cacheId2');
     follower3 = sinon.createStubInstance(Follower);
     follower3.getId.returns(follower3Id);
     follower3.getFetchIdData.returns(follower3FetchIdData);
     follower3.getWindow.returns(leaderWindow);
+    follower3.getCacheId.returns('cacheId3');
     leader = new ActualLeader(leaderWindow, uidFetcher, leaderProperties, leaderStorage, consentManager, sinon.createStubInstance(Id5CommonMetrics), NoopLogger);
   });
 
@@ -281,13 +284,15 @@ describe('ActualLeader', () => {
         ...follower1FetchIdData,
         integrationId: follower1Id,
         requestCount: 1,
-        role: 'leader'
+        role: 'leader',
+        cacheId: follower1.getCacheId()
       },
       {
         ...follower2FetchIdData,
         integrationId: follower2Id,
         requestCount: 1,
-        role: 'follower'
+        role: 'follower',
+        cacheId: follower2.getCacheId()
       }], false);
 
     // when
@@ -341,13 +346,15 @@ describe('ActualLeader', () => {
         ...follower1FetchIdData,
         integrationId: follower1Id,
         requestCount: 1,
-        role: 'leader'
+        role: 'leader',
+        cacheId: follower1.getCacheId()
       },
       {
         ...follower2FetchIdData,
         integrationId: follower2Id,
         requestCount: 1,
-        role: 'follower'
+        role: 'follower',
+        cacheId: follower2.getCacheId()
       }], false);
     expect(follower1.notifyUidReady).to.be.calledWith(uidFromCache);
     expect(follower2.notifyUidReady).to.be.calledWith(uidFromCache);
@@ -409,13 +416,15 @@ describe('ActualLeader', () => {
         ...follower1FetchIdData,
         integrationId: follower1Id,
         requestCount: 1,
-        role: 'leader'
+        role: 'leader',
+        cacheId: follower1.getCacheId()
       },
       {
         ...follower2FetchIdData,
         integrationId: follower2Id,
         requestCount: 1,
-        role: 'follower'
+        role: 'follower',
+        cacheId: follower2.getCacheId()
       }], false);
     expect(follower1.notifyUidReady).to.be.calledWith(uidFromCache);
     expect(follower2.notifyUidReady).to.be.calledWith(uidFromCache);
@@ -452,13 +461,15 @@ describe('ActualLeader', () => {
         ...follower1FetchIdData,
         integrationId: follower1Id,
         requestCount: 1,
-        role: 'leader'
+        role: 'leader',
+        cacheId: follower1.getCacheId()
       },
       {
         ...follower2FetchIdData,
         integrationId: follower2Id,
         requestCount: 1,
-        role: 'follower'
+        role: 'follower',
+        cacheId: follower2.getCacheId()
       }], false);
 
     // then
@@ -517,13 +528,15 @@ describe('ActualLeader', () => {
         ...follower1FetchIdData,
         integrationId: follower1Id,
         requestCount: 1,
-        role: 'leader'
+        role: 'leader',
+        cacheId: follower1.getCacheId()
       },
       {
         ...follower2FetchIdData,
         integrationId: follower2Id,
         requestCount: 1,
-        role: 'follower'
+        role: 'follower',
+        cacheId: follower2.getCacheId()
       }], false);
 
     expect(follower1.notifyUidReady).to.be.calledWith(uidFromCache);
@@ -570,19 +583,22 @@ describe('ActualLeader', () => {
         ...follower1FetchIdData,
         integrationId: follower1Id,
         requestCount: 2,
-        role: 'leader'
+        role: 'leader',
+        cacheId: follower1.getCacheId()
       },
       {
         ...follower2FetchIdData,
         integrationId: follower2Id,
         requestCount: 2,
-        role: 'follower'
+        role: 'follower',
+        cacheId: follower2.getCacheId()
       },
       {
         ...follower3FetchIdData,
         integrationId: follower3Id,
         requestCount: 1,
-        role: 'follower'
+        role: 'follower',
+        cacheId: follower3.getCacheId()
       }
     ], true);
 
@@ -636,13 +652,15 @@ describe('ActualLeader', () => {
         ...follower1FetchIdData,
         integrationId: follower1Id,
         requestCount: 1,
-        role: 'leader'
+        role: 'leader',
+        cacheId: follower1.getCacheId()
       },
       {
         ...follower2FetchIdData,
         integrationId: follower2Id,
         requestCount: 1,
-        role: 'follower'
+        role: 'follower',
+        cacheId: follower2.getCacheId()
       }], false);
 
     // when
@@ -688,19 +706,22 @@ describe('ActualLeader', () => {
         ...follower1FetchIdData,
         integrationId: follower1Id,
         requestCount: 2,
-        role: 'leader'
+        role: 'leader',
+        cacheId: follower1.getCacheId()
       },
       {
         ...follower2FetchIdData,
         integrationId: follower2Id,
         requestCount: 2,
-        role: 'follower'
+        role: 'follower',
+        cacheId: follower2.getCacheId()
       },
       {
         ...follower3FetchIdData,
         integrationId: follower3Id,
         requestCount: 1,
-        role: 'follower'
+        role: 'follower',
+        cacheId: follower3.getCacheId()
       }
     ], true);
 
@@ -754,13 +775,15 @@ describe('ActualLeader', () => {
         ...follower1FetchIdData,
         integrationId: follower1Id,
         requestCount: 1,
-        role: 'leader'
+        role: 'leader',
+        cacheId: follower1.getCacheId()
       },
       {
         ...follower2FetchIdData,
         integrationId: follower2Id,
         requestCount: 1,
-        role: 'follower'
+        role: 'follower',
+        cacheId: follower2.getCacheId()
       }], false);
 
     // when
@@ -803,19 +826,22 @@ describe('ActualLeader', () => {
         ...follower1FetchIdData,
         integrationId: follower1Id,
         requestCount: 2,
-        role: 'leader'
+        role: 'leader',
+        cacheId: follower1.getCacheId()
       },
       {
         ...follower2FetchIdData,
         integrationId: follower2Id,
         requestCount: 2,
-        role: 'follower'
+        role: 'follower',
+        cacheId: follower2.getCacheId()
       },
       {
         ...follower3FetchIdData,
         integrationId: follower3Id,
         requestCount: 1,
-        role: 'follower'
+        role: 'follower',
+        cacheId: follower3.getCacheId()
       }
     ], true);
 
@@ -875,13 +901,15 @@ describe('ActualLeader', () => {
         ...follower1FetchIdData,
         integrationId: follower1Id,
         requestCount: 1,
-        role: 'leader'
+        role: 'leader',
+        cacheId: follower1.getCacheId()
       },
       {
         ...follower2FetchIdData,
         integrationId: follower2Id,
         requestCount: 1,
-        role: 'follower'
+        role: 'follower',
+        cacheId: follower2.getCacheId()
       }], false);
 
     // then
@@ -945,19 +973,22 @@ describe('ActualLeader', () => {
         ...follower1FetchIdData,
         integrationId: follower1Id,
         requestCount: 2,
-        role: 'leader'
+        role: 'leader',
+        cacheId: follower1.getCacheId()
       },
       {
         ...follower2FetchIdData,
         integrationId: follower2Id,
         requestCount: 2,
-        role: 'follower'
+        role: 'follower',
+        cacheId: follower2.getCacheId()
       },
       {
         ...follower3FetchIdData,
         integrationId: follower3Id,
         requestCount: 1,
-        role: 'follower'
+        role: 'follower',
+        cacheId: follower3.getCacheId()
       }
     ], true);
 
@@ -1059,13 +1090,15 @@ describe('ActualLeader', () => {
           ...follower1FetchIdData,
           integrationId: follower1Id,
           requestCount: 1,
-          role: 'leader'
+          role: 'leader',
+          cacheId: follower1.getCacheId()
         },
         {
           ...follower2FetchIdData,
           integrationId: follower2Id,
           requestCount: 1,
-          role: 'follower'
+          role: 'follower',
+          cacheId: follower2.getCacheId()
         }], false);
 
       // when
@@ -1092,13 +1125,15 @@ describe('ActualLeader', () => {
             ...follower1FetchIdData,
             integrationId: follower1Id,
             requestCount: 2,
-            role: 'leader'
+            role: 'leader',
+            cacheId: follower1.getCacheId()
           },
           {
             ...follower2FetchIdData,
             integrationId: follower2Id,
             requestCount: 2,
-            role: 'follower'
+            role: 'follower',
+            cacheId: follower2.getCacheId()
           }], true);
 
       });
@@ -1131,13 +1166,15 @@ describe('ActualLeader', () => {
         ...follower1FetchIdData,
         integrationId: follower1Id,
         requestCount: 1,
-        role: 'leader'
+        role: 'leader',
+        cacheId: follower1.getCacheId()
       },
       {
         ...follower2FetchIdData,
         integrationId: follower2Id,
         requestCount: 1,
-        role: 'follower'
+        role: 'follower',
+        cacheId: follower2.getCacheId()
       }], false);
   });
 
@@ -1171,13 +1208,15 @@ describe('ActualLeader', () => {
           ...follower1FetchIdData,
           integrationId: follower1Id,
           requestCount: 1,
-          role: 'leader'
+          role: 'leader',
+          cacheId: follower1.getCacheId()
         },
         {
           ...follower2FetchIdData,
           integrationId: follower2Id,
           requestCount: 1,
-          role: 'follower'
+          role: 'follower',
+          cacheId: follower2.getCacheId()
         }], false);
     });
   });
@@ -1209,13 +1248,15 @@ describe('ActualLeader', () => {
         ...follower1FetchIdData,
         integrationId: follower1Id,
         requestCount: 1,
-        role: 'leader'
+        role: 'leader',
+        cacheId: follower1.getCacheId()
       },
       {
         ...follower2FetchIdData,
         integrationId: follower2Id,
         requestCount: 1,
-        role: 'follower'
+        role: 'follower',
+        cacheId: follower2.getCacheId()
       }], true);
   });
 
@@ -1314,9 +1355,9 @@ describe('ActualLeader', () => {
     consentData.gdprApplies = true;
     consentData.consentString = 'gdprConsentString';
     consentData.gppData = {
-      gppString: "GPP_STRING",
+      gppString: 'GPP_STRING',
       applicableSections: [7, 8]
-    }
+    };
 
     follower1.canDoCascade.returns(true);
     follower1FetchIdData.refererInfo = {
@@ -1367,8 +1408,8 @@ describe('ActualLeader', () => {
       partnerId: 3,
       consentString: 'gdprConsentString',
       gdprApplies: true,
-      gppString: "GPP_STRING",
-      gppSid: "7,8"
+      gppString: 'GPP_STRING',
+      gppSid: '7,8'
     });
 
   });
@@ -1439,7 +1480,7 @@ describe('ActualLeader', () => {
     });
     // follower3 is the closest to the top can can do cascade but not requested in response
     expect(follower3.canDoCascade).to.have.not.been.called;
-    expect(follower3.notifyCascadeNeeded).to.have.not. been.called;
+    expect(follower3.notifyCascadeNeeded).to.have.not.been.called;
   });
 
   it('should NOT notify about cascade if response is from cache', function () {
@@ -1452,6 +1493,7 @@ describe('ActualLeader', () => {
     leader.addFollower(follower1);
     const cachedResponse = new CachedResponse({
       universal_uid: 'id5-uid',
+      signature: '12243',
       cascade_needed: true
     });
     uidFetcher.getId.returns({

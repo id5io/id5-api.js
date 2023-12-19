@@ -220,7 +220,8 @@ class Id5PrebidIntegration {
    * @private
    * @param {Config} config
    * @param {PrebidRefererInfo} refererInfo
-   * @returns {Promise<Object>} a JSON object to use to make the fetch request
+   * @param {Logger} log
+   * @returns {FetchIdData} a JSON object to use to make the fetch request
    */
   async _gatherFetchIdData(config, refererInfo, log) {
     const options = config.getOptions();
