@@ -3,13 +3,12 @@ import * as chai from 'chai';
 import {expect} from 'chai';
 import * as Utils from '../../src/utils.js'
 import sinon from 'sinon';
-import {generateId} from 'karma/common/util.js';
 import {Id5CommonMetrics} from '@id5io/diagnostics';
 import sinonChai from 'sinon-chai';
 import {NoopLogger} from '../../src/logger.js';
 import {version} from '../../generated/version.js';
 import {MultiplexingEvent} from '../../src/apiEvent.js';
-import {StorageApi} from '../../src/index.js';
+import {StorageApi} from '../../src/localStorage.js';
 import {ElectionState} from '../../src/instance.js';
 
 chai.use(sinonChai);

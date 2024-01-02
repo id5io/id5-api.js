@@ -1,6 +1,5 @@
 import sinon from 'sinon';
-import ID5 from '../../lib/id5-api';
-import * as utils from '../../lib/utils';
+import ID5 from '../../lib/id5-api.js';
 import {
   DEFAULT_EXTENSIONS,
   defaultInitBypassConsent,
@@ -10,20 +9,19 @@ import {
   TEST_RESPONSE_CASCADE,
   localStorage,
   prepareMultiplexingResponse,
+  sinonFetchResponder,
   STORED_JSON,
   TEST_ID5ID_STORAGE_CONFIG,
   TEST_LAST_STORAGE_CONFIG,
   TEST_RESPONSE_ID5_CONSENT,
   TEST_RESPONSE_ID5ID, defaultInit, setupGppV11Stub, clearGppStub
-} from './test_utils';
-import {EXTENSIONS, Extensions, utils as mxutils} from '@id5io/multiplexing';
-
-let expect = require('chai').expect;
+} from './test_utils.js';
+import {EXTENSIONS, Extensions } from '@id5io/multiplexing';
 
 describe('Fire Usersync Pixel', function () {
-  let ajaxStub;
-  let syncStub;
   let extensionsStub, extensionsCreatorStub;
+  let imageSpy;
+  let server;
 
   before(function () {
     localStorage.removeItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG);
@@ -31,22 +29,17 @@ describe('Fire Usersync Pixel', function () {
   });
 
   beforeEach(function () {
-    syncStub = sinon.stub(utils, 'deferPixelFire').callsFake(function (url, initCallback, callback) {
-      if (utils.isFn(initCallback)) {
-        initCallback();
-      }
-      if (utils.isFn(callback)) {
-        callback();
-      }
-    });
+    imageSpy = sinon.spy(window, 'Image');
+    server = sinon.fakeServer.create();
+    server.respondImmediately = true;
     extensionsStub = sinon.createStubInstance(Extensions);
     extensionsStub.gather.resolves(DEFAULT_EXTENSIONS);
     extensionsCreatorStub = sinon.stub(EXTENSIONS, 'createExtensions').returns(extensionsStub);
   });
 
   afterEach(function () {
-    ajaxStub.restore();
-    syncStub.restore();
+    imageSpy.restore();
+    server.restore();
     extensionsCreatorStub.restore();
     localStorage.removeItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG);
     localStorage.removeItemWithExpiration(TEST_LAST_STORAGE_CONFIG);
@@ -54,20 +47,13 @@ describe('Fire Usersync Pixel', function () {
   });
 
   describe('Without Calling ID5', function () {
-    beforeEach(function () {
-      ajaxStub = sinon.stub(mxutils, 'ajax').callsFake(function (url, callbacks, data, options) {
-        callbacks.success('{}');
-      });
-    });
-
     it('should not fire sync pixel if ID5 is not called', function (done) {
       localStorage.setItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON);
       localStorage.setItemWithExpiration(TEST_LAST_STORAGE_CONFIG, new Date().toUTCString());
 
       ID5.init(defaultInitBypassConsent()).onAvailable(function () {
-        sinon.assert.notCalled(extensionsStub.gather);
-        sinon.assert.notCalled(ajaxStub);
-        sinon.assert.notCalled(syncStub);
+        expect(extensionsStub.gather).to.not.have.been.called;
+        expect(imageSpy).to.not.have.been.called;
         done();
       });
     });
@@ -75,21 +61,25 @@ describe('Fire Usersync Pixel', function () {
 
   describe('With Cascade Needed', function () {
     beforeEach(function () {
-      ajaxStub = sinon.stub(mxutils, 'ajax').callsFake(function (url, callbacks, data, options) {
-        callbacks.success(prepareMultiplexingResponse(TEST_RESPONSE_CASCADE, data));
-      });
+      server.respondWith(sinonFetchResponder(request =>
+        prepareMultiplexingResponse(TEST_RESPONSE_CASCADE, request.requestBody)
+      ));
     });
 
     it('should fire "call" sync pixel if ID5 is called and cascades_needed is true and no partnerUserId is provided', function (done) {
       ID5.init(defaultInitBypassConsent()).onAvailable(function () {
 
-        sinon.assert.calledOnce(extensionsStub.gather);
-        sinon.assert.calledOnce(ajaxStub);
-        expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
-        sinon.assert.calledOnce(syncStub);
-        expect(syncStub.args[0][0]).to.contain(`${ID5_CALL_ENDPOINT}/8.gif`);
-        expect(syncStub.args[0][0]).to.not.contain('fs=');
-        expect(syncStub.args[0][0]).to.contain(`id5id=${TEST_RESPONSE_ID5ID}`);
+        expect(extensionsStub.gather).to.have.been.calledOnce;
+
+        expect(server.requests).to.have.lengthOf(1);
+        expect(server.requests[0].url).to.eq(ID5_FETCH_ENDPOINT);
+
+        expect(imageSpy).to.have.been.calledOnce;
+
+        const pixelUrl = imageSpy.firstCall.returnValue.src;
+        expect(pixelUrl).to.contain(`${ID5_CALL_ENDPOINT}/8.gif`);
+        expect(pixelUrl).to.not.contain('fs=');
+        expect(pixelUrl).to.contain(`id5id=${TEST_RESPONSE_ID5ID}`);
         done();
       });
     });
@@ -100,13 +90,14 @@ describe('Fire Usersync Pixel', function () {
         maxCascades: 5
       }).onAvailable(function () {
 
-        sinon.assert.calledOnce(extensionsStub.gather);
-        sinon.assert.calledOnce(ajaxStub);
-        expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
-        sinon.assert.calledOnce(syncStub);
-        expect(syncStub.args[0][0]).to.contain(`${ID5_CALL_ENDPOINT}/5.gif`);
-        expect(syncStub.args[0][0]).to.not.contain('fs=');
-        expect(syncStub.args[0][0]).to.contain(`id5id=${TEST_RESPONSE_ID5ID}`);
+        expect(extensionsStub.gather).to.have.been.calledOnce;
+
+        expect(server.requests).to.have.lengthOf(1);
+        expect(server.requests[0].url).to.eq(ID5_FETCH_ENDPOINT);
+
+        expect(imageSpy).to.have.been.calledOnce;
+        const pixelUrl = imageSpy.firstCall.returnValue.src;
+        expect(pixelUrl).to.contain(`${ID5_CALL_ENDPOINT}/5.gif`);
         done();
       });
     });
@@ -117,15 +108,17 @@ describe('Fire Usersync Pixel', function () {
         partnerUserId: 'abc123'
       }).onAvailable(function () {
 
-        sinon.assert.calledOnce(extensionsStub.gather);
-        sinon.assert.calledOnce(ajaxStub);
-        expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
-        sinon.assert.calledOnce(syncStub);
-        expect(JSON.parse(ajaxStub.firstCall.args[2]).requests[0].puid).to.be.equal('abc123');
-        expect(syncStub.args[0][0]).to.contain(`${ID5_SYNC_ENDPOINT}/8.gif`);
-        expect(syncStub.args[0][0]).to.contain('puid=abc123');
-        expect(syncStub.args[0][0]).to.not.contain('fs=');
-        expect(syncStub.args[0][0]).to.contain(`id5id=${TEST_RESPONSE_ID5ID}`);
+        expect(extensionsStub.gather).to.have.been.calledOnce;
+
+        expect(server.requests).to.have.lengthOf(1);
+        expect(server.requests[0].url).to.eq(ID5_FETCH_ENDPOINT);
+        const body = JSON.parse(server.requests[0].requestBody);
+        expect(body.requests[0].puid).to.be.equal('abc123');
+
+        expect(imageSpy).to.have.been.calledOnce;
+        const pixelUrl = imageSpy.firstCall.returnValue.src;
+        expect(pixelUrl).to.contain(`${ID5_SYNC_ENDPOINT}/8.gif`);
+        expect(pixelUrl).to.contain('puid=abc123');
         done();
       });
     });
@@ -137,10 +130,11 @@ describe('Fire Usersync Pixel', function () {
         cmpApi: 'iab',
         partnerUserId: 'abc123'
       }).onAvailable(function () {
-        sinon.assert.calledOnce(syncStub);
-        expect(syncStub.args[0][0]).to.contain(`${ID5_SYNC_ENDPOINT}/8.gif`);
-        expect(syncStub.args[0][0]).to.contain('gpp_string=GPP_STRING');
-        expect(syncStub.args[0][0]).to.contain('gpp_sid=-1,0');
+        expect(imageSpy).to.have.been.calledOnce;
+        const pixelUrl = imageSpy.firstCall.returnValue.src;
+        expect(pixelUrl).to.contain(`${ID5_SYNC_ENDPOINT}/8.gif`);
+        expect(pixelUrl).to.contain('gpp_string=GPP_STRING');
+        expect(pixelUrl).to.contain('gpp_sid=-1,0');
         done();
       });
     });
@@ -150,11 +144,7 @@ describe('Fire Usersync Pixel', function () {
         ...defaultInitBypassConsent(),
         maxCascades: -1
       }).onAvailable(function () {
-
-        sinon.assert.calledOnce(extensionsStub.gather);
-        sinon.assert.calledOnce(ajaxStub);
-        expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
-        sinon.assert.notCalled(syncStub);
+        expect(imageSpy).to.not.have.been.called;
         done();
       });
     });
@@ -162,18 +152,19 @@ describe('Fire Usersync Pixel', function () {
 
   describe('Without Cascade Needed', function () {
     beforeEach(function () {
-      ajaxStub = sinon.stub(mxutils, 'ajax').callsFake(function (url, callbacks, data, options) {
-        callbacks.success(prepareMultiplexingResponse(TEST_RESPONSE_ID5_CONSENT, data));
-      });
+      server.respondWith(sinonFetchResponder(request =>
+        prepareMultiplexingResponse(TEST_RESPONSE_ID5_CONSENT, request.requestBody)
+      ));
     });
 
     it('should not fire sync pixel if ID5 is called and cascades_needed is false', function (done) {
       ID5.init(defaultInitBypassConsent()).onAvailable(function () {
+        expect(extensionsStub.gather).to.have.been.calledOnce;
 
-        sinon.assert.calledOnce(extensionsStub.gather);
-        sinon.assert.calledOnce(ajaxStub);
-        expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
-        sinon.assert.notCalled(syncStub);
+        expect(server.requests).to.have.lengthOf(1);
+        expect(server.requests[0].url).to.eq(ID5_FETCH_ENDPOINT);
+
+        expect(imageSpy).to.not.have.been.called;
         done();
       });
     });

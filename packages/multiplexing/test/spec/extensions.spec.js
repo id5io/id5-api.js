@@ -1,7 +1,7 @@
 import {expect} from 'chai';
 import sinon from 'sinon';
-import {Extensions, EXTENSIONS, ID5_LB_ENDPOINT} from '../../src/extensions.js';
-import {NoopLogger} from '../../src/index.js';
+import {EXTENSIONS, ID5_LB_ENDPOINT} from '../../src/extensions.js';
+import {NoopLogger} from '../../src/logger.js';
 import {Id5CommonMetrics} from '@id5io/diagnostics';
 
 

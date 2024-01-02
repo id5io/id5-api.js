@@ -5,7 +5,7 @@ import sinonChai from 'sinon-chai';
 import chaiDateTime from 'chai-datetime';
 import {Store, StoredDataState, StorageConfig} from "../../src/store.js";
 import {ClientStore} from "../../src/clientStore.js";
-import {API_TYPE, ConsentData} from "../../src/index.js";
+import {API_TYPE, ConsentData} from "../../src/consent.js";
 import CONSTANTS from '../../src/constants.js'
 
 chai.use(sinonChai);

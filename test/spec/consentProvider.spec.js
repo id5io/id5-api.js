@@ -1,13 +1,9 @@
-import sinon, {spy, stub} from 'sinon';
-import chai, {expect} from 'chai';
-import sinonChai from 'sinon-chai';
+import sinon from 'sinon';
 import {ConsentDataProvider} from '../../lib/consentProvider.js';
-import clone from 'clone';
 import {API_TYPE, GRANT_TYPE, ID5_GVL_ID, NoopLogger} from "@id5io/multiplexing";
 import {Id5CommonMetrics} from "@id5io/diagnostics";
 
 chai.should();
-chai.use(sinonChai);
 
 const TEST_CONSENT_DATA_V1 = {
   getConsentData: {
@@ -420,7 +416,7 @@ describe('Consent Data Provider', function () {
   describe('framework detection', function () {
     it('should print a warning when no TCF is found (but CCPA is found)', function () {
       // given
-      window.__uspapi = spy();
+      window.__uspapi = sinon.spy();
 
       // when
       consentProvider.refreshConsentData(false, 'iab', undefined);
@@ -431,7 +427,7 @@ describe('Consent Data Provider', function () {
     });
 
     it('should print a warning when no CCPA is found (but TCF is found)', function () {
-      window.__tcfapi = spy();
+      window.__tcfapi = sinon.spy();
       // when
       consentProvider.refreshConsentData(false, 'iab', undefined);
 
@@ -456,7 +452,7 @@ describe('Consent Data Provider', function () {
     let cmpStub;
 
     beforeEach(function () {
-      window.__cmp = cmpStub = stub();
+      window.__cmp = cmpStub = sinon.stub();
     });
 
     afterEach(function () {
@@ -642,7 +638,7 @@ describe('Consent Data Provider', function () {
     let cmpStub;
 
     beforeEach(function () {
-      window.__tcfapi = cmpStub = stub();
+      window.__tcfapi = cmpStub = sinon.stub();
     });
 
     afterEach(function () {
@@ -805,7 +801,7 @@ describe('Consent Data Provider', function () {
     let cmpStub;
 
     beforeEach(function () {
-      window.__uspapi = cmpStub = stub();
+      window.__uspapi = cmpStub = sinon.stub();
     });
 
     afterEach(function () {
@@ -941,7 +937,7 @@ describe('Consent Data Provider', function () {
     let cmpStub;
 
     beforeEach(function () {
-      window.__gpp = cmpStub = stub();
+      window.__gpp = cmpStub = sinon.stub();
     });
 
     afterEach(function () {
@@ -1065,7 +1061,7 @@ describe('Consent Data Provider', function () {
     let cmpStub;
 
     beforeEach(function () {
-      window.__gpp = cmpStub = stub();
+      window.__gpp = cmpStub = sinon.stub();
     });
 
     afterEach(function () {

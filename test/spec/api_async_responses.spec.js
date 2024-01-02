@@ -1,5 +1,5 @@
 import sinon from 'sinon';
-import ID5 from '../../lib/id5-api';
+import ID5 from '../../lib/id5-api.js';
 import {
   CALLBACK_TIMEOUT_MS,
   defaultInit,
@@ -9,10 +9,8 @@ import {
   TEST_RESPONSE_ID5_CONSENT,
   TEST_RESPONSE_ID5ID,
   TEST_RESPONSE_LINK_TYPE
-} from './test_utils';
-import clone from 'clone';
+} from './test_utils.js';
 import {ApiEvent} from '@id5io/multiplexing';
-import {expect} from 'chai';
 
 function stubDelayedUserIdReady(id5Status, timeout, data = {fromCache: false}) {
   setTimeout(() => {

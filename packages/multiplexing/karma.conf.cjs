@@ -15,10 +15,6 @@ module.exports = function (config) {
             'test/**/*.spec.js'
         ],
 
-        // list of files / patterns to exclude
-        exclude: ['test/integration/**/*.js'],
-
-
         // preprocess matching files before serving them to the browser
         // available preprocessors: https://www.npmjs.com/search?q=keywords:karma-preprocessor
         preprocessors: {
@@ -31,10 +27,11 @@ module.exports = function (config) {
             module: {
                 loaders: [
                     {
-                        test: /\.js?$/, exclude: /node_modules/, loader: 'babel-loader',
+                        test: /\.m?js?$/, exclude: /node_modules/, loader: 'babel-loader',
                         options: {
                             presets: [
-                                ['@babel/preset-env', {         "targets": {
+                                ['@babel/preset-env', {
+                                    "targets": {
                                         "browsers": [
                                             "chrome >= 61",
                                             "safari >= 11",

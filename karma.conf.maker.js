@@ -3,37 +3,11 @@
 // For more information, see http://karma-runner.github.io/1.0/config/configuration-file.html
 
 import _ from 'lodash';
-import webpackConf from './webpack.conf.js';
 import path from 'path';
-import {constants as karmaConstants} from 'karma';
 import isDocker from 'is-docker';
-
-function newWebpackConfig(codeCoverage) {
-  // Make a clone here because we plan on mutating this object, and don't want parallel tasks to trample each other.
-  var webpackConfig = _.cloneDeep(webpackConf);
-
-  webpackConfig.devtool = 'inline-source-map';
-
-  if (codeCoverage) {
-    webpackConfig.module.rules.push({
-      enforce: 'post',
-      exclude: /(node_modules)|(test)|(build)/,
-      use: {
-        loader: 'istanbul-instrumenter-loader',
-        options: {esModules: true}
-      },
-      test: /\.js$/
-    });
-  }
-
-  // update babel-loader
-  for (let rule of webpackConfig.module.rules) {
-    if (rule.loader === 'babel-loader') {
-      rule.options.presets.push({'plugins': ['@babel/plugin-transform-runtime']})
-    }
-  }
-  return webpackConfig;
-}
+import nodeResolve from '@rollup/plugin-node-resolve';
+import pkg from 'karma';
+const { constants: karmaConstants, config: cfg } = pkg;
 
 function setReporters(karmaConf, codeCoverage) {
   // In browserstack, the default 'progress' reporter floods the logs.
@@ -68,33 +42,36 @@ function setBrowsers(karmaConf) {
   }
 }
 
-export default function (codeCoverage, watchMode, file) {
-  var webpackConfig = newWebpackConfig(codeCoverage);
-
-  var files = file ? ['test/helpers/id5-apiGlobal.js', file] : [
-    'test/test_index.js',
-    {pattern: 'test/pages/1x1.png', watched: false, included: false, served: true}
-  ];
-
+export default function (codeCoverage, watchMode) {
   var config = {
     // base path that will be used to resolve all patterns (eg. files, exclude)
     basePath: './',
 
-    webpack: webpackConfig,
-    webpackMiddleware: {
-      stats: 'errors-only',
-      noInfo: true
-    },
     // frameworks to use
     // available frameworks: https://npmjs.org/browse/keyword/karma-adapter
-    frameworks: ['es5-shim', 'mocha', 'chai', 'sinon'],
+    frameworks: ['mocha', 'chai'],
 
-    files: files,
+    files: [
+      'node_modules/sinon-chai/lib/sinon-chai.js',
+      'node_modules/clone/clone.js',
+      'test/test_index.js',
+      { pattern: 'test/pages/1x1.png', watched: false, included: false, served: true }
+    ],
 
     // preprocess matching files before serving them to the browser
-    // available preprocessors: https://npmjs.org/browse/keyword/karma-preprocessor
+    // available preprocessors: https://www.npmjs.com/search?q=keywords:karma-preprocessor
     preprocessors: {
-      'test/test_index.js': ['webpack', 'sourcemap']
+      'test/**/*.js': ['rollup']
+    },
+
+    rollupPreprocessor: {
+      // This is just a normal Rollup config object, except that `input` is handled for you.
+      plugins: [nodeResolve()],
+      output: {
+        format: 'iife',
+        sourcemap: 'inline', // Sensible for testing
+        dir: 'build/test/',
+      },
     },
 
     // web server port
@@ -119,7 +96,7 @@ export default function (codeCoverage, watchMode, file) {
     reporters: ['mocha'],
     mochaReporter: {
       showDiff: true,
-      output: 'minimal'
+      output: 'spec'
     },
 
     // Continuous Integration mode
@@ -129,9 +106,8 @@ export default function (codeCoverage, watchMode, file) {
     browserDisconnectTolerance: 1, // default 0
     browserNoActivityTimeout: 4 * 60 * 1000, // default 10000
     captureTimeout: 4 * 60 * 1000 // default 60000
-
   };
   setReporters(config, codeCoverage);
   setBrowsers(config);
-  return config;
+  return cfg.parseConfig(null, config);
 };

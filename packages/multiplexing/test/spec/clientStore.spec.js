@@ -3,10 +3,11 @@ import {expect} from 'chai';
 import sinonChai from 'sinon-chai';
 import sinon from 'sinon';
 import {API_TYPE, GRANT_TYPE, LocalStorageGrant} from '../../src/consent.js';
-import {LocalStorage, ClientStore} from '../../src/index.js';
+import {ClientStore} from '../../src/clientStore.js';
+import {LocalStorage} from '../../src/localStorage.js';
 import {StorageConfig} from '../../src/store.js';
 import {NoopLogger} from '../../src/logger.js';
-import {cyrb53Hash} from '../../src/utils';
+import {cyrb53Hash} from '../../src/utils.js';
 
 const TEST_RESPONSE_ID5_CONSENT = {
     universal_uid: 'testresponseid5id',

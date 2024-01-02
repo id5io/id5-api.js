@@ -130,9 +130,10 @@ export class UidRefresher {
         return new Promise((resolve, reject) => {
           const fetchTimeMeasurement = startTimeMeasurement();
           const url = `${HOST}${MULTI_FETCH_ENDPOINT_V3}`;
-          log.info(`Fetching ID5 ID from:`, url, requests);
+          log.info('Fetching ID5 ID from:', url, requests);
           ajax(url, {
             success: function (jsonResponse) {
+              log.info('Success at fetch call:', jsonResponse);
               fetchTimeMeasurement.record(metrics?.fetchSuccessfulCallTimer());
               try {
                 resolve(refresher._validateResponse(jsonResponse));
@@ -358,7 +359,7 @@ export class UidFetcher {
   getId(fetchRequestIdData, forceFetch = false) {
     const result = new FetchIdResult();
     const log = this._log;
-    log.info('Get id', fetchRequestIdData);
+    log.info('UidFetcher: requested to get an id:', fetchRequestIdData);
     const store = this._store;
     const consentManager = this._consentManager;
     const metrics = this._metrics;

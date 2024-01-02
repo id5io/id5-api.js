@@ -1,5 +1,5 @@
 import sinon from 'sinon';
-import ID5 from '../../lib/id5-api';
+import ID5 from '../../lib/id5-api.js';
 import {
   DEFAULT_EXTENSIONS,
   defaultInit,
@@ -8,6 +8,7 @@ import {
   localStorage,
   prepareMultiplexingResponse,
   resetAllInLocalStorage,
+  sinonFetchResponder,
   STORED_JSON,
   TEST_CONSENT_DATA_STORAGE_CONFIG,
   TEST_ID5ID_STORAGE_CONFIG,
@@ -20,7 +21,7 @@ import {
   TEST_RESPONSE_ID5ID,
   TEST_RESPONSE_LINK_TYPE,
   TEST_RESPONSE_SIGNATURE
-} from './test_utils';
+} from './test_utils.js';
 import {
   API_TYPE,
   ClientStore,
@@ -33,9 +34,7 @@ import {
   StorageConfig,
   utils
 } from '@id5io/multiplexing';
-import * as utils2 from '../../lib/utils';
-
-let expect = require('chai').expect;
+import * as utils2 from '../../lib/utils.js';
 
 describe('ID5 JS API', function () {
 
@@ -73,65 +72,50 @@ describe('ID5 JS API', function () {
   });
 
   describe('Configuration and Parameters', function () {
-    let ajaxStub;
-
-    beforeEach(function () {
-      ajaxStub = sinon.stub(utils, 'ajax').callsFake(function (url, callbacks, data, options) {
-        callbacks.success(prepareMultiplexingResponse(TEST_RESPONSE_ID5_CONSENT, data));
-      });
-    });
-    afterEach(function () {
-      ajaxStub.restore();
-    });
-
     describe('Required Parameters', function () {
       it('should fail if partnerId not set in config', function () {
         // Note fatal configuration error: missing partnerId
-        let id5Status = ID5.init({debugBypassConsent: true});
+        let id5Status = ID5.init({ debugBypassConsent: true });
         expect(id5Status).to.be.undefined;
       });
     });
   });
 
   describe('Standard Storage and Responses', function () {
-    before(function () {
+    let server;
+
+    beforeEach(function () {
+      server = sinon.fakeServer.create();
+      server.respondImmediately = true;
+      server.respondWith(sinonFetchResponder(request =>
+        prepareMultiplexingResponse(TEST_RESPONSE_ID5_CONSENT, request.requestBody)
+      ));
       resetAllInLocalStorage();
     });
+
     afterEach(function () {
+      server.restore();
       resetAllInLocalStorage();
     });
 
     describe('Consent on Request and Response', function () {
-      let ajaxStub;
-
-      beforeEach(function () {
-        ajaxStub = sinon.stub(utils, 'ajax').callsFake(function (url, callbacks, data, options) {
-          callbacks.success(prepareMultiplexingResponse(TEST_RESPONSE_ID5_CONSENT, data));
-        });
-      });
-      afterEach(function () {
-        ajaxStub.restore();
-      });
-
       describe('No Stored Value', function () {
         it('should drop some erratic segments and inform server-side about the dropping', function (done) {
           const id5Status = ID5.init({
             ...defaultInitBypassConsent(),
             segments: [
-              {destination: '22', ids: ['abc']}, // valid
-              {destination: '22', ids: []} // invalid
+              { destination: '22', ids: ['abc'] }, // valid
+              { destination: '22', ids: [] } // invalid
             ]
           });
 
           id5Status.onAvailable(function () {
-            sinon.assert.calledOnce(extensionsStub.gather);
-            sinon.assert.calledOnce(ajaxStub);
-            expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
+            expect(extensionsStub.gather).to.have.been.calledOnce;
+            expect(server.requests).to.have.lengthOf(1);
 
-            const requestData = JSON.parse(ajaxStub.firstCall.args[2]).requests[0];
-            expect(requestData.segments).to.deep.equal([
-              {destination: '22', ids: ['abc']}]);
-            expect(requestData._invalid_segments).to.equal(1);
+            const body = JSON.parse(server.requests[0].requestBody);
+            expect(body.requests[0].segments).to.deep.equal([{ destination: '22', ids: ['abc'] }]);
+            expect(body.requests[0]._invalid_segments).to.equal(1);
             done();
           });
         });
@@ -167,14 +151,13 @@ describe('ID5 JS API', function () {
         it('should not set ab features flag when abTesting is disabled', function (done) {
           ID5.init({
             ...defaultInitBypassConsent(),
-            abTesting: {enabled: false}
+            abTesting: { enabled: false }
           }).onAvailable(function () {
-            sinon.assert.calledOnce(extensionsStub.gather);
-            sinon.assert.calledOnce(ajaxStub);
-            expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
+            expect(extensionsStub.gather).to.have.been.calledOnce;
+            expect(server.requests).to.have.lengthOf(1);
 
-            const requestData = JSON.parse(ajaxStub.firstCall.args[2]).requests[0];
-            expect(requestData.features).to.be.undefined;
+            const body = JSON.parse(server.requests[0].requestBody);
+            expect(body.requests[0].features).to.be.undefined;
             done()
           });
         });
@@ -193,8 +176,8 @@ describe('ID5 JS API', function () {
           });
 
           id5Status.onAvailable(function () {
-            sinon.assert.notCalled(extensionsStub.gather);
-            sinon.assert.notCalled(ajaxStub);
+            expect(extensionsStub.gather).to.not.have.been.called;
+            expect(server.requests).to.have.lengthOf(0);
             expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
             expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
             expect(id5Status.isFromCache()).to.be.true;
@@ -211,8 +194,8 @@ describe('ID5 JS API', function () {
           });
 
           id5Status.onAvailable(function () {
-            sinon.assert.notCalled(extensionsStub.gather);
-            sinon.assert.notCalled(ajaxStub);
+            expect(extensionsStub.gather).to.not.have.been.called;
+            expect(server.requests).to.have.lengthOf(0);
             expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
             expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
             expect(id5Status.isFromCache()).to.be.true;
@@ -234,14 +217,13 @@ describe('ID5 JS API', function () {
           });
 
           id5Status.onAvailable(function () {
-            sinon.assert.calledOnce(extensionsStub.gather);
-            sinon.assert.calledOnce(ajaxStub);
-            expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
+            expect(extensionsStub.gather).to.have.been.calledOnce;
+            expect(server.requests).to.have.lengthOf(1);
+            const body = JSON.parse(server.requests[0].requestBody);
+            expect(body.requests[0].used_refresh_in_seconds).to.be.eq(10);
+            expect(body.requests[0].provided_options.refresh_in_seconds).to.be.eq(10);
             expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
             expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
-            const requestData = JSON.parse(ajaxStub.firstCall.args[2]).requests[0];
-            expect(requestData.used_refresh_in_seconds).to.be.eq(10);
-            expect(requestData.provided_options.refresh_in_seconds).to.be.eq(10);
             done();
           });
         });
@@ -267,14 +249,13 @@ describe('ID5 JS API', function () {
           });
 
           id5Status.onAvailable(function () {
-            sinon.assert.calledOnce(extensionsStub.gather);
-            sinon.assert.calledOnce(ajaxStub);
-            expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
+            expect(extensionsStub.gather).to.have.been.calledOnce;
+            expect(server.requests).to.have.lengthOf(1);
+            const body = JSON.parse(server.requests[0].requestBody);
+            expect(body.requests[0].used_refresh_in_seconds).to.be.eq(11);
+            expect(body.requests[0].provided_options.refresh_in_seconds).to.be.eq(undefined);
             expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
             expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
-            const requestData = JSON.parse(ajaxStub.firstCall.args[2]).requests[0];
-            expect(requestData.used_refresh_in_seconds).to.be.eq(11);
-            expect(requestData.provided_options.refresh_in_seconds).to.be.eq(undefined);
             done();
           });
         });
@@ -288,9 +269,8 @@ describe('ID5 JS API', function () {
           });
 
           id5Status.onAvailable(function () {
-            sinon.assert.calledOnce(extensionsStub.gather);
-            sinon.assert.calledOnce(ajaxStub);
-            expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
+            expect(extensionsStub.gather).to.have.been.calledOnce;
+            expect(server.requests).to.have.lengthOf(1);
             expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
             expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
             done();
@@ -310,9 +290,8 @@ describe('ID5 JS API', function () {
           });
 
           id5Status.onAvailable(function () {
-            sinon.assert.calledOnce(extensionsStub.gather);
-            sinon.assert.calledOnce(ajaxStub);
-            expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
+            expect(extensionsStub.gather).to.have.been.calledOnce;
+            expect(server.requests).to.have.lengthOf(1);
             expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
             expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
             done();
@@ -328,9 +307,8 @@ describe('ID5 JS API', function () {
           });
 
           id5Status.onAvailable(function () {
-            sinon.assert.calledOnce(extensionsStub.gather);
-            sinon.assert.calledOnce(ajaxStub);
-            expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
+            expect(extensionsStub.gather).to.have.been.calledOnce;
+            expect(server.requests).to.have.lengthOf(1);
             expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
             expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
             done();
@@ -351,9 +329,8 @@ describe('ID5 JS API', function () {
           });
 
           id5Status.onAvailable(function () {
-            sinon.assert.calledOnce(extensionsStub.gather);
-            sinon.assert.calledOnce(ajaxStub);
-            expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
+            expect(extensionsStub.gather).to.have.been.calledOnce;
+            expect(server.requests).to.have.lengthOf(1);
             expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
             expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
             done();
@@ -369,9 +346,8 @@ describe('ID5 JS API', function () {
           });
 
           id5Status.onAvailable(function () {
-            sinon.assert.calledOnce(extensionsStub.gather);
-            sinon.assert.calledOnce(ajaxStub);
-            expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
+            expect(extensionsStub.gather).to.have.been.calledOnce;
+            expect(server.requests).to.have.lengthOf(1);
             expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
             expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
             done();
@@ -428,9 +404,8 @@ describe('ID5 JS API', function () {
                 ...defaultInit(),
                 refreshInSeconds: 1000
               }).onAvailable(function () {
-                sinon.assert.calledOnce(extensionsStub.gather);
-                sinon.assert.calledOnce(ajaxStub);
-                expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
+                expect(extensionsStub.gather).to.have.been.calledOnce;
+                expect(server.requests).to.have.lengthOf(1);
                 done();
               });
             });
@@ -446,9 +421,8 @@ describe('ID5 JS API', function () {
                 ...defaultInit(),
                 refreshInSeconds: 1000
               }).onAvailable(function () {
-                sinon.assert.calledOnce(extensionsStub.gather);
-                sinon.assert.calledOnce(ajaxStub);
-                expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
+                expect(extensionsStub.gather).to.have.been.calledOnce;
+                expect(server.requests).to.have.lengthOf(1);
                 done();
               });
             });
@@ -464,8 +438,8 @@ describe('ID5 JS API', function () {
                 ...defaultInit(),
                 refreshInSeconds: 1000
               }).onAvailable(function () {
-                sinon.assert.notCalled(extensionsStub.gather);
-                sinon.assert.notCalled(ajaxStub);
+                expect(extensionsStub.gather).to.not.have.been.called;
+                expect(server.requests).to.have.lengthOf(0);
                 done();
               });
             });
@@ -509,9 +483,8 @@ describe('ID5 JS API', function () {
                 ...defaultInit(),
                 refreshInSeconds: 1000
               }).onAvailable(function () {
-                sinon.assert.calledOnce(extensionsStub.gather);
-                sinon.assert.calledOnce(ajaxStub);
-                expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
+                expect(extensionsStub.gather).to.have.been.calledOnce;
+                expect(server.requests).to.have.lengthOf(1);
                 done();
               });
             });
@@ -527,9 +500,8 @@ describe('ID5 JS API', function () {
                 ...defaultInit(),
                 refreshInSeconds: 1000
               }).onAvailable(function () {
-                sinon.assert.calledOnce(extensionsStub.gather);
-                sinon.assert.calledOnce(ajaxStub);
-                expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
+                expect(extensionsStub.gather).to.have.been.calledOnce;
+                expect(server.requests).to.have.lengthOf(1);
                 done();
               });
             });
@@ -545,8 +517,8 @@ describe('ID5 JS API', function () {
                 ...defaultInit(),
                 refreshInSeconds: 1000
               }).onAvailable(function () {
-                sinon.assert.notCalled(extensionsStub.gather);
-                sinon.assert.notCalled(ajaxStub);
+                expect(extensionsStub.gather).to.not.have.been.called;
+                expect(server.requests).to.have.lengthOf(0);
                 done();
               });
             });
@@ -555,18 +527,8 @@ describe('ID5 JS API', function () {
 
       });
     });
+
     describe('No CMP nor Stored Privacy nor Consent Override on Request, Consent on Response', function () {
-      let ajaxStub;
-
-      beforeEach(function () {
-        ajaxStub = sinon.stub(utils, 'ajax').callsFake(function (url, callbacks, data, options) {
-          callbacks.success(prepareMultiplexingResponse(TEST_RESPONSE_ID5_CONSENT, data));
-        });
-      });
-      afterEach(function () {
-        ajaxStub.restore();
-      });
-
       describe('Stored Value', function () {
         beforeEach(function () {
           localStorage.setItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON);
@@ -581,9 +543,8 @@ describe('ID5 JS API', function () {
           });
 
           id5Status.onAvailable(function () {
-            sinon.assert.calledOnce(extensionsStub.gather);
-            sinon.assert.calledOnce(ajaxStub);
-            expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
+            expect(extensionsStub.gather).to.have.been.calledOnce;
+            expect(server.requests).to.have.lengthOf(1);
             expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
             expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
             expect(id5Status.isFromCache()).to.be.false;
@@ -600,9 +561,8 @@ describe('ID5 JS API', function () {
           });
 
           id5Status.onAvailable(function () {
-            sinon.assert.calledOnce(extensionsStub.gather);
-            sinon.assert.calledOnce(ajaxStub);
-            expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
+            expect(extensionsStub.gather).to.have.been.calledOnce;
+            expect(server.requests).to.have.lengthOf(1);
             expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
             expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
             done();
@@ -616,9 +576,8 @@ describe('ID5 JS API', function () {
           });
 
           id5Status.onAvailable(function () {
-            sinon.assert.calledOnce(extensionsStub.gather);
-            sinon.assert.calledOnce(ajaxStub);
-            expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
+            expect(extensionsStub.gather).to.have.been.calledOnce;
+            expect(server.requests).to.have.lengthOf(1);
             expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
             expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
             done();
@@ -635,9 +594,8 @@ describe('ID5 JS API', function () {
           });
 
           id5Status.onAvailable(function () {
-            sinon.assert.calledOnce(extensionsStub.gather);
-            sinon.assert.calledOnce(ajaxStub);
-            expect(ajaxStub.firstCall.args[0]).to.contain(ID5_FETCH_ENDPOINT);
+            expect(extensionsStub.gather).to.have.been.calledOnce;
+            expect(server.requests).to.have.lengthOf(1);
             expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
             expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
             done();
@@ -647,17 +605,13 @@ describe('ID5 JS API', function () {
     });
 
     describe('With User Agent hints enabled', function () {
-      let ajaxStub, uaDataStub;
+      let uaDataStub;
 
       beforeEach(function () {
-        ajaxStub = sinon.stub(utils, 'ajax').callsFake(function (url, callbacks, data, options) {
-          callbacks.success(prepareMultiplexingResponse(TEST_RESPONSE_ID5_CONSENT, data));
-        });
-        uaDataStub = sinon.stub(utils2, 'gatherUaHints');
+        uaDataStub = sinon.stub(window.NavigatorUAData.prototype, 'getHighEntropyValues');
       });
 
       afterEach(function () {
-        ajaxStub.restore();
         uaDataStub.restore();
       });
 
@@ -670,6 +624,10 @@ describe('ID5 JS API', function () {
               'version': '101'
             },
             {
+              'brand': 'Not;A=Brand',
+              'version': '8'
+            },
+            {
               'brand': 'Froogle Chrome',
               'version': '101'
             }
@@ -678,6 +636,10 @@ describe('ID5 JS API', function () {
             {
               'brand': 'Chromium',
               'version': '101.0.4951.64'
+            },
+            {
+              'brand': 'Not;A=Brand',
+              'version': '8.0.0.0'
             },
             {
               'brand': 'Froogle Chrome',
@@ -695,27 +657,25 @@ describe('ID5 JS API', function () {
         });
 
         id5Status.onAvailable(function () {
-          sinon.assert.calledOnce(extensionsStub.gather);
-          sinon.assert.calledOnce(ajaxStub);
-          const URL = ajaxStub.firstCall.args[0];
-          expect(URL).to.contain(ID5_FETCH_ENDPOINT);
-          const callData = JSON.parse(ajaxStub.firstCall.args[2]).requests[0];
-          expect(callData.ua_hints).to.be.an('object');
-          expect(callData.ua_hints.architecture).to.equal('x86');
-          expect(callData.ua_hints.brands).to.have.lengthOf(2); // Note ' Not A;Brand' gets filtered
-          expect(callData.ua_hints.brands[0].brand).to.equal('Chromium');
-          expect(callData.ua_hints.brands[0].version).to.equal('101');
-          expect(callData.ua_hints.brands[1].brand).to.equal('Froogle Chrome');
-          expect(callData.ua_hints.brands[1].version).to.equal('101');
-          expect(callData.ua_hints.fullVersionList).to.have.lengthOf(2); // Note ' Not A;Brand' gets filtered
-          expect(callData.ua_hints.fullVersionList[0].brand).to.equal('Chromium');
-          expect(callData.ua_hints.fullVersionList[0].version).to.equal('101.0.4951.64');
-          expect(callData.ua_hints.fullVersionList[1].brand).to.equal('Froogle Chrome');
-          expect(callData.ua_hints.fullVersionList[1].version).to.equal('101.0.4951.64');
-          expect(callData.ua_hints.mobile).to.be.false;
-          expect(callData.ua_hints.model).to.equal('');
-          expect(callData.ua_hints.platform).to.equal('Linux');
-          expect(callData.ua_hints.platformVersion).to.equal('5.17.9');
+          expect(extensionsStub.gather).to.have.been.calledOnce;
+          expect(server.requests).to.have.lengthOf(1);
+          const body = JSON.parse(server.requests[0].requestBody);
+          expect(body.requests[0].ua_hints).to.be.an('object');
+          expect(body.requests[0].ua_hints.architecture).to.equal('x86');
+          expect(body.requests[0].ua_hints.brands).to.have.lengthOf(2); // Note ' Not A;Brand' gets filtered
+          expect(body.requests[0].ua_hints.brands[0].brand).to.equal('Chromium');
+          expect(body.requests[0].ua_hints.brands[0].version).to.equal('101');
+          expect(body.requests[0].ua_hints.brands[1].brand).to.equal('Froogle Chrome');
+          expect(body.requests[0].ua_hints.brands[1].version).to.equal('101');
+          expect(body.requests[0].ua_hints.fullVersionList).to.have.lengthOf(2); // Note ' Not A;Brand' gets filtered
+          expect(body.requests[0].ua_hints.fullVersionList[0].brand).to.equal('Chromium');
+          expect(body.requests[0].ua_hints.fullVersionList[0].version).to.equal('101.0.4951.64');
+          expect(body.requests[0].ua_hints.fullVersionList[1].brand).to.equal('Froogle Chrome');
+          expect(body.requests[0].ua_hints.fullVersionList[1].version).to.equal('101.0.4951.64');
+          expect(body.requests[0].ua_hints.mobile).to.be.false;
+          expect(body.requests[0].ua_hints.model).to.equal('');
+          expect(body.requests[0].ua_hints.platform).to.equal('Linux');
+          expect(body.requests[0].ua_hints.platformVersion).to.equal('5.17.9');
           done();
         });
       });

@@ -1,8 +1,5 @@
 import sinon from 'sinon';
-import * as utils from '../../lib/utils';
-
-let assert = require('assert');
-const expect = require('chai').expect;
+import * as utils from '../../lib/utils.js';
 
 describe('Utils', function () {
   const OBJ_STRING = 's',
@@ -35,7 +32,7 @@ describe('Utils', function () {
       };
 
       let output = Object.assign(target, source);
-      assert.deepStrictEqual(output, expectedResult);
+      expect(output).to.deep.eq(expectedResult);
     });
 
     it('should merge two input object even though target object is empty', function () {
@@ -45,7 +42,7 @@ describe('Utils', function () {
       };
 
       var output = Object.assign(target, source);
-      assert.deepStrictEqual(output, source);
+      expect(output).to.deep.eq(source);
     });
 
     it('just return target object, if the source object is empty', function () {
@@ -56,7 +53,7 @@ describe('Utils', function () {
       var source = {};
 
       var output = Object.assign(target, source);
-      assert.deepStrictEqual(output, target);
+      expect(output).to.deep.eq(target);
     });
   });
 
@@ -72,47 +69,47 @@ describe('Utils', function () {
   describe('isA', function () {
     it('should return true with string object', function () {
       var output = utils.isA(OBJ_STRING, TYPE_STRING);
-      assert.deepStrictEqual(output, true);
+      expect(output).to.be.true;
     });
 
     it('should return false with object', function () {
       var output = utils.isA(OBJ_OBJECT, TYPE_STRING);
-      assert.deepStrictEqual(output, false);
+      expect(output).to.be.false;
     });
 
     it('should return true with object', function () {
       var output = utils.isA(OBJ_OBJECT, TYPE_OBJECT);
-      assert.deepStrictEqual(output, true);
+      expect(output).to.be.true;
     });
 
     it('should return false with array object', function () {
       var output = utils.isA(OBJ_ARRAY, TYPE_OBJECT);
-      assert.deepStrictEqual(output, false);
+      expect(output).to.be.false;
     });
 
     it('should return true with array object', function () {
       var output = utils.isA(OBJ_ARRAY, TYPE_ARRAY);
-      assert.deepStrictEqual(output, true);
+      expect(output).to.be.true;
     });
 
     it('should return false with array object', function () {
       var output = utils.isA(OBJ_ARRAY, TYPE_FUNCTION);
-      assert.deepStrictEqual(output, false);
+      expect(output).to.be.false;
     });
 
     it('should return true with function', function () {
       var output = utils.isA(OBJ_FUNCTION, TYPE_FUNCTION);
-      assert.deepStrictEqual(output, true);
+      expect(output).to.be.true;
     });
 
     it('should return false with number', function () {
       var output = utils.isA(OBJ_FUNCTION, TYPE_NUMBER);
-      assert.deepStrictEqual(output, false);
+      expect(output).to.be.false;
     });
 
     it('should return true with number', function () {
       var output = utils.isA(OBJ_NUMBER, TYPE_NUMBER);
-      assert.deepStrictEqual(output, true);
+      expect(output).to.be.true;
     });
   });
 
@@ -132,141 +129,147 @@ describe('Utils', function () {
   describe('isFn', function () {
     it('should return true with input function', function () {
       var output = utils.isFn(OBJ_FUNCTION);
-      assert.deepStrictEqual(output, true);
+      expect(output).to.be.true;
     });
 
     it('should return false with input string', function () {
       var output = utils.isFn(OBJ_STRING);
-      assert.deepStrictEqual(output, false);
+      expect(output).to.be.false;
     });
 
     it('should return false with input number', function () {
       var output = utils.isFn(OBJ_NUMBER);
-      assert.deepStrictEqual(output, false);
+      expect(output).to.be.false;
     });
 
     it('should return false with input Array', function () {
       var output = utils.isFn(OBJ_ARRAY);
-      assert.deepStrictEqual(output, false);
+      expect(output).to.be.false;
     });
 
     it('should return false with input object', function () {
       var output = utils.isFn(OBJ_OBJECT);
-      assert.deepStrictEqual(output, false);
+      expect(output).to.be.false;
     });
   });
 
   describe('isStr', function () {
     it('should return true with input string', function () {
       var output = utils.isStr(OBJ_STRING);
-      assert.deepStrictEqual(output, true);
+      expect(output).to.be.true;
     });
 
     it('should return false with input number', function () {
       var output = utils.isStr(OBJ_NUMBER);
-      assert.deepStrictEqual(output, false);
+      expect(output).to.be.false;
     });
 
     it('should return false with input object', function () {
       var output = utils.isStr(OBJ_OBJECT);
-      assert.deepStrictEqual(output, false);
+      expect(output).to.be.false;
     });
 
     it('should return false with input array', function () {
       var output = utils.isStr(OBJ_ARRAY);
-      assert.deepStrictEqual(output, false);
+      expect(output).to.be.false;
     });
 
     it('should return false with input function', function () {
       var output = utils.isStr(OBJ_FUNCTION);
-      assert.deepStrictEqual(output, false);
+      expect(output).to.be.false;
     });
   });
 
   describe('isArray', function () {
     it('should return false with input string', function () {
       var output = utils.isArray(OBJ_STRING);
-      assert.deepStrictEqual(output, false);
+      expect(output).to.be.false;
     });
 
     it('should return false with input number', function () {
       var output = utils.isArray(OBJ_NUMBER);
-      assert.deepStrictEqual(output, false);
+      expect(output).to.be.false;
     });
 
     it('should return false with input object', function () {
       var output = utils.isArray(OBJ_OBJECT);
-      assert.deepStrictEqual(output, false);
+      expect(output).to.be.false;
     });
 
     it('should return true with input array', function () {
       var output = utils.isArray(OBJ_ARRAY);
-      assert.deepStrictEqual(output, true);
+      expect(output).to.be.true;
     });
 
     it('should return false with input function', function () {
       var output = utils.isArray(OBJ_FUNCTION);
-      assert.deepStrictEqual(output, false);
+      expect(output).to.be.false;
     });
   });
 
   describe('isPlainObject', function () {
     it('should return false with input string', function () {
       var output = utils.isPlainObject(OBJ_STRING);
-      assert.deepStrictEqual(output, false);
+      expect(output).to.be.false;
     });
 
     it('should return false with input number', function () {
       var output = utils.isPlainObject(OBJ_NUMBER);
-      assert.deepStrictEqual(output, false);
+      expect(output).to.be.false;
     });
 
     it('should return true with input object', function () {
       var output = utils.isPlainObject(OBJ_OBJECT);
-      assert.deepStrictEqual(output, true);
+      expect(output).to.be.true;
     });
 
     it('should return false with input array', function () {
       var output = utils.isPlainObject(OBJ_ARRAY);
-      assert.deepStrictEqual(output, false);
+      expect(output).to.be.false;
     });
 
     it('should return false with input function', function () {
       var output = utils.isPlainObject(OBJ_FUNCTION);
-      assert.deepStrictEqual(output, false);
+      expect(output).to.be.false;
     });
   });
 
   describe('isEmpty', function () {
     it('should return true with empty object', function () {
       var output = utils.isEmpty(OBJ_OBJECT);
-      assert.deepStrictEqual(output, true);
+      expect(output).to.be.true;
     });
 
     it('should return false with non-empty object', function () {
       var obj = { a: 'b' };
       var output = utils.isEmpty(obj);
-      assert.deepStrictEqual(output, false);
+      expect(output).to.be.false;
     });
 
     it('should return false with null', function () {
       var obj = null;
       var output = utils.isEmpty(obj);
-      assert.deepStrictEqual(output, true);
+      expect(output).to.be.true;
     });
   });
 
   describe('deferPixelFire', function () {
-    let fn, fn2;
+    let imageSpy;
+
     beforeEach(function () {
-      fn = sinon.spy();
-      fn2 = sinon.spy();
+      imageSpy = sinon.spy(window, 'Image');
+    });
+
+    afterEach(function () {
+      imageSpy.restore();
     });
 
     it('should be called immediately if dom is already ready', function () {
       // Served by Karma ('files' property)
-      utils.deferPixelFire('/base/test/pages/1x1.png', fn);
-      sinon.assert.calledOnce(fn);
+      utils.deferPixelFire('/base/test/pages/1x1.png');
+      expect(imageSpy).to.have.been.calledOnce;
+      const pixelUrl = imageSpy.firstCall.returnValue.src;
+      expect(pixelUrl).to.contain('/base/test/pages/1x1.png');
     });
 
     it('should not be called synchronously, and called on DOMContentLoaded', function (done) {
@@ -277,19 +280,19 @@ describe('Utils', function () {
       });
 
       // Served by Karma ('files' property)
-      utils.deferPixelFire('/base/test/pages/1x1.png', fn, fn2);
+      utils.deferPixelFire('/base/test/pages/1x1.png');
 
-      sinon.assert.notCalled(fn);
+      expect(imageSpy).to.not.have.been.called;
 
       // Fake DOMContentLoaded
       var event = document.createEvent('Event');
       event.initEvent('DOMContentLoaded', true, true);
       document.dispatchEvent(event);
 
-      sinon.assert.calledOnce(fn);
-
       setTimeout(() => {
-        sinon.assert.calledOnce(fn2);
+        expect(imageSpy).to.have.been.calledOnce;
+        const pixelUrl = imageSpy.firstCall.returnValue.src;
+        expect(pixelUrl).to.contain('/base/test/pages/1x1.png');
         Object.defineProperty(document, 'readyState', {
           value: 'complete',
           writable: false

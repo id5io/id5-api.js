@@ -1,23 +1,15 @@
 import * as chai from 'chai';
-import {expect} from 'chai';
+import { expect } from 'chai';
 import sinonChai from 'sinon-chai';
 import sinon from 'sinon';
-import {RefreshedResponse, RefreshResult, UidFetcher} from '../../src/fetch.js';
-import {Extensions} from '../../src/extensions.js';
-import {
-  API_TYPE,
-  ConsentData,
-  ConsentManager,
-  GppConsentData,
-  GRANT_TYPE,
-  LocalStorageGrant,
-  NoConsentError,
-  NoopLogger,
-  WindowStorage
-} from '../../src/index.js';
-import {Id5CommonMetrics} from '@id5io/diagnostics';
+import { RefreshedResponse, RefreshResult, UidFetcher } from '../../src/fetch.js';
+import { Extensions } from '../../src/extensions.js';
+import { API_TYPE, ConsentData, ConsentManager, GppConsentData, GRANT_TYPE, LocalStorageGrant, NoConsentError } from '../../src/consent.js';
+import { NoopLogger } from '../../src/logger.js';
+import { WindowStorage } from '../../src/localStorage.js';
+import { Id5CommonMetrics } from '@id5io/diagnostics';
 import * as utils from '../../src/utils.js';
-import {Store, StoredDataState} from '../../src/store.js';
+import { Store, StoredDataState } from '../../src/store.js';
 
 chai.use(sinonChai);
 
@@ -44,7 +36,7 @@ const DEFAULT_EXTENSIONS = {
 const origin = 'api';
 const originVersion = '1.0.36';
 
-const PRIVACY_DATA_RETURNED = {jurisdiction: 'gdpr', id5_consent: true};
+const PRIVACY_DATA_RETURNED = { jurisdiction: 'gdpr', id5_consent: true };
 
 const _DEBUG = false;
 
@@ -186,7 +178,7 @@ function prepareJsonResponse(genericResponse, requestString) {
   const request = JSON.parse(requestString);
   const responses = {};
   request.requests.forEach(rq => responses[rq.requestId] = {});
-  return JSON.stringify({generic: genericResponse, responses: responses});
+  return JSON.stringify({ generic: genericResponse, responses: responses });
 }
 
 describe('UidFetcher', function () {
@@ -255,11 +247,11 @@ describe('UidFetcher', function () {
 
       [
         ['default', {}, {}],
-        ['with pd', {pd: 'PD_DATA'}, {pd: 'PD_DATA'}],
-        ['with partnerUserId', {partnerUserId: '1234567'}, {puid: '1234567'}],
-        ['with provider', {provider: 'some_provider'}, {provider: 'some_provider'}],
-        ['with ua hints', {uaHints: buildTestUaHints()}, {ua_hints: buildTestUaHints()}],
-        ['with abTesting', {abTesting: {enabled: true, controlGroupPct: 0.5}}, {
+        ['with pd', { pd: 'PD_DATA' }, { pd: 'PD_DATA' }],
+        ['with partnerUserId', { partnerUserId: '1234567' }, { puid: '1234567' }],
+        ['with provider', { provider: 'some_provider' }, { provider: 'some_provider' }],
+        ['with ua hints', { uaHints: buildTestUaHints() }, { ua_hints: buildTestUaHints() }],
+        ['with abTesting', { abTesting: { enabled: true, controlGroupPct: 0.5 } }, {
           ab_testing: {
             enabled: true,
             control_group_pct: 0.5
@@ -267,32 +259,32 @@ describe('UidFetcher', function () {
         }],
         ['with segments', {
           segments: [
-            {destination: '22', ids: ['abc']},
-            {destination: '21', ids: ['abcd']}
+            { destination: '22', ids: ['abc'] },
+            { destination: '21', ids: ['abcd'] }
           ]
         }, {
-          segments: [
-            {destination: '22', ids: ['abc']},
-            {destination: '21', ids: ['abcd']}
-          ]
-        }],
+            segments: [
+              { destination: '22', ids: ['abc'] },
+              { destination: '21', ids: ['abcd'] }
+            ]
+          }],
         ['with invalid segments', {
           segments: [
-            {destination: '22', ids: ['abc']}
+            { destination: '22', ids: ['abc'] }
           ],
           invalidSegmentsCount: 10
         }, {
-          segments: [
-            {destination: '22', ids: ['abc']}
-          ],
-          _invalid_segments: 10
-        }],
-        ['with provided refreshInSeconds', {providedRefreshInSeconds: 1000}, {
+            segments: [
+              { destination: '22', ids: ['abc'] }
+            ],
+            _invalid_segments: 10
+          }],
+        ['with provided refreshInSeconds', { providedRefreshInSeconds: 1000 }, {
           provided_options: {
             refresh_in_seconds: 1000
           }
         }],
-        ['with trace', {trace: true}, {_trace: true}]
+        ['with trace', { trace: true }, { _trace: true }]
       ].forEach(([description, data, expectedInRequest]) => {
         it(`should call multi-fetch and correctly use parameters to create the fetch request body (${description})`, async () => {
           // given
@@ -427,7 +419,7 @@ describe('UidFetcher', function () {
 
       it(`passes GPP consent information to server`, function () {
         const gppAllowed = new ConsentData(API_TYPE.GPP_V1_1)
-        gppAllowed.gppData = new GppConsentData(API_TYPE.GPP_V1_1, true, [2,6], "GPP_STRING")
+        gppAllowed.gppData = new GppConsentData(API_TYPE.GPP_V1_1, true, [2, 6], "GPP_STRING")
 
         // when
         consentManager.getConsentData.resolves(gppAllowed);
@@ -492,9 +484,9 @@ describe('UidFetcher', function () {
       });
 
       [
-        {desc: 'refresh required', responseComplete: true, refreshRequired: true, consentHasChanged: false},
-        {desc: 'consent changed', responseComplete: true, refreshRequired: false, consentHasChanged: true},
-        {desc: 'response incomplete', responseComplete: false, refreshRequired: false, consentHasChanged: false}
+        { desc: 'refresh required', responseComplete: true, refreshRequired: true, consentHasChanged: false },
+        { desc: 'consent changed', responseComplete: true, refreshRequired: false, consentHasChanged: true },
+        { desc: 'response incomplete', responseComplete: false, refreshRequired: false, consentHasChanged: false }
       ].forEach(testCase => {
         it(`should provide from cache and then trigger a refresh when ${testCase.desc}`, function () {
           // given
@@ -550,10 +542,10 @@ describe('UidFetcher', function () {
       });
 
       [
-        {desc: 'pd changed', hasValidUid: true, pdHasChanged: true, segmentsHaveChanged: false, isStale: false},
-        {desc: 'segments changed', hasValidUid: true, pdHasChanged: false, segmentsHaveChanged: true, isStale: false},
-        {desc: 'is stale', hasValidUid: true, pdHasChanged: false, segmentsHaveChanged: false, isStale: true},
-        {desc: 'has invalid uid', hasValidUid: false, pdHasChanged: false, segmentsHaveChanged: false, isStale: false}
+        { desc: 'pd changed', hasValidUid: true, pdHasChanged: true, segmentsHaveChanged: false, isStale: false },
+        { desc: 'segments changed', hasValidUid: true, pdHasChanged: false, segmentsHaveChanged: true, isStale: false },
+        { desc: 'is stale', hasValidUid: true, pdHasChanged: false, segmentsHaveChanged: false, isStale: true },
+        { desc: 'has invalid uid', hasValidUid: false, pdHasChanged: false, segmentsHaveChanged: false, isStale: false }
       ].forEach(testCase => {
         it(`should not provide from cache but rather make a request when (${testCase.desc})`, function () {
           // given

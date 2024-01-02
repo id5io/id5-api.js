@@ -175,3 +175,11 @@ export class MultiplexingStub {
     this.stubCreate.restore()
   }
 }
+
+export function sinonFetchResponder(responseProvider) {
+  return (request) => {
+    if (request.url === ID5_FETCH_ENDPOINT) {
+      request.respond(200, { 'Content-Type': ' application/json' }, responseProvider(request));
+    }
+  }
+}

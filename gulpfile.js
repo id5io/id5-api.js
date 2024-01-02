@@ -1,24 +1,28 @@
 import log from 'fancy-log';
 import _ from 'lodash';
 import yargs from 'yargs';
-import gulp from 'gulp';
 import del from 'del';
 import connect from 'gulp-connect';
-import webpack from 'webpack';
-import webpackStream from 'webpack-stream';
-import uglify from 'gulp-uglify';
 import karma from 'karma';
 import karmaConfMaker from './karma.conf.maker.js';
 import opens from 'opn';
-import webpackConfig from './webpack.conf.js';
-import header from 'gulp-header';
+import gulp from 'gulp';
 import shell from 'gulp-shell';
 import eslint from 'gulp-eslint';
 import gulpif from 'gulp-if';
-import gv from 'genversion';
+import header from 'gulp-header';
 import mocha from 'gulp-mocha';
+import uglify from 'gulp-uglify';
+import gv from 'genversion';
 import isDocker from 'is-docker';
 import { readFile } from 'fs/promises';
+
+// Rollup specific stuff
+import { rollup } from 'rollup';
+import babel from '@rollup/plugin-babel';
+import nodeResolve from '@rollup/plugin-node-resolve';
+import { Readable, Transform } from 'node:stream';
+import File from 'vinyl';
 
 const id5Api = JSON.parse(await readFile('package.json'));
 const port = 9998;
@@ -64,10 +68,6 @@ function watch(done) {
     '!test/spec/loaders/**/*.js',
     'package.json'
   ]);
-  var loaderWatcher = gulp.watch([
-    'loaders/**/*.js',
-    'test/spec/loaders/**/*.js'
-  ]);
 
   connect.server({
     https: argv.https,
@@ -77,7 +77,6 @@ function watch(done) {
   });
 
   mainWatcher.on('all', gulp.series('clean', 'generate', gulp.parallel(lint, 'build-bundle-dev', test)));
-  loaderWatcher.on('all', gulp.series(lint));
   done();
 }
 
@@ -89,55 +88,115 @@ var banner = `/**
  */
 `;
 
-const isNotMap = file => file.extname !== '.map';
+const bundles = [
+  { entry: 'src/index.js', output: 'id5-api.js' },
+  { entry: 'src/index.js', output: 'id5-api-lite.js' },
+  { entry: 'src/esp.js', output: 'esp.js' },
+  { entry: 'src/id5PrebidModule.js', output: 'id5PrebidModule.js' },
+];
 
-function makeDev(entryPoint, outputFileName) {
-  return () => {
-    var cloned = _.cloneDeep(webpackConfig);
-    cloned.output.filename = outputFileName;
-    return gulp.src([entryPoint])
-      .pipe(webpackStream(cloned, webpack))
-      .pipe(gulpif(isNotMap, header(banner)))
-      .pipe(gulp.dest('build/dev'))
-      .pipe(connect.reload());
-  }
+
+function rollupConfig(input, outputFileName) {
+  return {
+    input,
+    output: {
+      file: outputFileName,
+      format: 'iife',
+      sourcemap: true,
+    },
+    plugins: [
+      babel({ babelHelpers: 'bundled' }),
+      nodeResolve(),
+    ]
+  };
 }
+
+// Builds an object stream containing all the bundle output chunks
+function buildRollupBaseStream() {
+  const result = new Readable({
+    // stub _read() as it's not available on Readable stream, needed by gulp et al
+    read: () => { },
+    objectMode: true,
+  });
+
+  const build = async () => {
+    for(const bundleDef of bundles) {
+      const options = rollupConfig(bundleDef.entry, bundleDef.output);
+      const bundle = await rollup(options);
+      result.emit('bundle', bundle);
+      const { output } = await bundle.generate(options.output);
+      for (const chunk of output) {
+        result.push(chunk);
+      }
+    }
+  };
+
+  build().then(() => {
+    // signal end of write
+    result.push(null);
+  }).catch((error) => {
+    result.emit('error', error);
+  });
+
+  return result;
+}
+
+// Adapts the Rollup bundle stream we obtained before to a Vinyl Files stream
+const rollupTransformer = new Transform({
+  objectMode: true,
+  transform(chunk, encoding, callback) {
+    let file = null, error = null, contents;
+    switch(chunk.type) {
+      case 'asset':
+        contents = Buffer.from(chunk.source, encoding);
+        file = new File({
+          path: chunk.fileName,
+          contents,
+        });
+        break;
+      case 'chunk':
+        contents = Buffer.from(chunk.code, encoding);
+        file = new File({
+          path: chunk.fileName,
+          contents,
+        });
+        break;
+      default:
+        error = new Error(`Unexpected chunk type: ${chunk.type}`);
+    }
+    callback(error, file);
+  }
+});
+
+const isNotMap = file => !file.path.endsWith('.map');
+
+function bundleDev() {
+  return buildRollupBaseStream()
+    .pipe(rollupTransformer)
+    .pipe(gulpif(isNotMap, header(banner)))
+    .pipe(gulp.dest('build/dev'));
+}
+
+function bundleProd() {
+  return buildRollupBaseStream()
+    .pipe(rollupTransformer)
+    .pipe(gulpif(isNotMap, uglify()))
+    .pipe(gulpif(isNotMap, header(banner)))
+    .pipe(gulp.dest('build/dist'))
+}
+
+
 
 function makeProd(entryPoint, outputFileName) {
   return () => {
-    var cloned = _.cloneDeep(webpackConfig);
-    cloned.output.filename = outputFileName;
-    return gulp.src([entryPoint])
-      .pipe(webpackStream(cloned, webpack))
+    return buildRollupBaseStream(entryPoint, outputFileName)
+      .pipe(rollupTransformer)
       .pipe(gulpif(isNotMap, uglify()))
       .pipe(gulpif(isNotMap, header(banner)))
-      .pipe(gulp.dest('build/dist'));
-  }
+      .pipe(gulp.dest('build/dist'))
+  };
 }
 
-
-
-function makeEspJsPkg() {
-  var cloned = _.cloneDeep(webpackConfig);
-  cloned.output.filename = 'esp.js';
-  return gulp.src(['src/esp.js'])
-  .pipe(webpackStream(cloned, webpack))
-  .pipe(gulpif(isNotMap, uglify()))
-  .pipe(gulpif(isNotMap, header(banner)))
-  .pipe(gulp.dest('build/dist'));
-}
-
-// Run the unit tests in headless chrome.
-//
-// If --watch is given, the task will re-run unit tests whenever the source code changes
-// If --file "<path-to-test-file>" is given, the task will only run tests in the specified file.
-function test(done) {
-  if (argv.notest) {
-    done();
-  } else {
-    new karma.Server(karmaConfMaker(false, argv.watch, argv.file), karmaCallback(done)).start();
-  }
-}
 
 function karmaCallback(done) {
   return function(exitCode) {
@@ -149,15 +208,23 @@ function karmaCallback(done) {
   }
 }
 
-// If --file "<path-to-test-file>" is given, the task will only run tests in the specified file.
+// Run the unit tests in headless chrome.
+// If --watch is given, the task will re-run unit tests whenever the source code changes
+function test(done) {
+  if (argv.notest) {
+    done();
+  } else {
+    new karma.Server(karmaConfMaker(false, argv.continuous), karmaCallback(done)).start();
+  }
+}
+
 function testCoverage(done) {
-  new karma.Server(karmaConfMaker(true, false, false, argv.file), karmaCallback(done)).start();
+  new karma.Server(karmaConfMaker(true, false), karmaCallback(done)).start();
 }
 
 function coveralls() { // 2nd arg is a dependency: 'test' must be finished
   // first send results of istanbul's test coverage to coveralls.io.
-  return gulp.src('gulpfile.js', { read: false }) // You have to give it a file, but you don't
-  // have to read it.
+  return gulp.src('gulpfile.js', { read: false }) // You have to give it a file, but you don't have to read it.
     .pipe(shell('cat build/coverage/lcov.info | node_modules/coveralls/bin/coveralls.js'));
 }
 
@@ -174,19 +241,9 @@ gulp.task('generate', (done) => {
   gv.generate('generated/version.js', { useEs6Syntax: true }, done);
 });
 
-gulp.task('build-bundle-dev', gulp.series(
-  makeDev('src/index.js','id5-api.js'),
-  makeDev('src/index.js','id5-api-lite.js'),
-  makeDev('src/esp.js','esp.js'),
-  makeDev('src/id5PrebidModule.js','id5PrebidModule.js'),
-));
 
-gulp.task('build-bundle-prod', gulp.series(
-  makeProd('src/index.js', 'id5-api.js'),
-  makeProd('src/index.js', 'id5-api-lite.js'),
-  makeProd('src/esp.js', 'esp.js'),
-  makeProd('src/id5PrebidModule.js', 'id5PrebidModule.js'),
-));
+gulp.task('build-bundle-dev', bundleDev);
+gulp.task('build-bundle-prod', bundleProd);
 
 gulp.task('inttest', () => (
   gulp.src('integration/**/*.spec.js', {read: false})
