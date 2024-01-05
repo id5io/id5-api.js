@@ -9,21 +9,22 @@ import {
 import { version as currentVersion } from '../generated/version.js';
 import { Config } from '../lib/config.js';
 import { createPublisher, Id5CommonMetrics, partnerTag, startTimeMeasurement } from '@id5io/diagnostics';
-import multiplexing, { API_TYPE, ConsentData, ApiEvent, WindowStorage } from '@id5io/multiplexing';
+import multiplexing, { API_TYPE, ConsentData, ApiEvent, WindowStorage, GppConsentData } from '@id5io/multiplexing';
 import { semanticVersionCompare } from '@id5io/multiplexing/src/utils.js';
+import { GPPClient } from '../lib/consentProvider.js';
 
 /**
  * @typedef {Object} IdResponse
  * @property {string} [universal_uid] - The encrypted ID5 ID to pass to bidders
  * @property {Object} [ext] - The extensions object to pass to bidders
  * @property {Object} [ab_testing] - A/B testing configuration
-*/
+ */
 
 /**
  * @typedef {Object} FetchCallConfig
  * @property {string} [url] - The URL for the fetch endpoint
  * @property {Object} [overrides] - Overrides to apply to fetch parameters
-*/
+ */
 
 /**
  * @typedef {Object} ABTestingConfig
@@ -56,6 +57,14 @@ import { semanticVersionCompare } from '@id5io/multiplexing/src/utils.js';
  * @property {(string|undefined)} consentString
  * @property {(Object|undefined)} vendorData
  * @property {(boolean|undefined)} gdprApplies
+ */
+
+/**
+ * @typedef {Object} PrebidGppConsentData
+ * @property {(string|undefined)} gppVersion
+ * @property {(string|undefined)} gppString
+ * @property {(array[number]|undefined)} applicableSections
+ * @property {(Object|undefined)} parsedSections
  */
 
 const ORIGIN = 'id5-prebid-ext-module';
@@ -94,9 +103,10 @@ class Id5PrebidIntegration {
    * @param {PrebidRefererInfo} [refererInfo] - Information about the page related URLs
    * @param {PrebidConsentData} [gdprConsentData] - GDPR Consent information from Prebid
    * @param {string|undefined} [uspConsentData] - USP Consent information from Prebid
+   * @param {PrebidGppConsentData|undefined} [gppConsentData] - GPP Consent information from Prebid
    * @returns {Promise<IdResponse>}
    */
-  async fetchId5Id(dynamicConfig, prebidConfig, refererInfo, gdprConsentData, uspConsentData) {
+  async fetchId5Id(dynamicConfig, prebidConfig, refererInfo, gdprConsentData, uspConsentData, gppConsentData) {
     this.invocationId += 1;
     const log = new InvocationLogger(ORIGIN, this.invocationId);
     log.info(`ID5 API Prebid  external module version ${this._version}. Invoking fetchId5Id()`, dynamicConfig, prebidConfig);
@@ -118,7 +128,7 @@ class Id5PrebidIntegration {
     }
     const storage = new WindowStorage(window);
     const instance = multiplexing.createInstance(window, log, metrics, storage);
-    instance.updateConsent(this._buildConsentData(gdprConsentData, uspConsentData));
+    instance.updateConsent(this._buildConsentData(gdprConsentData, uspConsentData, gppConsentData));
     const userIdReadyTimer = startTimeMeasurement();
     const instancePromise = new Promise((resolve, reject) => {
       instance
@@ -170,9 +180,10 @@ class Id5PrebidIntegration {
    * @private
    * @param {PrebidConsentData} gdprConsentData
    * @param {string|undefined} uspConsentData
-   * @returns
+   * @param {PrebidGppConsentData|undefined} [gppConsentData] - GPP Consent information from Prebid
+   * @returns {ConsentData}
    */
-  _buildConsentData(gdprConsentData, uspConsentData) {
+  _buildConsentData(gdprConsentData, uspConsentData, gppConsentData) {
     const consentData = new ConsentData(API_TYPE.PREBID);
     if (gdprConsentData) {
       consentData.gdprApplies = gdprConsentData.gdprApplies;
@@ -183,7 +194,24 @@ class Id5PrebidIntegration {
       consentData.ccpaString = uspConsentData;
       consentData.localStoragePurposeConsent = true;
     }
+    if (gppConsentData?.gppString) {
+      const tcfData = gppConsentData.parsedSections?.tcfeuv2;
+      const localStoragePurposeConsent = tcfData ? GPPClient.tcfDataHasLocalStorageGrant(tcfData[0]) : undefined;
+      const gppVersion = this._translateGppVersion(gppConsentData.gppVersion);
+      consentData.gppData = new GppConsentData(gppVersion, localStoragePurposeConsent, gppConsentData.applicableSections, gppConsentData.gppString);
+    }
     return consentData;
+  }
+
+  _translateGppVersion(gppVersion) {
+    switch (gppVersion) {
+      case '1.0':
+        return API_TYPE.GPP_V1_0;
+      case '1.1':
+        return API_TYPE.GPP_V1_1;
+      default:
+        return undefined;
+    }
   }
 
   /**
