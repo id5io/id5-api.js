@@ -142,24 +142,22 @@ function buildRollupBaseStream() {
 }
 
 // Adapts the Rollup bundle stream we obtained before to a Vinyl Files stream
-const rollupTransformer = new Transform({
-  objectMode: true,
+const buildRollupTransformer = () => new Transform({ objectMode: true,
   transform(chunk, encoding, callback) {
-    let file = null, error = null, contents;
+    const makeFile = (content, filename) => {
+      const contents = Buffer.from(content, encoding);
+      return new File({
+        path: chunk.fileName,
+        contents,
+      });
+    }
+    let file = null, error = null;
     switch(chunk.type) {
       case 'asset':
-        contents = Buffer.from(chunk.source, encoding);
-        file = new File({
-          path: chunk.fileName,
-          contents,
-        });
+        file = makeFile(chunk.source, chunk.fileName);
         break;
       case 'chunk':
-        contents = Buffer.from(chunk.code, encoding);
-        file = new File({
-          path: chunk.fileName,
-          contents,
-        });
+        file = makeFile(chunk.code, chunk.fileName);
         break;
       default:
         error = new Error(`Unexpected chunk type: ${chunk.type}`);
@@ -172,31 +170,18 @@ const isNotMap = file => !file.path.endsWith('.map');
 
 function bundleDev() {
   return buildRollupBaseStream()
-    .pipe(rollupTransformer)
+    .pipe(buildRollupTransformer())
     .pipe(gulpif(isNotMap, header(banner)))
     .pipe(gulp.dest('build/dev'));
 }
 
 function bundleProd() {
   return buildRollupBaseStream()
-    .pipe(rollupTransformer)
+    .pipe(buildRollupTransformer())
     .pipe(gulpif(isNotMap, uglify()))
     .pipe(gulpif(isNotMap, header(banner)))
     .pipe(gulp.dest('build/dist'))
 }
-
-
-
-function makeProd(entryPoint, outputFileName) {
-  return () => {
-    return buildRollupBaseStream(entryPoint, outputFileName)
-      .pipe(rollupTransformer)
-      .pipe(gulpif(isNotMap, uglify()))
-      .pipe(gulpif(isNotMap, header(banner)))
-      .pipe(gulp.dest('build/dist'))
-  };
-}
-
 
 function karmaCallback(done) {
   return function(exitCode) {
@@ -244,6 +229,7 @@ gulp.task('generate', (done) => {
 
 gulp.task('build-bundle-dev', bundleDev);
 gulp.task('build-bundle-prod', bundleProd);
+gulp.task('build-all', gulp.parallel('build-bundle-dev', 'build-bundle-prod'));
 
 gulp.task('inttest', () => (
   gulp.src('integration/**/*.spec.js', {read: false})
@@ -272,7 +258,7 @@ gulp.task('build', gulp.series(
   'generate',
   'lint',
   test,
-  gulp.parallel('build-bundle-dev', 'build-bundle-prod'),
+  'build-all',
   'inttest'
 ));
 
