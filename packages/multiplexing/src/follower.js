@@ -2,6 +2,7 @@ import {ApiEvent} from './apiEvent.js';
 import {ProxyMethodCallTarget} from './messaging.js';
 import {NoopLogger} from './logger.js';
 import {NoopStorage, StorageApi} from './localStorage.js';
+import {cyrb53Hash} from './utils.js';
 /**
  * @typedef {string} FollowerCallType
  */
@@ -45,6 +46,7 @@ export class Follower {
    * @private
    */
   _instanceWindow;
+
   /**
    *
    * @param {FollowerCallType} callType
@@ -73,6 +75,21 @@ export class Follower {
 
   updateFetchIdData(newFetchIdData) {
     Object.assign(this._instanceProperties.fetchIdData, newFetchIdData);
+  }
+
+  getCacheId() {
+    const thisData = this._instanceProperties.fetchIdData;
+    // take into account data that makes this instance unique on the page and cross-sessions consistent
+    const uniqueData = {
+      partnerId: thisData.partnerId,
+      att: thisData.att,
+      pd: thisData.pd,
+      provider: thisData.provider,
+      abTesting: thisData.abTesting,
+      segments: JSON.stringify(thisData.segments),
+      providedRefresh: thisData.providedRefreshInSeconds
+    };
+    return cyrb53Hash(JSON.stringify(uniqueData));
   }
 
   /**
