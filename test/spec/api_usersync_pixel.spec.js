@@ -139,7 +139,7 @@ describe('Fire Usersync Pixel', function () {
       }).onAvailable(function () {
         sinon.assert.calledOnce(syncStub);
         expect(syncStub.args[0][0]).to.contain(`${ID5_SYNC_ENDPOINT}/8.gif`);
-        expect(syncStub.args[0][0]).to.contain('gpp_string=GPP_STRING');
+        expect(syncStub.args[0][0]).to.contain('gpp=GPP_STRING');
         expect(syncStub.args[0][0]).to.contain('gpp_sid=-1,0');
         done();
       });
