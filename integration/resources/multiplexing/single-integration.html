@@ -7,46 +7,11 @@
 <body>
 <!-- ID5 API -->
 <script type="text/javascript" src="https://cdn.id5-sync.com/api/integration/id5-api.js"></script>
+<script type="text/javascript" src="https://cdn.id5-sync.com/api/integration/multiplexing-test-helper.js"></script>
 <script>
-    const leaderElectionCallback = function (instance) {
-        return (role, leader) => {
-            window.fetch('https://instances.log/on-election', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'text/plain'
-                },
-                mode: 'no-cors',
-                body: JSON.stringify({
-                    location: window.location.href,
-                    id: instance.properties.id,
-                    role: role,
-                    leader: leader.id,
-                    knownInstances: Array.from(instance._knownInstances.keys())
-                })
-            });
-        };
-    };
-    const uidCallback = function (status) {
-        const instance = status.instance;
-        const uid = status.getUserId();
-        window.fetch('https://instances.log/on-available', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'text/plain'
-            },
-            mode: 'no-cors',
-            body: JSON.stringify({
-                location: window.location.href,
-                id: instance.properties.id,
-                role: instance.role,
-                uid: uid
-            })
-        });
-    };
-
     ID5.debug = true;
 
-    let id5Status = ID5.init(
+    let id5Instance = ID5.init(
         {
             partnerId: 99,
             refreshInSeconds: 5,
@@ -70,8 +35,8 @@
             segments: [{destination: '22', ids: ['abc']}]
         }
     ).onAvailable(uidCallback);
-    const instance = id5Status.instance;
-    instance.on('leader-elected', leaderElectionCallback(instance));
+    const mxInstance = id5Instance._multiplexingInstance;
+    mxInstance.on('leader-elected', leaderElectionCallback(mxInstance));
 </script>
 <!-- /ID5 API -->
 </body>

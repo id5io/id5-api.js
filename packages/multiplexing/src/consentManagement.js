@@ -43,6 +43,10 @@ export class ConsentManagement extends ConsentManager {
     this._forceAllowLocalStorageGrant = forceAllowLocalStorageGrant;
   }
 
+  isForceAllowLocalStorageGrant() {
+    return this._forceAllowLocalStorageGrant;
+  }
+
   /**
    * Simply resets the module's consentData.
    */

@@ -3,9 +3,9 @@ import chromePaths from 'chrome-paths';
 import mockttp from 'mockttp';
 import tmp from 'tmp-promise';
 import path from 'path';
-import {fileURLToPath} from 'url';
-import chai, {expect} from 'chai';
-import {version} from '../generated/version.js';
+import { fileURLToPath } from 'url';
+import chai, { expect } from 'chai';
+import { version } from '../generated/version.js';
 import chaiDateTime from 'chai-datetime';
 import isDocker from 'is-docker';
 
@@ -13,7 +13,6 @@ import isDocker from 'is-docker';
  * If you want to debug in the browser, you can use "devtools: true" in
  * the launch configuration and block the browser using
  * await browser.waitForTarget(() => false, { timeout: 0 });
- * Also increase the timeout for the tests to a very large value.
  */
 const _DEBUG = false;
 
@@ -106,7 +105,7 @@ describe('The ID5 API', function () {
   this.timeout((_DEBUG ? 3000 : 30) * 1000);
 
   async function startBrowser() {
-    profileDir = await tmp.dir({unsafeCleanup: true});
+    profileDir = await tmp.dir({ unsafeCleanup: true });
     const args = [
       `--proxy-server=localhost:${server.port}`,
       `--ignore-certificate-errors-spki-list=${caFingerprint}`,
@@ -200,7 +199,7 @@ describe('The ID5 API', function () {
       expect(requestBody.tml).to.equal('https://my-publisher-website.net/');
       expect(requestBody.cu).to.equal('https://www.id5.io/');
       expect(requestBody.ref).to.equal('https://referer-page.com/');
-      expect(requestBody.segments).to.deep.equal([{destination: '22', ids: ['abc']}]);
+      expect(requestBody.segments).to.deep.equal([{ destination: '22', ids: ['abc'] }]);
       expect(requestBody.ua).to.be.a('string');
       expect(requestBody.extensions.lb).to.equal('LB_DATA'); // from MOCK_LB_RESPONSE
       expect(requestBody.extensions.lbCDN).to.equal('%%LB_CDN%%'); // lbCDN substitution macro
@@ -251,7 +250,7 @@ describe('The ID5 API', function () {
       await server.reset();
     });
 
-    it('can send an event to ID5 backend', async function() {
+    it('can send an event to ID5 backend', async function () {
       const mockId5Event = await server.forPost('https://id5-sync.com/event')
         .thenReply(204, '');
 
@@ -399,7 +398,7 @@ describe('The ID5 API', function () {
           expect(onlyRequest.metadata.trigger).is.eq('fixed-time');
           expect(onlyRequest.metadata.fixed_time_msec).is.eq(3100);
           expect(onlyRequest.measurements.length).is.gte(12);
-          const commonTags = {version: version, partner: '99', source: 'api', tml: 'https://my-publisher-website.net/'};
+          const commonTags = { version: version, partner: '99', source: 'api', tml: 'https://my-publisher-website.net/' };
           verifyContainsMeasurementWithTags(onlyRequest.measurements, 'id5.api.instance.load.delay', 'TIMER', commonTags);
           verifyContainsMeasurementWithTags(onlyRequest.measurements, 'id5.api.invocation.count', 'SUMMARY', commonTags);
           verifyContainsMeasurementWithTags(onlyRequest.measurements, 'id5.api.consent.request.time', 'TIMER', {
@@ -458,7 +457,7 @@ describe('The ID5 API', function () {
           expect(onlyRequest.metadata.sampling).is.eq(1);
           expect(onlyRequest.metadata.trigger).is.eq('beforeunload');
           expect(onlyRequest.measurements.length).is.gte(12);
-          const commonTags = {version: version, partner: '99', source: 'api', tml: 'https://my-publisher-website.net/'};
+          const commonTags = { version: version, partner: '99', source: 'api', tml: 'https://my-publisher-website.net/' };
           verifyContainsMeasurementWithTags(onlyRequest.measurements, 'id5.api.instance.load.delay', 'TIMER', commonTags);
           verifyContainsMeasurementWithTags(onlyRequest.measurements, 'id5.api.invocation.count', 'SUMMARY', commonTags);
           verifyContainsMeasurementWithTags(onlyRequest.measurements, 'id5.api.consent.request.time', 'TIMER', {
@@ -498,14 +497,18 @@ describe('The ID5 API', function () {
     let diagnosticsEndpoint;
     let fetchEndpoint;
     let onAvailableEndpoint;
+
     beforeEach(async () => {
       const INDEX_PAGE_PATH = path.join(RESOURCES_DIR, 'multiplexing', 'index.html');
+      const TEST_HELPER_SCRIPT_PATH = path.join(RESOURCES_DIR, 'multiplexing', 'multiplexing-test-helper.js');
       const LATE_JOINER_INDEX_PAGE_PATH = path.join(RESOURCES_DIR, 'multiplexing', 'index-latejoiner.html');
       const LATE_JOINER_REFRESH_INDEX_PAGE_PATH = path.join(RESOURCES_DIR, 'multiplexing', 'index-latejoiner-refresh.html');
       const SINGLETON_INDEX_PAGE = path.join(RESOURCES_DIR, 'multiplexing', 'index-singleton.html');
       const NF_FRAME_PAGE_PATH = path.join(RESOURCES_DIR, 'multiplexing', 'single-integration.html');
       const F_FRAME_PAGE_PATH = path.join(RESOURCES_DIR, 'multiplexing', 'multiple-integrations.html');
 
+      await server.forGet('https://cdn.id5-sync.com/api/integration/multiplexing-test-helper.js')
+        .thenFromFile(200, TEST_HELPER_SCRIPT_PATH);
       await server.forGet('https://my-publisher-website.net')
         .thenFromFile(200, INDEX_PAGE_PATH);
       await server.forGet('https://my-publisher-website.net/late.html')
