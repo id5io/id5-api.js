@@ -48,6 +48,7 @@
     "clone": "^2.1.2",
     "coveralls": "^3.1.1",
     "del": "^6.0.0",
+    "diff": "^5.1.0",
     "es5-shim": "^4.5.2",
     "eslint": "^7.27.0",
     "eslint-config-standard": "^10.2.1",
