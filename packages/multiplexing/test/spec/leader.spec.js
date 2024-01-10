@@ -1,7 +1,4 @@
-import * as chai from 'chai';
-import { expect } from 'chai';
 import sinon from 'sinon';
-import sinonChai from 'sinon-chai';
 import { CrossInstanceMessenger, ProxyMethodCallTarget } from '../../src/messaging.js';
 import { ActualLeader, AddFollowerResult, AwaitedLeader, Leader, ProxyLeader } from '../../src/leader.js';
 import { CachedResponse, RefreshedResponse, RefreshResult, UidFetcher } from '../../src/fetch.js';
@@ -12,8 +9,6 @@ import { Follower } from '../../src/follower.js';
 import { Properties } from '../../src/instance.js';
 import { Counter, Id5CommonMetrics } from '@id5io/diagnostics';
 import { ReplicatingStorage } from '../../src/localStorage.js';
-
-chai.use(sinonChai);
 
 describe('ProxyLeader', function () {
   /**

@@ -1,4 +1,3 @@
-import {expect} from "chai";
 import {LazyValue} from "../../src/promise.js";
 
 describe('LazyValue', function () {

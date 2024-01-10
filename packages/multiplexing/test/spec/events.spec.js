@@ -1,11 +1,6 @@
-import {expect} from 'chai';
 import sinon from 'sinon';
 import {ApiEvent, ApiEventsDispatcher, MultiplexingEvent} from '../../src/apiEvent.js';
 import {NoopLogger} from '../../src/logger.js';
-import chai from 'chai';
-import sinonChai from 'sinon-chai';
-
-chai.use(sinonChai);
 
 const _DEBUG = false;
 describe('ApiEventsDispatcher', function () {

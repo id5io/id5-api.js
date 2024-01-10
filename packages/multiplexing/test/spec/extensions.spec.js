@@ -1,4 +1,3 @@
-import {expect} from 'chai';
 import sinon from 'sinon';
 import {EXTENSIONS, ID5_LB_ENDPOINT} from '../../src/extensions.js';
 import {NoopLogger} from '../../src/logger.js';

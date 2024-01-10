@@ -1,7 +1,4 @@
-import * as chai from 'chai';
-import {expect} from 'chai';
 import sinon from 'sinon';
-import sinonChai from 'sinon-chai';
 import {
   CrossInstanceMessenger,
   Id5Message,
@@ -10,8 +7,6 @@ import {
   ProxyMethodCallTarget,
   ProxyMethodCallMessage, HelloMessage
 } from '../../src/messaging.js';
-
-chai.use(sinonChai);
 
 class Hello {
 }

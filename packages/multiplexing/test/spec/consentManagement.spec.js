@@ -1,9 +1,4 @@
 import {spy, stub} from 'sinon';
-import chai, {expect} from 'chai';
-import sinonChai from 'sinon-chai';
-
-chai.should();
-chai.use(sinonChai);
 import {ConsentManagement} from '../../src/consentManagement.js';
 import CONSTANTS from '../../src/constants.js';
 import {ConsentData, API_TYPE, GRANT_TYPE, LocalStorageGrant} from '../../src/consent.js';

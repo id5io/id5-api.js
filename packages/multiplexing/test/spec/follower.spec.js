@@ -1,13 +1,8 @@
-import * as chai from 'chai';
-import {expect} from 'chai';
 import sinon from 'sinon';
-import sinonChai from 'sinon-chai';
 import {CrossInstanceMessenger, ProxyMethodCallTarget} from '../../src/messaging.js';
 import {DirectFollower, Follower, FollowerCallType, ProxyFollower} from '../../src/follower.js';
 import {DiscoveredInstance, Properties} from '../../src/instance.js';
 import {ApiEvent, ApiEventsDispatcher} from '../../src/apiEvent.js';
-
-chai.use(sinonChai);
 
 const properties = new Properties('id', 'verison', 'source', 'sourceVersion', {}, window.location)
 describe('ProxyFollower', function () {

@@ -5,15 +5,10 @@ import {
   ProxyMethodCallTarget
 } from '../../src/messaging.js';
 import sinon from 'sinon';
-import sinonChai from 'sinon-chai';
-import chai, {expect} from 'chai';
 import {Follower, ProxyFollower, ProxyStorage} from "../../src/follower.js";
 import {DiscoveredInstance, Properties} from '../../src/instance.js';
 import {Leader, ProxyLeader} from "../../src/leader.js";
 import {StorageApi} from '../../src/localStorage.js';
-
-chai.use(sinonChai);
-
 
 function pcmMessagesReceived(receiver, expectedCount) {
   return new Promise((resolve, reject) => {
