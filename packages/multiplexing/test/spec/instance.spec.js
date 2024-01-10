@@ -1,17 +1,12 @@
 import * as ID5Integration from '../../src/instance.js';
-import * as chai from 'chai';
-import {expect} from 'chai';
 import * as Utils from '../../src/utils.js'
 import sinon from 'sinon';
 import {Id5CommonMetrics} from '@id5io/diagnostics';
-import sinonChai from 'sinon-chai';
 import {NoopLogger} from '../../src/logger.js';
 import {version} from '../../generated/version.js';
 import {MultiplexingEvent} from '../../src/apiEvent.js';
 import {StorageApi} from '../../src/localStorage.js';
 import {ElectionState} from '../../src/instance.js';
-
-chai.use(sinonChai);
 
 /**
  * @param {ID5Integration.Instance} instance
@@ -126,7 +121,6 @@ function knownInstances(instance1) {
 describe('ID5 instance', function () {
   let metrics;
   let createdInstances;
-  let generateIdStub;
   let logger = NoopLogger; // for debug purposes assign console `let logger = console`
   let performanceNowStub;
   let createInstance = (source, sourceVersion, sourceConfig, fetchIdData, metrics) => {
@@ -147,26 +141,18 @@ describe('ID5 instance', function () {
     metrics = new Id5CommonMetrics('api', '1');
   });
   afterEach(function () {
-    if (generateIdStub) {
-      generateIdStub.restore();
-    }
     createdInstances.forEach(instance => instance.deregister());
     performanceNowStub.restore();
   })
 
   it('should create instance ', function () {
-
-    // given
-    generateIdStub = sinon.stub(Utils, 'generateId');
-    let id = crypto.randomUUID();
-    generateIdStub.returns(id);
-
     // when
     let instance = createInstance('api', '1.3.5', {some: 'property'}, {partnerId: 99}, metrics);
 
     // then
+    const id = instance.properties.id;
     expect(instance.properties).is.eql({
-      id: id,
+      id,
       version: version,
       source: 'api',
       sourceVersion: '1.3.5',
@@ -223,12 +209,7 @@ describe('ID5 instance', function () {
     it(`should update instance configuration ${JSON.stringify(config)}`, function () {
 
       // given
-      generateIdStub = sinon.stub(Utils, 'generateId');
-      let id = crypto.randomUUID();
-      generateIdStub.returns(id);
-
       const initialConfig = {
-        id: id,
         version: version,
         source: 'api',
         sourceVersion: '1.3.5',
@@ -242,8 +223,11 @@ describe('ID5 instance', function () {
       let instance = createInstance(initialConfig.source, initialConfig.sourceVersion, initialConfig.sourceConfiguration, initialConfig.fetchIdData, metrics);
 
       instance.updateConfig(config)
+
       // then
+      const id = instance.properties.id;
       expect(instance.properties).is.eql({
+        id,
         ...initialConfig,
         ...expectedOverride
       });

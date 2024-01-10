@@ -1,9 +1,5 @@
 import sinon, {useFakeTimers} from 'sinon';
 import {StorageApi, LocalStorage, ReplicatingStorage, WindowStorage} from '../../src/localStorage.js';
-import chai, {expect} from 'chai';
-import sinonChai from 'sinon-chai';
-
-chai.use(sinonChai);
 
 describe('LocalStorage', function() {
   describe('when not available', function() {

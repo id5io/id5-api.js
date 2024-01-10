@@ -1,6 +1,3 @@
-import * as chai from 'chai';
-import {expect} from 'chai';
-import sinonChai from 'sinon-chai';
 import sinon from 'sinon';
 import {API_TYPE, GRANT_TYPE, LocalStorageGrant} from '../../src/consent.js';
 import {ClientStore} from '../../src/clientStore.js';
@@ -23,7 +20,6 @@ const TEST_RESPONSE_ID5_CONSENT = {
 };
 
 const JSON_RESPONSE_ID5_CONSENT = JSON.stringify(TEST_RESPONSE_ID5_CONSENT);
-chai.use(sinonChai);
 
 const DEFAULT_STORAGE_CONFIG = new StorageConfig();
 const _DEBUG = false;

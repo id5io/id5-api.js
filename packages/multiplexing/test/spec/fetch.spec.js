@@ -1,6 +1,3 @@
-import * as chai from 'chai';
-import { expect } from 'chai';
-import sinonChai from 'sinon-chai';
 import sinon from 'sinon';
 import { RefreshedResponse, RefreshResult, UidFetcher } from '../../src/fetch.js';
 import { Extensions } from '../../src/extensions.js';
@@ -10,8 +7,6 @@ import { WindowStorage } from '../../src/localStorage.js';
 import { Id5CommonMetrics } from '@id5io/diagnostics';
 import * as utils from '../../src/utils.js';
 import { Store, StoredDataState } from '../../src/store.js';
-
-chai.use(sinonChai);
 
 const LOCAL_STORAGE_GRANT_ALLOWED_BY_API = new LocalStorageGrant(true, GRANT_TYPE.CONSENT_API, API_TYPE.TCF_V2);
 const CONSENT_DATA_GDPR_ALLOWED = Object.assign(new ConsentData(), {
@@ -202,7 +197,7 @@ describe('UidFetcher', function () {
    * @type {Id5CommonMetrics}
    */
   let metrics;
-  let ajaxStub;
+  let server;
   let localStorageCheckStub;
 
 
@@ -224,12 +219,15 @@ describe('UidFetcher', function () {
 
   describe('when server response does grant consent', function () {
     beforeEach(function () {
-      ajaxStub = sinon.stub(utils, 'ajax').callsFake(function (url, callbacks, data, options, log) {
-        callbacks.success(prepareJsonResponse(FETCH_RESPONSE_OBJ, data));
-      });
+      server = sinon.fakeServer.create();
+      server.respondImmediately = true;
+      server.respondWith(sinonFetchResponder(request =>
+        prepareJsonResponse(FETCH_RESPONSE_OBJ, request.requestBody)
+      ));
     });
+
     afterEach(function () {
-      ajaxStub.restore();
+      server.restore();
     });
 
     describe('when no state is saved in cache', function () {
@@ -309,7 +307,7 @@ describe('UidFetcher', function () {
 
             expect(consentManager.setStoredPrivacy).to.have.been.calledWith(PRIVACY_DATA_RETURNED);
 
-            expectHttpPOST(ajaxStub.firstCall, `https://id5-sync.com/gm/v3`, {
+            expectHttpPOST(server.requests[0], `https://id5-sync.com/gm/v3`, {
               requests: [
                 expectedRequestFor(fetchData, CONSENT_DATA_GDPR_ALLOWED, DEFAULT_EXTENSIONS, nbPage, storedDataState, expectedInRequest)
               ]
@@ -377,7 +375,7 @@ describe('UidFetcher', function () {
             expect(store.storeRequestData).to.have.been.calledWith(CONSENT_DATA_GDPR_ALLOWED, [firstInstanceData, secondInstanceData]);
             expect(store.storeResponse).to.have.been.calledWith([firstInstanceData, secondInstanceData], FETCH_RESPONSE_OBJ, false);
 
-            expectHttpPOST(ajaxStub.firstCall, `https://id5-sync.com/gm/v3`, {
+            expectHttpPOST(server.requests[0], `https://id5-sync.com/gm/v3`, {
               requests: [
                 expectedRequestFor(firstInstanceData, CONSENT_DATA_GDPR_ALLOWED, DEFAULT_EXTENSIONS, nbPage1, storedDataState),
                 expectedRequestFor(secondInstanceData, CONSENT_DATA_GDPR_ALLOWED, DEFAULT_EXTENSIONS, nbPage2, storedDataState, expectedInRequest)
@@ -407,7 +405,7 @@ describe('UidFetcher', function () {
           // then
           return fetchIdResult.refreshResult.then(data => {
 
-            expectHttpPOST(ajaxStub.firstCall, `https://id5-sync.com/gm/v3`, {
+            expectHttpPOST(server.requests[0], `https://id5-sync.com/gm/v3`, {
               requests: [
                 expectedRequestFor(DEFAULT_FETCH_DATA, CONSENT_DATA_GDPR_ALLOWED, DEFAULT_EXTENSIONS, nbPage, storedDataState, {
                   localStorage: accessibilityResult === true ? 1 : 0
@@ -428,11 +426,11 @@ describe('UidFetcher', function () {
 
         // then
         return fetchIdResult.refreshResult.then(data => {
-          expect(ajaxStub.firstCall.args[0]).is.eq(`https://id5-sync.com/gm/v3`);
-          let requests = JSON.parse(ajaxStub.firstCall.args[2]).requests;
-          expect(requests).to.have.lengthOf(1);
-          expect(requests[0].gpp_string).is.eq("GPP_STRING");
-          expect(requests[0].gpp_sid).is.eq("2,6");
+          expect(server.requests[0].url).is.eq(`https://id5-sync.com/gm/v3`);
+          let body = JSON.parse(server.requests[0].requestBody);
+          expect(body.requests).to.have.lengthOf(1);
+          expect(body.requests[0].gpp_string).is.eq("GPP_STRING");
+          expect(body.requests[0].gpp_sid).is.eq("2,6");
         });
       });
 
@@ -469,7 +467,7 @@ describe('UidFetcher', function () {
         // then
         const fromCacheData = fetchIdResult.cachedResponse;
         expect(extensions.gather).to.have.not.been.called;
-        expect(ajaxStub).to.have.not.been.called;
+        expect(server.requests).to.have.lengthOf(0);
 
         expect(fromCacheData.timestamp).is.eq(stateStub.storedDateTime);
         expect(fromCacheData.response).is.eql(stateStub.storedResponse);
@@ -517,7 +515,7 @@ describe('UidFetcher', function () {
           // then
           const fromCacheData = fetchIdResult.cachedResponse;
           expect(extensions.gather).to.not.have.been.called;
-          expect(ajaxStub).to.not.have.been.called;
+          expect(server.requests).to.have.lengthOf(0);
 
           expect(fromCacheData.timestamp).is.eq(stateStub.storedDateTime);
           expect(fromCacheData.response).is.eql(stateStub.storedResponse);
@@ -527,7 +525,7 @@ describe('UidFetcher', function () {
           resolveConsent(CONSENT_DATA_GDPR_ALLOWED);
           return fetchIdResult.refreshResult.then(refreshedData => {
             expect(extensions.gather).to.have.been.called;
-            expect(ajaxStub).to.have.been.called;
+            expect(server.requests).to.have.lengthOf(1);
 
             expect(refreshedData.refreshedResponse).to.not.be.undefined;
             expect(refreshedData.refreshedResponse.timestamp).to.not.be.undefined;
@@ -572,7 +570,7 @@ describe('UidFetcher', function () {
           expect(fetchIdResult.cachedResponse).to.be.undefined;
           return fetchIdResult.refreshResult.then(data => {
             expect(extensions.gather).to.have.been.called;
-            expect(ajaxStub).to.have.been.called;
+            expect(server.requests).to.have.lengthOf(1);
 
             expect(data.refreshedResponse).to.not.be.undefined;
             expect(data.refreshedResponse.timestamp).is.not.undefined;
@@ -618,7 +616,7 @@ describe('UidFetcher', function () {
         expect(fetchIdResult.cachedResponse).to.be.undefined;
         return fetchIdResult.refreshResult.then(data => {
           expect(extensions.gather).to.have.been.called;
-          expect(ajaxStub).to.have.been.called;
+          expect(server.requests).to.have.lengthOf(1);
 
           expect(data.refreshedResponse).to.not.be.undefined;
           expect(data.refreshedResponse.timestamp).is.not.undefined;
@@ -637,12 +635,15 @@ describe('UidFetcher', function () {
 
   describe('when server response does not grant consent', function () {
     beforeEach(function () {
-      ajaxStub = sinon.stub(utils, 'ajax').callsFake(function (url, callbacks, data, options) {
-        callbacks.success(prepareJsonResponse(FETCH_RESPONSE_OBJ_NO_CONSENT, data));
-      });
+      server = sinon.fakeServer.create();
+      server.respondImmediately = true;
+      server.respondWith(sinonFetchResponder(request =>
+        prepareJsonResponse(FETCH_RESPONSE_OBJ_NO_CONSENT, request.requestBody)
+      ));
     });
+
     afterEach(function () {
-      ajaxStub.restore();
+      server.restore();
     });
 
     describe('when no state is saved in cache', function () {
@@ -673,7 +674,7 @@ describe('UidFetcher', function () {
         expect(fetchIdResult.cachedResponse).to.be.undefined;
         return fetchIdResult.refreshResult.then(data => {
           expect(extensions.gather).to.have.been.called;
-          expect(ajaxStub).to.have.been.called;
+          expect(server.requests).to.have.lengthOf(1);
           expect(data.refreshedResponse.response).to.be.eql(createResponse(FETCH_RESPONSE_OBJ_NO_CONSENT, fetchData));
           expect(consentManager.setStoredPrivacy).to.have.been.calledWith({
             jurisdiction: 'gdpr',
@@ -712,7 +713,7 @@ describe('UidFetcher', function () {
         expect(fetchIdResult.cachedResponse).to.be.undefined;
         return fetchIdResult.refreshResult.catch(error => {
           expect(extensions.gather).to.not.have.been.called;
-          expect(ajaxStub).to.not.have.been.called;
+          expect(server.requests).to.have.lengthOf(0);
           expect(store.getStoredDataState).to.not.have.been.called;
           expect(store.storeRequestData).to.not.have.been.called;
           expect(error).to.be.eql(new NoConsentError(CONSENT_DATA_GDPR_NOT_ALLOWED, 'No legal basis to use ID5'));
@@ -729,7 +730,8 @@ describe('UidFetcher', function () {
       /**
        * @type {FetchIdRequestData}
        */
-
+      server = sinon.fakeServer.create();
+      server.respondImmediately = true;
       consentManager.localStorageGrant.returns(LOCAL_STORAGE_GRANT_ALLOWED_BY_API);
       store.getStoredDataState.returns(Object.assign(new StoredDataState(), {
         nb: {},
@@ -738,17 +740,12 @@ describe('UidFetcher', function () {
     });
 
     afterEach(function () {
-      if (ajaxStub) {
-        ajaxStub.restore();
-      }
+      server.restore();
     });
 
     it('when empty response', function () {
       // given
-      ajaxStub = sinon.stub(utils, 'ajax').callsFake(function (url, callbacks, data, options, log) {
-        callbacks.success('');
-      });
-
+      server.respondWith(sinonFetchResponder(request => ''));
 
       // when
       const fetchIdResult = fetcher.getId([fetchData]);
@@ -762,10 +759,7 @@ describe('UidFetcher', function () {
 
     it('when invalid json response', function () {
       // given
-      ajaxStub = sinon.stub(utils, 'ajax').callsFake(function (url, callbacks, data, options, log) {
-        callbacks.success('{');
-      });
-
+      server.respondWith(sinonFetchResponder(request => '{'));
 
       // when
       const fetchIdResult = fetcher.getId([fetchData]);
@@ -780,9 +774,8 @@ describe('UidFetcher', function () {
 
     it('when ajax fails', function () {
       // given
-      const someError = new Error('some error');
-      ajaxStub = sinon.stub(utils, 'ajax').callsFake(function (url, callbacks, data, options, log) {
-        callbacks.error(someError);
+      server.respondWith((request) => {
+        request.respond(500, { 'Content-Type': ' application/json' }, 'Error');
       });
 
       // when
@@ -791,20 +784,16 @@ describe('UidFetcher', function () {
       // then
       return fetchIdResult.refreshResult.catch(error => {
         // done
-        expect(error).is.eql(someError);
+        expect(error).is.eql('Internal Server Error');
       });
     });
 
     it('when missing universal_uid', function () {
       // given
-      ajaxStub = sinon.stub(utils, 'ajax').callsFake(function (url, callbacks, data, options, log) {
-        callbacks.success(`{ "property" : 10 }`);
-      });
-
+      server.respondWith(sinonFetchResponder(request => '{ "property" : 10 }'));
 
       // when
       const fetchIdResult = fetcher.getId([fetchData]);
-
 
       // then
       return fetchIdResult.refreshResult.catch(error => {
@@ -816,9 +805,9 @@ describe('UidFetcher', function () {
     it('when failed while handling valid response', function () {
       // given
       const someError = new Error('error while storing privacy');
-      ajaxStub = sinon.stub(utils, 'ajax').callsFake(function (url, callbacks, data, options, log) {
-        callbacks.success(prepareJsonResponse(FETCH_RESPONSE_OBJ, data));
-      });
+      server.respondWith(sinonFetchResponder(request =>
+        prepareJsonResponse(FETCH_RESPONSE_OBJ, request.requestBody)
+      ));
       consentManager.setStoredPrivacy.throws(someError);
 
       // when
@@ -865,10 +854,17 @@ function expectedRequestFor(fetchIdData, consentData, extensions, nbPage, stored
   };
 }
 
-function expectHttpPOST(call, url, body) {
-  expect(call.args[0]).is.eq(url);
-  expect(JSON.parse(call.args[2])).is.eql(body);
-  expect(call.args[3].method).is.eq('POST');
+function expectHttpPOST(request, url, body) {
+  expect(request.url).is.eq(url);
+  expect(request.method).is.eq('POST');
+  const requestBody = JSON.parse(request.requestBody);
+  expect(requestBody).is.eql(body);
+}
+
+function sinonFetchResponder(responseProvider) {
+  return (request) => {
+    request.respond(200, { 'Content-Type': ' application/json' }, responseProvider(request));
+  };
 }
 
 function buildTestUaHints() {

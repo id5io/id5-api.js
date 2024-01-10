@@ -5,6 +5,9 @@ import {readFile} from 'fs/promises';
 import karma from 'karma';
 import * as path from 'path';
 import gv from 'genversion';
+import yargs from 'yargs';
+
+const argv = yargs.argv;
 
 function lint() {
   return gulp.src([
@@ -31,7 +34,7 @@ gulp.task('generate', (done) => {
 function test(done) {
   let karmaConfig = karma.config.parseConfig(path.resolve() + '/karma.conf.cjs',
     {
-      singleRun: true
+      singleRun: !argv.continuously
     },
     {
       promiseConfig: false,

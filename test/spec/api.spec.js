@@ -4,7 +4,6 @@ import {
   DEFAULT_EXTENSIONS,
   defaultInit,
   defaultInitBypassConsent,
-  ID5_FETCH_ENDPOINT,
   localStorage,
   prepareMultiplexingResponse,
   resetAllInLocalStorage,
@@ -32,9 +31,7 @@ import {
   LocalStorageGrant,
   NoopLogger,
   StorageConfig,
-  utils
 } from '@id5io/multiplexing';
-import * as utils2 from '../../lib/utils.js';
 
 describe('ID5 JS API', function () {
 
