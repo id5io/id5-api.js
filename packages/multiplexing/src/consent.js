@@ -173,6 +173,7 @@ export class ConsentData {
     *   - localStoragePurposeConsent object since the consentString is enough to know.
     *   - ccpaString as it doesn't contribute to the local storage decision.
     */
+    //eslint-disable-next-line no-unused-vars
     const {localStoragePurposeConsent, ccpaString, ...others} = this;
     return cyrb53Hash(JSON.stringify(others));
   }
@@ -248,7 +249,7 @@ export class ConsentManager {
   /**
    * @param {Object} privacyData
    */
-  setStoredPrivacy(privacyData) {
+  setStoredPrivacy() {
 
   }
 }

@@ -1046,7 +1046,7 @@ describe('Consent Data Provider', function () {
 
   function createGppV11Stub(modify = (flow) => flow, responses = createGppV11Flow()) {
     modify(responses);
-    return (command, callback, parameter) => {
+    return (command, callback) => {
       expect(command).to.be.oneOf(['addEventListener', 'ping']);
       if (command === 'ping') {
         callback(responses.ping);

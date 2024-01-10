@@ -1,15 +1,5 @@
 import {NoopLogger} from './logger.js';
 
-export function generateId() {
-  if (typeof global !== 'undefined' && global.crypto !== undefined) {
-    if (global.crypto.randomUUID !== undefined) {
-      return global.crypto.randomUUID();
-    }
-  }
-  // sufficiently as for the use case
-  return `${(Math.random() * 1000000) | 0}`;
-}
-
 export function semanticVersionCompare(version1, version2) {
   let semanticVersionPattern = '^\\d+(\\.\\d+(\\.\\d+){0,1}){0,1}$';
   if (!version1.match(semanticVersionPattern) || !version2.match(semanticVersionPattern)
@@ -102,6 +92,17 @@ export function isEmpty(object) {
   }
 
   return true;
+}
+
+export function generateId() {
+  if (isPlainObject(globalThis) 
+    && isPlainObject(globalThis.crypto) 
+    && isFn(globalThis.crypto.randomUUID)
+  ) {
+    return globalThis.crypto.randomUUID();
+  }
+  // sufficiently as for the use case
+  return `${(Math.random() * 1000000) | 0}`;
 }
 
 /**

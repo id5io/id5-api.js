@@ -177,7 +177,7 @@ describe('CrossInstanceMessenger', function () {
     let messages = [];
     let firstId5Message = messageFactory.createBroadcastMessage(new Hello());
     let secondId5Message = messageFactory.createBroadcastMessage('END', 'END');
-    let receivedId5Message = new Promise((resolve, _) => {
+    let receivedId5Message = new Promise((resolve) => {
       messengerA.onAnyMessage((message) => {
         if (message.payload === 'END') {
           resolve(message)
@@ -193,7 +193,7 @@ describe('CrossInstanceMessenger', function () {
     window.postMessage(secondId5Message, '*');
 
     // then
-    return receivedId5Message.then(_ => {
+    return receivedId5Message.then(() => {
       // only id5 messages received
       expect(messages).to.be.deep.eq([firstId5Message, secondId5Message]);
     });
@@ -256,7 +256,7 @@ describe('CrossInstanceMessenger', function () {
     let messengerB = new CrossInstanceMessenger('b', window);
     let hello = new HelloMessage({id: 'a'}, true, {id: 'leader'});
 
-    let messageReceived = new Promise((resolve, reject) => {
+    let messageReceived = new Promise((resolve) => {
       messengerB.onMessage(HelloMessage.TYPE, msg => resolve(msg))
     });
 
@@ -277,10 +277,10 @@ describe('CrossInstanceMessenger', function () {
     let messengerB = new CrossInstanceMessenger('b', window);
     let hello = new HelloMessage({id: 'a'}, true, {id: 'leader'});
 
-    let onAnyReceived = new Promise((resolve, reject) => {
+    let onAnyReceived = new Promise((resolve) => {
       messengerB.onAnyMessage(msg => resolve(msg))
     });
-    let onTypeReceived = new Promise((resolve, reject) => {
+    let onTypeReceived = new Promise((resolve) => {
       messengerB.onMessage(HelloMessage.TYPE, msg => resolve(msg))
     });
     // when
@@ -302,10 +302,10 @@ describe('CrossInstanceMessenger', function () {
     let messengerB = new CrossInstanceMessenger('b', window);
     let hello = new HelloMessage({id: 'a'}, true, {id: 'leader'});
 
-    let handlerACalled = new Promise((resolve, reject) => {
+    let handlerACalled = new Promise((resolve) => {
       messengerB.onMessage(HelloMessage.TYPE, msg => resolve(msg));
     });
-    let handlerBCalled = new Promise((resolve, reject) => {
+    let handlerBCalled = new Promise((resolve) => {
       messengerB.onMessage(HelloMessage.TYPE, msg => resolve(msg));
     });
     // when
@@ -327,10 +327,10 @@ describe('CrossInstanceMessenger', function () {
     let messengerB = new CrossInstanceMessenger('b', window);
     let hello = new HelloMessage({id: 'a'}, true, {id: 'leader'});
 
-    let handlerACalled = new Promise((resolve, reject) => {
+    let handlerACalled = new Promise((resolve) => {
       messengerB.onAnyMessage(msg => resolve(msg));
     });
-    let handlerBCalled = new Promise((resolve, reject) => {
+    let handlerBCalled = new Promise((resolve) => {
       messengerB.onAnyMessage(msg => resolve(msg));
     });
     // when

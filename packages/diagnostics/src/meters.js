@@ -63,6 +63,7 @@ export class Timer extends Meter {
         });
       }
     } catch (e) {
+      // continue regardless of error
     }
   }
 
@@ -73,6 +74,7 @@ export class Timer extends Meter {
     try {
       this.record(performance?.now() | 0);
     } catch (e) {
+      // continue regardless of error
     }
   }
 }
@@ -118,6 +120,7 @@ export class Counter extends Meter {
       }
       return this.values[0].value;
     } catch (e) {
+      // continue regardless of error
     }
   }
 }
@@ -134,6 +137,7 @@ export class Summary extends Meter {
         timestamp: Date.now()
       });
     } catch (e) {
+      // continue regardless of error
     }
   }
 }

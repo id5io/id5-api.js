@@ -1,5 +1,4 @@
 import * as ID5Integration from '../../src/instance.js';
-import * as Utils from '../../src/utils.js'
 import sinon from 'sinon';
 import {Id5CommonMetrics} from '@id5io/diagnostics';
 import {NoopLogger} from '../../src/logger.js';
@@ -13,13 +12,13 @@ import {ElectionState} from '../../src/instance.js';
  * @param {string} event
  */
 function eventPromise(instance, event) {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     instance.on(event, (...args) => resolve(args));
   });
 }
 
 function instanceJoinedPromise(instance, expectedJoiner) {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     instance.on(MultiplexingEvent.ID5_INSTANCE_JOINED, joiner => {
       if (joiner.id === expectedJoiner.properties.id) {
         resolve(joiner);

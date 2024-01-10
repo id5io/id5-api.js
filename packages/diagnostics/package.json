@@ -21,7 +21,9 @@
   "private": false,
   "devDependencies": {
     "chai": "^4.3.7",
+    "eslint": "^8.56.0",
     "gulp": "^4.0.2",
+    "gulp-eslint-new": "^1.9.0",
     "mocha": "^10.2.0",
     "mockttp": "^3.7.4",
     "sinon": "^16.1.1",

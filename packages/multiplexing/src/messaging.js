@@ -268,7 +268,7 @@ export class CrossInstanceMessenger {
       // they may not be accessible from current window and throw another exception
       this._log.error('Could not post message to window', e);
     }
-  };
+  }
 
   /**
    * @param {Id5Message} msg

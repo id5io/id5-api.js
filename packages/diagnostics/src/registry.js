@@ -22,7 +22,7 @@ class Registry {
   }
 
   values() {
-    return Object.entries(this).map(([_, value]) => value);
+    return Object.entries(this).map(([, value]) => value);
   }
 }
 
@@ -143,7 +143,7 @@ export class MeterRegistry {
   publish(publisher = m => m, metadata = undefined) {
     return Promise.resolve(this.getAllMeasurements())
       .then(m => publisher(m, metadata))
-      .then((_) => this.reset());
+      .then(() => this.reset());
   }
 
   /**

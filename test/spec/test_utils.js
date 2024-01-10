@@ -100,7 +100,7 @@ export function defaultInitBypassConsent(partnerId = TEST_ID5_PARTNER_ID) {
 }
 
 export function setupGppV11Stub(){
-  window.__gpp = function (command, callback, parameter) {
+  window.__gpp = function (command) {
     if(command==='ping'){
       return {
         gppVersion        : '1.1',

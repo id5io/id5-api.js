@@ -13,7 +13,7 @@ import {
   TEST_RESPONSE_ID5_CONSENT,
   TEST_RESPONSE_SIGNATURE
 } from './test_utils.js';
-import {CONSTANTS, EXTENSIONS, Extensions, utils} from '@id5io/multiplexing';
+import {CONSTANTS, EXTENSIONS, Extensions} from '@id5io/multiplexing';
 
 describe('A/B Testing', function () {
   let server;
