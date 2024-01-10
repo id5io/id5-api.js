@@ -11,7 +11,7 @@ import {Leader, ProxyLeader} from "../../src/leader.js";
 import {StorageApi} from '../../src/localStorage.js';
 
 function pcmMessagesReceived(receiver, expectedCount) {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     const messages = [];
     receiver.onMessage(ProxyMethodCallMessage.TYPE, msg => {
       messages.push(msg);

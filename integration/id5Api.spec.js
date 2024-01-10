@@ -359,6 +359,7 @@ describe('The ID5 API', function () {
         try {
           await window.googletag.encryptedSignalProviders[0].collectorFunction();
         } catch (ignore) {
+          // Continue ignoring the error
         }
       });
       const id5Requests = await mockId5.getSeenRequests();
@@ -829,7 +830,7 @@ describe('The ID5 API', function () {
   }
 
   function expectRequestsAt(endpoint, minCount = 1) {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       let waitForRequest = async function () {
         let requests = await endpoint.getSeenRequests();
         if (requests && requests.length >= minCount) {

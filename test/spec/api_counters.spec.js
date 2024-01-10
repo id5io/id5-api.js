@@ -81,7 +81,7 @@ describe('Counters', function () {
     localStorage.setItemWithExpiration(TEST_PRIVACY_STORAGE_CONFIG, TEST_PRIVACY_DISALLOWED);
 
     const id5Status = ID5.init(defaultInit());
-    id5Status._multiplexingInstance.on(ApiEvent.USER_ID_FETCH_CANCELED, details => {
+    id5Status._multiplexingInstance.on(ApiEvent.USER_ID_FETCH_CANCELED, () => {
       expect(extensionsStub.gather).to.not.have.been.called;
       expect(server.requests).to.have.lengthOf(0);
 

@@ -18,23 +18,26 @@ export class AddFollowerResult {
  * @interface
  */
 export class Leader {
-  updateConsent(consentData) {
+  updateConsent() {
+    // Abstract function
   }
 
-  updateFetchIdData(instanceId, fetchIdData) {
+  updateFetchIdData() {
+    // Abstract function
   }
 
   /**
    * @param {RefreshOptions} refreshOptions
    */
-  refreshUid(refreshOptions) {
+  refreshUid() {
+    // Abstract function
   }
 
   /**
    * @param {Follower} follower
    * @return {AddFollowerResult | undefined}
    */
-  addFollower(follower) {
+  addFollower() {
     return undefined;
   }
 

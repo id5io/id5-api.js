@@ -12,7 +12,7 @@ export class LazyValue {
   reset() {
     const self = this;
     self._value = undefined;
-    self._valuePromise = new Promise((resolve, reject) => {
+    self._valuePromise = new Promise((resolve) => {
       self._resolve = resolve;
     });
   }

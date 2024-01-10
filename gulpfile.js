@@ -8,7 +8,7 @@ import karmaConfMaker from './karma.conf.maker.js';
 import opens from 'opn';
 import gulp from 'gulp';
 import shell from 'gulp-shell';
-import eslint from 'gulp-eslint';
+import eslint from 'gulp-eslint-new';
 import gulpif from 'gulp-if';
 import header from 'gulp-header';
 import mocha from 'gulp-mocha';
@@ -37,11 +37,11 @@ function lint(done) {
       'lib/**/*.js',
       'test/**/*.js',
       'integration/**/*.js',
-    ], {base: './'})
-    .pipe(eslint())
-    .pipe(eslint.format('stylish'))
-    .pipe(eslint.failAfterError())
-    .pipe(gulpif(file => file.eslint?.fixed, gulp.dest('./')));
+    ])
+    .pipe(eslint({ fix: true, configType: 'flat' }))     // Lint files, create fixes.
+    .pipe(eslint.fix())              // Fix files if necessary.
+    .pipe(eslint.format('stylish'))  // Output lint results to the console.
+    .pipe(eslint.failAfterError());  // Exit with an error if problems are found.
 }
 
 // View the code coverage report in the browser.

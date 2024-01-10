@@ -144,6 +144,6 @@ describe('Diagnostics', function () {
   });
 
   function sleepMs(ms) {
-    return new Promise((resolve, _) => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 });

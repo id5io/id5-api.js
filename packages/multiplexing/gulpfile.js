@@ -1,6 +1,5 @@
 import gulp from 'gulp';
-import eslint from 'gulp-eslint';
-import gulpif from 'gulp-if';
+import eslint from 'gulp-eslint-new';
 import {readFile} from 'fs/promises';
 import karma from 'karma';
 import * as path from 'path';
@@ -13,11 +12,11 @@ function lint() {
   return gulp.src([
     'src/**/*.js',
     'test/**/*.js'
-  ], {base: './'})
-    .pipe(eslint())
-    .pipe(eslint.format('stylish'))
-    .pipe(eslint.failAfterError())
-    .pipe(gulpif(file => file.eslint?.fixed, gulp.dest('./')));
+  ])
+    .pipe(eslint({ fix: true, configType: 'flat' }))     // Lint files, create fixes.
+    .pipe(eslint.fix())              // Fix files if necessary.
+    .pipe(eslint.format('stylish'))  // Output lint results to the console.
+    .pipe(eslint.failAfterError());  // Exit with an error if problems are found.
 }
 
 const pkgInfo = JSON.parse(await readFile('package.json'));

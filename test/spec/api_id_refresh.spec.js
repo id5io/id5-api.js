@@ -16,7 +16,7 @@ import {
   TEST_RESPONSE_ID5ID,
   TEST_RESPONSE_LINK_TYPE
 } from './test_utils.js';
-import {EXTENSIONS, Extensions, utils} from '@id5io/multiplexing';
+import {EXTENSIONS, Extensions} from '@id5io/multiplexing';
 
 describe('Refresh ID Fetch Handling', function () {
   let server;

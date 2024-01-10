@@ -5,7 +5,6 @@ import { API_TYPE, ConsentData, ConsentManager, GppConsentData, GRANT_TYPE, Loca
 import { NoopLogger } from '../../src/logger.js';
 import { WindowStorage } from '../../src/localStorage.js';
 import { Id5CommonMetrics } from '@id5io/diagnostics';
-import * as utils from '../../src/utils.js';
 import { Store, StoredDataState } from '../../src/store.js';
 
 const LOCAL_STORAGE_GRANT_ALLOWED_BY_API = new LocalStorageGrant(true, GRANT_TYPE.CONSENT_API, API_TYPE.TCF_V2);
@@ -403,7 +402,7 @@ describe('UidFetcher', function () {
           const fetchIdResult = fetcher.getId(inputFetchData);
 
           // then
-          return fetchIdResult.refreshResult.then(data => {
+          return fetchIdResult.refreshResult.then(() => {
 
             expectHttpPOST(server.requests[0], `https://id5-sync.com/gm/v3`, {
               requests: [
@@ -425,7 +424,7 @@ describe('UidFetcher', function () {
         const fetchIdResult = fetcher.getId(inputFetchData);
 
         // then
-        return fetchIdResult.refreshResult.then(data => {
+        return fetchIdResult.refreshResult.then(() => {
           expect(server.requests[0].url).is.eq(`https://id5-sync.com/gm/v3`);
           let body = JSON.parse(server.requests[0].requestBody);
           expect(body.requests).to.have.lengthOf(1);
@@ -505,7 +504,7 @@ describe('UidFetcher', function () {
           store.getStoredDataState.returns(stateStub);
           consentManager.getConsentData.reset();
           let resolveConsent;
-          consentManager.getConsentData.returns(new Promise((resolve, reject) => {
+          consentManager.getConsentData.returns(new Promise((resolve) => {
             resolveConsent = resolve;
           }));
 
@@ -745,7 +744,7 @@ describe('UidFetcher', function () {
 
     it('when empty response', function () {
       // given
-      server.respondWith(sinonFetchResponder(request => ''));
+      server.respondWith(sinonFetchResponder(() => ''));
 
       // when
       const fetchIdResult = fetcher.getId([fetchData]);
@@ -759,7 +758,7 @@ describe('UidFetcher', function () {
 
     it('when invalid json response', function () {
       // given
-      server.respondWith(sinonFetchResponder(request => '{'));
+      server.respondWith(sinonFetchResponder(() => '{'));
 
       // when
       const fetchIdResult = fetcher.getId([fetchData]);
@@ -790,7 +789,7 @@ describe('UidFetcher', function () {
 
     it('when missing universal_uid', function () {
       // given
-      server.respondWith(sinonFetchResponder(request => '{ "property" : 10 }'));
+      server.respondWith(sinonFetchResponder(() => '{ "property" : 10 }'));
 
       // when
       const fetchIdResult = fetcher.getId([fetchData]);

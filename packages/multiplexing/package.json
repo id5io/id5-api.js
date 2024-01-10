@@ -27,7 +27,7 @@
     "chrome-paths": "^1.0.1",
     "genversion": "^3.0.0",
     "gulp": "^4.0.2",
-    "gulp-eslint": "^6.0.0",
+    "gulp-eslint-new": "^1.9.0",
     "gulp-if": "^3.0.0",
     "karma": "^6.4.2",
     "karma-chai": "^0.1.0",
