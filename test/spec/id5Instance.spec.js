@@ -97,13 +97,30 @@ describe('Id5Instance', function () {
     
       // when
       multiplexingInstanceStub.emit(ApiEvent.CASCADE_NEEDED, {
-        partnerId: TEST_ID5_PARTNER_ID,
         userId: 'ID5-ID-31313',
       });
 
       // then
       expect(imageSpy).to.not.have.been.called;
+    });
+
+    it('should not fire sync pixel if creative restrictions are enabled', function () {
+      // given
+      const config = new Config({
+        ...defaultInitBypassConsent(),
+        applyCreativeRestrictions: true
+      }, NO_OP_LOGGER);
+      
+      const instanceUnderTest = new Id5Instance(config, null, null, null, null, NO_OP_LOGGER, multiplexingInstanceStub, null);
+      instanceUnderTest.bootstrap()
     
+      // when
+      multiplexingInstanceStub.emit(ApiEvent.CASCADE_NEEDED, {
+        userId: 'ID5-ID-31313',
+      });
+
+      // then
+      expect(imageSpy).to.not.have.been.called;
     });
   });
 });
