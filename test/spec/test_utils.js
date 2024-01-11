@@ -1,5 +1,6 @@
 import sinon from 'sinon';
-import multiplexing, {LocalStorage, WindowStorage} from '@id5io/multiplexing';
+import multiplexing, {LocalStorage, WindowStorage, ApiEventsDispatcher} from '@id5io/multiplexing';
+import { NO_OP_LOGGER } from '@id5io/multiplexing';
 
 export const TEST_ID5_PARTNER_ID = 99;
 export const ID5_FETCH_ENDPOINT = `https://id5-sync.com/gm/v3`;
@@ -181,5 +182,28 @@ export function sinonFetchResponder(responseProvider) {
     if (request.url === ID5_FETCH_ENDPOINT) {
       request.respond(200, { 'Content-Type': ' application/json' }, responseProvider(request));
     }
+  }
+}
+
+export class MultiplexInstanceStub {
+  registerOptions;
+  _dispatcher;
+
+  constructor() {
+    this._dispatcher = new ApiEventsDispatcher(NO_OP_LOGGER);
+  }
+
+  on(event, callback) {
+    this._dispatcher.on(event, callback);
+    return this;
+  }
+
+  emit(event, ...args) {
+    this._dispatcher.emit(event, ...args);
+    return this;
+  }
+
+  register(registerOptions) {
+    this.registerOptions = registerOptions;
   }
 }

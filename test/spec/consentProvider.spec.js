@@ -1,6 +1,6 @@
 import sinon from 'sinon';
 import {ConsentDataProvider} from '../../lib/consentProvider.js';
-import {API_TYPE, GRANT_TYPE, ID5_GVL_ID, NoopLogger} from "@id5io/multiplexing";
+import {API_TYPE, GRANT_TYPE, ID5_GVL_ID, NO_OP_LOGGER} from "@id5io/multiplexing";
 import {Id5CommonMetrics} from "@id5io/diagnostics";
 
 chai.should();
@@ -112,7 +112,7 @@ describe('Consent Data Provider', function () {
   let consentProvider, logger, logErrorSpy, logWarnSpy, metrics;
 
   beforeEach(function () {
-    logger = NoopLogger; // `= console;` for debug purposes
+    logger = NO_OP_LOGGER; // `= console;` for debug purposes
     metrics = new Id5CommonMetrics('api', '1')
     consentProvider = new ConsentDataProvider(metrics, logger);
     logErrorSpy = sinon.spy(logger, 'error');

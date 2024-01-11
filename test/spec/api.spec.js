@@ -29,7 +29,7 @@ import {
   EXTENSIONS,
   GRANT_TYPE,
   LocalStorageGrant,
-  NoopLogger,
+  NO_OP_LOGGER,
   StorageConfig,
 } from '@id5io/multiplexing';
 
@@ -38,7 +38,7 @@ describe('ID5 JS API', function () {
   const testClientStore = new ClientStore(
     () => new LocalStorageGrant(true, GRANT_TYPE.FORCE_ALLOWED_BY_CONFIG, API_TYPE.NONE),
     localStorage,
-    new StorageConfig(), NoopLogger);
+    new StorageConfig(), NO_OP_LOGGER);
 
   let extensionsStub, extensionsCreatorStub;
 
