@@ -19,7 +19,7 @@ export class Logger {
  *
  * @type {Logger}
  */
-export const NoopLogger = new Logger();
+export const NO_OP_LOGGER = new Logger();
 
 export class NamedLogger extends Logger {
   constructor(prefix, delegate) {

@@ -1,4 +1,4 @@
-import {NoopLogger} from './logger.js';
+import {NO_OP_LOGGER} from './logger.js';
 import {ProxyMethodCallTarget} from './messaging.js';
 
 // eslint-disable-next-line no-unused-vars
@@ -117,7 +117,7 @@ export class ActualLeader extends Leader {
    * @param {Id5CommonMetrics} metrics
    * @param {Logger} logger
    */
-  constructor(window, fetcher, properties, storage, consentManager, metrics, logger = NoopLogger) {
+  constructor(window, fetcher, properties, storage, consentManager, metrics, logger = NO_OP_LOGGER) {
     super();
     this._followers = [];
     this._fetcher = fetcher;

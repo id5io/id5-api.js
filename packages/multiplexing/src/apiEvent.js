@@ -1,4 +1,4 @@
-import {NoopLogger} from './logger.js';
+import {NO_OP_LOGGER} from './logger.js';
 
 export const ApiEvent = Object.freeze({
   CONSENT_UPDATED: 'consent_updated',
@@ -29,7 +29,7 @@ export class ApiEventsDispatcher {
    */
   _log;
 
-  constructor(log = NoopLogger) {
+  constructor(log = NO_OP_LOGGER) {
     this._log = log;
     this._handlers = {};
   }

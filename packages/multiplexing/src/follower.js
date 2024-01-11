@@ -1,6 +1,6 @@
 import {ApiEvent} from './apiEvent.js';
 import {ProxyMethodCallTarget} from './messaging.js';
-import {NoopLogger} from './logger.js';
+import {NO_OP_LOGGER} from './logger.js';
 import {NoopStorage, StorageApi} from './localStorage.js';
 /**
  * @typedef {Object} NotificationContext
@@ -48,7 +48,7 @@ export class Follower {
    * @param {Properties} properties
    * @param {Logger} logger
    */
-  constructor(callType, window, properties, logger = NoopLogger) {
+  constructor(callType, window, properties, logger = NO_OP_LOGGER) {
     this._instanceWindow = window;
     this._instanceProperties = properties;
     this._log = logger;
@@ -151,7 +151,7 @@ export class DirectFollower extends Follower {
    */
   _dispatcher;
 
-  constructor(window, properties, dispatcher, logger = NoopLogger) {
+  constructor(window, properties, dispatcher, logger = NO_OP_LOGGER) {
     super(FollowerCallType.DIRECT_METHOD, window, properties, logger);
     this._dispatcher = dispatcher;
   }
@@ -218,7 +218,7 @@ export class ProxyFollower extends Follower {
    * @param {CrossInstanceMessenger} messenger
    * @param {Logger} logger
    */
-  constructor(knownInstance, messenger, logger = NoopLogger) {
+  constructor(knownInstance, messenger, logger = NO_OP_LOGGER) {
     super(FollowerCallType.POST_MESSAGE, knownInstance.getWindow(), knownInstance.properties, logger);
     this._messenger = messenger;
   }
