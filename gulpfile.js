@@ -5,9 +5,7 @@ import del from 'del';
 import connect from 'gulp-connect';
 import karma from 'karma';
 import karmaConfMaker from './karma.conf.maker.js';
-import opens from 'opn';
 import gulp from 'gulp';
-import shell from 'gulp-shell';
 import eslint from 'gulp-eslint-new';
 import gulpif from 'gulp-if';
 import header from 'gulp-header';
@@ -43,21 +41,6 @@ function lint(done) {
     .pipe(eslint.format('stylish'))  // Output lint results to the console.
     .pipe(eslint.failAfterError());  // Exit with an error if problems are found.
 }
-
-// View the code coverage report in the browser.
-function viewCoverage(done) {
-  var coveragePort = 1999;
-  var mylocalhost = (argv.host) ? argv.host : 'localhost';
-
-  connect.server({
-    port: coveragePort,
-    root: 'build/coverage/karma_html',
-    livereload: false
-  });
-  opens('http://' + mylocalhost + ':' + coveragePort);
-  done();
-}
-viewCoverage.displayName = 'view-coverage';
 
 // Watch Task with Live Reload
 function watch(done) {
@@ -194,23 +177,13 @@ function karmaCallback(done) {
 }
 
 // Run the unit tests in headless chrome.
-// If --watch is given, the task will re-run unit tests whenever the source code changes
+// If --continuous is given, the task will re-run unit tests whenever the source code changes
 function test(done) {
   if (argv.notest) {
     done();
   } else {
-    new karma.Server(karmaConfMaker(false, argv.continuous), karmaCallback(done)).start();
+    new karma.Server(karmaConfMaker(argv.continuous), karmaCallback(done)).start();
   }
-}
-
-function testCoverage(done) {
-  new karma.Server(karmaConfMaker(true, false), karmaCallback(done)).start();
-}
-
-function coveralls() { // 2nd arg is a dependency: 'test' must be finished
-  // first send results of istanbul's test coverage to coveralls.io.
-  return gulp.src('gulpfile.js', { read: false }) // You have to give it a file, but you don't have to read it.
-    .pipe(shell('cat build/coverage/lcov.info | node_modules/coveralls/bin/coveralls.js'));
 }
 
 // support tasks
@@ -241,16 +214,6 @@ gulp.task('inttest', () => (
 
 // public tasks (dependencies are needed for each task since they can be ran on their own)
 gulp.task('test', gulp.series('clean', 'generate', lint, test));
-
-gulp.task('test-coverage', gulp.series(
-  'info',
-  'clean',
-  'generate',
-  testCoverage
-));
-gulp.task(viewCoverage);
-
-gulp.task('coveralls', gulp.series('test-coverage', coveralls));
 
 gulp.task('build', gulp.series(
   'info',
