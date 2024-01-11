@@ -3,7 +3,7 @@ import {API_TYPE, GRANT_TYPE, LocalStorageGrant} from '../../src/consent.js';
 import {ClientStore} from '../../src/clientStore.js';
 import {LocalStorage} from '../../src/localStorage.js';
 import {StorageConfig} from '../../src/store.js';
-import {NoopLogger} from '../../src/logger.js';
+import {NO_OP_LOGGER} from '../../src/logger.js';
 import {cyrb53Hash} from '../../src/utils.js';
 
 const TEST_RESPONSE_ID5_CONSENT = {
@@ -28,7 +28,7 @@ describe('ClientStore', function() {
   let log;
 
   beforeEach(function() {
-    log = _DEBUG ? console : NoopLogger;
+    log = _DEBUG ? console : NO_OP_LOGGER;
   });
 
   describe('with available local storage', function() {

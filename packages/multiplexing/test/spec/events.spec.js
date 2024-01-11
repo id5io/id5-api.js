@@ -1,6 +1,6 @@
 import sinon from 'sinon';
 import {ApiEvent, ApiEventsDispatcher, MultiplexingEvent} from '../../src/apiEvent.js';
-import {NoopLogger} from '../../src/logger.js';
+import {NO_OP_LOGGER} from '../../src/logger.js';
 
 const _DEBUG = false;
 describe('ApiEventsDispatcher', function () {
@@ -11,7 +11,7 @@ describe('ApiEventsDispatcher', function () {
   let dispatcher;
 
   beforeEach(function () {
-    dispatcher = new ApiEventsDispatcher(_DEBUG ? console : NoopLogger);
+    dispatcher = new ApiEventsDispatcher(_DEBUG ? console : NO_OP_LOGGER);
   });
 
   afterEach(function () {

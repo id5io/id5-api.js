@@ -2,7 +2,7 @@ import sinon from 'sinon';
 import { RefreshedResponse, RefreshResult, UidFetcher } from '../../src/fetch.js';
 import { Extensions } from '../../src/extensions.js';
 import { API_TYPE, ConsentData, ConsentManager, GppConsentData, GRANT_TYPE, LocalStorageGrant, NoConsentError } from '../../src/consent.js';
-import { NoopLogger } from '../../src/logger.js';
+import { NO_OP_LOGGER } from '../../src/logger.js';
 import { WindowStorage } from '../../src/localStorage.js';
 import { Id5CommonMetrics } from '@id5io/diagnostics';
 import { Store, StoredDataState } from '../../src/store.js';
@@ -201,7 +201,7 @@ describe('UidFetcher', function () {
 
 
   beforeEach(function () {
-    let log = _DEBUG ? console : NoopLogger;
+    let log = _DEBUG ? console : NO_OP_LOGGER;
     consentManager = sinon.createStubInstance(ConsentManager);
     store = sinon.createStubInstance(Store);
     extensions = sinon.createStubInstance(Extensions);
