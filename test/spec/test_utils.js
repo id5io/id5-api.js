@@ -186,11 +186,13 @@ export function sinonFetchResponder(responseProvider) {
 }
 
 export class MultiplexInstanceStub {
-  registerOptions;
+  registerObj;
   _dispatcher;
 
   constructor() {
     this._dispatcher = new ApiEventsDispatcher(NO_OP_LOGGER);
+    sinon.stub(this, 'register');
+    sinon.stub(this, 'updateConsent');
   }
 
   on(event, callback) {
@@ -203,7 +205,9 @@ export class MultiplexInstanceStub {
     return this;
   }
 
-  register(registerOptions) {
-    this.registerOptions = registerOptions;
+  register(registerObj) {
+    this.registerObj = registerObj;
   }
+
+  updateConsent() {}
 }

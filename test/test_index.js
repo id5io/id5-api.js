@@ -6,5 +6,4 @@ import './spec/consentProvider.spec.js';
 import './spec/id5Instance.spec.js';
 import './spec/api_counters.spec.js';
 import './spec/api_id_refresh.spec.js';
-import './spec/api_ab_testing.spec.js';
 import './spec/api.spec.js';

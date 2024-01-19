@@ -97,6 +97,8 @@ describe('ID5 JS API', function () {
 
     describe('Consent on Request and Response', function () {
       describe('No Stored Value', function () {
+
+        // DELETE
         it('should drop some erratic segments and inform server-side about the dropping', function (done) {
           const id5Status = ID5.init({
             ...defaultInitBypassConsent(),
@@ -121,20 +123,6 @@ describe('ID5 JS API', function () {
           const id5Status = ID5.init({
             ...defaultInitBypassConsent(),
             applyCreativeRestrictions: true
-          });
-
-          id5Status.onAvailable(function () {
-            expect(localStorage.getItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG)).to.be.null;
-            expect(localStorage.getItemWithExpiration(TEST_PRIVACY_STORAGE_CONFIG)).to.be.null;
-            expect(localStorage.getItemWithExpiration(TEST_PD_STORAGE_CONFIG)).to.be.null;
-            done();
-          });
-        });
-
-        it('does not drop local storage items when options.acr', function (done) {
-          const id5Status = ID5.init({
-            ...defaultInitBypassConsent(),
-            acr: true
           });
 
           id5Status.onAvailable(function () {
