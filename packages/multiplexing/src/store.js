@@ -72,14 +72,14 @@ export class Store {
    * @type {ClientStore}
    * @private
    */
-  _clientStoreV1;
+  _clientStore;
 
   /**
    *
    * @param {ClientStore} clientStore
    */
   constructor(clientStore) {
-    this._clientStoreV1 = clientStore;
+    this._clientStore = clientStore;
   }
 
   /**
@@ -88,8 +88,8 @@ export class Store {
    * @param {ConsentData} consentData
    */
   getStoredDataState(fetchIdData, consentData = undefined) {
-    const storedResponse = this._clientStoreV1.getResponse();
-    const storedDateTime = this._clientStoreV1.getDateTime();
+    const storedResponse = this._clientStore.getResponse();
+    const storedDateTime = this._clientStore.getDateTime();
     let nb = {};
     let pdHasChanged = false;
     let segmentsHaveChanged = false;
@@ -97,10 +97,10 @@ export class Store {
 
     fetchIdData.forEach(data => {
       const partnerId = data.partnerId;
-      const storedNb = this._clientStoreV1.getNb(partnerId);
+      const storedNb = this._clientStore.getNb(partnerId);
       nb[partnerId] = storedNb !== undefined ? storedNb : 0;
-      const currentPdHasChanged = !this._clientStoreV1.isStoredPdUpToDate(partnerId, data.pd);
-      const currentSegmentsHasChanged = !this._clientStoreV1.storedSegmentsMatchesSegments(partnerId, data.segments);
+      const currentPdHasChanged = !this._clientStore.isStoredPdUpToDate(partnerId, data.pd);
+      const currentSegmentsHasChanged = !this._clientStore.storedSegmentsMatchesSegments(partnerId, data.segments);
       segmentsHaveChanged = segmentsHaveChanged || currentSegmentsHasChanged;
       pdHasChanged = pdHasChanged || currentPdHasChanged;
       if (refreshInSeconds > data.refreshInSeconds) {
@@ -112,7 +112,7 @@ export class Store {
       refreshInSeconds = storedResponse.cache_control.max_age_sec;
     }
 
-    const consentHasChanged = consentData && !this._clientStoreV1.storedConsentDataMatchesConsentData(consentData);
+    const consentHasChanged = consentData && !this._clientStore.storedConsentDataMatchesConsentData(consentData);
 
     return Object.assign(new StoredDataState(), {
       storedResponse,
@@ -130,19 +130,19 @@ export class Store {
    * @param {array<FetchIdRequestData>} fetchIdData
    */
   storeRequestData(consentData, fetchIdData) {
-    // TODO store partners in party
-    this._clientStoreV1.putHashedConsentData(consentData);
+    // store it for V1 only , for V2 storage pd and segment are part of cache id
+    this._clientStore.putHashedConsentData(consentData);
     fetchIdData.forEach(data => {
       const partnerId = data.partnerId;
       const pd = data.pd;
       const segments = data.segments;
-      if (!this._clientStoreV1.isStoredPdUpToDate(partnerId, pd)) {
+      if (!this._clientStore.isStoredPdUpToDate(partnerId, pd)) {
         // we may have multiple data for the same partner (multiple integrations not all with pd)
         // to avoid overwrite valid pd with empty,
         // v1 isStoredPdUpToDate method can compare it and ignore empty it and take care
-        this._clientStoreV1.putHashedPd(partnerId, pd);
+        this._clientStore.putHashedPd(partnerId, pd);
       }
-      this._clientStoreV1.putHashedSegments(partnerId, segments);
+      this._clientStore.putHashedSegments(partnerId, segments);
     });
   }
 
@@ -153,34 +153,39 @@ export class Store {
   incNbs(fetchIdData, state) {
     fetchIdData.forEach(data => {
       const partnerId = data.partnerId;
-      state.nb[partnerId] = this._clientStoreV1.incNb(partnerId, state.nb[partnerId]);
+      state.nb[partnerId] = this._clientStore.incNbV1(partnerId, state.nb[partnerId]);
+      this._clientStore.incNbV2(data.cacheId);
     });
   }
 
   /**
    * @param {array<FetchIdRequestData>} fetchIdData
-   * @param {FetchResponse} response
+   * @param {RefreshedResponse} refreshedResponse
    * @param {boolean} cachedResponseUsed
    */
-  storeResponse(fetchIdData, response, cachedResponseUsed) {
-    this._clientStoreV1.putResponse(response);
-    this._clientStoreV1.setDateTime(new Date().toUTCString());
+  storeResponse(fetchIdData, refreshedResponse, cachedResponseUsed) {
+    this._clientStore.putResponseV1(refreshedResponse.getGenericResponse());
+    this._clientStore.setResponseDateTimeV1(new Date(refreshedResponse.timestamp).toUTCString());
     const nbValue = cachedResponseUsed ? 0 : 1;
     fetchIdData.forEach(data => {
       const partnerId = data.partnerId;
-      this._clientStoreV1.setNb(partnerId, nbValue);
+      this._clientStore.setNbV1(partnerId, nbValue);
+      // V2
+      const cacheId = data.cacheId;
+      this._clientStore.setNbV2(cacheId, nbValue);
+      this._clientStore.storeResponseV2(cacheId, refreshedResponse.getResponseFor(data.integrationId), refreshedResponse.timestamp);
     });
   }
 
   clearAll(fetchIdData) {
-    this._clientStoreV1.clearResponse();
-    this._clientStoreV1.clearDateTime();
+    this._clientStore.clearResponse();
+    this._clientStore.clearDateTime();
     fetchIdData.forEach(data => {
       const partnerId = data.partnerId;
-      this._clientStoreV1.clearNb(partnerId);
-      this._clientStoreV1.clearHashedPd(partnerId);
-      this._clientStoreV1.clearHashedSegments(partnerId);
+      this._clientStore.clearNb(partnerId);
+      this._clientStore.clearHashedPd(partnerId);
+      this._clientStore.clearHashedSegments(partnerId);
     });
-    this._clientStoreV1.clearHashedConsentData();
+    this._clientStore.clearHashedConsentData();
   }
 }

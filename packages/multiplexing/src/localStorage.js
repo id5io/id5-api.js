@@ -1,17 +1,23 @@
+import {NoopLogger} from './logger.js';
+
 const EXP_SUFFIX = '_exp';
 const DAY_MS = 60 * 60 * 24 * 1000;
 
 export class LocalStorage {
   /** @type {StorageApi} */
   storage;
+  /** @type {Logger} */
+  _log;
 
   /**
    * Builds a new abstraction of the localStorage associated with
    * the passed window object
    * @param {StorageApi} storage the window object to use
+   * @param {Logger} logger
    */
-  constructor(storage) {
+  constructor(storage, logger = NoopLogger) {
     this.storage = storage;
+    this._log = logger;
   }
 
   /**
@@ -61,12 +67,12 @@ export class LocalStorage {
    * @param {string} config.name The item name
    * @returns {string|null} the stored value, null if no value, expired or no localStorage
    */
-  getItemWithExpiration({ name }) {
+  getItemWithExpiration({name}) {
     const storedValueExp = this.getItem(name + EXP_SUFFIX);
     if (storedValueExp && !isExpired(storedValueExp)) {
       return this.getItem(name);
     } else {
-      this.removeItemWithExpiration({ name });
+      this.removeItemWithExpiration({name});
       return null;
     }
   }
@@ -89,9 +95,41 @@ export class LocalStorage {
   /**
    * Removes an item from local storage dealing with expiration policy.
    */
-  removeItemWithExpiration({ name }) {
+  removeItemWithExpiration({name}) {
     this.removeItem(name);
     this.removeItem(name + EXP_SUFFIX);
+  }
+
+  setObjectWithExpiration({name, expiresDays}, objectToStore) {
+    const expirationEpochTime = Date.now() + (expiresDays * DAY_MS);
+    const itemToStore = {
+      data: objectToStore,
+      expireAt: expirationEpochTime
+    };
+    this.setItem(name, JSON.stringify(itemToStore));
+  }
+
+  getObjectWithExpiration({name}) {
+    try {
+      const storedItem = JSON.parse(this.getItem(name));
+      if (storedItem.expireAt && (storedItem.expireAt - Date.now()) > 0) {
+        return storedItem.data;
+      } else if (storedItem.expireAt) { // this means it's expired
+        this.removeItem(name);
+      }
+    } catch (e) {
+      this._log.error('Error while getting ', name, 'object from storage', e);
+    }
+    return undefined;
+  }
+
+  updateObjectWithExpiration({name, expiresDays}, objectUpdateFn) {
+    try {
+      const currentValue = this.getObjectWithExpiration({name});
+      this.setObjectWithExpiration({name, expiresDays}, objectUpdateFn(currentValue));
+    } catch (e) {
+      this._log.error('Error while updating object with ', name, e);
+    }
   }
 }
 
@@ -187,6 +225,7 @@ export class WindowStorage extends StorageApi {
     }
   }
 }
+
 /**
  * @implements {StorageApi}
  */
@@ -223,14 +262,18 @@ export class ReplicatingStorage {
 
   removeItem(key) {
     this._primaryStorage.removeItem(key);
-    const replicaOp = (replica) => { replica.removeItem(key); };
+    const replicaOp = (replica) => {
+      replica.removeItem(key);
+    };
     this._replicas.forEach(replicaOp);
     this._lastKeyOperation[key] = replicaOp;
   }
 
   setItem(key, value) {
     this._primaryStorage.setItem(key, value);
-    const replicaOp = (replica) => { replica.setItem(key, value); };
+    const replicaOp = (replica) => {
+      replica.setItem(key, value);
+    };
     this._replicas.forEach(replicaOp);
     this._lastKeyOperation[key] = replicaOp;
   }

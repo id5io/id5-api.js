@@ -131,10 +131,10 @@ describe('Fire Usersync Pixel', function () {
         partnerUserId: 'abc123'
       }).onAvailable(function () {
         expect(imageSpy).to.have.been.calledOnce;
-        const pixelUrl = imageSpy.firstCall.returnValue.src;
-        expect(pixelUrl).to.contain(`${ID5_SYNC_ENDPOINT}/8.gif`);
-        expect(pixelUrl).to.contain('gpp_string=GPP_STRING');
-        expect(pixelUrl).to.contain('gpp_sid=-1,0');
+        const url = new URL(imageSpy.firstCall.returnValue.src);
+        expect(url.toString()).to.contain(`${ID5_SYNC_ENDPOINT}/8.gif`);
+        expect(url.searchParams.get('gpp')).to.be.equal('GPP_STRING');
+        expect(url.searchParams.get('gpp_sid')).to.be.equal('-1,0');
         done();
       });
     });

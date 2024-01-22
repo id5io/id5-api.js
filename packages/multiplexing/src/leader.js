@@ -245,7 +245,8 @@ export class ActualLeader extends Leader {
         ...follower.getFetchIdData(),
         integrationId: followerId,
         requestCount: requestCount,
-        role: leaderId === follower.getId() ? 'leader' : 'follower'
+        role: leaderId === follower.getId() ? 'leader' : 'follower',
+        cacheId: follower.getCacheId()
       };
     });
     this._inProgressFetch = true;
