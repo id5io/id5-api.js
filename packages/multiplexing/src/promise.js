@@ -4,16 +4,17 @@ export class LazyValue {
   _valuePromise;
   _value;
   _resolve;
+  _hasValue;
 
   constructor() {
     this.reset();
   }
 
   reset() {
-    const self = this;
-    self._value = undefined;
-    self._valuePromise = new Promise((resolve) => {
-      self._resolve = resolve;
+    this._value = undefined;
+    this._hasValue = false;
+    this._valuePromise = new Promise((resolve) => {
+      this._resolve = resolve;
     });
   }
 
@@ -21,8 +22,13 @@ export class LazyValue {
    * @param {T} value
    */
   set(value) {
+    if (this._hasValue) {
+      this._valuePromise = Promise.resolve(value);
+    } else {
+      this._hasValue = true;
+      this._resolve(value);
+    }
     this._value = value;
-    this._resolve(this._value);
   }
 
   /**
@@ -36,7 +42,7 @@ export class LazyValue {
    * @return {boolean}
    */
   hasValue() {
-    return isDefined(this._value);
+    return this._hasValue;
   }
 
   getValue() {
