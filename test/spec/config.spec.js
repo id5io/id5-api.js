@@ -155,8 +155,8 @@ describe('config API', function () {
       const config1 = new Config({partnerId: 44, applyCreativeRestrictions: true });
       const config2 = new Config({partnerId: 44, acr: true });
 
-      expect(config1.applyCreativeRestrictions()).to.be.true;
-      expect(config2.applyCreativeRestrictions()).to.be.true;
+      expect(config1.hasCreativeRestrictions()).to.be.true;
+      expect(config2.hasCreativeRestrictions()).to.be.true;
     });
   });
 

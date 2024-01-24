@@ -1,5 +1,3 @@
-import { isDefined } from './utils.js';
-
 export class LazyValue {
   _valuePromise;
   _value;

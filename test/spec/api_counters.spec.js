@@ -24,11 +24,8 @@ describe('Counters', function () {
   let server;
   let extensionsStub, extensionsCreatorStub;
 
-  before(function () {
-    resetAllInLocalStorage();
-  });
-
   beforeEach(function () {
+    resetAllInLocalStorage();
     server = sinon.fakeServer.create();
     server.respondImmediately = true;
     server.respondWith(sinonFetchResponder(request =>

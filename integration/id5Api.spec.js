@@ -22,13 +22,14 @@ const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const RESOURCES_DIR = path.join(SCRIPT_DIR, 'resources');
 const TARGET_DIR = _DEBUG ? 'dev' : 'dist';
 const ID5_API_JS_FILE = path.join(SCRIPT_DIR, '..', 'build', TARGET_DIR, 'id5-api.js');
+// const ID5_API_MAP_FILE = path.join(SCRIPT_DIR, '..', 'build', TARGET_DIR, 'id5-api.js.map');
 const ID5_ESP_JS_FILE = path.join(SCRIPT_DIR, '..', 'build', TARGET_DIR, 'esp.js');
 
 const DAYS_TO_MILLISECONDS = (60 * 60 * 24 * 1000);
 const MOCK_FETCH_RESPONSE = {
   created_at: '2021-05-26T20:08:13Z',
   id5_consent: true,
-  universal_uid: 'ID5-ZHMOQ99ulpk687Fd9xVwzxMsYtkQIJnI-qm3iWdtww!ID5*LTzsUTSrz4juTlKvKoO0brhnjXyuZIGHv44Iqf4TzN0AAGwYr9heNFf7GF6QAMRq',
+  universal_uid: 'ID5*LTzsUTSrz4juTlKvKoO0brhnjXyuZIGHv44Iqf4TzN0AAGwYr9heNFf7GF6QAMRq',
   signature: 'ID5_AQo_xCuSjJ3KsW8cOsbHs1d3AvFDad0XrupUgd5LBsLV0v0pXmrYt0AbE_8WeU_nRC2Bbmif8GPKtcHFpAl4wLo',
   cascade_needed: false,
   privacy: {
@@ -54,43 +55,47 @@ const jsonWithCorsAllowed = (payload, status = 200) => {
   };
 };
 
-const multiFetchResponseWithCorsAllowed = (payload, status = 200) => {
-  return async (request) => {
-    const requestObj = await request.body.getJson();
-    const responses = {};
-    requestObj.requests.forEach(rq => {
-      responses[rq.requestId] = {};
-    });
-    return {
-      status: status,
-      headers: {
-        'Access-Control-Allow-Origin': request.headers['origin'], 'Access-Control-Allow-Credentials': 'true'
-      },
-      json: {
-        generic: payload,
-        responses: responses
-      }
-    };
+const multiFetchResponseSequence = (payloads, status = 200) => {
+  let seq = 0;
+  return async request => {
+    const response = makeMultiFetchResponse(request, payloads[seq], status, makeCorsHeaders(request));
+    seq = seq < payloads.length - 1 ? seq + 1 : 0;
+    return response;
   };
 };
 
-const multiFetchResponseWithHeaders = (payload, headers) => {
-  return async (request) => {
-    const requestObj = await request.body.getJson();
-    const responses = {};
-    requestObj.requests.forEach(rq => {
-      responses[rq.requestId] = {};
-    });
-    return {
-      status: 200,
-      headers: headers,
-      json: {
-        generic: payload,
-        responses: responses
-      }
-    };
-  };
+const multiFetchResponseWithCorsAllowed = (payload, status = 200) => {
+  return async request => makeMultiFetchResponse(request, payload, status, makeCorsHeaders(request));
 };
+
+const multiFetchResponseWithHeaders = (payload, headers) => {
+  return async request => makeMultiFetchResponse(request, payload, 200 ,headers);
+};
+
+async function makeMultiFetchResponse(request, payload, status, headers) {
+  const requestObj = await request.body.getJson();
+  const responses = {};
+  requestObj.requests.forEach(rq => {
+    responses[rq.requestId] = {};
+  });
+  const response = {
+    status,
+    headers,
+    json: {
+      generic: payload,
+      responses: responses
+    }
+  };
+  _DEBUG && console.log('Multifetch response:', response);
+  return response;
+}
+
+function makeCorsHeaders(request) {
+  return {
+    'Access-Control-Allow-Origin': request.headers['origin'],
+    'Access-Control-Allow-Credentials': 'true'
+  };
+}
 
 const MOCK_LB_RESPONSE = {
   'lb': 'LB_DATA'
@@ -148,9 +153,14 @@ describe('The ID5 API', function () {
     // The API under test
     await server.forGet('https://cdn.id5-sync.com/api/integration/id5-api.js')
       .thenFromFile(200, ID5_API_JS_FILE);
+    // await server.forGet('https://cdn.id5-sync.com/api/integration/id5-api.js.map')
+    //   .thenFromFile(200, ID5_API_MAP_FILE);
+
     await server.forGet('https://cdn.id5-sync.com/api/integration/esp.js')
       .thenFromFile(200, ID5_ESP_JS_FILE);
+
     await server.forGet('/favicon.ico').thenReply(204);
+
     await startBrowser();
   });
 
@@ -159,26 +169,38 @@ describe('The ID5 API', function () {
   });
 
   describe('when included directly in the publishers page', function () {
+    let mockLbEndpoint, mockDummyImage;
     beforeEach(async () => {
-      const TEST_PAGE_PATH = path.join(RESOURCES_DIR, 'integration.html');
-      await server.forGet('https://my-publisher-website.net')
-        .thenFromFile(200, TEST_PAGE_PATH);
-      const TEST_REFERER_PAGE_PATH = path.join(RESOURCES_DIR, 'referer.html');
-      await server.forGet('https://referer-page.com')
-        .thenFromFile(200, TEST_REFERER_PAGE_PATH);
+      mockLbEndpoint = await server.forGet('https://lb.eu-1-id5-sync.com/lb/v1')
+        .thenJson(200, MOCK_LB_RESPONSE, MOCK_CORS_HEADERS);
+
+      mockDummyImage = await server.forGet('https://dummyimage.com/600x200')
+        .thenReply(200, '');
     });
 
     afterEach(async () => {
       await server.reset();
     });
 
-    it('can succesfully retrieve an ID, store in browser and fire callback', async () => {
+    it('can succesfully retrieve an ID, store in browser and fire callbacks', async () => {
       const mockId5 = await server.forPost(FETCH_ENDPOINT)
         .thenCallback(multiFetchResponseWithCorsAllowed(MOCK_FETCH_RESPONSE));
-      const mockLbEndpoint = await server.forGet('https://lb.eu-1-id5-sync.com/lb/v1')
-        .thenJson(200, MOCK_LB_RESPONSE, MOCK_CORS_HEADERS);
-      const mockDummyImage = await server.forGet('https://dummyimage.com/600x200')
-        .thenReply(200, '');
+
+      await server.forGet('https://referer-page.com')
+        .thenReply(200, `
+          <!doctype html>
+          <html lang="en">
+          <head>
+              <title>ID5 API Integration Referer</title>
+              <meta http-equiv="refresh" content="0; URL=https://my-publisher-website.net" />
+          </head>
+          <body></body>
+          </html>`);
+
+      const TEST_PAGE_PATH = path.join(RESOURCES_DIR, 'integration.html');
+      await server.forGet('https://my-publisher-website.net')
+        .thenFromFile(200, TEST_PAGE_PATH);
+
       const page = await browser.newPage();
       await page.goto('https://referer-page.com');
       await page.waitForSelector('p#done');
@@ -234,8 +256,39 @@ describe('The ID5 API', function () {
       const dummyImageRequests = await mockDummyImage.getSeenRequests();
       expect(dummyImageRequests).to.have.lengthOf(1);
       expect(dummyImageRequests[0].url).to.equal(
-        'https://dummyimage.com/600x200?text=' + MOCK_FETCH_RESPONSE.universal_uid
+        'https://dummyimage.com/600x200?text=ID5*LTzsUTSrz4juTlKvKoO0brhnjXyuZIGHv44Iqf4TzN0AAGwYr9heNFf7GF6QAMRq'
       );
+
+      expect(await page.evaluate(() => window.id5Update)).to.eq('ID5*LTzsUTSrz4juTlKvKoO0brhnjXyuZIGHv44Iqf4TzN0AAGwYr9heNFf7GF6QAMRq');
+      expect(await page.evaluate(() => window.id5UpdateCallback)).to.eq(1);
+    });
+
+    it('can successfully refresh an ID, store in browser and fire callbacks', async () => {
+      const mockId5 = await server.forPost(FETCH_ENDPOINT)
+        .thenCallback(multiFetchResponseSequence([
+          {...MOCK_FETCH_RESPONSE},
+          {...MOCK_FETCH_RESPONSE, universal_uid: 'ID5*anotherID5Id'}
+        ]));
+
+      const TEST_PAGE_PATH = path.join(RESOURCES_DIR, 'integrationRefresh.html');
+      await server.forGet('https://my-publisher-website.net')
+        .thenFromFile(200, TEST_PAGE_PATH);
+
+      const page = await browser.newPage();
+      await page.goto('https://my-publisher-website.net');
+      await page.waitForFunction(() => !!window.id5Refresh);
+
+      expect(await page.evaluate(() => window.id5Refresh)).to.eq('ID5*anotherID5Id');
+      expect(await page.evaluate(() => window.id5UpdateCallback)).to.eq(2);
+
+      const id5FetchRequests = await mockId5.getSeenRequests();
+      expect(id5FetchRequests).to.have.lengthOf(2);
+
+      const requestBody1 = (await id5FetchRequests[0].body.getJson()).requests[0];
+      const requestBody2 = (await id5FetchRequests[1].body.getJson()).requests[0];
+
+      expect(requestBody1.segments).to.deep.eq([{ destination: '22', ids: ['abc']}]);
+      expect(requestBody2.segments).to.deep.eq([{ destination: '24', ids: ['def']}]);
     });
   });
 
@@ -275,6 +328,22 @@ describe('The ID5 API', function () {
       expect(requestBody.id5id).to.eq(MOCK_FETCH_RESPONSE.universal_uid);
       expect(requestBody.eventType).to.eq('view');
       expect(requestBody.metadata).to.deep.eq({ eventId: 'TEST_TEST' });
+    });
+
+    it('does not drop local storage items', async function() {
+      await server.forPost(FETCH_ENDPOINT)
+        .thenCallback(multiFetchResponseWithCorsAllowed(MOCK_FETCH_RESPONSE));
+      await server.forGet('https://lb.eu-1-id5-sync.com/lb/v1')
+        .thenJson(200, MOCK_LB_RESPONSE, MOCK_CORS_HEADERS);
+      await server.forGet('https://dummyimage.com/600x200')
+        .thenReply(200, '');
+
+      const page = await browser.newPage();
+      await page.goto('https://my-publisher-website.net');
+      await page.waitForSelector('p#done');
+
+      const localStorage = await fetchLocalStorage(page);
+      expect(localStorage).to.deep.eq({});
     });
   });
 
@@ -840,6 +909,17 @@ describe('The ID5 API', function () {
         }
       };
       waitForRequest();
+    });
+  }
+
+  async function fetchLocalStorage(page) {
+    return page.evaluate(() => {
+      const result = {};
+      for(let i = 0; i < window.localStorage.length; i++) {
+        const key = window.localStorage.key(i);
+        result[key] = window.localStorage.getItem(key);
+      }
+      return result;
     });
   }
 });
