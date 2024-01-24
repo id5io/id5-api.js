@@ -454,6 +454,8 @@ Setting an `onAvailable` and `onUpdate` event listeners to retrieve the ID5 ID u
 </script>
 ```
 
+**Note:** setting an event listener from within another event listener onto the ID5 API Instance can lead to unpredictable results.
+
 #### Enabling Debug Output
 To enable debug output in the browser console, set `ID5.debug` to true before any call, or add a `id5_debug=true` to the query string of the page url.
 ```javascript
@@ -540,7 +542,8 @@ pbjs.setConfig({
         userIds: [{
             name: "id5Id",
             params: {
-                partner: 173            // same value as in the API config
+                partner: 173                                                               // same value as in the API config
+                externalModuleUrl: 'https://cdn.id5-sync.com/api/1.0/id5PrebidModule.js',  // highly recommended to enable the external module
             },
             storage: {
                 type: "html5",
