@@ -1,16 +1,9 @@
-import * as chai from 'chai';
-import {expect} from 'chai';
 import sinon from 'sinon';
-import sinonChai from 'sinon-chai';
-import chaiDateTime from 'chai-datetime';
 import {Store, StoredDataState, StorageConfig} from '../../src/store.js';
 import {ClientStore} from '../../src/clientStore.js';
-import {API_TYPE, ConsentData} from '../../src/index.js';
+import {API_TYPE, ConsentData} from '../../src/consent.js';
 import CONSTANTS from '../../src/constants.js';
 import {RefreshedResponse} from '../../src/fetch.js';
-
-chai.use(sinonChai);
-chai.use(chaiDateTime);
 
 
 const FETCH_ID_DATA = [

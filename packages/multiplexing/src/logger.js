@@ -2,16 +2,16 @@
  * @interface
  */
 export class Logger {
-  debug(...args) {
+  debug() {
   }
 
-  info(...args) {
+  info() {
   }
 
-  warn(...args) {
+  warn() {
   }
 
-  error(...args) {
+  error() {
   }
 }
 

@@ -1,3 +1,5 @@
+const nodeResolve = require('@rollup/plugin-node-resolve');
+
 // Karma configuration
 module.exports = function (config) {
     config.set({
@@ -5,54 +7,32 @@ module.exports = function (config) {
         // base path that will be used to resolve all patterns (eg. files, exclude)
         basePath: '',
 
-
         // frameworks to use
         // available frameworks: https://www.npmjs.com/search?q=keywords:karma-adapter
-        frameworks: ['mocha'],
+        frameworks: ['mocha', 'chai'],
 
         // list of files / patterns to load in the browser
         files: [
-            'test/**/*.spec.js'
+            '../../node_modules/sinon-chai/lib/sinon-chai.js',
+            '../../node_modules/chai-datetime/chai-datetime.js',
+            'test/test_index.js',
         ],
-
-        // list of files / patterns to exclude
-        exclude: ['test/integration/**/*.js'],
-
 
         // preprocess matching files before serving them to the browser
         // available preprocessors: https://www.npmjs.com/search?q=keywords:karma-preprocessor
         preprocessors: {
             // add webpack as preprocessor
-            'test/**/*.spec.js': ['webpack', 'sourcemap']
+            'test/**/*.js': ['rollup']
         },
 
-        webpack: {
-            devtool : 'inline-source-map',
-            module: {
-                loaders: [
-                    {
-                        test: /\.js?$/, exclude: /node_modules/, loader: 'babel-loader',
-                        options: {
-                            presets: [
-                                ['@babel/preset-env', {         "targets": {
-                                        "browsers": [
-                                            "chrome >= 61",
-                                            "safari >= 11",
-                                            "edge >= 14",
-                                            "firefox >= 57",
-                                            "ios >= 11",
-                                            "node >= 18"
-                                        ]
-                                    }
-                                }]
-                            ],
-                            plugins: ['@babel/plugin-proposal-class-properties',
-                                '@babel/plugin-transform-object-assign']
-                        }
-                    }
-                ],
+        rollupPreprocessor: {
+            // This is just a normal Rollup config object, except that `input` is handled for you.
+            plugins: [ nodeResolve() ],
+            output: {
+                format: 'iife',
+                sourcemap: 'inline', // Sensible for testing
+                dir: 'build/test/',
             },
-            watch: true,
         },
 
         // available reporters: https://www.npmjs.com/search?q=keywords:karma-reporter
@@ -69,7 +49,7 @@ module.exports = function (config) {
         logLevel: config.LOG_INFO,
 
         // enable / disable watching file and executing tests whenever any file changes
-        autoWatch: false,
+        autoWatch: true,
 
         customLaunchers: {
             ChromeCustom: {

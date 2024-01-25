@@ -75,7 +75,7 @@ export class Extensions {
         this._log.warn(`Got error from ${url} endpoint`, error);
         return {};
       });
-  };
+  }
 
   /**
    * @param {boolean} enabled - if dev chunks should be collected

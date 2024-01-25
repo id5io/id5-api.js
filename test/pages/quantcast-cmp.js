@@ -125,7 +125,7 @@
       win.__tcfapi = tcfAPIHandler;
       win.addEventListener('message', postMessageEventHandler, false);
     }
-  };
+  }
 
   makeStub();
 

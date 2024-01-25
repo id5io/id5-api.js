@@ -1,0 +1,14 @@
+import './spec/clientStore.spec.js';
+import './spec/consentManagement.spec.js';
+import './spec/events.spec.js';
+import './spec/extensions.spec.js';
+import './spec/fetch.spec.js';
+import './spec/follower.spec.js';
+import './spec/instance.spec.js';
+import './spec/leader.spec.js';
+import './spec/localStorage.spec.js';
+import './spec/messaging.spec.js';
+import './spec/promise.spec.js';
+import './spec/proxy-call.spec.js';
+import './spec/store.spec.js';
+import './spec/utils.spec.js';

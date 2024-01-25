@@ -1,6 +1,6 @@
-import {MeasurementsPublisher, IS_PUBLISHING_SUPPORTED} from './publisher.js';
-import {MeterRegistry} from './registry.js';
-import {Timer, Counter, Summary, TimeMeasurement} from './meters.js';
+import {MeasurementsPublisher, IS_PUBLISHING_SUPPORTED} from './src/publisher.js';
+import {MeterRegistry} from './src/registry.js';
+import {Timer, Counter, Summary, TimeMeasurement} from './src/meters.js';
 
 export {MeterRegistry, Timer, Counter, Summary, TimeMeasurement};
 

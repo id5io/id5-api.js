@@ -1,24 +1,14 @@
-import * as chai from 'chai';
-import {expect} from 'chai';
 import sinon from 'sinon';
-import sinonChai from 'sinon-chai';
-import {CrossInstanceMessenger, ProxyMethodCallTarget} from '../../src/messaging.js';
-import {ActualLeader, AddFollowerResult, AwaitedLeader, Leader, ProxyLeader} from '../../src/leader.js';
-import {CachedResponse, RefreshedResponse, RefreshResult, UidFetcher} from '../../src/fetch.js';
-import {
-  API_TYPE,
-  ConsentData,
-  ConsentManagement,
-  LocalStorageGrant,
-  NoConsentError,
-  NoopLogger
-} from '../../src/index.js';
-import {Follower} from '../../src/follower.js';
-import {Properties} from '../../src/instance.js';
-import {Counter, Id5CommonMetrics} from '@id5io/diagnostics';
-import {ReplicatingStorage} from '../../src/localStorage.js';
-
-chai.use(sinonChai);
+import { CrossInstanceMessenger, ProxyMethodCallTarget } from '../../src/messaging.js';
+import { ActualLeader, AddFollowerResult, AwaitedLeader, Leader, ProxyLeader } from '../../src/leader.js';
+import { CachedResponse, RefreshedResponse, RefreshResult, UidFetcher } from '../../src/fetch.js';
+import { API_TYPE, ConsentData, LocalStorageGrant, NoConsentError } from '../../src/consent.js';
+import { ConsentManagement } from '../../src/consentManagement.js';
+import { NoopLogger } from '../../src/logger.js';
+import { Follower } from '../../src/follower.js';
+import { Properties } from '../../src/instance.js';
+import { Counter, Id5CommonMetrics } from '@id5io/diagnostics';
+import { ReplicatingStorage } from '../../src/localStorage.js';
 
 describe('ProxyLeader', function () {
   /**
@@ -160,7 +150,7 @@ describe('AwaitedLeader', function () {
   it('returns assigned leader properties', function () {
     const awaitedLeader = new AwaitedLeader();
     const leader = sinon.createStubInstance(Leader);
-    const properties = {id: 'a'};
+    const properties = { id: 'a' };
     leader.getProperties.returns(properties);
 
     // then
@@ -297,13 +287,13 @@ describe('ActualLeader', () => {
 
     // when
     const refreshedResponse = sinon.createStubInstance(RefreshedResponse);
-    refreshedResponse.getResponseFor.returns({universal_uid: 'refreshed'});
+    refreshedResponse.getResponseFor.returns({ universal_uid: 'refreshed' });
     refreshedResponse.timestamp = 345;
-    fetchResult.refreshResult.resolve({refreshedResponse: refreshedResponse});
+    fetchResult.refreshResult.resolve({ refreshedResponse: refreshedResponse });
     await fetchResult.refreshResult;
 
     const fetchedUid = {
-      responseObj: {universal_uid: 'refreshed'},
+      responseObj: { universal_uid: 'refreshed' },
       timestamp: 345,
       isFromCache: false
     };
@@ -317,7 +307,7 @@ describe('ActualLeader', () => {
 
     // given
     const fetchResult = {
-      cachedResponse: new CachedResponse({universal_uid: crypto.randomUUID()}),
+      cachedResponse: new CachedResponse({ universal_uid: crypto.randomUUID() }),
       refreshResult: sinon.promise()
     };
 
@@ -364,20 +354,20 @@ describe('ActualLeader', () => {
     follower2.notifyUidReady.reset();
 
     const refreshedResponse = sinon.createStubInstance(RefreshedResponse);
-    refreshedResponse.getResponseFor.withArgs(follower1.getId()).returns({universal_uid: 'refreshed_f1'});
-    refreshedResponse.getResponseFor.withArgs(follower2.getId()).returns({universal_uid: 'refreshed_f2'});
+    refreshedResponse.getResponseFor.withArgs(follower1.getId()).returns({ universal_uid: 'refreshed_f1' });
+    refreshedResponse.getResponseFor.withArgs(follower2.getId()).returns({ universal_uid: 'refreshed_f2' });
     refreshedResponse.timestamp = 1;
-    fetchResult.refreshResult.resolve({refreshedResponse: refreshedResponse});
+    fetchResult.refreshResult.resolve({ refreshedResponse: refreshedResponse });
     await fetchResult.refreshResult;
 
     // then
     expect(follower1.notifyUidReady).to.be.calledWith({
-      responseObj: {universal_uid: 'refreshed_f1'},
+      responseObj: { universal_uid: 'refreshed_f1' },
       timestamp: 1,
       isFromCache: false
     });
     expect(follower2.notifyUidReady).to.be.calledWith({
-      responseObj: {universal_uid: 'refreshed_f2'},
+      responseObj: { universal_uid: 'refreshed_f2' },
       timestamp: 1,
       isFromCache: false
     });
@@ -387,7 +377,7 @@ describe('ActualLeader', () => {
 
     // given
     const fetchResult = {
-      cachedResponse: new CachedResponse({universal_uid: crypto.randomUUID()}),
+      cachedResponse: new CachedResponse({ universal_uid: crypto.randomUUID() }),
       refreshResult: Promise.resolve({})
     };
 
@@ -561,14 +551,14 @@ describe('ActualLeader', () => {
     follower3.notifyUidReady.reset();
 
     const refreshedResponse = sinon.createStubInstance(RefreshedResponse);
-    refreshedResponse.getResponseFor.withArgs(follower1.getId()).returns({universal_uid: 'refreshed'});
-    refreshedResponse.getResponseFor.withArgs(follower2.getId()).returns({universal_uid: 'refreshed'});
+    refreshedResponse.getResponseFor.withArgs(follower1.getId()).returns({ universal_uid: 'refreshed' });
+    refreshedResponse.getResponseFor.withArgs(follower2.getId()).returns({ universal_uid: 'refreshed' });
     refreshedResponse.timestamp = 123;
-    firstFetchResult.refreshResult.resolve({refreshedResponse: refreshedResponse});
+    firstFetchResult.refreshResult.resolve({ refreshedResponse: refreshedResponse });
     await firstFetchResult.refreshResult;
 
     const refreshedUid = {
-      responseObj: {universal_uid: 'refreshed'},
+      responseObj: { universal_uid: 'refreshed' },
       timestamp: 123,
       isFromCache: false
     };
@@ -608,15 +598,15 @@ describe('ActualLeader', () => {
     follower3.notifyUidReady.reset();
 
     const secondRefreshedResponse = sinon.createStubInstance(RefreshedResponse);
-    secondRefreshedResponse.getResponseFor.withArgs(follower1.getId()).returns({universal_uid: 'refreshed_again'});
-    secondRefreshedResponse.getResponseFor.withArgs(follower2.getId()).returns({universal_uid: 'refreshed_again'});
-    secondRefreshedResponse.getResponseFor.withArgs(follower3.getId()).returns({universal_uid: 'refreshed_again'});
+    secondRefreshedResponse.getResponseFor.withArgs(follower1.getId()).returns({ universal_uid: 'refreshed_again' });
+    secondRefreshedResponse.getResponseFor.withArgs(follower2.getId()).returns({ universal_uid: 'refreshed_again' });
+    secondRefreshedResponse.getResponseFor.withArgs(follower3.getId()).returns({ universal_uid: 'refreshed_again' });
     secondRefreshedResponse.timestamp = 1234567;
-    secondFetchResult.refreshResult.resolve({refreshedResponse: secondRefreshedResponse});
+    secondFetchResult.refreshResult.resolve({ refreshedResponse: secondRefreshedResponse });
     await secondFetchResult.refreshResult;
 
     const updatedUid = {
-      responseObj: {universal_uid: 'refreshed_again'},
+      responseObj: { universal_uid: 'refreshed_again' },
       timestamp: 1234567,
       isFromCache: false
     };
@@ -665,21 +655,21 @@ describe('ActualLeader', () => {
 
     // when
     const refreshedResponse = sinon.createStubInstance(RefreshedResponse);
-    refreshedResponse.getGenericResponse.returns({universal_uid: 'refreshed_generic'});
-    refreshedResponse.getResponseFor.withArgs(follower1.getId()).returns({universal_uid: 'refreshed_specific'});
-    refreshedResponse.getResponseFor.withArgs(follower2.getId()).returns({universal_uid: 'refreshed_specific'});
+    refreshedResponse.getGenericResponse.returns({ universal_uid: 'refreshed_generic' });
+    refreshedResponse.getResponseFor.withArgs(follower1.getId()).returns({ universal_uid: 'refreshed_specific' });
+    refreshedResponse.getResponseFor.withArgs(follower2.getId()).returns({ universal_uid: 'refreshed_specific' });
     refreshedResponse.timestamp = 123;
-    firstFetchResult.refreshResult.resolve({refreshedResponse: refreshedResponse});
+    firstFetchResult.refreshResult.resolve({ refreshedResponse: refreshedResponse });
     await firstFetchResult.refreshResult;
 
     const refreshedUid = {
-      responseObj: {universal_uid: 'refreshed_specific'},
+      responseObj: { universal_uid: 'refreshed_specific' },
       timestamp: 123,
       isFromCache: false
     };
 
     const genericRefreshedUid = {
-      responseObj: {universal_uid: 'refreshed_generic'},
+      responseObj: { universal_uid: 'refreshed_generic' },
       timestamp: 123,
       isFromCache: true
     };
@@ -731,15 +721,15 @@ describe('ActualLeader', () => {
     follower3.notifyUidReady.reset();
 
     const secondRefreshedResponse = sinon.createStubInstance(RefreshedResponse);
-    secondRefreshedResponse.getResponseFor.withArgs(follower1.getId()).returns({universal_uid: 'refreshed_again'});
-    secondRefreshedResponse.getResponseFor.withArgs(follower2.getId()).returns({universal_uid: 'refreshed_again'});
-    secondRefreshedResponse.getResponseFor.withArgs(follower3.getId()).returns({universal_uid: 'refreshed_again'});
+    secondRefreshedResponse.getResponseFor.withArgs(follower1.getId()).returns({ universal_uid: 'refreshed_again' });
+    secondRefreshedResponse.getResponseFor.withArgs(follower2.getId()).returns({ universal_uid: 'refreshed_again' });
+    secondRefreshedResponse.getResponseFor.withArgs(follower3.getId()).returns({ universal_uid: 'refreshed_again' });
     secondRefreshedResponse.timestamp = 1234567;
-    secondFetchResult.refreshResult.resolve({refreshedResponse: secondRefreshedResponse});
+    secondFetchResult.refreshResult.resolve({ refreshedResponse: secondRefreshedResponse });
     await secondFetchResult.refreshResult;
 
     const updatedUid = {
-      responseObj: {universal_uid: 'refreshed_again'},
+      responseObj: { universal_uid: 'refreshed_again' },
       timestamp: 1234567,
       isFromCache: false
     };
@@ -801,15 +791,15 @@ describe('ActualLeader', () => {
 
     // when
     const refreshedResponse = sinon.createStubInstance(RefreshedResponse);
-    refreshedResponse.getResponseFor.withArgs(follower1.getId()).returns({universal_uid: 'refreshed'});
-    refreshedResponse.getResponseFor.withArgs(follower2.getId()).returns({universal_uid: 'refreshed'});
+    refreshedResponse.getResponseFor.withArgs(follower1.getId()).returns({ universal_uid: 'refreshed' });
+    refreshedResponse.getResponseFor.withArgs(follower2.getId()).returns({ universal_uid: 'refreshed' });
 
     refreshedResponse.timestamp = 12345;
-    firstFetchResult.refreshResult.resolve({refreshedResponse: refreshedResponse});
+    firstFetchResult.refreshResult.resolve({ refreshedResponse: refreshedResponse });
     await firstFetchResult.refreshResult;
 
     const uid = {
-      responseObj: {universal_uid: 'refreshed'},
+      responseObj: { universal_uid: 'refreshed' },
       timestamp: 12345,
       isFromCache: false
     };
@@ -850,16 +840,16 @@ describe('ActualLeader', () => {
     follower2.notifyUidReady.reset();
 
     const secondRefreshedResponse = sinon.createStubInstance(RefreshedResponse);
-    secondRefreshedResponse.getResponseFor.withArgs(follower1.getId()).returns({universal_uid: 'refreshed_again'});
-    secondRefreshedResponse.getResponseFor.withArgs(follower2.getId()).returns({universal_uid: 'refreshed_again'});
-    secondRefreshedResponse.getResponseFor.withArgs(follower3.getId()).returns({universal_uid: 'refreshed_again'});
+    secondRefreshedResponse.getResponseFor.withArgs(follower1.getId()).returns({ universal_uid: 'refreshed_again' });
+    secondRefreshedResponse.getResponseFor.withArgs(follower2.getId()).returns({ universal_uid: 'refreshed_again' });
+    secondRefreshedResponse.getResponseFor.withArgs(follower3.getId()).returns({ universal_uid: 'refreshed_again' });
     secondRefreshedResponse.timestamp = 123456;
 
     secondFetchResult.refreshResult.resolve(new RefreshResult(new ConsentData(), secondRefreshedResponse));
     await secondFetchResult.refreshResult;
 
     const updatedUid = {
-      responseObj: {universal_uid: 'refreshed_again'},
+      responseObj: { universal_uid: 'refreshed_again' },
       timestamp: 123456,
       isFromCache: false
     };
@@ -918,11 +908,11 @@ describe('ActualLeader', () => {
 
     // when refresh result completed
     const refreshedResponse = sinon.createStubInstance(RefreshedResponse);
-    refreshedResponse.getResponseFor.returns({universal_uid: 'refreshed'});
+    refreshedResponse.getResponseFor.returns({ universal_uid: 'refreshed' });
     refreshedResponse.timestamp = 391;
-    fetchResult.refreshResult.resolve({refreshedResponse: refreshedResponse});
+    fetchResult.refreshResult.resolve({ refreshedResponse: refreshedResponse });
     const expectedRefreshedUid = {
-      responseObj: {universal_uid: 'refreshed'},
+      responseObj: { universal_uid: 'refreshed' },
       timestamp: 391,
       isFromCache: false
     };
@@ -941,7 +931,7 @@ describe('ActualLeader', () => {
     follower3.isSimilarTo.onSecondCall().returns(false);
 
     const secondRefreshedResponse = sinon.createStubInstance(RefreshedResponse);
-    secondRefreshedResponse.getResponseFor.returns({universal_uid: 'refreshed_only_uid'});
+    secondRefreshedResponse.getResponseFor.returns({ universal_uid: 'refreshed_only_uid' });
     secondRefreshedResponse.timestamp = 446;
     const secondFetchResult = {
       refreshResult: Promise.resolve({
@@ -957,7 +947,7 @@ describe('ActualLeader', () => {
     let addFollowerResult = leader.addFollower(follower3);
     await secondFetchResult.refreshResult;
     const secondRefreshedUid = {
-      responseObj: {universal_uid: 'refreshed_only_uid'},
+      responseObj: { universal_uid: 'refreshed_only_uid' },
       timestamp: 446,
       isFromCache: false
     };
@@ -1062,14 +1052,14 @@ describe('ActualLeader', () => {
     await Promise.allSettled([fetchResult.refreshResult]);
 
     // then
-    expect(follower1.notifyFetchUidCanceled).to.be.calledWith({reason: 'error'});
-    expect(follower2.notifyFetchUidCanceled).to.be.calledWith({reason: 'error'});
+    expect(follower1.notifyFetchUidCanceled).to.be.calledWith({ reason: 'error' });
+    expect(follower2.notifyFetchUidCanceled).to.be.calledWith({ reason: 'error' });
   });
 
   [
     ['failed', promise => promise.reject(new Error('some error'))],
     ['skipped', promise => promise.resolve({})],
-    ['refreshed', promise => promise.resolve({refreshedResponse: new RefreshedResponse({universal_uid: 'resolved'})})]
+    ['refreshed', promise => promise.resolve({ refreshedResponse: new RefreshedResponse({ universal_uid: 'resolved' }) })]
   ].forEach(([descr, resolve]) => {
     it(`should schedule refresh uid when in progress and execute when previous is done (${descr})`, async () => {
 
@@ -1341,10 +1331,10 @@ describe('ActualLeader', () => {
     leader.addFollower(follower2);
 
     // when
-    leader.updateFetchIdData(follower2Id, {updated: 'data'});
+    leader.updateFetchIdData(follower2Id, { updated: 'data' });
 
     // then
-    expect(follower2.updateFetchIdData).to.be.calledWith({updated: 'data'});
+    expect(follower2.updateFetchIdData).to.be.calledWith({ updated: 'data' });
     expect(follower1.updateFetchIdData).to.not.be.called;
   });
 
@@ -1527,7 +1517,7 @@ describe('ActualLeader', () => {
     });
     refreshedResponse.timestamp = 1;
     const fetchResult = {
-      refreshResult: Promise.resolve({refreshedResponse: refreshedResponse})
+      refreshResult: Promise.resolve({ refreshedResponse: refreshedResponse })
     };
     uidFetcher.getId.returns(fetchResult);
     // when

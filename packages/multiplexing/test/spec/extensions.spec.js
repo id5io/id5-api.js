@@ -1,7 +1,6 @@
-import {expect} from 'chai';
 import sinon from 'sinon';
-import {Extensions, EXTENSIONS, ID5_LB_ENDPOINT} from '../../src/extensions.js';
-import {NoopLogger} from '../../src/index.js';
+import {EXTENSIONS, ID5_LB_ENDPOINT} from '../../src/extensions.js';
+import {NoopLogger} from '../../src/logger.js';
 import {Id5CommonMetrics} from '@id5io/diagnostics';
 
 
@@ -52,7 +51,7 @@ describe('Extensions', function () {
   });
 
   it('should return only default when calls fail on http level', function () {
-    fetchStub = sinon.stub(window, 'fetch').callsFake(function (input) {
+    fetchStub = sinon.stub(window, 'fetch').callsFake(function () {
       return Promise.resolve(new window.Response(null, {status: 500}));
     });
 
@@ -65,7 +64,7 @@ describe('Extensions', function () {
   });
 
   it('should return only default when other fails', function () {
-    fetchStub = sinon.stub(window, 'fetch').callsFake(function (input) {
+    fetchStub = sinon.stub(window, 'fetch').callsFake(function () {
       return Promise.reject('error');
     });
 
@@ -101,9 +100,9 @@ describe('Extensions', function () {
         expect(response).to.be.deep.equal({
           ...lbExtensions,
           lbCDN: '%%LB_CDN%%',
-          devChunks: Array.from({length: 8}, v => '1'),
+          devChunks: Array.from({length: 8}, () => '1'),
           devChunksVersion: '4',
-          groupChunks: Array.from({length: 8}, v => '2'),
+          groupChunks: Array.from({length: 8}, () => '2'),
           groupChunksVersion: '4'
         });
       });

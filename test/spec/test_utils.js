@@ -100,7 +100,7 @@ export function defaultInitBypassConsent(partnerId = TEST_ID5_PARTNER_ID) {
 }
 
 export function setupGppV11Stub(){
-  window.__gpp = function (command, callback, parameter) {
+  window.__gpp = function (command) {
     if(command==='ping'){
       return {
         gppVersion        : '1.1',
@@ -173,5 +173,13 @@ export class MultiplexingStub {
 
   restore() {
     this.stubCreate.restore()
+  }
+}
+
+export function sinonFetchResponder(responseProvider) {
+  return (request) => {
+    if (request.url === ID5_FETCH_ENDPOINT) {
+      request.respond(200, { 'Content-Type': ' application/json' }, responseProvider(request));
+    }
   }
 }

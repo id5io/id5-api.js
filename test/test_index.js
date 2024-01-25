@@ -1,2 +1,10 @@
-let testsContext = require.context('./spec', true, /.spec$/);
-testsContext.keys().forEach(testsContext);
+import './spec/utils.spec.js';
+import './spec/config.spec.js';
+import './spec/refererDetection.spec.js';
+import './spec/tcfUtils.spec.js';
+import './spec/consentProvider.spec.js';
+import './spec/api_usersync_pixel.spec.js';
+import './spec/api_counters.spec.js';
+import './spec/api_id_refresh.spec.js';
+import './spec/api_ab_testing.spec.js';
+import './spec/api.spec.js';

@@ -30,6 +30,7 @@ export class LocalStorage {
     try {
       return this.storage.getItem(key);
     } catch (e) {
+      // continue regardless of error
     }
   }
 
@@ -44,6 +45,7 @@ export class LocalStorage {
     try {
       this.storage.setItem(key, value);
     } catch (e) {
+      // continue regardless of error
     }
   }
 
@@ -55,6 +57,7 @@ export class LocalStorage {
     try {
       this.storage.removeItem(key);
     } catch (e) {
+      // continue regardless of error
     }
   }
 
@@ -147,22 +150,25 @@ export class StorageApi {
    * @property {string} key
    * @returns {string}
    */
-  getItem(key) {
+  getItem() {
+    // Abstract function
   }
-
+  
   /**
    * Removes the key/value pair with the given key, if a key/value pair with the given key exists.
    * @property {string} key
    */
-  removeItem(key) {
+  removeItem() {
+    // Abstract function
   }
-
+  
   /**
    * Sets the value of the pair identified by key to value, creating a new key/value pair if none existed for key previously.
    * @property {string} key
    * @property {string} value
    */
-  setItem(key, value) {
+  setItem() {
+    // Abstract function
   }
 }
 
@@ -178,6 +184,7 @@ export class WindowStorage extends StorageApi {
     try {
       this._underlying = window.localStorage;
     } catch (e) {
+      // continue regardless of error
     }
   }
 
@@ -185,6 +192,7 @@ export class WindowStorage extends StorageApi {
     try {
       return this._underlying.getItem(key);
     } catch (e) {
+      // continue regardless of error
     }
   }
 
@@ -192,6 +200,7 @@ export class WindowStorage extends StorageApi {
     try {
       this._underlying.removeItem(key);
     } catch (e) {
+      // continue regardless of error
     }
   }
 
@@ -201,6 +210,7 @@ export class WindowStorage extends StorageApi {
         this._underlying.setItem(key, value);
       }
     } catch (e) {
+      // continue regardless of error
     }
   }
 

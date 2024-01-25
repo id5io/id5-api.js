@@ -1,7 +1,5 @@
 import {isPurposeConsentSet} from "../../lib/tcfUtils.js";
 
-const expect = require('chai').expect;
-
 describe('TcfUtils', function () {
 
   describe('isPurposeConsentSet', function () {

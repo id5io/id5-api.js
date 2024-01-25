@@ -4,10 +4,6 @@ import {NoopLogger} from './logger.js';
 import {NoopStorage, StorageApi} from './localStorage.js';
 import {cyrb53Hash} from './utils.js';
 /**
- * @typedef {string} FollowerCallType
- */
-
-/**
  * @typedef {Object} NotificationContext
  * @param {number} timestamp
  * @param {tags} tags
@@ -126,19 +122,22 @@ export class Follower {
    * @param {Id5UserId} uid
    * @param {NotificationContext} notificationContext
    */
-  notifyUidReady(uid, notificationContext) {
+  notifyUidReady() {
+    // Abstract function
   }
 
   /**
    * @param {FetchId5UidCanceled} cancelInfo
    */
-  notifyFetchUidCanceled(cancelInfo) {
+  notifyFetchUidCanceled() {
+    // Abstract function
   }
 
   /**
    * @param {CascadePixelCall} cascadeData
    */
-  notifyCascadeNeeded(cascadeData) {
+  notifyCascadeNeeded() {
+    // Abstract function
   }
 
   canDoCascade() {
@@ -206,7 +205,7 @@ export class ProxyStorage extends StorageApi {
     this._destinationId = destinationId;
   }
 
-  getItem(key) {
+  getItem() {
     // proxy storage calls are only to trigger writing
     return undefined;
   }

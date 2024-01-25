@@ -1,8 +1,6 @@
-import {expect} from 'chai';
-import {Config} from '../../lib/config';
+import {Config} from '../../lib/config.js';
 
 describe('config API', function () {
-
   it('member functions', function () {
     const config = new Config({partnerId: 44});
     expect(config.updOptions).to.be.a('function');

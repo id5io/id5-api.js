@@ -1,5 +1,4 @@
-import { detectReferer } from '../../lib/refererDetection';
-import { expect } from 'chai';
+import { detectReferer } from '../../lib/refererDetection.js';
 
 const mocks = {
   createFakeWindow: function (referrer, href) {
