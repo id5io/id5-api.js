@@ -4,7 +4,7 @@ import {DirectFollower, Follower, FollowerCallType, ProxyFollower} from '../../s
 import {DiscoveredInstance, Properties} from '../../src/instance.js';
 import {ApiEvent, ApiEventsDispatcher} from '../../src/apiEvent.js';
 
-const properties = new Properties('id', 'verison', 'source', 'sourceVersion', {}, window.location)
+const properties = new Properties('id', 'verison', 'source', 'sourceVersion', {}, window.location);
 describe('ProxyFollower', function () {
   /**
    * @type CrossInstanceMessenger
@@ -63,11 +63,11 @@ describe('Follower', function () {
   let follower;
   beforeEach(() => {
     follower = new Follower(FollowerCallType.POST_MESSAGE, window, properties);
-  })
+  });
 
   it('should return properties id', function () {
     expect(follower.getId()).to.be.eq(properties.id);
-  })
+  });
 
   it('should return fetchId data', function () {
     // given
@@ -102,13 +102,13 @@ describe('Follower', function () {
     properties.fetchIdData = {
       partnerId: 1,
       pd: 'pd'
-    }
+    };
 
     // when
     follower.updateFetchIdData({
       pd: 'updatedPd',
       segments: ['seg1']
-    })
+    });
 
     // then
     expect(follower.getFetchIdData()).to.be.eql({
@@ -259,6 +259,34 @@ describe('Follower', function () {
       false
     ]
   ].forEach(([descr, aData, bData, expectedResult]) => {
+
+    it(`should generate cacheId - ${descr}`, function () {
+      // given
+      let followerA = new DirectFollower(window, {
+        id: 'a',
+        fetchIdData: aData
+      }, sinon.stub());
+      let followerB = new ProxyFollower(new DiscoveredInstance({
+        id: 'b',
+        fetchIdData: bData
+      }, sinon.stub(), sinon.stub()), sinon.stub());
+
+      // when
+      const cacheIdA = followerA.getCacheId();
+      const cacheIdB = followerB.getCacheId();
+
+      // then
+      expect(cacheIdA).to.not.be.undefined;
+      expect(typeof cacheIdA).to.be.eq('string');
+      expect(cacheIdA.length).to.be.greaterThan(0);
+
+      expect(cacheIdB).to.not.be.undefined;
+      expect(typeof cacheIdB).to.be.eq('string');
+      expect(cacheIdB.length).to.be.greaterThan(0);
+
+      expect(cacheIdB === cacheIdA).to.be.eq(expectedResult);
+    });
+
     it(`should check if other is similar - ${descr}`, function () {
       // given
       let followerA = new DirectFollower(window, {

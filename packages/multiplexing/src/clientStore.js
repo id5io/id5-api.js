@@ -2,13 +2,15 @@
  * Module for managing storage of information in browser Local Storage and/or cookies
  */
 
-import {cyrb53Hash, isEmpty, isStr} from './utils.js';
+import {cyrb53Hash, isEmpty, isStr, isNumber} from './utils.js';
 
 /* eslint-disable no-unused-vars */
 import {ConsentData, LocalStorageGrant} from './consent.js';
 import {StorageConfig, StoreItemConfig} from './store.js';
 import {LocalStorage} from './localStorage.js';
 /* eslint-enable no-unused-vars */
+
+const V2_SUFFIX = 'v2';
 
 export class ClientStore {
   /** @type {function} */
@@ -75,8 +77,9 @@ export class ClientStore {
    * Puts the current data into local storage provided local storage access is definitively granted
    * @param {StoreItemConfig} cacheConfig
    * @param {string} data
+   * @private
    */
-  put(cacheConfig, data) {
+  _put(cacheConfig, data) {
     const log = this._log;
     try {
       const localStorageGrant = this.localStorageGrant();
@@ -84,7 +87,27 @@ export class ClientStore {
         log.info(`Local storage put key=${cacheConfig.name} value=${data}`);
         this.localStorage.setItemWithExpiration(cacheConfig, data);
       } else {
-        log.warn('clientStore.put() has been called without definitive grant', localStorageGrant);
+        log.warn('clientStore._put() has been called without definitive grant', localStorageGrant);
+      }
+    } catch (e) {
+      log.error(e);
+    }
+  }
+
+  /**
+   * Puts the current data into local storage provided local storage access is definitively granted
+   * @param {StoreItemConfig} cacheConfig
+   * @param {Function<Object,Object>} dataUpdateFn
+   * @private
+   */
+  _updateObject(cacheConfig, dataUpdateFn) {
+    const log = this._log;
+    try {
+      const localStorageGrant = this.localStorageGrant();
+      if (localStorageGrant.isDefinitivelyAllowed()) {
+        this.localStorage.updateObjectWithExpiration(cacheConfig, dataUpdateFn);
+      } else {
+        log.warn('clientStore._updateObject() has been called without definitive grant', localStorageGrant);
       }
     } catch (e) {
       log.error(e);
@@ -111,8 +134,8 @@ export class ClientStore {
     this.clear(this.storageConfig.ID5);
   }
 
-  putResponse(response) {
-    this.put(this.storageConfig.ID5, encodeURIComponent(isStr(response) ? response : JSON.stringify(response)));
+  putResponseV1(response) {
+    this._put(this.storageConfig.ID5, encodeURIComponent(isStr(response) ? response : JSON.stringify(response)));
   }
 
   getHashedConsentData() {
@@ -129,7 +152,7 @@ export class ClientStore {
    */
   putHashedConsentData(consentData) {
     if (consentData !== new ConsentData()) {
-      this.put(this.storageConfig.CONSENT_DATA, consentData.hashCode());
+      this._put(this.storageConfig.CONSENT_DATA, consentData.hashCode());
     }
   }
 
@@ -168,7 +191,7 @@ export class ClientStore {
    * @param {string} [pd]
    */
   putHashedPd(partnerId, pd) {
-    this.put(this.pdCacheConfig(partnerId), ClientStore.makeStoredHash(pd));
+    this._put(this.pdCacheConfig(partnerId), ClientStore.makeStoredHash(pd));
   }
 
   /**
@@ -185,7 +208,7 @@ export class ClientStore {
    * @param {Array<Segment>} [segments]
    */
   putHashedSegments(partnerId, segments) {
-    this.put(this.segmentsCacheConfig(partnerId), ClientStore.makeStoredHash(JSON.stringify(segments)));
+    this._put(this.segmentsCacheConfig(partnerId), ClientStore.makeStoredHash(JSON.stringify(segments)));
   }
 
   /**
@@ -222,8 +245,8 @@ export class ClientStore {
     this.clear(this.storageConfig.LAST);
   }
 
-  setDateTime(timestamp) {
-    this.put(this.storageConfig.LAST, timestamp);
+  setResponseDateTimeV1(timestamp) {
+    this._put(this.storageConfig.LAST, timestamp);
   }
 
   getNb(partnerId) {
@@ -235,15 +258,15 @@ export class ClientStore {
     this.clear(this.nbCacheConfig(partnerId));
   }
 
-  setNb(partnerId, nb) {
-    this.put(this.nbCacheConfig(partnerId), nb);
+  setNbV1(partnerId, nb) {
+    this._put(this.nbCacheConfig(partnerId), nb);
   }
 
-  incNb(partnerId, nb) {
+  incNbV1(partnerId, nb) {
     // Math.round() due to (rare) observation floating
     // point numbers instead of integers in logs
     nb = Math.round(nb + 1);
-    this.setNb(partnerId, nb);
+    this.setNbV1(partnerId, nb);
     return nb;
   }
 
@@ -267,6 +290,37 @@ export class ClientStore {
    */
   segmentsCacheConfig(partnerId) {
     return this.storageConfig.SEGMENTS.withNameSuffixed(partnerId);
+  }
+
+  storeResponseV2(cacheId, response, responseTimestamp = Date.now()) {
+    this._updateObject(this.storageConfig.ID5.withNameSuffixed(V2_SUFFIX, cacheId), previousData => {
+      return {
+        ...previousData,
+        response: response,
+        responseTimestamp: responseTimestamp
+      };
+    });
+  }
+
+  incNbV2(cacheId) {
+    this._updateObject(this.storageConfig.ID5.withNameSuffixed(V2_SUFFIX, cacheId), previousData => {
+      const increasedNb = isNumber(previousData?.nb) ? Math.round(previousData.nb) + 1 : 1;
+      return {
+        ...previousData,
+        nb: increasedNb
+      };
+    });
+  }
+
+  setNbV2(cacheId, nbValue) {
+    if (isNumber(nbValue)) {
+      this._updateObject(this.storageConfig.ID5.withNameSuffixed(V2_SUFFIX, cacheId), previousData => {
+        return {
+          ...previousData,
+          nb: nbValue
+        };
+      });
+    }
   }
 
   /**

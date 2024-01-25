@@ -64,7 +64,7 @@ describe('Id5Instance', function () {
       expect(url.searchParams.get('o')).to.eq('api');
       expect(url.searchParams.get('gdpr_consent')).to.eq('GDPR_CONSENT_STRING');
       expect(url.searchParams.get('gdpr')).to.eq('1');
-      expect(url.searchParams.get('gpp_string')).to.eq('GPP_STRING');
+      expect(url.searchParams.get('gpp')).to.eq('GPP_STRING');
       expect(url.searchParams.get('gpp_sid')).to.eq('GPP_SID');
     });
 

@@ -21,13 +21,14 @@ const MULTI_FETCH_ENDPOINT_V3 = `/gm/v3`;
  * @property {string} integrationId - unique multiplexing integration id
  * @property {string} role - multiplexing integration role {leader|follower}
  * @property {string} requestCount - number of times integration was included in multiplexed requests so far within session
+ * @property {string} cacheId - instance client storage cache identifier
  */
 
 /**
  * @typedef {Object} FetchResponse
  * @property {string} universal_uid
  * @property {string} signature
- * @property {boolean} cascade_needed
+ * @property {boolean|undefined} [cascade_needed]
  */
 
 /**
@@ -76,6 +77,11 @@ export class RefreshedResponse {
     return this.response.generic;
   }
 
+  /**
+   *
+   * @param requestId
+   * @return {FetchResponse}
+   */
   getResponseFor(requestId) {
     if (this.response.responses[requestId]) {
       return {
@@ -186,6 +192,7 @@ export class UidRefresher {
       'requestId': fetchIdData.integrationId,
       'requestCount': fetchIdData.requestCount,
       'role': fetchIdData.role,
+      'cacheId': fetchIdData.cacheId,
       'partner': partner,
       'v': fetchIdData.originVersion,
       'o': fetchIdData.origin,
@@ -466,17 +473,18 @@ export class UidFetcher {
     const log = this._log;
     const consentManager = this._consentManager;
     const store = this._store;
+    const refreshedResponse = new RefreshedResponse(response);
     // privacy has to be stored first, so we can use it when storing other values
     consentManager.setStoredPrivacy(response.generic.privacy);
     const localStorageGrant = consentManager.localStorageGrant();
     if (localStorageGrant.isDefinitivelyAllowed()) {
       log.info('Storing ID and request hashes in cache');
       store.storeRequestData(consentData, fetchIdData);
-      store.storeResponse(fetchIdData, response.generic, cachedResponseUsed);
+      store.storeResponse(fetchIdData, refreshedResponse, cachedResponseUsed);
     } else {
       log.info('Cannot use local storage to cache ID', localStorageGrant);
       store.clearAll(fetchIdData);
     }
-    return new RefreshResult(consentData, new RefreshedResponse(response));
+    return new RefreshResult(consentData, refreshedResponse);
   }
 }
