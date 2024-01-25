@@ -5,5 +5,5 @@ import './spec/tcfUtils.spec.js';
 import './spec/consentProvider.spec.js';
 import './spec/id5Instance.spec.js';
 import './spec/api_counters.spec.js';
-import './spec/api_id_refresh.spec.js';
+import './spec/api_async_responses.spec.js'
 import './spec/api.spec.js';
