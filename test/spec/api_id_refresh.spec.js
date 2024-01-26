@@ -8,10 +8,9 @@ import {
   MultiplexingStub,
   prepareMultiplexingResponse,
   sinonFetchResponder,
+  resetAllInLocalStorage,
   TEST_CONSENT_DATA_STORAGE_CONFIG,
   TEST_ID5ID_STORAGE_CONFIG,
-  TEST_LAST_STORAGE_CONFIG,
-  TEST_PD_STORAGE_CONFIG,
   TEST_RESPONSE_ID5_CONSENT,
   TEST_RESPONSE_ID5ID,
   TEST_RESPONSE_LINK_TYPE
@@ -35,10 +34,7 @@ describe('Refresh ID Fetch Handling', function () {
   const JSON_REFRESH_RESPONSE = JSON.stringify(REFRESH_RESPONSE);
 
   before(function () {
-    localStorage.removeItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG);
-    localStorage.removeItemWithExpiration(TEST_LAST_STORAGE_CONFIG);
-    localStorage.removeItemWithExpiration(TEST_CONSENT_DATA_STORAGE_CONFIG);
-    localStorage.removeItemWithExpiration(TEST_PD_STORAGE_CONFIG);
+    resetAllInLocalStorage();
   });
 
   beforeEach(function () {
@@ -55,10 +51,7 @@ describe('Refresh ID Fetch Handling', function () {
   afterEach(function () {
     server.restore();
     extensionsCreatorStub.restore();
-    localStorage.removeItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG);
-    localStorage.removeItemWithExpiration(TEST_LAST_STORAGE_CONFIG);
-    localStorage.removeItemWithExpiration(TEST_CONSENT_DATA_STORAGE_CONFIG);
-    localStorage.removeItemWithExpiration(TEST_PD_STORAGE_CONFIG);
+    resetAllInLocalStorage();
   });
 
   describe('No Force Fetch', function () {
@@ -68,12 +61,12 @@ describe('Refresh ID Fetch Handling', function () {
       multiplexingStub = new MultiplexingStub();
       multiplexingStub.interceptInstance(instance => {
         instance._leader.realAssignLeader = instance._leader.assignLeader;
-        sinon.stub(instance._leader, 'assignLeader').callsFake( (leader) => {
+        sinon.stub(instance._leader, 'assignLeader').callsFake((leader) => {
           getIdSpy = sinon.spy(leader._fetcher, 'getId');
           instance._leader.realAssignLeader(leader);// let instance complete election
         });
         return instance;
-      })
+      });
     });
 
     afterEach(function () {
@@ -111,11 +104,11 @@ describe('Refresh ID Fetch Handling', function () {
         expect(extensionsStub.gather).to.have.been.calledOnce;
         expect(server.requests).to.have.lengthOf(1);
 
-        const body = JSON.parse(server.requests[0].requestBody);
-        expect(body.requests[0].used_refresh_in_seconds).to.be.eq(50);
-        expect(body.requests[0].provided_options.refresh_in_seconds).to.be.eq(50);
+        const requestData = JSON.parse(server.requests[0].requestBody).requests[0];
+        expect(requestData.used_refresh_in_seconds).to.be.undefined;
+        expect(requestData.provided_options.refresh_in_seconds).to.be.eq(50);
 
-        ID5.refreshId(id5Status, false, {refreshInSeconds: 100}).onRefresh(function () {
+        ID5.refreshId(id5Status, false, {refreshInSeconds: 50}).onRefresh(function () {
           // No new calls
           expect(extensionsStub.gather).to.have.been.calledOnce;
           expect(server.requests).to.have.lengthOf(1);
@@ -134,10 +127,8 @@ describe('Refresh ID Fetch Handling', function () {
       const id5Status = ID5.init(defaultInitBypassConsent()).onAvailable(function () {
         expect(extensionsStub.gather).to.have.been.calledOnce;
         expect(server.requests).to.have.lengthOf(1);
-
-        const body = JSON.parse(server.requests[0].requestBody);
-        expect(body.requests[0].provided_options.refresh_in_seconds).to.be.eq(undefined);
-        expect(body.requests[0].used_refresh_in_seconds).to.be.eq(7200);
+        const requestData = JSON.parse(server.requests[0].requestBody).requests[0];
+        expect(requestData.provided_options.refresh_in_seconds).to.be.eq(undefined);
 
         server.respondWith(sinonFetchResponder(request =>
           prepareMultiplexingResponse(REFRESH_RESPONSE, request.requestBody)
@@ -259,12 +250,12 @@ describe('Refresh ID Fetch Handling', function () {
       multiplexingStub = new MultiplexingStub();
       multiplexingStub.interceptInstance(instance => {
         instance._leader.realAssignLeader = instance._leader.assignLeader;
-        sinon.stub(instance._leader, 'assignLeader').callsFake( (leader) => {
+        sinon.stub(instance._leader, 'assignLeader').callsFake((leader) => {
           getIdSpy = sinon.spy(leader._fetcher, 'getId');
           instance._leader.realAssignLeader(leader);// let instance complete election
         });
         return instance;
-      })
+      });
     });
     afterEach(function () {
       multiplexingStub.restore();

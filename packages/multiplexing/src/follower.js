@@ -89,35 +89,6 @@ export class Follower {
   }
 
   /**
-   * Compares important fetch data with other follower's data.
-   * 'Important' means these than may have impact on UID generation on serverside like partner data, signals.
-   *
-   * @param {Follower} other
-   * @returns {boolean} true - if this follower has same important fetch data as other follower
-   */
-  isSimilarTo(other) {
-    const otherData = other._instanceProperties.fetchIdData;
-    const thisData = this._instanceProperties.fetchIdData;
-    const samePartner = otherData.partnerId === thisData.partnerId;
-    const sameAtt = otherData.att === thisData.att;
-    const samePd = otherData.pd === thisData.pd;
-    const sameProvider = otherData.provider === thisData.provider;
-    const sameAbTesting = JSON.stringify(otherData.abTesting) === JSON.stringify(thisData.abTesting);
-    const sameSegments = JSON.stringify(otherData.segments) === JSON.stringify(thisData.segments);
-    const sameProvidedRefresh = otherData.providedRefreshInSeconds === thisData.providedRefreshInSeconds;
-    const isSimilar = samePartner && sameAtt && samePd && sameProvider && sameAbTesting && sameSegments && sameProvidedRefresh;
-    this._log.debug('Comparing followers this:', this.getId(), 'other:', other.getId(), 'areSimilar:', isSimilar, 'reason:', {
-      samePartner,
-      sameAtt,
-      samePd,
-      sameProvider,
-      sameSegments,
-      sameProvidedRefresh
-    });
-    return isSimilar;
-  }
-
-  /**
    *
    * @param {Id5UserId} uid
    * @param {NotificationContext} notificationContext

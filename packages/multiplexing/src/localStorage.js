@@ -1,4 +1,8 @@
-import {NoopLogger} from './logger.js';
+import {
+  NoopLogger,
+  // eslint-disable-next-line no-unused-vars
+  Logger
+} from './logger.js';
 
 const EXP_SUFFIX = '_exp';
 const DAY_MS = 60 * 60 * 24 * 1000;
@@ -56,6 +60,34 @@ export class LocalStorage {
   removeItem(key) {
     try {
       this.storage.removeItem(key);
+    } catch (e) {
+      // continue regardless of error
+    }
+  }
+
+  removeExpiredObjectWithPrefix(prefix, forceRemoveUnexpired = false) {
+    this._log.info('Check, prefix', prefix);
+    try {
+      const keysWithPrefix = this.storage.getKeysWithPrefix(prefix);
+      let expired = 0;
+      for (const name of keysWithPrefix) {
+        if (forceRemoveUnexpired) {
+          this._log.info('Found', name, ' remove it');
+          this.removeItem(name);
+        } else {
+          const object = this.getObjectWithExpiration({name});
+          const expirationTime = object?.expireAt;
+          if (expirationTime && expirationTime < Date.now()) {
+            this._log.info('Found expired object', name, 'expiration time', expirationTime, 'It will be removed');
+            this.removeItem(name);
+            expired += 1;
+          }
+        }
+      }
+      return {
+        all: keysWithPrefix.length,
+        expired: expired
+      };
     } catch (e) {
       // continue regardless of error
     }
@@ -126,7 +158,9 @@ export class LocalStorage {
   updateObjectWithExpiration({name, expiresDays}, objectUpdateFn) {
     try {
       const currentValue = this.getObjectWithExpiration({name});
-      this.setObjectWithExpiration({name, expiresDays}, objectUpdateFn(currentValue));
+      const updatedValue = objectUpdateFn(currentValue);
+      this.setObjectWithExpiration({name, expiresDays}, updatedValue);
+      return updatedValue;
     } catch (e) {
       this._log.error('Error while updating object with ', name, e);
     }
@@ -153,7 +187,7 @@ export class StorageApi {
   getItem() {
     // Abstract function
   }
-  
+
   /**
    * Removes the key/value pair with the given key, if a key/value pair with the given key exists.
    * @property {string} key
@@ -161,7 +195,7 @@ export class StorageApi {
   removeItem() {
     // Abstract function
   }
-  
+
   /**
    * Sets the value of the pair identified by key to value, creating a new key/value pair if none existed for key previously.
    * @property {string} key
@@ -170,12 +204,20 @@ export class StorageApi {
   setItem() {
     // Abstract function
   }
+
+  getKeysWithPrefix() {
+    return [];
+  }
 }
 
 export const NoopStorage = new StorageApi();
 
 export class WindowStorage extends StorageApi {
   _writingEnabled;
+  /**
+   * @type {Storage}
+   * @private
+   */
   _underlying;
 
   constructor(window, writingEnabled = true) {
@@ -208,6 +250,24 @@ export class WindowStorage extends StorageApi {
     try {
       if (this._writingEnabled) {
         this._underlying.setItem(key, value);
+      }
+    } catch (e) {
+      // continue regardless of error
+    }
+  }
+
+  getKeysWithPrefix(prefix) {
+    try {
+      const length = this._underlying.length;
+      if (this._writingEnabled) {
+        const keys = [];
+        for (let i = 0; i < length; i++) {
+          const key = this._underlying.key(i);
+          if (key && key.startsWith(prefix)) {
+            keys.push(key);
+          }
+        }
+        return keys;
       }
     } catch (e) {
       // continue regardless of error
@@ -285,5 +345,9 @@ export class ReplicatingStorage {
   addReplica(replica) {
     Object.values(this._lastKeyOperation).forEach(operation => operation(replica));
     this._replicas.push(replica);
+  }
+
+  getKeysWithPrefix(prefix) {
+    return this._primaryStorage.getKeysWithPrefix(prefix);
   }
 }

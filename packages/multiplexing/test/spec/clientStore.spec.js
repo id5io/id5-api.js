@@ -4,7 +4,6 @@ import {ClientStore} from '../../src/clientStore.js';
 import {LocalStorage} from '../../src/localStorage.js';
 import {StorageConfig, StoreItemConfig} from '../../src/store.js';
 import {NoopLogger} from '../../src/logger.js';
-import {cyrb53Hash} from '../../src/utils.js';
 
 const TEST_RESPONSE_ID5_CONSENT = {
   universal_uid: 'testresponseid5id',
@@ -127,67 +126,59 @@ describe('ClientStore', function () {
           // then
           expect(localStorage.setItemWithExpiration).to.be.calledWith(DEFAULT_STORAGE_CONFIG.ID5, encodeURIComponent(JSON.stringify(TEST_RESPONSE_ID5_CONSENT)));
         });
-
-        it('should store a hash of the pd string for later comparison', function () {
-          // given
-          const clientStore = new ClientStore(grantChecker, localStorage, DEFAULT_STORAGE_CONFIG, log);
-
-          // when
-          clientStore.putHashedPd(999, 'testpd');
-
-          // then
-          expect(localStorage.setItemWithExpiration).to.have.been.calledWith(
-            DEFAULT_STORAGE_CONFIG.PD.withNameSuffixed(999),
-            cyrb53Hash('testpd'));
-        });
-
-        [
-          ['test_stored_pd', 'some_other_pd', false],
-          ['test_stored_pd_2', 'test_stored_pd_2', true],
-          ['test_stored_pd_2', '', true],
-          ['test_stored_pd_2', undefined, true],
-          [undefined, undefined, true],
-          [undefined, 'some_pd', false]
-        ].forEach(([storedPd, comparisonPd, expectedResult]) => {
-          it(`should detect whether pd (${comparisonPd}) is better than the one seen before (${storedPd})`, function () {
-            // given
-            const clientStore = new ClientStore(grantChecker, localStorage, DEFAULT_STORAGE_CONFIG, log);
-            localStorage.getItemWithExpiration
-              .withArgs(DEFAULT_STORAGE_CONFIG.PD.withNameSuffixed(888))
-              .returns(typeof (storedPd) === 'string' ? cyrb53Hash(storedPd) : storedPd);
-
-            const result = clientStore.isStoredPdUpToDate(888, comparisonPd);
-
-            // then
-            expect(result).to.eq(expectedResult);
-          });
-        });
-
-        [
-          [{destination: '977', ids: [1, 2, 3]}, {destination: '977', ids: [1, 2, 3]}, true],
-          [{destination: '977', ids: [1, 2, 3]}, {destination: '976', ids: [1, 2, 3]}, false],
-          [{destination: '977', ids: [1, 2, 3]}, {destination: '977', ids: [1, 77, 3]}, false],
-          [{destination: '977', ids: [1, 2, 3]}, undefined, false],
-          [undefined, {destination: '977', ids: [1, 2, 3]}, true], // special behaviour
-          [undefined, undefined, true]
-        ].forEach(([storedSegments, comparisonSegments, expectedResult]) => {
-          it(`should detect whether segments (${JSON.stringify(comparisonSegments)}) are different than those seen before (${JSON.stringify(storedSegments)})`, function () {
-            // given
-            const clientStore = new ClientStore(grantChecker, localStorage, DEFAULT_STORAGE_CONFIG, log);
-            localStorage.getItemWithExpiration
-              .withArgs(DEFAULT_STORAGE_CONFIG.SEGMENTS.withNameSuffixed(787))
-              .returns(typeof (storedSegments) === 'object' ? cyrb53Hash(JSON.stringify(storedSegments)) : storedSegments);
-
-            const result = clientStore.storedSegmentsMatchesSegments(787, comparisonSegments);
-
-            // then
-            expect(result).to.eq(expectedResult);
-          });
-        });
       });
     });
     describe('V2', function () {
 
+      describe('with local storage access NOT granted', function () {
+        let localStorageGrant = sinon.createStubInstance(LocalStorageGrant);
+        /** @type {ClientStore} */
+        let clientStore;
+        beforeEach(function () {
+          localStorageGrant.isDefinitivelyAllowed.returns(false);
+          clientStore = new ClientStore(() => localStorageGrant, localStorage, DEFAULT_STORAGE_CONFIG, log);
+        });
+        it('should NOT store response', function () {
+          // given
+          const response = {
+            universal_uid: 'uid',
+            signature: 'sig',
+            cache_control: {
+              max_age_sec: 3600
+            }
+          };
+          const responseTime = 123;
+
+          // when
+          const result = clientStore.storeResponseV2('abcd', response, responseTime);
+
+          // then
+          expect(localStorageGrant.isDefinitivelyAllowed).have.been.called;
+          expect(localStorage.updateObjectWithExpiration).have.not.been.called;
+          expect(result).to.be.undefined;
+        });
+
+        it('should NOT get response', function () {
+          // when
+          const result = clientStore.getStoredResponseV2('abcd');
+
+          // then
+          expect(localStorageGrant.isDefinitivelyAllowed).have.been.called;
+          expect(localStorage.getObjectWithExpiration).have.not.been.called;
+          expect(result).to.be.undefined;
+        });
+
+        it('should NOT inc nb', function () {
+          // when
+          const result = clientStore.incNbV2('abcd');
+
+          // then
+          expect(localStorageGrant.isDefinitivelyAllowed).have.been.called;
+          expect(localStorage.updateObjectWithExpiration).have.not.been.called;
+          expect(result).to.be.undefined;
+        });
+
+      });
 
       describe('with local storage access granted', function () {
         let grantChecker;
@@ -209,24 +200,23 @@ describe('ClientStore', function () {
           };
           const responseTime = 123;
 
+          localStorage.updateObjectWithExpiration.callsFake((key, updFn) => {
+            return updFn({
+              response: {
+                old: true
+              },
+              nb: 100
+            });
+          });
           // when
-          clientStore.storeResponseV2('abcd', response, responseTime);
+          const result = clientStore.storeResponseV2('abcd', response, responseTime);
 
           // then
           expect(localStorage.updateObjectWithExpiration).to.be.called;
-          expect(localStorage.updateObjectWithExpiration.firstCall.args[0]).to.be.eql(new StoreItemConfig('id5id_v2_abcd', 90));
+          expect(localStorage.updateObjectWithExpiration.firstCall.args[0]).to.be.eql(new StoreItemConfig('id5id_v2_abcd', 15));
           let calledUpdateFn = localStorage.updateObjectWithExpiration.firstCall.args[1];
 
-          // when
-          let updatedResponse = calledUpdateFn({
-            response: {
-              old: true
-            },
-            nb: 100
-          });
-
-          // then
-          expect(updatedResponse).to.be.eql({
+          expect(result).to.be.eql({
               response: response,
               responseTimestamp: responseTime,
               nb: 100
@@ -243,16 +233,9 @@ describe('ClientStore', function () {
           );
         });
 
-        it('should increase nb', function () {
-          // when
-          clientStore.incNbV2('abcd');
-
-          // then
-          expect(localStorage.updateObjectWithExpiration).to.be.called;
-          expect(localStorage.updateObjectWithExpiration.firstCall.args[0]).to.be.eql(new StoreItemConfig('id5id_v2_abcd', 90));
-          let calledUpdateFn = localStorage.updateObjectWithExpiration.firstCall.args[1];
-          // when
-          let updatedObject = calledUpdateFn({
+        it('should get response', function () {
+          // given
+          const storedResponse = {
             response: {
               universal_uid: 'uid',
               signature: 'sig',
@@ -260,82 +243,63 @@ describe('ClientStore', function () {
                 max_age_sec: 3600
               }
             },
-            nb: 100
-          });
-
-          // then
-          expect(updatedObject).to.be.eql({
-              response: {
-                universal_uid: 'uid',
-                signature: 'sig',
-                cache_control: {
-                  max_age_sec: 3600
-                }
-              },
-              nb: 101
-            }
-          );
+            responseTimestamp: 1234,
+            nb: 10
+          };
+          localStorage.getObjectWithExpiration.returns(storedResponse);
 
           // when
-          let updatedObjectInvalidNb = calledUpdateFn({nb: 'invalid'});
+          const result = clientStore.getStoredResponseV2('abcd');
 
           // then
-          expect(updatedObjectInvalidNb).to.be.eql({nb: 1});
-
-          // when
-          let updatedObjectEmpty = calledUpdateFn(undefined);
-
-          // then
-          expect(updatedObjectEmpty).to.be.eql({nb: 1});
+          expect(localStorage.getObjectWithExpiration).to.be.calledWith(new StoreItemConfig('id5id_v2_abcd', 15));
+          expect(result).to.be.eql(storedResponse);
         });
 
-        it('should set nb value', function () {
-          // given
-          const nbValue = 0;
+        [
+          [10, undefined, 11],
+          [10, 1, 11],
+          [10, 10, 20],
+          [10, -4, 6],
+          [10, -10, 0],
+          ['invalid', 1, 1],
+          [undefined, 1, 1],
+          ['invalid', -2, 0],
+          [undefined, -1, 0],
+          [10, -12, 0]
+        ].forEach(([initialValue, incValue, expectedValue]) => {
+          it(`should increase nb (${initialValue}) by ${incValue}`, function () {
+            localStorage.updateObjectWithExpiration.callsFake((key, updFn) => {
+              return updFn({
+                response: {
+                  universal_uid: 'uid',
+                  signature: 'sig',
+                  cache_control: {
+                    max_age_sec: 3600
+                  }
+                },
+                nb: initialValue
+              });
+            });
+            // when
+            let result = clientStore.incNbV2('abcd', incValue);
 
-          // when
-          clientStore.setNbV2('abcd', nbValue);
+            // then
+            expect(localStorage.updateObjectWithExpiration).to.be.called;
+            expect(localStorage.updateObjectWithExpiration.firstCall.args[0]).to.be.eql(new StoreItemConfig('id5id_v2_abcd', 15));
 
-          // then
-          expect(localStorage.updateObjectWithExpiration).to.be.called;
-          expect(localStorage.updateObjectWithExpiration.firstCall.args[0]).to.be.eql(new StoreItemConfig('id5id_v2_abcd', 90));
-          let calledUpdateFn = localStorage.updateObjectWithExpiration.firstCall.args[1];
-          // when
-          let updatedObject = calledUpdateFn({
-            response: {
-              universal_uid: 'uid',
-              signature: 'sig',
-              cache_control: {
-                max_age_sec: 3600
+            expect(result).to.be.eql({
+                response: {
+                  universal_uid: 'uid',
+                  signature: 'sig',
+                  cache_control: {
+                    max_age_sec: 3600
+                  }
+                },
+                nb: expectedValue
               }
-            },
-            nb: 100
+            );
           });
-
-          // then
-          expect(updatedObject).to.be.eql({
-              response: {
-                universal_uid: 'uid',
-                signature: 'sig',
-                cache_control: {
-                  max_age_sec: 3600
-                }
-              },
-              nb: nbValue
-            }
-          );
-
-          // when
-          let updatedObjectInvalidNb = calledUpdateFn({nb: 'invalid'});
-
-          // then
-          expect(updatedObjectInvalidNb).to.be.eql({nb: nbValue});
-
-          // when
-          let updatedObjectEmpty = calledUpdateFn(undefined);
-
-          // then
-          expect(updatedObjectEmpty).to.be.eql({nb: nbValue});
         });
       });
     });
