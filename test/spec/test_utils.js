@@ -1,5 +1,5 @@
 import sinon from 'sinon';
-import multiplexing, {LocalStorage, WindowStorage} from '@id5io/multiplexing';
+import multiplexing, {LocalStorage, StorageConfig, WindowStorage} from '@id5io/multiplexing';
 
 export const TEST_ID5_PARTNER_ID = 99;
 export const ID5_FETCH_ENDPOINT = `https://id5-sync.com/gm/v3`;
@@ -12,10 +12,6 @@ export const TEST_ID5ID_STORAGE_CONFIG = {
   name: 'id5id',
   expiresDays: 90
 };
-export const TEST_ID5ID_STORAGE_CONFIG_EXPIRED = {
-  name: 'id5id',
-  expiresDays: -5
-};
 export const TEST_LAST_STORAGE_CONFIG = {
   name: 'id5id_last',
   expiresDays: 90
@@ -23,14 +19,6 @@ export const TEST_LAST_STORAGE_CONFIG = {
 export const TEST_CONSENT_DATA_STORAGE_CONFIG = {
   name: 'id5id_cached_consent_data',
   expiresDays: 30
-};
-export const TEST_PD_STORAGE_CONFIG = {
-  name: `id5id_cached_pd_${TEST_ID5_PARTNER_ID}`,
-  expiresDays: 30
-};
-export const TEST_NB_STORAGE_CONFIG = {
-  name: `id5id_${TEST_ID5_PARTNER_ID}_nb`,
-  expiresDays: 90
 };
 
 export const TEST_PRIVACY_STORAGE_CONFIG = {
@@ -57,6 +45,9 @@ export const TEST_RESPONSE_ID5_CONSENT = {
   'signature': TEST_RESPONSE_SIGNATURE,
   'ext': {
     'linkType': TEST_RESPONSE_LINK_TYPE
+  },
+  cache_control: {
+    max_age_sec: 7200
   },
   'privacy': JSON.parse(TEST_PRIVACY_ALLOWED)
 };
@@ -120,12 +111,35 @@ export function clearGppStub(){
 export const localStorage = new LocalStorage(new WindowStorage(window));
 
 export function resetAllInLocalStorage() {
+  localStorage.removeExpiredObjectWithPrefix(StorageConfig.DEFAULT.ID5_V2.name, true)
   localStorage.removeItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG);
   localStorage.removeItemWithExpiration(TEST_LAST_STORAGE_CONFIG);
   localStorage.removeItemWithExpiration(TEST_PRIVACY_STORAGE_CONFIG);
-  localStorage.removeItemWithExpiration(TEST_PD_STORAGE_CONFIG);
   localStorage.removeItemWithExpiration(TEST_CONSENT_DATA_STORAGE_CONFIG);
-  localStorage.removeItemWithExpiration(TEST_NB_STORAGE_CONFIG);
+}
+
+export function setStoredResponse(cacheId, response, timestamp=Date.now(), nb=0) {
+  localStorage.setObjectWithExpiration(StorageConfig.DEFAULT.ID5_V2.withNameSuffixed(cacheId),
+    {
+      response: response,
+      responseTimestamp: timestamp,
+      nb: nb
+    });
+}
+
+export function getStoredResponse(cacheId) {
+  return localStorage.getObjectWithExpiration(StorageConfig.DEFAULT.ID5_V2.withNameSuffixed(cacheId))
+}
+
+export function setExpiredStoredResponse(cacheId) {
+  const expiredConfig = StorageConfig.DEFAULT.ID5_V2.withNameSuffixed(cacheId);
+  expiredConfig.expiresDays = -5;
+  localStorage.setObjectWithExpiration(expiredConfig,
+    {
+      response: TEST_RESPONSE_ID5_CONSENT,
+      responseTimestamp: Date.now(),
+      nb: 1
+    });
 }
 
 /**

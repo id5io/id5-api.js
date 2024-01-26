@@ -38,6 +38,9 @@ const MOCK_FETCH_RESPONSE = {
   },
   ext: {
     'linkType': 2
+  },
+  cache_control: {
+    max_age_sec: 7200
   }
 };
 const MOCK_CORS_HEADERS = {
@@ -251,7 +254,7 @@ describe('The ID5 API', function () {
       await server.reset();
     });
 
-    it('can send an event to ID5 backend', async function() {
+    it('can send an event to ID5 backend', async function () {
       const mockId5Event = await server.forPost('https://id5-sync.com/event')
         .thenReply(204, '');
 
@@ -275,7 +278,7 @@ describe('The ID5 API', function () {
       expect(requestBody.partnerId).to.eq(99);
       expect(requestBody.id5id).to.eq(MOCK_FETCH_RESPONSE.universal_uid);
       expect(requestBody.eventType).to.eq('view');
-      expect(requestBody.metadata).to.deep.eq({ eventId: 'TEST_TEST' });
+      expect(requestBody.metadata).to.deep.eq({eventId: 'TEST_TEST'});
     });
   });
 
@@ -409,10 +412,7 @@ describe('The ID5 API', function () {
             success: 'true',
             apiType: 'TCFv2'
           });
-          verifyContainsMeasurementWithTags(onlyRequest.measurements, 'id5.api.fetch.consent.wait.time', 'TIMER', {
-            ...commonTags,
-            cachedResponseUsed: false
-          });
+          verifyContainsMeasurementWithTags(onlyRequest.measurements, 'id5.api.fetch.consent.wait.time', 'TIMER', commonTags);
           verifyContainsMeasurementWithTags(onlyRequest.measurements, 'id5.api.extensions.call.time', 'TIMER', {
             ...commonTags,
             status: 'success',
@@ -468,10 +468,7 @@ describe('The ID5 API', function () {
             success: 'true',
             apiType: 'TCFv2'
           });
-          verifyContainsMeasurementWithTags(onlyRequest.measurements, 'id5.api.fetch.consent.wait.time', 'TIMER', {
-            ...commonTags,
-            cachedResponseUsed: false
-          });
+          verifyContainsMeasurementWithTags(onlyRequest.measurements, 'id5.api.fetch.consent.wait.time', 'TIMER', commonTags);
           verifyContainsMeasurementWithTags(onlyRequest.measurements, 'id5.api.extensions.call.time', 'TIMER', {
             ...commonTags,
             status: 'success',

@@ -144,4 +144,12 @@ export class Id5CommonMetrics extends MeterRegistry {
   consentChangeCounter(tags = {}) {
     return this.counter('leader.consent.change.count', tags);
   }
+
+  storageAllKeysCounter(tags = {}) {
+    return this.summary('storage.keys.all.count', tags);
+  }
+
+  storageExpiredKeysCounter(tags = {}) {
+    return this.summary('storage.keys.expired.count', tags);
+  }
 }

@@ -7,16 +7,12 @@ import {
   ID5_FETCH_ENDPOINT,
   ID5_SYNC_ENDPOINT,
   TEST_RESPONSE_CASCADE,
-  localStorage,
   prepareMultiplexingResponse,
   sinonFetchResponder,
-  STORED_JSON,
-  TEST_ID5ID_STORAGE_CONFIG,
-  TEST_LAST_STORAGE_CONFIG,
   TEST_RESPONSE_ID5_CONSENT,
-  TEST_RESPONSE_ID5ID, defaultInit, setupGppV11Stub, clearGppStub
+  TEST_RESPONSE_ID5ID, defaultInit, setupGppV11Stub, clearGppStub, setStoredResponse, resetAllInLocalStorage
 } from './test_utils.js';
-import {EXTENSIONS, Extensions } from '@id5io/multiplexing';
+import {EXTENSIONS, Extensions} from '@id5io/multiplexing';
 
 describe('Fire Usersync Pixel', function () {
   let extensionsStub, extensionsCreatorStub;
@@ -24,8 +20,7 @@ describe('Fire Usersync Pixel', function () {
   let server;
 
   before(function () {
-    localStorage.removeItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG);
-    localStorage.removeItemWithExpiration(TEST_LAST_STORAGE_CONFIG);
+    resetAllInLocalStorage();
   });
 
   beforeEach(function () {
@@ -41,15 +36,14 @@ describe('Fire Usersync Pixel', function () {
     imageSpy.restore();
     server.restore();
     extensionsCreatorStub.restore();
-    localStorage.removeItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG);
-    localStorage.removeItemWithExpiration(TEST_LAST_STORAGE_CONFIG);
+    resetAllInLocalStorage();
     clearGppStub();
   });
 
   describe('Without Calling ID5', function () {
     it('should not fire sync pixel if ID5 is not called', function (done) {
-      localStorage.setItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON);
-      localStorage.setItemWithExpiration(TEST_LAST_STORAGE_CONFIG, new Date().toUTCString());
+      const cacheId = '4167500408366467';
+      setStoredResponse(cacheId, TEST_RESPONSE_ID5_CONSENT);
 
       ID5.init(defaultInitBypassConsent()).onAvailable(function () {
         expect(extensionsStub.gather).to.not.have.been.called;
@@ -124,7 +118,7 @@ describe('Fire Usersync Pixel', function () {
     });
 
     it('should include gpp consent string if gpp is available on the page', function (done) {
-      setupGppV11Stub()
+      setupGppV11Stub();
       ID5.init({
         ...defaultInit(),
         cmpApi: 'iab',

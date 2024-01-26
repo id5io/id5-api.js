@@ -5,15 +5,14 @@ import {
   defaultInit,
   defaultInitBypassConsent,
   localStorage,
-  prepareMultiplexingResponse,
+  prepareMultiplexingResponse, resetAllInLocalStorage, setStoredResponse,
   sinonFetchResponder,
   TEST_ID5ID_STORAGE_CONFIG,
-  TEST_LAST_STORAGE_CONFIG,
   TEST_PRIVACY_ALLOWED,
   TEST_RESPONSE_ID5_CONSENT,
   TEST_RESPONSE_SIGNATURE
 } from './test_utils.js';
-import {CONSTANTS, EXTENSIONS, Extensions} from '@id5io/multiplexing';
+import {CONSTANTS, EXTENSIONS, Extensions, StorageConfig} from '@id5io/multiplexing';
 
 describe('A/B Testing', function () {
   let server;
@@ -23,9 +22,10 @@ describe('A/B Testing', function () {
     abTesting: {enabled: true, controlGroupPct: 0.5} // config not relevant with the stub
   };
 
+  const API_CONFIG_CACHE_ID = '5137549841224271';
+
   before(function () {
-    localStorage.removeItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG);
-    localStorage.removeItemWithExpiration(TEST_LAST_STORAGE_CONFIG);
+    resetAllInLocalStorage();
     ID5.userId = undefined;
   });
 
@@ -35,13 +35,12 @@ describe('A/B Testing', function () {
     extensionsStub = sinon.createStubInstance(Extensions);
     extensionsStub.gather.resolves(DEFAULT_EXTENSIONS);
     extensionsCreatorStub = sinon.stub(EXTENSIONS, 'createExtensions').returns(extensionsStub);
-  })
+  });
 
   afterEach(function () {
     server.restore();
-    localStorage.removeItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG);
-    localStorage.removeItemWithExpiration(TEST_LAST_STORAGE_CONFIG);
-    extensionsCreatorStub.restore()
+    resetAllInLocalStorage();
+    extensionsCreatorStub.restore();
     ID5.userId = undefined;
   });
 
@@ -84,9 +83,11 @@ describe('A/B Testing', function () {
         'result': 'normal'
       }, 'ext': {
         'linkType': 1
+      },
+      cache_control: {
+        max_age_sec: 7200
       }
     };
-    const ENCODED_STORED_JSON_ABTEST = encodeURIComponent(JSON.stringify(TEST_RESPONSE_ABTEST));
     const TEST_RESPONSE_EID_AB_NORMAL = {
       source: CONSTANTS.ID5_EIDS_SOURCE,
       uids: [{
@@ -106,9 +107,7 @@ describe('A/B Testing', function () {
     });
 
     it('should expose ID5.userId from a stored response', function (done) {
-      localStorage.setItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG, ENCODED_STORED_JSON_ABTEST);
-      localStorage.setItemWithExpiration(TEST_LAST_STORAGE_CONFIG, new Date().toUTCString());
-
+      setStoredResponse(API_CONFIG_CACHE_ID, TEST_RESPONSE_ABTEST);
       const id5Status = ID5.init(API_CONFIG);
 
       id5Status.onAvailable(function () {
@@ -148,9 +147,12 @@ describe('A/B Testing', function () {
       'privacy': JSON.parse(TEST_PRIVACY_ALLOWED),
       'ab_testing': {
         'result': 'control'
+      },
+      cache_control: {
+        max_age_sec: 7200
       }
     };
-    const ENCODED_STORED_JSON_ABTEST = encodeURIComponent(JSON.stringify(RESPONSE_ABTEST));
+
     const TEST_RESPONSE_EID_AB_CONTROL_GROUP = {
       source: CONSTANTS.ID5_EIDS_SOURCE,
       uids: [{
@@ -185,6 +187,7 @@ describe('A/B Testing', function () {
         expect(id5Status.getUserId()).to.be.equal('0');
         expect(id5Status.getLinkType()).to.be.equal(0);
         expect(localStorage.getItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG)).to.be.eq(encodeURIComponent(JSON.stringify(RESPONSE_ABTEST)));
+        expect(localStorage.getObjectWithExpiration(StorageConfig.DEFAULT.ID5_V2.withNameSuffixed(API_CONFIG_CACHE_ID)).response).to.be.eql(RESPONSE_ABTEST);
         expect(id5Status.exposeUserId()).to.be.false;
         expect(id5Status.getUserIdAsEid()).to.be.eql(TEST_RESPONSE_EID_AB_CONTROL_GROUP);
         done();
@@ -192,8 +195,7 @@ describe('A/B Testing', function () {
     });
 
     it('should not expose ID5.userId from a stored response', function (done) {
-      localStorage.setItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG, ENCODED_STORED_JSON_ABTEST);
-      localStorage.setItemWithExpiration(TEST_LAST_STORAGE_CONFIG, new Date().toUTCString());
+      setStoredResponse(API_CONFIG_CACHE_ID, RESPONSE_ABTEST);
 
       const id5Status = ID5.init(API_CONFIG);
       id5Status.onAvailable(function () {
