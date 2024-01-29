@@ -286,26 +286,6 @@ describe('Follower', function () {
 
       expect(cacheIdB === cacheIdA).to.be.eq(expectedResult);
     });
-
-    it(`should check if other is similar - ${descr}`, function () {
-      // given
-      let followerA = new DirectFollower(window, {
-        id: 'a',
-        fetchIdData: aData
-      }, sinon.stub());
-      let followerB = new ProxyFollower(new DiscoveredInstance({
-        id: 'b',
-        fetchIdData: bData
-      }, sinon.stub(), sinon.stub()), sinon.stub());
-
-      // when
-      const aToB = followerA.isSimilarTo(followerB);
-      const bToA = followerB.isSimilarTo(followerA);
-
-      // then
-      expect(aToB).to.be.eq(expectedResult);
-      expect(bToA).to.be.eq(expectedResult);
-    });
   });
 });
 

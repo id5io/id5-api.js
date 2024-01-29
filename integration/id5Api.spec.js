@@ -38,6 +38,9 @@ const MOCK_FETCH_RESPONSE = {
   },
   ext: {
     'linkType': 2
+  },
+  cache_control: {
+    max_age_sec: 7200
   }
 };
 const MOCK_CORS_HEADERS = {
@@ -327,7 +330,7 @@ describe('The ID5 API', function () {
       expect(requestBody.partnerId).to.eq(99);
       expect(requestBody.id5id).to.eq(MOCK_FETCH_RESPONSE.universal_uid);
       expect(requestBody.eventType).to.eq('view');
-      expect(requestBody.metadata).to.deep.eq({ eventId: 'TEST_TEST' });
+      expect(requestBody.metadata).to.deep.eq({eventId: 'TEST_TEST'});
     });
 
     it('does not drop local storage items', async function() {
@@ -477,10 +480,7 @@ describe('The ID5 API', function () {
             success: 'true',
             apiType: 'TCFv2'
           });
-          verifyContainsMeasurementWithTags(onlyRequest.measurements, 'id5.api.fetch.consent.wait.time', 'TIMER', {
-            ...commonTags,
-            cachedResponseUsed: false
-          });
+          verifyContainsMeasurementWithTags(onlyRequest.measurements, 'id5.api.fetch.consent.wait.time', 'TIMER', commonTags);
           verifyContainsMeasurementWithTags(onlyRequest.measurements, 'id5.api.extensions.call.time', 'TIMER', {
             ...commonTags,
             status: 'success',
@@ -536,10 +536,7 @@ describe('The ID5 API', function () {
             success: 'true',
             apiType: 'TCFv2'
           });
-          verifyContainsMeasurementWithTags(onlyRequest.measurements, 'id5.api.fetch.consent.wait.time', 'TIMER', {
-            ...commonTags,
-            cachedResponseUsed: false
-          });
+          verifyContainsMeasurementWithTags(onlyRequest.measurements, 'id5.api.fetch.consent.wait.time', 'TIMER', commonTags);
           verifyContainsMeasurementWithTags(onlyRequest.measurements, 'id5.api.extensions.call.time', 'TIMER', {
             ...commonTags,
             status: 'success',

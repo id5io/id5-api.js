@@ -1,8 +1,15 @@
-import {NO_OP_LOGGER} from './logger.js';
+import {
+  /* eslint-disable-next-line no-unused-vars */
+  Logger,
+  NO_OP_LOGGER
+} from './logger.js';
 import {ProxyMethodCallTarget} from './messaging.js';
 
-// eslint-disable-next-line no-unused-vars
-import { ConsentData, NoConsentError } from './consent.js';
+/* eslint-disable no-unused-vars */
+import {ConsentData, NoConsentError} from './consent.js';
+import {Store} from './store.js';
+
+/* eslint-enable no-unused-vars */
 
 export class AddFollowerResult {
   lateJoiner = false;
@@ -57,6 +64,7 @@ export class ActualLeader extends Leader {
    */
   _followers;
   _followersRequests = {};
+  _refreshRequired = {};
 
   /**
    * @type {UidFetcher}
@@ -109,15 +117,22 @@ export class ActualLeader extends Leader {
   _leaderStorage;
 
   /**
+   * @type {Store} store
+   * @private
+   */
+  _store;
+
+  /**
    * @param {Window} window
-   * @param {UidFetcher} fetcher
    * @param {Properties} properties
    * @param {ReplicatingStorage} storage
+   * @param {Store} store
    * @param {ConsentManagement} consentManager
    * @param {Id5CommonMetrics} metrics
    * @param {Logger} logger
+   * @param {UidFetcher} fetcher
    */
-  constructor(window, fetcher, properties, storage, consentManager, metrics, logger = NO_OP_LOGGER) {
+  constructor(window, properties, storage, store, consentManager, metrics, logger = NO_OP_LOGGER, fetcher) {
     super();
     this._followers = [];
     this._fetcher = fetcher;
@@ -127,21 +142,30 @@ export class ActualLeader extends Leader {
     this._window = window;
     this._leaderStorage = storage;
     this._log = logger;
+    this._store = store;
+    this._firstFetchTriggered = false;
   }
 
   /**
    *
+   * @param {Array<FetchIdRequestData>} requestData
    * @param {RefreshResult} refreshResult
    * @private
    */
-  _handleRefreshResult(refreshResult) {
+  _handleRefreshResult(requestData, refreshResult) {
     const refreshedResponse = refreshResult.refreshedResponse;
     if (refreshedResponse !== undefined) {
+      for (const followerData of requestData) {
+        // increase requests count for followers
+        const followerId = followerData.integrationId;
+        this._followersRequests[followerId] = (this._followersRequests[followerId] || 0) + 1;
+      }
       const cascadeRequested = [];
       for (const follower of this._followers) {
         const responseForFollower = refreshedResponse.getResponseFor(follower.getId());
         if (responseForFollower !== undefined) {
           this._log.debug('Notify uid ready.', 'Follower:', follower.getId(), 'Uid:', responseForFollower);
+          this._refreshRequired[follower.getId()] = false;
           this._notifyUidReady(follower, {
             timestamp: refreshedResponse.timestamp,
             responseObj: responseForFollower,
@@ -159,32 +183,7 @@ export class ActualLeader extends Leader {
           this._handleCascade(cascadeRequested, refreshedResponse, consentData);
         }
       }
-
-      // cache for further late joiners
-      this._cachedResponse = {
-        timestamp: refreshedResponse.timestamp,
-        responseObj: refreshedResponse.getGenericResponse(),
-        isFromCache: false
-      };
     }
-  }
-
-  /**
-   * @param {CachedResponse} cachedResponse
-   * @private
-   */
-  _handleCachedResponse(cachedResponse) {
-    const response = {
-      timestamp: cachedResponse.timestamp,
-      responseObj: cachedResponse.response,
-      isFromCache: true
-    };
-
-    for (const follower of this._followers) {
-      this._log.debug('Notify uid ready.', 'Follower:', follower.getId(), 'Uid:', response);
-      this._notifyUidReady(follower, response);
-    }
-    this._cachedResponse = response;
   }
 
   _notifyUidReady(follower, uid, lateJoiner = false) {
@@ -237,10 +236,12 @@ export class ActualLeader extends Leader {
   }
 
   _getId(forceRefresh = false) {
+    let shouldRefresh = forceRefresh;
     const fetchIds = this._followers.map(follower => {
       const followerId = follower.getId();
-      const requestCount = this._followersRequests[followerId] = (this._followersRequests[followerId] || 0) + 1;
+      const requestCount = (this._followersRequests[followerId] || 0) + 1;
       const leaderId = this._properties.id;
+      shouldRefresh = shouldRefresh || (this._refreshRequired[follower.getId()] === true);
       return {
         ...follower.getFetchIdData(),
         integrationId: followerId,
@@ -250,16 +251,10 @@ export class ActualLeader extends Leader {
       };
     });
     this._inProgressFetch = true;
-
-    const result = this._fetcher.getId(fetchIds, forceRefresh);
-    if (result.cachedResponse) {
-      this._handleCachedResponse(result.cachedResponse);
-    }
-    result.refreshResult
+    this._firstFetchTriggered = true; // after first any new follower will be recognized as late joiner
+    this._fetcher.getId(fetchIds, shouldRefresh)
       .then(refreshResult => {
-        if (refreshResult.refreshedResponse) {
-          this._handleRefreshResult(refreshResult);
-        }
+        this._handleRefreshResult(fetchIds, refreshResult);
         this._handleFetchCompleted();
       })
       .catch(error => {
@@ -318,46 +313,55 @@ export class ActualLeader extends Leader {
 
   updateFetchIdData(instanceId, fetchIdData) {
     const toUpdate = this._followers.find(instance => instance.getId() === instanceId);
+    const oldCacheId = toUpdate.getCacheId();
     toUpdate.updateFetchIdData(fetchIdData);
-    // TODO should refreshId ??
+    const newCacheId = toUpdate.getCacheId();
+    if (newCacheId !== oldCacheId) {
+      this._log.info('Follower', toUpdate.getId(), 'cacheId changed from', oldCacheId, ' to', newCacheId, 'required refresh');
+      this._refreshRequired[toUpdate.getId()] = true;
+    }
   }
 
   addFollower(newFollower) {
-    const newJoinerId = newFollower.getId();
-    const cachedResponse = this._cachedResponse;
     const logger = this._log;
     this._followers.push(newFollower);
+    logger.info('Added follower', newFollower.getId(), 'cacheId', newFollower.getCacheId());
     if (this._window !== newFollower.getWindow()) {
       const followerStorage = newFollower.getStorage();
       logger.info(`Adding follower's`, newFollower.getId(), 'storage as replica');
       this._leaderStorage.addReplica(followerStorage);
     }
-    logger.debug('Added follower', newJoinerId, 'last uid', cachedResponse);
+
+    const cacheId = newFollower.getCacheId();
+    const responseFromCache = this._store.getCachedResponse(cacheId);
+    if (responseFromCache !== undefined && responseFromCache.isValid()) {
+      logger.info('Found valid cached response for follower', {
+        id: newFollower.getId(),
+        cacheId: newFollower.getCacheId()
+      });
+      this._notifyUidReady(newFollower, {
+        timestamp: responseFromCache.timestamp,
+        responseObj: responseFromCache.response,
+        isFromCache: true
+      });
+      this._store.incNb(cacheId);
+    } else {
+      logger.info(`Couldn't find response for cacheId`, newFollower.getCacheId());
+    }
+
+    const refreshRequired = !responseFromCache || !responseFromCache.isValid() || responseFromCache.isExpired();
+    this._refreshRequired[newFollower.getId()] = refreshRequired;
+
     let result = new AddFollowerResult();
-    if (cachedResponse || this._inProgressFetch) { // late joiner
+    if (this._firstFetchTriggered === true) {
       result.lateJoiner = true;
-      if (cachedResponse) {
-        // notify new joiner immediately
-        this._notifyUidReady(newFollower, {
-          ...cachedResponse,
-          isFromCache: true // to let follower know it's from cache
-        }, true);
-      }
-
-      const isSimilarToAnyOther = this._followers
-        .filter(follower => follower.getId() !== newJoinerId)
-        .some(follower => newFollower.isSimilarTo(follower));
-
-      if (!isSimilarToAnyOther) { // if new require refresh
-        logger.debug('Will refresh uid for new joiner', newJoinerId);
+      result.uniqueLateJoiner = !responseFromCache;
+      if (refreshRequired) {
         this.refreshUid({
           forceFetch: true
         }); // this will be added to queue if in progress
-        result.uniqueLateJoiner = true;
       }
     }
-    // TODO nbPage increase when provide UID to any instance
-    // TODO nbPage reset when refreshUID received
     return result;
   }
 

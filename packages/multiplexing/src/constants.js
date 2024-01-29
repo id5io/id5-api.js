@@ -4,20 +4,16 @@ export default Object.freeze({
       name: 'id5id',
       expiresDays: 90
     },
+    ID5_V2: {
+      name: 'id5id_v2',
+      expiresDays: 15
+    },
     LAST: {
       name: 'id5id_last',
       expiresDays: 90
     },
     CONSENT_DATA: {
       name: 'id5id_cached_consent_data',
-      expiresDays: 30
-    },
-    PD: {
-      name: 'id5id_cached_pd',
-      expiresDays: 30
-    },
-    SEGMENTS: {
-      name: 'id5id_cached_segments',
       expiresDays: 30
     },
     PRIVACY: {

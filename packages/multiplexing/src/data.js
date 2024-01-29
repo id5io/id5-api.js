@@ -67,9 +67,9 @@
 /**
  * Refresh Options
  * @typedef {Object} RefreshOptions
- * @property {boolean} forceFetch
- * @property {boolean} resetConsent
- * @property {boolean} forceAllowLocalStorageGrant
+ * @property {boolean} [forceFetch]
+ * @property {boolean} [resetConsent]
+ * @property {boolean} [forceAllowLocalStorageGrant]
  */
 
 /**

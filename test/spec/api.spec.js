@@ -7,15 +7,14 @@ import {
   prepareMultiplexingResponse,
   resetAllInLocalStorage,
   sinonFetchResponder,
-  STORED_JSON,
-  TEST_ID5ID_STORAGE_CONFIG,
-  TEST_LAST_STORAGE_CONFIG,
+  setStoredResponse,
   TEST_PRIVACY_ALLOWED,
   TEST_PRIVACY_STORAGE_CONFIG,
   TEST_RESPONSE_ID5_CONSENT,
   TEST_RESPONSE_ID5ID,
   TEST_RESPONSE_LINK_TYPE,
-  TEST_RESPONSE_SIGNATURE
+  TEST_RESPONSE_SIGNATURE,
+  makeCacheId
 } from './test_utils.js';
 import {Extensions, EXTENSIONS} from '@id5io/multiplexing';
 
@@ -30,7 +29,7 @@ describe('ID5 JS API', function () {
 
   afterEach(function () {
     extensionsCreatorStub.restore();
-  })
+  });
 
   describe('Core API Availability', function () {
     it('should have a global variable ID5', function () {
@@ -51,7 +50,7 @@ describe('ID5 JS API', function () {
   describe('Required Configuration and Parameters', function () {
     it('should fail if partnerId not set in config', function () {
       // Note fatal configuration error: missing partnerId
-      let id5Status = ID5.init({ debugBypassConsent: true });
+        let id5Status = ID5.init({debugBypassConsent: true});
       expect(id5Status).to.be.undefined;
     });
   });
@@ -73,19 +72,38 @@ describe('ID5 JS API', function () {
       resetAllInLocalStorage();
     });
 
+
+    it('when consent is not in storage but present on previous response should request anyway a new value even if no refresh needed', function (done) {
+      const initOptions = {
+        ...defaultInit(),
+        refreshInSeconds: 1000
+      };
+      setStoredResponse(makeCacheId(initOptions), TEST_RESPONSE_ID5_CONSENT);
+
+      const id5Status = ID5.init(initOptions);
+
+      id5Status.onAvailable(function () {
+        expect(extensionsStub.gather).to.have.been.calledOnce;
+        expect(server.requests).to.have.lengthOf(1);
+        expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
+        expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
+        expect(id5Status.isFromCache()).to.be.false;
+        done();
+      });
+    });
+
     describe('when consent is present in storage', function () {
       beforeEach(function () {
         localStorage.setItemWithExpiration(TEST_PRIVACY_STORAGE_CONFIG, TEST_PRIVACY_ALLOWED);
       });
 
       it('should use stored value with consent from privacy storage when available', function (done) {
-        localStorage.setItemWithExpiration(TEST_LAST_STORAGE_CONFIG, new Date().toUTCString());
-        localStorage.setItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON);
-
-        const id5Status = ID5.init({
+        const initOptions = {
           ...defaultInit(),
           refreshInSeconds: 1000
-        });
+        };
+        setStoredResponse(makeCacheId(initOptions), TEST_RESPONSE_ID5_CONSENT);
+        const id5Status = ID5.init(initOptions);
 
         id5Status.onAvailable(function () {
           expect(extensionsStub.gather).to.not.have.been.called;
@@ -98,21 +116,24 @@ describe('ID5 JS API', function () {
       });
 
       it('should fetch new ID if stored response is older than cache max age', function (done) {
-        localStorage.setItemWithExpiration(TEST_LAST_STORAGE_CONFIG, new Date(Date.now() - (12 * 1000)).toUTCString());
-        localStorage.setItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG, encodeURIComponent(JSON.stringify({
-          universal_uid: TEST_RESPONSE_ID5ID,
-          cascade_needed: false,
-          signature: TEST_RESPONSE_SIGNATURE,
-          ext: {
-            linkType: TEST_RESPONSE_LINK_TYPE
+        setStoredResponse(
+          makeCacheId(defaultInit()),
+          {
+            universal_uid: TEST_RESPONSE_ID5ID,
+            cascade_needed: false,
+            signature: TEST_RESPONSE_SIGNATURE,
+            ext: {
+              linkType: TEST_RESPONSE_LINK_TYPE
+            },
+            privacy: JSON.parse(TEST_PRIVACY_ALLOWED),
+            cache_control: {
+              max_age_sec: 11
+            },
           },
-          privacy: JSON.parse(TEST_PRIVACY_ALLOWED),
-          cache_control: {
-            max_age_sec: 11
-          },
-        })));
+          Date.now() - (12 * 1000) // older than max age in previous response
+        );
 
-        const id5Status = ID5.init({...defaultInit() });
+        const id5Status = ID5.init(defaultInit());
 
         id5Status.onAvailable(function () {
           expect(extensionsStub.gather).to.have.been.calledOnce;
@@ -124,25 +145,6 @@ describe('ID5 JS API', function () {
           expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
           done();
         });
-      });
-    });
-
-    it('when consent is not in storage but present on previous response should request anyway a new value even if no refresh needed', function (done) {
-      localStorage.setItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG, STORED_JSON);
-      localStorage.setItemWithExpiration(TEST_LAST_STORAGE_CONFIG, new Date().toUTCString());
-
-      const id5Status = ID5.init({
-        ...defaultInit(),
-        refreshInSeconds: 1000
-      });
-
-      id5Status.onAvailable(function () {
-        expect(extensionsStub.gather).to.have.been.calledOnce;
-        expect(server.requests).to.have.lengthOf(1);
-        expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
-        expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
-        expect(id5Status.isFromCache()).to.be.false;
-        done();
       });
     });
 

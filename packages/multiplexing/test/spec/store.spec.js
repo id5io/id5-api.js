@@ -1,5 +1,5 @@
 import sinon from 'sinon';
-import {Store, StoredDataState, StorageConfig} from '../../src/store.js';
+import {Store, StorageConfig, CachedResponse} from '../../src/store.js';
 import {ClientStore} from '../../src/clientStore.js';
 import {API_TYPE, ConsentData} from '../../src/consent.js';
 import CONSTANTS from '../../src/constants.js';
@@ -35,6 +35,10 @@ const FETCH_RESPONSE_OBJ = {
   id5_consent: true,
   original_uid: 'testresponseid5id',
   universal_uid: 'testresponseid5id',
+  signature: 'signature',
+  cache_control: {
+    max_age_sec: 10
+  },
   link_type: 0,
   cascade_needed: false,
   ext: {
@@ -43,43 +47,7 @@ const FETCH_RESPONSE_OBJ = {
   }
 };
 
-describe('Stored Data State', function () {
-
-  [
-    [undefined, false],
-    [100, false],
-    [13 * 3600 * 24, false],
-    [14 * 3600 * 24 + 1, true] // 14 days and 1 second
-  ].forEach(([age, expected]) => {
-    it(`should check if response is stale (age=${age})`, function () {
-      // given
-      const state = new StoredDataState();
-      state.storedDateTime = !age ? undefined : (Date.now() - age * 1000);
-
-      // when
-      expect(state.isStoredIdStale()).to.be.eql(expected);
-    });
-  });
-
-  [
-    [3600, 1800, true],
-    [1800, 3600, false],
-    [7200, 7200, false]
-  ].forEach(([age, maxAge, expected]) => {
-    it(`should check if response require refresh (age=${age}, maxAge=${maxAge})`, function () {
-      // given
-      const state = new StoredDataState();
-      state.storedDateTime = Date.now() - age * 1000;
-      state.refreshInSeconds = maxAge;
-
-      // when
-      expect(state.refreshInSecondsHasElapsed()).to.be.eql(expected);
-    });
-  });
-});
-
 describe('Store', function () {
-
 
   /**
    * @type {ClientStore}
@@ -97,367 +65,152 @@ describe('Store', function () {
 
   const STORE_TIME = 1691737155000;
 
-  it('should return stored data state with defaults', function () {
-
-    // given
-    const partnerId1 = FETCH_ID_DATA[0].partnerId;
-    const partnerId2 = FETCH_ID_DATA[1].partnerId;
-
-    clientStore.getResponse.returns(FETCH_RESPONSE_OBJ);
-    clientStore.getDateTime.returns(STORE_TIME);
-    clientStore.isStoredPdUpToDate.returns(true);
-    clientStore.storedSegmentsMatchesSegments.returns(true);
-
-    // when
-    const storedDataState = store.getStoredDataState(FETCH_ID_DATA);
-
-    // then
-    expect(clientStore.isStoredPdUpToDate).to.have.been.calledTwice;
-    expect(clientStore.isStoredPdUpToDate.firstCall).to.have.been.calledWith(partnerId1, FETCH_ID_DATA[0].pd);
-    expect(clientStore.isStoredPdUpToDate.secondCall).to.have.been.calledWith(partnerId2, FETCH_ID_DATA[1].pd);
-    expect(clientStore.storedSegmentsMatchesSegments).to.have.been.calledTwice;
-    expect(clientStore.storedSegmentsMatchesSegments.firstCall).to.have.been.calledWith(partnerId1, FETCH_ID_DATA[0].segments);
-    expect(clientStore.storedSegmentsMatchesSegments.secondCall).to.have.been.calledWith(partnerId2, FETCH_ID_DATA[1].segments);
-    expect(clientStore.getNb).to.have.been.calledTwice;
-    expect(clientStore.getNb.firstCall).to.have.been.calledWith(partnerId1);
-    expect(clientStore.getNb.secondCall).to.have.been.calledWith(partnerId2);
-    expect(clientStore.storedConsentDataMatchesConsentData).to.have.not.been.called;
-
-    expect(storedDataState).to.eql(Object.assign(new StoredDataState(), {
-      storedResponse: FETCH_RESPONSE_OBJ,
-      storedDateTime: STORE_TIME,
-      pdHasChanged: false,
-      segmentsHaveChanged: false,
-      refreshInSeconds: 7200,
-      nb: {'1': 0, '2': 0},
-      consentHasChanged: undefined
-    }));
-  });
-
-  it('should return stored data state with nb counters ', function () {
-
-    // given
-    clientStore.getResponse.returns(FETCH_RESPONSE_OBJ);
-    clientStore.getDateTime.returns(STORE_TIME);
-    clientStore.isStoredPdUpToDate.returns(true);
-    clientStore.storedSegmentsMatchesSegments.returns(true);
-    clientStore.getNb.onFirstCall().returns(10);
-    clientStore.getNb.onSecondCall().returns(20);
-    // when
-    const storedDataState = store.getStoredDataState(FETCH_ID_DATA);
-
-    // then
-
-    expect(storedDataState).to.eql(Object.assign(new StoredDataState(), {
-      storedResponse: FETCH_RESPONSE_OBJ,
-      storedDateTime: STORE_TIME,
-      pdHasChanged: false,
-      segmentsHaveChanged: false,
-      refreshInSeconds: 7200,
-      nb: {'1': 10, '2': 20},
-      consentHasChanged: undefined
-    }));
-  });
-
-  it('should return stored data state with minimum refresh time from fetch data', function () {
-
-    // given
-
-    clientStore.getResponse.returns(FETCH_RESPONSE_OBJ);
-    clientStore.getDateTime.returns(STORE_TIME);
-    clientStore.isStoredPdUpToDate.returns(true);
-    clientStore.storedSegmentsMatchesSegments.returns(true);
-
-    const fetchIdData = [
-      {
-        ...FETCH_ID_DATA[0],
-        refreshInSeconds: 200
-      }, {
-        ...FETCH_ID_DATA[1],
-        refreshInSeconds: 20
-      }
-    ];
-
-    // when
-    const storedDataState = store.getStoredDataState(fetchIdData);
-
-    // then
-
-    expect(storedDataState).to.eql(Object.assign(new StoredDataState(), {
-      storedResponse: FETCH_RESPONSE_OBJ,
-      storedDateTime: STORE_TIME,
-      pdHasChanged: false,
-      segmentsHaveChanged: false,
-      refreshInSeconds: 20,
-      nb: {'1': 0, '2': 0},
-      consentHasChanged: undefined
-    }));
-  });
-
-  it('should return stored data state with refresh time from cached response', function () {
-
-    // given
-    const response = {
-      ...FETCH_RESPONSE_OBJ,
-      cache_control: {
-        max_age_sec: 1800
-      }
-    };
-    clientStore.getResponse.returns(response);
-    clientStore.getDateTime.returns(STORE_TIME);
-    clientStore.isStoredPdUpToDate.returns(true);
-    clientStore.storedSegmentsMatchesSegments.returns(true);
-    const fetchIdData = [
-      {
-        ...FETCH_ID_DATA[0],
-        refreshInSeconds: 200
-      }, {
-        ...FETCH_ID_DATA[1],
-        refreshInSeconds: 20
-      }
-    ];
-
-    // when
-    const storedDataState = store.getStoredDataState(fetchIdData);
-
-    // then
-
-    expect(storedDataState).to.eql(Object.assign(new StoredDataState(), {
-      storedResponse: response,
-      storedDateTime: STORE_TIME,
-      pdHasChanged: false,
-      segmentsHaveChanged: false,
-      refreshInSeconds: 1800,
-      nb: {'1': 0, '2': 0},
-      consentHasChanged: undefined
-    }));
-  });
-
   [false, true].forEach(consentUpToDate => {
-    it(`should return stored data with consent data change up to date (${consentUpToDate})`, function () {
+    it(`should check if consent data is up to date. Stored changed=(${consentUpToDate})`, function () {
 
       // given
-      clientStore.getResponse.returns(FETCH_RESPONSE_OBJ);
-      clientStore.getDateTime.returns(STORE_TIME);
-      clientStore.isStoredPdUpToDate.returns(true);
-      clientStore.storedSegmentsMatchesSegments.returns(true);
       clientStore.storedConsentDataMatchesConsentData.returns(consentUpToDate);
 
       // when
-      const storedDataState = store.getStoredDataState(FETCH_ID_DATA, CONSENT_DATA);
+      const result = store.hasConsentChanged(CONSENT_DATA);
 
       // then
+      expect(result).to.eql(!consentUpToDate);
       expect(clientStore.storedConsentDataMatchesConsentData).to.have.been.calledWith(CONSENT_DATA);
-
-      expect(storedDataState).to.eql(Object.assign(new StoredDataState(), {
-        storedResponse: FETCH_RESPONSE_OBJ,
-        storedDateTime: STORE_TIME,
-        pdHasChanged: false,
-        segmentsHaveChanged: false,
-        refreshInSeconds: 7200,
-        nb: {'1': 0, '2': 0},
-        consentHasChanged: !consentUpToDate
-      }));
     });
   });
 
-  [[false, false, true],
-    [true, false, true],
-    [false, true, true],
-    [true, true, false]
-  ].forEach(([firstUpToDate, secondUpToDate, expectedHasChanged]) => {
-    it(`should return stored data with pd has changed true only if any changed (${JSON.stringify({
-      firstUpdToDate: firstUpToDate,
-      secondUpToDate,
-      expectedHasChanged
-    })})`, function () {
+  it(`should not check if consent data is up to date when current undefined`, function () {
 
-      // given
-      clientStore.getResponse.returns(FETCH_RESPONSE_OBJ);
-      clientStore.getDateTime.returns(STORE_TIME);
-      clientStore.isStoredPdUpToDate.onFirstCall().returns(firstUpToDate);
-      clientStore.isStoredPdUpToDate.onSecondCall().returns(secondUpToDate);
-      clientStore.storedSegmentsMatchesSegments.returns(true);
-      clientStore.storedConsentDataMatchesConsentData.returns(true);
-
-      // when
-      const storedDataState = store.getStoredDataState(FETCH_ID_DATA, CONSENT_DATA);
-
-      // then
-      expect(storedDataState).to.eql(Object.assign(new StoredDataState(), {
-        storedResponse: FETCH_RESPONSE_OBJ,
-        storedDateTime: STORE_TIME,
-        pdHasChanged: expectedHasChanged,
-        segmentsHaveChanged: false,
-        refreshInSeconds: 7200,
-        nb: {'1': 0, '2': 0},
-        consentHasChanged: false
-      }));
-    });
-  });
-
-  [[false, false, true],
-    [true, false, true],
-    [false, true, true],
-    [true, true, false]
-  ].forEach(([firstUpToDate, secondUpToDate, expectedHasChanged]) => {
-    it(`should return stored data with segments has changed true only if any changed (${JSON.stringify({
-      firstUpdToDate: firstUpToDate,
-      secondUpToDate,
-      expectedHasChanged
-    })})`, function () {
-
-      // given
-      clientStore.getResponse.returns(FETCH_RESPONSE_OBJ);
-      clientStore.getDateTime.returns(STORE_TIME);
-      clientStore.storedSegmentsMatchesSegments.onFirstCall().returns(firstUpToDate);
-      clientStore.storedSegmentsMatchesSegments.onSecondCall().returns(secondUpToDate);
-      clientStore.isStoredPdUpToDate.returns(true);
-      clientStore.storedConsentDataMatchesConsentData.returns(true);
-
-      // when
-      const storedDataState = store.getStoredDataState(FETCH_ID_DATA, CONSENT_DATA);
-
-      // then
-      expect(storedDataState).to.eql(Object.assign(new StoredDataState(), {
-        storedResponse: FETCH_RESPONSE_OBJ,
-        storedDateTime: STORE_TIME,
-        pdHasChanged: false,
-        segmentsHaveChanged: expectedHasChanged,
-        refreshInSeconds: 7200,
-        nb: {'1': 0, '2': 0},
-        consentHasChanged: false
-      }));
-    });
-
-  });
-
-  it(`should store request data`, function () {
     // given
-    const partner1 = FETCH_ID_DATA[0].partnerId;
-    const partner2 = FETCH_ID_DATA[1].partnerId;
-    const consentData = {};
-
-    clientStore.isStoredPdUpToDate.onFirstCall().returns(false);
-    clientStore.isStoredPdUpToDate.onSecondCall().returns(false);
+    clientStore.storedConsentDataMatchesConsentData.returns(true);
 
     // when
-    store.storeRequestData(consentData, FETCH_ID_DATA);
+    const result = store.hasConsentChanged(undefined);
 
     // then
-    expect(clientStore.putHashedConsentData).to.have.been.calledOnce;
-    expect(clientStore.isStoredPdUpToDate).to.have.been.calledTwice;
-    expect(clientStore.isStoredPdUpToDate.firstCall).to.have.been.calledWith(partner1, FETCH_ID_DATA[0].pd);
-    expect(clientStore.isStoredPdUpToDate.secondCall).to.have.been.calledWith(partner2, FETCH_ID_DATA[1].pd);
-    expect(clientStore.putHashedPd).to.have.been.calledTwice;
-    expect(clientStore.putHashedPd.firstCall).to.have.been.calledWith(partner1, FETCH_ID_DATA[0].pd);
-    expect(clientStore.putHashedPd.secondCall).to.have.been.calledWith(partner2, FETCH_ID_DATA[1].pd);
-    expect(clientStore.putHashedSegments).to.have.been.calledTwice;
-    expect(clientStore.putHashedSegments.firstCall).to.have.been.calledWith(partner1, FETCH_ID_DATA[0].segments);
-    expect(clientStore.putHashedSegments.secondCall).to.have.been.calledWith(partner2, FETCH_ID_DATA[1].segments);
+    expect(result).to.eql(undefined);
+    expect(clientStore.storedConsentDataMatchesConsentData).to.have.not.been.called;
   });
 
-  it(`should store request data and pd only if changed`, function () {
+  it(`should store consent data`, function () {
     // given
-    const partner1 = FETCH_ID_DATA[0].partnerId;
-    const partner2 = FETCH_ID_DATA[1].partnerId;
-    const consentData = {};
-
-    clientStore.isStoredPdUpToDate.onFirstCall().returns(false);
-    clientStore.isStoredPdUpToDate.onSecondCall().returns(true);
+    const consentData = sinon.stub();
 
     // when
-    store.storeRequestData(consentData, FETCH_ID_DATA);
+    store.storeConsent(consentData);
 
     // then
-    expect(clientStore.putHashedConsentData).to.have.been.calledOnce;
-    expect(clientStore.isStoredPdUpToDate).to.have.been.calledTwice;
-    expect(clientStore.isStoredPdUpToDate.firstCall).to.have.been.calledWith(partner1, FETCH_ID_DATA[0].pd);
-    expect(clientStore.isStoredPdUpToDate.secondCall).to.have.been.calledWith(partner2, FETCH_ID_DATA[1].pd);
-    expect(clientStore.putHashedPd).to.have.been.calledOnce;
-    expect(clientStore.putHashedPd.firstCall).to.have.been.calledWith(partner1, FETCH_ID_DATA[0].pd);
-    expect(clientStore.putHashedSegments).to.have.been.calledTwice;
-    expect(clientStore.putHashedSegments.firstCall).to.have.been.calledWith(partner1, FETCH_ID_DATA[0].segments);
-    expect(clientStore.putHashedSegments.secondCall).to.have.been.calledWith(partner2, FETCH_ID_DATA[1].segments);
+    expect(clientStore.putHashedConsentData).to.have.been.calledWith(consentData);
   });
 
-  it('should increase NB and update state', function () {
+  it('should update nbs', function () {
     // given
-    const partner1 = FETCH_ID_DATA[0].partnerId;
-    const partner2 = FETCH_ID_DATA[1].partnerId;
-    const state = {
-      nb: {}
-    };
-    state.nb[partner1] = 10;
-    state.nb[partner2] = 0;
 
-    clientStore.incNbV1.onFirstCall().returns(11);
-    clientStore.incNbV1.onSecondCall().returns(1);
+    const cacheData = new Map([
+      ['cacheId1', new CachedResponse(FETCH_RESPONSE_OBJ, STORE_TIME, 11)],
+      ['cacheId2', new CachedResponse(FETCH_RESPONSE_OBJ, STORE_TIME, 0)],
+      ['cacheId3', new CachedResponse(FETCH_RESPONSE_OBJ, STORE_TIME, 222)],
+      ['cacheId4', new CachedResponse(FETCH_RESPONSE_OBJ, STORE_TIME, -1)],
+      ['cacheId5', new CachedResponse(FETCH_RESPONSE_OBJ, STORE_TIME, undefined)],
+      ['cacheId5', undefined]
+    ]);
 
     // when
-    store.incNbs(FETCH_ID_DATA, state);
+    store.updateNbs(cacheData);
 
     // then
-    expect(clientStore.incNbV1).to.have.been.calledTwice;
-    expect(clientStore.incNbV1.firstCall.args).to.be.eql([partner1, 10]);
-    expect(clientStore.incNbV1.secondCall.args).to.be.eql([partner2, 0]);
-
     expect(clientStore.incNbV2).to.have.been.calledTwice;
-    expect(clientStore.incNbV2.firstCall).to.be.calledWith(FETCH_ID_DATA[0].cacheId);
-    expect(clientStore.incNbV2.secondCall).to.be.calledWith(FETCH_ID_DATA[1].cacheId);
-
-    let expectedNb = {};
-    expectedNb[partner1] = 11;
-    expectedNb[partner2] = 1;
-    expect(state.nb).to.be.eql(expectedNb);
+    expect(clientStore.incNbV2.firstCall).to.be.calledWith('cacheId1', -11);
+    expect(clientStore.incNbV2.secondCall).to.be.calledWith('cacheId3', -222);
   });
 
-  [true, false].forEach(usedCachedResponse => {
-    it(`should store response usedCachedResponse=${usedCachedResponse}`, () => {
-      // given
-      const responseTime = 10234;
+  it(`should store response`, () => {
+    // given
+    const responseTime = 10234;
+    const genericResponse = {
+      universal_uid: 'uid',
+      signature: 'sig'
+    };
 
-      const expectedNbReset = usedCachedResponse ? 0 : 1;
-      const genericResponse = {
-        universal_uid: 'uid',
-        signature: 'sig'
-      };
+    const response1 = {
+      universal_uid: 'uid-1',
+      signature: 'sig'
+    };
+    const response2 = {
+      universal_uid: 'uid-2',
+      signature: 'sig'
+    };
 
-      const response1 = {
-        universal_uid: 'uid-1',
-        signature: 'sig'
-      };
-      const response2 = {
-        universal_uid: 'uid-2',
-        signature: 'sig'
-      };
+    const refreshedResponse = sinon.createStubInstance(RefreshedResponse);
+    refreshedResponse.getGenericResponse.returns(genericResponse);
+    refreshedResponse.timestamp = responseTime;
+    refreshedResponse.getResponseFor.withArgs(FETCH_ID_DATA[0].integrationId).returns(response1);
+    refreshedResponse.getResponseFor.withArgs(FETCH_ID_DATA[1].integrationId).returns(response2);
 
-      const refreshedResponse = sinon.createStubInstance(RefreshedResponse);
-      refreshedResponse.getGenericResponse.returns(genericResponse);
-      refreshedResponse.timestamp = responseTime;
-      refreshedResponse.getResponseFor.withArgs(FETCH_ID_DATA[0].integrationId).returns(response1);
-      refreshedResponse.getResponseFor.withArgs(FETCH_ID_DATA[1].integrationId).returns(response2);
+    // when
+    store.storeResponse(FETCH_ID_DATA, refreshedResponse);
 
-      // when
-      store.storeResponse(FETCH_ID_DATA, refreshedResponse, usedCachedResponse);
+    // then
+    // store V1
+    expect(clientStore.putResponseV1).to.have.been.calledWith(genericResponse);
+    expect(clientStore.setResponseDateTimeV1).to.have.been.calledWith(new Date(responseTime).toUTCString());
 
-      // then
-      // store V1
-      expect(clientStore.putResponseV1).to.have.been.calledWith(genericResponse);
-      expect(clientStore.setResponseDateTimeV1).to.have.been.calledWith(new Date(responseTime).toUTCString());
-      expect(clientStore.setNbV1).to.be.calledTwice;
-      expect(clientStore.setNbV1.firstCall.args).to.be.eql([FETCH_ID_DATA[0].partnerId, expectedNbReset]);
-      expect(clientStore.setNbV1.secondCall.args).to.be.eql([FETCH_ID_DATA[1].partnerId, expectedNbReset]);
+    // store V2
+    expect(clientStore.storeResponseV2).to.be.calledTwice;
+    expect(clientStore.storeResponseV2.firstCall).to.be.calledWith(FETCH_ID_DATA[0].cacheId, response1);
+    expect(clientStore.storeResponseV2.secondCall).to.be.calledWith(FETCH_ID_DATA[1].cacheId, response2);
+  });
 
-      // store V2
-      expect(clientStore.setNbV2).to.be.calledTwice;
-      expect(clientStore.setNbV2.firstCall.args).to.be.eql([FETCH_ID_DATA[0].cacheId, expectedNbReset]);
-      expect(clientStore.setNbV2.secondCall.args).to.be.eql([FETCH_ID_DATA[1].cacheId, expectedNbReset]);
-      expect(clientStore.storeResponseV2).to.be.calledTwice;
-      expect(clientStore.storeResponseV2.firstCall).to.be.calledWith(FETCH_ID_DATA[0].cacheId, response1);
-      expect(clientStore.storeResponseV2.secondCall).to.be.calledWith(FETCH_ID_DATA[1].cacheId, response2);
-    });
+  it(`should store only non-empty response and one per cacheId`, () => {
+    // given
+    const responseTime = 10234;
+    const genericResponse = {
+      universal_uid: 'uid',
+      signature: 'sig'
+    };
 
+    const response1 = {
+      universal_uid: 'uid-1',
+      signature: 'sig'
+    };
+    const response2 = {
+      universal_uid: 'uid-2',
+      signature: 'sig'
+    };
+
+    const refreshedResponse = sinon.createStubInstance(RefreshedResponse);
+    const requestData = [
+      {
+        integrationId: 'i1',
+        cacheId: 'c1'
+      },
+      {
+        integrationId: 'i2',
+        cacheId: 'c1'
+      },
+      {
+        integrationId: 'i3',
+        cacheId: 'c2'
+      }, {
+        integrationId: 'i4',
+        cacheId: 'c2'
+      }
+    ];
+    refreshedResponse.getGenericResponse.returns(genericResponse);
+    refreshedResponse.timestamp = responseTime;
+    refreshedResponse.getResponseFor.withArgs('i1').returns(undefined);
+    refreshedResponse.getResponseFor.withArgs('i2').returns(response1);
+    refreshedResponse.getResponseFor.withArgs('i3').returns(response2);
+    refreshedResponse.getResponseFor.withArgs('i4').returns(response2);
+
+    // when
+    store.storeResponse(requestData, refreshedResponse);
+
+    // then
+    expect(clientStore.storeResponseV2).to.be.calledTwice;
+    expect(clientStore.storeResponseV2.firstCall).to.be.calledWith('c1', response1);
+    expect(clientStore.storeResponseV2.secondCall).to.be.calledWith('c2', response2);
   });
 
   it('should clear all', () => {
@@ -468,16 +221,35 @@ describe('Store', function () {
     // then
     expect(clientStore.clearResponse).to.have.been.calledOnce;
     expect(clientStore.clearDateTime).to.have.been.calledOnce;
-    expect(clientStore.clearNb).to.have.been.calledTwice;
-    expect(clientStore.clearNb.firstCall.args).to.be.eql([FETCH_ID_DATA[0].partnerId]);
-    expect(clientStore.clearNb.secondCall.args).to.be.eql([FETCH_ID_DATA[1].partnerId]);
-    expect(clientStore.clearHashedPd).to.have.been.calledTwice;
-    expect(clientStore.clearHashedPd.firstCall.args).to.be.eql([FETCH_ID_DATA[0].partnerId]);
-    expect(clientStore.clearHashedPd.secondCall.args).to.be.eql([FETCH_ID_DATA[1].partnerId]);
-    expect(clientStore.clearHashedSegments).to.have.been.calledTwice;
-    expect(clientStore.clearHashedSegments.firstCall.args).to.be.eql([FETCH_ID_DATA[0].partnerId]);
-    expect(clientStore.clearHashedSegments.secondCall.args).to.be.eql([FETCH_ID_DATA[1].partnerId]);
+    expect(clientStore.clearResponseV2).to.have.been.calledTwice;
+    expect(clientStore.clearResponseV2.firstCall.args).to.be.eql([FETCH_ID_DATA[0].cacheId]);
+    expect(clientStore.clearResponseV2.secondCall.args).to.be.eql([FETCH_ID_DATA[1].cacheId]);
     expect(clientStore.clearHashedConsentData).to.have.been.calledOnce;
+  });
+
+  it('should return stored response', () => {
+    // given
+    clientStore.getStoredResponseV2.withArgs('cacheId').returns({
+      response: FETCH_RESPONSE_OBJ,
+      responseTimestamp: STORE_TIME,
+      nb: 9
+    });
+
+    // when
+    const result = store.getCachedResponse('cacheId');
+
+    // then
+    expect(result).to.be.eql(new CachedResponse(FETCH_RESPONSE_OBJ, STORE_TIME, 9));
+  });
+
+  it('should inc nb', () => {
+    // when
+    store.incNb('c1');
+    store.incNb('c2', 10);
+
+    // then
+    expect(clientStore.incNbV2).to.be.calledWith('c1',1);
+    expect(clientStore.incNbV2).to.be.calledWith('c2',10);
   });
 });
 
@@ -493,10 +265,8 @@ describe('Storage config', function () {
 
     verifyConfig(storageConfig.ID5, STORAGE_CONFIG.ID5);
     verifyConfig(storageConfig.LAST, STORAGE_CONFIG.LAST);
-    verifyConfig(storageConfig.PD, STORAGE_CONFIG.PD);
     verifyConfig(storageConfig.PRIVACY, STORAGE_CONFIG.PRIVACY);
     verifyConfig(storageConfig.CONSENT_DATA, STORAGE_CONFIG.CONSENT_DATA);
-    verifyConfig(storageConfig.SEGMENTS, STORAGE_CONFIG.SEGMENTS);
   });
 
   it('should return configured expiration', function () {
@@ -510,10 +280,8 @@ describe('Storage config', function () {
 
     verifyConfig(storageConfig.ID5, STORAGE_CONFIG.ID5);
     verifyConfig(storageConfig.LAST, STORAGE_CONFIG.LAST);
-    verifyConfig(storageConfig.PD, STORAGE_CONFIG.PD);
     verifyConfig(storageConfig.PRIVACY, STORAGE_CONFIG.PRIVACY);
     verifyConfig(storageConfig.CONSENT_DATA, STORAGE_CONFIG.CONSENT_DATA);
-    verifyConfig(storageConfig.SEGMENTS, STORAGE_CONFIG.SEGMENTS);
   });
 
   it('should apply minimum expiration', function () {
@@ -527,10 +295,107 @@ describe('Storage config', function () {
 
     verifyConfig(storageConfig.ID5, STORAGE_CONFIG.ID5);
     verifyConfig(storageConfig.LAST, STORAGE_CONFIG.LAST);
-    verifyConfig(storageConfig.PD, STORAGE_CONFIG.PD);
     verifyConfig(storageConfig.PRIVACY, STORAGE_CONFIG.PRIVACY);
     verifyConfig(storageConfig.CONSENT_DATA, STORAGE_CONFIG.CONSENT_DATA);
-    verifyConfig(storageConfig.SEGMENTS, STORAGE_CONFIG.SEGMENTS);
   });
 });
 
+describe('CachedResponse', function () {
+  let currentTime;
+  let clockStub;
+  const validResponse = {
+    signature: 'sig',
+    universal_uid: 'universal_uid'
+  };
+
+  beforeEach(function () {
+    currentTime = Date.now();
+    clockStub = sinon.stub(Date, 'now').returns(currentTime);
+  });
+
+  afterEach(function () {
+    clockStub.restore();
+  });
+
+  [
+    [undefined, true],
+    [0, false],
+    [-1, false],
+    [daysToMs(14), false],
+    [daysToMs(14) + 1, true],
+    [100, false]
+  ].forEach(([ageMs, expectedStale]) => {
+    it(`should check if stale age-ms=${ageMs}`, function () {
+      // given
+      const responseTime = ageMs !== undefined ? (currentTime - ageMs) : undefined;
+      const response = new CachedResponse(validResponse, responseTime);
+
+      // when/then
+      expect(response.isStale()).to.be.eq(expectedStale);
+      expect(response.isValid()).to.be.eq(!expectedStale); // stale is recognized as invalid
+    });
+  });
+
+  [
+    [validResponse, true],
+    [{
+      signature: 'sig'
+    }, false],
+    [{
+      signature: {},
+      universal_uid: 'uid'
+    }, false],
+    [{
+      signature: 'sig',
+      universal_uid: 1
+    }, false],
+    [{
+      universal_uid: 'uid'
+    }, false],
+    [undefined, false],
+    ['not an object', false]
+  ].forEach(([response, expectedValid]) => {
+    it(`should check if response complete response=${JSON.stringify(response)}`, function () {
+      // given
+      const cachedResponse = new CachedResponse(response, currentTime);
+
+      // when/then
+      expect(cachedResponse.isResponseComplete()).to.be.eq(expectedValid);
+      expect(cachedResponse.isValid()).to.be.eq(expectedValid);
+    });
+  });
+
+  [
+    [hoursToMs(1), undefined, true], // invalid age in response
+    [hoursToMs(1), {max_age_sec: 'rr'}, true], // invalid age in response
+    [hoursToMs(1), {}, true], // invalid age in response
+    [hoursToMs(1), {max_age_sec: hoursToSec(1)}, false],
+    [hoursToMs(1), {max_age_sec: hoursToSec(2)}, false],
+    [hoursToMs(1) + 1, {max_age_sec: hoursToSec(1)}, true]
+  ].forEach(([ageMs, cache_control, expected]) => {
+    it(`should check if is expired age-ms=${ageMs}, cache-control=${JSON.stringify(cache_control)}`, function () {
+
+      // given
+      const responseTime = ageMs !== undefined ? (currentTime - ageMs) : undefined;
+      const response = new CachedResponse({
+        cache_control: cache_control
+      }, responseTime);
+
+      // when/then
+      expect(response.isExpired()).to.be.eq(expected);
+    });
+  });
+
+});
+
+function daysToMs(numOfDays) {
+  return numOfDays * hoursToMs(24);
+}
+
+function hoursToMs(numOfHours) {
+  return hoursToSec(numOfHours) * 1000;
+}
+
+function hoursToSec(numOfHours) {
+  return numOfHours * 3600;
+}

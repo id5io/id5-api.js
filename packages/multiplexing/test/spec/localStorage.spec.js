@@ -101,18 +101,20 @@ describe('LocalStorage', function () {
       }));
 
       // when
-      testStorage.updateObjectWithExpiration({name: 'test', expiresDays: 2}, currentObject => { return {
+      let result = testStorage.updateObjectWithExpiration({name: 'test', expiresDays: 2}, currentObject => { return {
         ...currentObject,
         value: 'updated',
         added: 'property'
       }});
 
       // then
+      const updatedData = {value: 'updated', other: 'Other', added: 'property'};
+      expect(result).to.be.eql(updatedData);
       expect(storageMock.getItem).to.be.calledWith('test');
       expect(storageMock.getItem).to.be.calledOnce;
       expect(storageMock.removeItem).to.not.be.called;
       expect(storageMock.setItem).to.be.calledWith('test', JSON.stringify({
-        data: {value: 'updated', other: 'Other', added: 'property'},
+        data: updatedData,
         expireAt: currentTimeMs + 2 * 24 * 3600 * 1000 // updated expiration Time
       }));
       expect(storageMock.setItem).to.be.calledOnce;

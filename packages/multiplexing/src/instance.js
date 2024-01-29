@@ -7,7 +7,12 @@ import {
 } from './messaging.js';
 import * as Utils from './utils.js';
 import {version} from '../generated/version.js';
-import {NamedLogger, NO_OP_LOGGER} from './logger.js';
+import {
+  // eslint-disable-next-line no-unused-vars
+  Logger,
+  NamedLogger,
+  NO_OP_LOGGER
+} from './logger.js';
 import {ActualLeader, AwaitedLeader, ProxyLeader} from './leader.js';
 import {ApiEventsDispatcher, MultiplexingEvent} from './apiEvent.js';
 import {DirectFollower, ProxyFollower} from './follower.js';
@@ -622,9 +627,10 @@ export class Instance {
     const storageConfig = new StorageConfig(properties.storageExpirationDays);
     const consentManagement = new ConsentManagement(localStorage, storageConfig, properties.forceAllowLocalStorageGrant, logger);
     const grantChecker = () => consentManagement.localStorageGrant();
-    const fetcher = new UidFetcher(consentManagement, new Store(new ClientStore(grantChecker, localStorage, storageConfig, logger)), metrics, logger, EXTENSIONS.createExtensions(metrics, logger));
+    const store = new Store(new ClientStore(grantChecker, localStorage, storageConfig, logger));
+    const fetcher = new UidFetcher(consentManagement, store, metrics, logger, EXTENSIONS.createExtensions(metrics, logger));
 
-    const leader = new ActualLeader(this._window, fetcher, properties, replicatingStorage, consentManagement, metrics, logger);
+    const leader = new ActualLeader(this._window, properties, replicatingStorage, store, consentManagement, metrics, logger, fetcher);
     leader.addFollower(this._followerRole); // add itself to be directly called
     this._leader.assignLeader(leader);
     if (this._mode === OperatingMode.MULTIPLEXING) { // in singleton mode ignore remote followers
@@ -646,8 +652,9 @@ export class Instance {
   }
 
   updateFetchIdData(fetchIdDataUpdate) {
+    // first notify leader then update (to let leader recognise change - if updated follower = leader then shared object used and change )
+    this._leader.updateFetchIdData(this.properties.id, fetchIdDataUpdate);
     Object.assign(this.properties.fetchIdData, fetchIdDataUpdate);
-    this._leader.updateFetchIdData(this.properties.id, this.properties.fetchIdData);
   }
 
   refreshUid(options) {

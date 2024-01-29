@@ -1,5 +1,7 @@
-import {isNumber} from './utils.js';
+import {isNumber, isPlainObject, isStr} from './utils.js';
 import CONSTANTS from './constants.js';
+
+const MAX_RESPONSE_AGE_SEC = 14 * 24 * 3600; // 14 days
 
 export class StoreItemConfig {
   constructor(name, expiresDays) {
@@ -25,46 +27,13 @@ export class StorageConfig {
     };
 
     this.ID5 = createConfig(defaultStorageConfig.ID5);
+    this.ID5_V2 = createConfig(defaultStorageConfig.ID5_V2);
     this.LAST = createConfig(defaultStorageConfig.LAST);
     this.CONSENT_DATA = createConfig(defaultStorageConfig.CONSENT_DATA);
-    this.PD = createConfig(defaultStorageConfig.PD);
     this.PRIVACY = createConfig(defaultStorageConfig.PRIVACY);
-    this.SEGMENTS = createConfig(defaultStorageConfig.SEGMENTS);
-  }
-}
-
-export class StoredDataState {
-  storedResponse;
-  storedDateTime;
-  pdHasChanged;
-  segmentsHaveChanged;
-  refreshInSeconds;
-  /**
-   * nb counters per partner
-   * @type {Map<number, number>}
-   */
-  nb;
-  consentHasChanged;
-
-  isResponsePresent() {
-    return this.storedResponse !== undefined;
   }
 
-  hasValidUid() {
-    return this.storedResponse && this.storedResponse.universal_uid;
-  }
-
-  isResponseComplete() {
-    return this.storedResponse && this.storedResponse.universal_uid && this.storedResponse.signature;
-  }
-
-  refreshInSecondsHasElapsed() {
-    return this.storedDateTime <= 0 || ((Date.now() - this.storedDateTime) > (this.refreshInSeconds * 1000));
-  }
-
-  isStoredIdStale() {
-    return this.storedDateTime <= 0 || ((Date.now() - this.storedDateTime) > 1209600000); // 14 days
-  }
+  static DEFAULT = new StorageConfig();
 }
 
 export class Store {
@@ -83,97 +52,67 @@ export class Store {
   }
 
   /**
-   * @type {StoredDataState}
-   * @param {array<FetchIdRequestData>}  fetchIdData
-   * @param {ConsentData} consentData
+   * @param {ConsentData} currentConsentData
+   * @return {boolean}
    */
-  getStoredDataState(fetchIdData, consentData = undefined) {
-    const storedResponse = this._clientStore.getResponse();
-    const storedDateTime = this._clientStore.getDateTime();
-    let nb = {};
-    let pdHasChanged = false;
-    let segmentsHaveChanged = false;
-    let refreshInSeconds = fetchIdData[0].refreshInSeconds || 7200;
-
-    fetchIdData.forEach(data => {
-      const partnerId = data.partnerId;
-      const storedNb = this._clientStore.getNb(partnerId);
-      nb[partnerId] = storedNb !== undefined ? storedNb : 0;
-      const currentPdHasChanged = !this._clientStore.isStoredPdUpToDate(partnerId, data.pd);
-      const currentSegmentsHasChanged = !this._clientStore.storedSegmentsMatchesSegments(partnerId, data.segments);
-      segmentsHaveChanged = segmentsHaveChanged || currentSegmentsHasChanged;
-      pdHasChanged = pdHasChanged || currentPdHasChanged;
-      if (refreshInSeconds > data.refreshInSeconds) {
-        refreshInSeconds = data.refreshInSeconds;
-      }
-    });
-
-    if (isNumber(storedResponse?.cache_control?.max_age_sec)) {
-      refreshInSeconds = storedResponse.cache_control.max_age_sec;
-    }
-
-    const consentHasChanged = consentData && !this._clientStore.storedConsentDataMatchesConsentData(consentData);
-
-    return Object.assign(new StoredDataState(), {
-      storedResponse,
-      storedDateTime,
-      pdHasChanged,
-      segmentsHaveChanged,
-      refreshInSeconds,
-      nb,
-      consentHasChanged
-    });
+  hasConsentChanged(currentConsentData) {
+    return currentConsentData && !this._clientStore.storedConsentDataMatchesConsentData(currentConsentData);
   }
 
   /**
    * @param {ConsentData} consentData
-   * @param {array<FetchIdRequestData>} fetchIdData
    */
-  storeRequestData(consentData, fetchIdData) {
-    // store it for V1 only , for V2 storage pd and segment are part of cache id
+  storeConsent(consentData) {
     this._clientStore.putHashedConsentData(consentData);
-    fetchIdData.forEach(data => {
-      const partnerId = data.partnerId;
-      const pd = data.pd;
-      const segments = data.segments;
-      if (!this._clientStore.isStoredPdUpToDate(partnerId, pd)) {
-        // we may have multiple data for the same partner (multiple integrations not all with pd)
-        // to avoid overwrite valid pd with empty,
-        // v1 isStoredPdUpToDate method can compare it and ignore empty it and take care
-        this._clientStore.putHashedPd(partnerId, pd);
+  }
+
+  /**
+   * Increments cached nb value for given cacheId by given value. If value is negative then cached value will be decremented
+   * @param {string} cacheId  - increment cached
+   * @param {number} [value] - value to increment, default 1
+   */
+  incNb(cacheId, value = 1) {
+    this._clientStore.incNbV2(cacheId, value);
+  }
+
+  /**
+   * @param {Map<string, CachedResponse>} cachedDataUsedInRequest
+   */
+  updateNbs(cachedDataUsedInRequest) {
+    for (const [cacheId, cachedResponse] of cachedDataUsedInRequest) {
+      const nbValueSentInRequest = cachedResponse?.nb;
+      // value is increased by +1 every time cached response is provisioned to follower
+      // in meanwhile between request sent and response received new followers may appear
+      // cached response nb could be increased but not included in request
+      // now instead of reset just decrease nb per cache id by value sent to sever
+      // if anything added between remaining delta will be included in next request
+      if (nbValueSentInRequest > 0) {
+        this.incNb(cacheId, -nbValueSentInRequest);
       }
-      this._clientStore.putHashedSegments(partnerId, segments);
-    });
+    }
   }
 
   /**
-   * @param {array<FetchIdRequestData>}  fetchIdData
-   * @param {StoredDataState} state
-   */
-  incNbs(fetchIdData, state) {
-    fetchIdData.forEach(data => {
-      const partnerId = data.partnerId;
-      state.nb[partnerId] = this._clientStore.incNbV1(partnerId, state.nb[partnerId]);
-      this._clientStore.incNbV2(data.cacheId);
-    });
-  }
-
-  /**
-   * @param {array<FetchIdRequestData>} fetchIdData
+   * @param {array<FetchIdRequestData>} requestInputData
    * @param {RefreshedResponse} refreshedResponse
-   * @param {boolean} cachedResponseUsed
    */
-  storeResponse(fetchIdData, refreshedResponse, cachedResponseUsed) {
+  storeResponse(requestInputData, refreshedResponse) {
+    // V1 for non-multiplexed integration on the page (to exchange signature)
     this._clientStore.putResponseV1(refreshedResponse.getGenericResponse());
     this._clientStore.setResponseDateTimeV1(new Date(refreshedResponse.timestamp).toUTCString());
-    const nbValue = cachedResponseUsed ? 0 : 1;
-    fetchIdData.forEach(data => {
-      const partnerId = data.partnerId;
-      this._clientStore.setNbV1(partnerId, nbValue);
-      // V2
+    // V2
+    const updatedCache = new Set();
+    requestInputData.forEach(data => {
       const cacheId = data.cacheId;
-      this._clientStore.setNbV2(cacheId, nbValue);
-      this._clientStore.storeResponseV2(cacheId, refreshedResponse.getResponseFor(data.integrationId), refreshedResponse.timestamp);
+      // there may be multiple responses for the same cacheId
+      // update only once with first non-empty
+      if (!updatedCache.has(cacheId)) {
+        const responseFor = refreshedResponse.getResponseFor(data.integrationId);
+        if (responseFor) {
+          this._clientStore.storeResponseV2(cacheId, responseFor, refreshedResponse.timestamp);
+          updatedCache.add(cacheId);
+        }
+      }
     });
   }
 
@@ -181,11 +120,62 @@ export class Store {
     this._clientStore.clearResponse();
     this._clientStore.clearDateTime();
     fetchIdData.forEach(data => {
-      const partnerId = data.partnerId;
-      this._clientStore.clearNb(partnerId);
-      this._clientStore.clearHashedPd(partnerId);
-      this._clientStore.clearHashedSegments(partnerId);
+      const cacheId = data.cacheId;
+      this._clientStore.clearResponseV2(cacheId);
     });
     this._clientStore.clearHashedConsentData();
+  }
+
+  /**
+   * @param {string} cacheId
+   * @return {CachedResponse}
+   */
+  getCachedResponse(cacheId) {
+    const storedResponseV2 = this._clientStore.getStoredResponseV2(cacheId);
+    if (storedResponseV2) {
+      return new CachedResponse(storedResponseV2.response, storedResponseV2.responseTimestamp, storedResponseV2.nb);
+    }
+    return undefined;
+  }
+}
+
+export class CachedResponse {
+  /** @type {FetchResponse} */
+  response;
+  /** @type {number} */
+  timestamp;
+  /** @type {number} */
+  nb;
+
+  constructor(response, timestamp, nb = 0) {
+    this.response = response;
+    this.timestamp = timestamp;
+    this.nb = nb;
+  }
+
+  isExpired() {
+    const maxAgeSec = this.getMaxAge();
+    const isValidMaxAge = isNumber(maxAgeSec) && maxAgeSec > 0;
+    return !isValidMaxAge || this._isOlderThanSec(maxAgeSec);
+  }
+
+  _isOlderThanSec(maxAgeSec) {
+    return this.timestamp <= 0 || (Date.now() - this.timestamp > (maxAgeSec * 1000));
+  }
+
+  isStale() {
+    return !this.timestamp || this._isOlderThanSec(MAX_RESPONSE_AGE_SEC);
+  }
+
+  isResponseComplete() {
+    return isPlainObject(this.response) && isStr(this.response.universal_uid) && isStr(this.response.signature);
+  }
+
+  isValid() {
+    return this.isResponseComplete() && !this.isStale();
+  }
+
+  getMaxAge() {
+    return this.response?.cache_control?.max_age_sec;
   }
 }
