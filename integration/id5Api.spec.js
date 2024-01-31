@@ -22,7 +22,6 @@ const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const RESOURCES_DIR = path.join(SCRIPT_DIR, 'resources');
 const TARGET_DIR = _DEBUG ? 'dev' : 'dist';
 const ID5_API_JS_FILE = path.join(SCRIPT_DIR, '..', 'build', TARGET_DIR, 'id5-api.js');
-// const ID5_API_MAP_FILE = path.join(SCRIPT_DIR, '..', 'build', TARGET_DIR, 'id5-api.js.map');
 const ID5_ESP_JS_FILE = path.join(SCRIPT_DIR, '..', 'build', TARGET_DIR, 'esp.js');
 
 const DAYS_TO_MILLISECONDS = (60 * 60 * 24 * 1000);
@@ -156,8 +155,6 @@ describe('The ID5 API', function () {
     // The API under test
     await server.forGet('https://cdn.id5-sync.com/api/integration/id5-api.js')
       .thenFromFile(200, ID5_API_JS_FILE);
-    // await server.forGet('https://cdn.id5-sync.com/api/integration/id5-api.js.map')
-    //   .thenFromFile(200, ID5_API_MAP_FILE);
 
     await server.forGet('https://cdn.id5-sync.com/api/integration/esp.js')
       .thenFromFile(200, ID5_ESP_JS_FILE);
