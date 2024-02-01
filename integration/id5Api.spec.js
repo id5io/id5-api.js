@@ -25,10 +25,11 @@ const ID5_API_JS_FILE = path.join(SCRIPT_DIR, '..', 'build', TARGET_DIR, 'id5-ap
 const ID5_ESP_JS_FILE = path.join(SCRIPT_DIR, '..', 'build', TARGET_DIR, 'esp.js');
 
 const DAYS_TO_MILLISECONDS = (60 * 60 * 24 * 1000);
+const MOCK_ID = 'ID5*LTzsUTSrz4juTlKvKoO0brhnjXyuZIGHv44Iqf4TzN0AAGwYr9heNFf7GF6QAMRq';
 const MOCK_FETCH_RESPONSE = {
   created_at: '2021-05-26T20:08:13Z',
   id5_consent: true,
-  universal_uid: 'ID5*LTzsUTSrz4juTlKvKoO0brhnjXyuZIGHv44Iqf4TzN0AAGwYr9heNFf7GF6QAMRq',
+  universal_uid: MOCK_ID,
   signature: 'ID5_AQo_xCuSjJ3KsW8cOsbHs1d3AvFDad0XrupUgd5LBsLV0v0pXmrYt0AbE_8WeU_nRC2Bbmif8GPKtcHFpAl4wLo',
   cascade_needed: false,
   privacy: {
@@ -255,11 +256,9 @@ describe('The ID5 API', function () {
 
       const dummyImageRequests = await mockDummyImage.getSeenRequests();
       expect(dummyImageRequests).to.have.lengthOf(1);
-      expect(dummyImageRequests[0].url).to.equal(
-        'https://dummyimage.com/600x200?text=ID5*LTzsUTSrz4juTlKvKoO0brhnjXyuZIGHv44Iqf4TzN0AAGwYr9heNFf7GF6QAMRq'
-      );
+      expect(dummyImageRequests[0].url).to.equal('https://dummyimage.com/600x200?text=' + MOCK_ID);
 
-      expect(await page.evaluate(() => window.id5Update)).to.eq('ID5*LTzsUTSrz4juTlKvKoO0brhnjXyuZIGHv44Iqf4TzN0AAGwYr9heNFf7GF6QAMRq');
+      expect(await page.evaluate(() => window.id5Update)).to.eq(MOCK_ID);
       expect(await page.evaluate(() => window.id5UpdateCallback)).to.eq(1);
     });
 
