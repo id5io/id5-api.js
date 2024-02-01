@@ -26,7 +26,7 @@ describe('LazyValue', function () {
 
   it('should allow reset value', async () => {
     // given
-    const value = {v: 'VALUE'}
+    const value = {v: 'VALUE'};
     const valueHolder = new LazyValue();
     valueHolder.set(value);
 
@@ -50,4 +50,27 @@ describe('LazyValue', function () {
       expect(valueHolder.hasValue()).is.eq(true);
     });
   });
-})
+
+  it('should resolve immediately if value is set', function() {
+    const valueHolder = new LazyValue();
+    valueHolder.set({v: 'VALUE'});
+
+    // when
+    const valuePromise = valueHolder.getValuePromise();
+
+    // then
+    return valuePromise.then(value => {
+      expect(value.v).is.eql('VALUE');
+    });
+  });
+
+  it('should give a new promise if value is updated', async function() {
+    const valueHolder = new LazyValue();
+    valueHolder.set(33);
+
+    expect(await valueHolder.getValuePromise()).to.eq(33);
+
+    valueHolder.set(42);
+    expect(await valueHolder.getValuePromise()).to.eq(42);
+  });
+});

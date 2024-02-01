@@ -1,7 +1,7 @@
 import * as ID5Integration from '../../src/instance.js';
 import sinon from 'sinon';
 import {Id5CommonMetrics} from '@id5io/diagnostics';
-import {NoopLogger} from '../../src/logger.js';
+import {NO_OP_LOGGER} from '../../src/logger.js';
 import {version} from '../../generated/version.js';
 import {MultiplexingEvent} from '../../src/apiEvent.js';
 import {StorageApi} from '../../src/localStorage.js';
@@ -120,7 +120,7 @@ function knownInstances(instance1) {
 describe('ID5 instance', function () {
   let metrics;
   let createdInstances;
-  let logger = NoopLogger; // for debug purposes assign console `let logger = console`
+  let logger = NO_OP_LOGGER; // for debug purposes assign console `let logger = console`
   let performanceNowStub;
   let createInstance = (source, sourceVersion, sourceConfig, fetchIdData, metrics) => {
     const instance = new ID5Integration.Instance(window, {

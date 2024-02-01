@@ -9,7 +9,7 @@ import {
   GRANT_TYPE,
   LocalStorageGrant,
   NoConsentError} from '../../src/consent.js';
-import { NoopLogger } from '../../src/logger.js';
+import { NO_OP_LOGGER } from '../../src/logger.js';
 import { WindowStorage } from '../../src/localStorage.js';
 import { Id5CommonMetrics } from '@id5io/diagnostics';
 import { CachedResponse, Store } from '../../src/store.js';
@@ -212,7 +212,7 @@ describe('UidFetcher', function () {
   const CURRENT_TIME = Date.now();
   let dateTimeStub;
   beforeEach(function () {
-    let log = _DEBUG ? console : NoopLogger;
+    let log = _DEBUG ? console : NO_OP_LOGGER;
     consentManager = sinon.createStubInstance(ConsentManager);
     store = sinon.createStubInstance(Store);
     extensions = sinon.createStubInstance(Extensions);

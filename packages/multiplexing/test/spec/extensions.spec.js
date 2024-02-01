@@ -1,6 +1,6 @@
 import sinon from 'sinon';
 import {EXTENSIONS, ID5_LB_ENDPOINT} from '../../src/extensions.js';
-import {NoopLogger} from '../../src/logger.js';
+import {NO_OP_LOGGER} from '../../src/logger.js';
 import {Id5CommonMetrics} from '@id5io/diagnostics';
 
 
@@ -20,7 +20,7 @@ function createFetchStub(lbResponse) {
 
 describe('Extensions', function () {
 
-  const logger = NoopLogger; // `= console;` for debug purposes
+  const logger = NO_OP_LOGGER; // `= console;` for debug purposes
   const metrics = new Id5CommonMetrics('api', '1')
   const extensions = EXTENSIONS.createExtensions(metrics, logger)
 

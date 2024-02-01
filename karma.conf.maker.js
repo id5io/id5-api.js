@@ -3,29 +3,10 @@
 // For more information, see http://karma-runner.github.io/1.0/config/configuration-file.html
 
 import _ from 'lodash';
-import path from 'path';
 import isDocker from 'is-docker';
 import nodeResolve from '@rollup/plugin-node-resolve';
 import pkg from 'karma';
 const { constants: karmaConstants, config: cfg } = pkg;
-
-function setReporters(karmaConf, codeCoverage) {
-  // In browserstack, the default 'progress' reporter floods the logs.
-  // The karma-spec-reporter reports failures more concisely
-  if (codeCoverage) {
-    karmaConf.reporters.push('coverage-istanbul');
-    karmaConf.coverageIstanbulReporter = {
-      reports: ['html', 'lcovonly', 'text-summary'],
-      dir: path.join('build', 'coverage'),
-      'report-config': {
-        html: {
-          subdir: 'karma_html',
-          urlFriendlyName: true, // simply replaces spaces with _ for files/dirs
-        }
-      }
-    }
-  }
-}
 
 function setBrowsers(karmaConf) {
   if (isDocker()) {
@@ -42,7 +23,7 @@ function setBrowsers(karmaConf) {
   }
 }
 
-export default function (codeCoverage, watchMode) {
+export default function (watchMode) {
   var config = {
     // base path that will be used to resolve all patterns (eg. files, exclude)
     basePath: './',
@@ -107,7 +88,6 @@ export default function (codeCoverage, watchMode) {
     browserNoActivityTimeout: 4 * 60 * 1000, // default 10000
     captureTimeout: 4 * 60 * 1000 // default 60000
   };
-  setReporters(config, codeCoverage);
   setBrowsers(config);
   return cfg.parseConfig(null, config);
 };

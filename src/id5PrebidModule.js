@@ -1,6 +1,5 @@
 import {
   delve,
-  gatherUaHints,
   isGlobalDebug,
   setGlobalDebug,
   InvocationLogger,
@@ -11,6 +10,7 @@ import { Config } from '../lib/config.js';
 import { createPublisher, Id5CommonMetrics, partnerTag, startTimeMeasurement } from '@id5io/diagnostics';
 import multiplexing, { API_TYPE, ConsentData, ApiEvent, WindowStorage, GppConsentData } from '@id5io/multiplexing';
 import { semanticVersionCompare } from '@id5io/multiplexing/src/utils.js';
+import {UaHints} from '../lib/uaHints.js';
 import { GPPClient } from '../lib/consentProvider.js';
 
 /**
@@ -253,7 +253,7 @@ class Id5PrebidIntegration {
    */
   async _gatherFetchIdData(config, refererInfo, log) {
     const options = config.getOptions();
-    const uaHints = await gatherUaHints(options.disableUaHints, log);
+    const uaHints = await UaHints.gatherUaHints(options.disableUaHints, log);
     return {
       partnerId: options.partnerId,
       refererInfo: refererInfo,
