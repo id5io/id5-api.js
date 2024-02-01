@@ -580,7 +580,25 @@ describe('Id5Instance', function () {
       });
     });
 
-    it('should take only last onUpdate callback ', function (done) {
+    it('should fire onUpdate immediately if ID is available', function (done) {
+      const config = new Config({
+        ...defaultInitBypassConsent(),
+        maxCascades: 4
+      }, NO_OP_LOGGER);
+
+      const instanceUnderTest = new Id5Instance(config, null, null, null, null, NO_OP_LOGGER, multiplexingInstanceStub, null);
+      instanceUnderTest.bootstrap()
+      multiplexingInstanceStub.emit(ApiEvent.USER_ID_READY, {
+        isFromCache: false,
+        responseObj: { universal_uid: 'ID5*the_ID' }
+      });
+
+      instanceUnderTest.onUpdate(function () {
+        done();
+      });
+    });
+
+    it('should take only last onUpdate callback', function (done) {
       const config = new Config({
         ...defaultInitBypassConsent(),
         maxCascades: 4
