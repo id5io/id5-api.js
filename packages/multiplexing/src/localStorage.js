@@ -1,5 +1,5 @@
 import {
-  NoopLogger,
+  NO_OP_LOGGER,
   // eslint-disable-next-line no-unused-vars
   Logger
 } from './logger.js';
@@ -19,7 +19,7 @@ export class LocalStorage {
    * @param {StorageApi} storage the window object to use
    * @param {Logger} logger
    */
-  constructor(storage, logger = NoopLogger) {
+  constructor(storage, logger = NO_OP_LOGGER) {
     this.storage = storage;
     this._log = logger;
   }

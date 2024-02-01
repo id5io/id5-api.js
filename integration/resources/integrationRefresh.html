@@ -1,18 +1,17 @@
 <!doctype html>
 <html lang="en">
 <head>
-    <title>Single ID5 API Integration</title>
+    <title>ID5 API Integration</title>
     <link rel="canonical" href="https://www.id5.io"/>
 </head>
 <body>
-<!-- ID5 API -->
-<script type="text/javascript" src="https://cdn.id5-sync.com/api/integration/id5-api.js"></script>
-<script type="text/javascript" src="https://cdn.id5-sync.com/api/integration/multiplexing-test-helper.js"></script>
-<script>
-    ID5.debug = true;
-
-    let id5Instance = ID5.init(
-        {
+    <div id="placeholder"></div>
+    <!-- ID5 API -->
+    <script type="text/javascript" src="https://cdn.id5-sync.com/api/integration/id5-api.js"></script>
+    <script>
+        ID5.debug = true;
+        window.id5UpdateCallback = 0;
+        window.id5Instance = ID5.init({
             partnerId: 99,
             refreshInSeconds: 5,
             cmpApi: 'static',
@@ -27,17 +26,21 @@
                     }
                 }
             },
-            diagnostics: {
-                publishAfterLoadInMsec: -1,
-                publishingSampleRatio: 1,
-                publishOnWindowUnload: true
-            },
-            segments: [{destination: '22', ids: ['abc']}]
-        }
-    ).onAvailable(uidCallback);
-    const mxInstance = id5Instance._multiplexingInstance;
-    mxInstance.on('leader-elected', leaderElectionCallback(mxInstance));
-</script>
-<!-- /ID5 API -->
+            segments: [{ destination: '22', ids: ['abc']}]
+        })
+        .onAvailable(function (id5Instance) {
+            ID5.refreshId(id5Instance, false, {
+              segments: [{ destination: '24', ids: ['def']}]
+            });
+        })
+        .onUpdate(function(id5Instance) {
+            window.id5Update = id5Instance.getUserId();
+            window.id5UpdateCallback += 1;
+        }).onRefresh(function(id5Instance) {
+            window.id5Refresh = id5Instance.getUserId();
+        });
+    </script>
+    <!-- /ID5 API -->
+
 </body>
 </html>

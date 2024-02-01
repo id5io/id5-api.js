@@ -1,5 +1,7 @@
 import sinon from 'sinon';
-import multiplexing, {LocalStorage, StorageConfig, WindowStorage} from '@id5io/multiplexing';
+import multiplexing, {LocalStorage, StorageConfig, WindowStorage, ApiEventsDispatcher, utils} from '@id5io/multiplexing';
+import { NO_OP_LOGGER } from '@id5io/multiplexing';
+import { Config } from '../../lib/config';
 
 export const TEST_ID5_PARTNER_ID = 99;
 export const ID5_FETCH_ENDPOINT = `https://id5-sync.com/gm/v3`;
@@ -118,13 +120,25 @@ export function resetAllInLocalStorage() {
   localStorage.removeItemWithExpiration(TEST_CONSENT_DATA_STORAGE_CONFIG);
 }
 
-export function setStoredResponse(cacheId, response, timestamp=Date.now(), nb=0) {
+export function makeCacheId(options) {
+  const config = new Config(options, NO_OP_LOGGER);
+  const configOptions = config.getOptions();
+  const uniqueData = {
+    partnerId: configOptions.partnerId,
+    att: configOptions.att,
+    pd: configOptions.pd,
+    provider: configOptions.provider,
+    abTesting: configOptions.abTesting,
+    segments: JSON.stringify(configOptions.segments),
+    providedRefresh: config.getProvidedOptions().refreshInSeconds,
+  };
+  return utils.cyrb53Hash(JSON.stringify(uniqueData));
+}
+
+export function setStoredResponse(cacheId, response, responseTimestamp=Date.now(), nb=0) {
   localStorage.setObjectWithExpiration(StorageConfig.DEFAULT.ID5_V2.withNameSuffixed(cacheId),
-    {
-      response: response,
-      responseTimestamp: timestamp,
-      nb: nb
-    });
+    { response, responseTimestamp, nb }
+  );
 }
 
 export function getStoredResponse(cacheId) {
@@ -196,4 +210,34 @@ export function sinonFetchResponder(responseProvider) {
       request.respond(200, { 'Content-Type': ' application/json' }, responseProvider(request));
     }
   }
+}
+
+export class MultiplexInstanceStub {
+  _dispatcher;
+
+  constructor() {
+    this._dispatcher = new ApiEventsDispatcher(NO_OP_LOGGER);
+    sinon.stub(this, 'register');
+    sinon.stub(this, 'updateConsent');
+    sinon.stub(this, 'refreshUid');
+    sinon.stub(this, 'updateFetchIdData');
+  }
+
+  on(event, callback) {
+    this._dispatcher.on(event, callback);
+    return this;
+  }
+
+  emit(event, ...args) {
+    this._dispatcher.emit(event, ...args);
+    return this;
+  }
+
+  register() {}
+
+  updateConsent() {}
+
+  refreshUid() {}
+
+  updateFetchIdData() {}
 }

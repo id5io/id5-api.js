@@ -1,4 +1,4 @@
-import {NoopLogger} from './logger.js';
+import {NO_OP_LOGGER} from './logger.js';
 
 export function semanticVersionCompare(version1, version2) {
   let semanticVersionPattern = '^\\d+(\\.\\d+(\\.\\d+){0,1}){0,1}$';
@@ -193,7 +193,7 @@ function formatQS(query) {
  * @param options object
  * @param {Logger} log
  */
-export function ajax(url, callback, data, options = {}, log = NoopLogger) {
+export function ajax(url, callback, data, options = {}, log = NO_OP_LOGGER) {
   const XHR_DONE = 4;
   try {
     let x;

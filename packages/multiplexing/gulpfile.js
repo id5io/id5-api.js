@@ -33,7 +33,7 @@ gulp.task('generate', (done) => {
 function test(done) {
   let karmaConfig = karma.config.parseConfig(path.resolve() + '/karma.conf.cjs',
     {
-      singleRun: !argv.continuously
+      singleRun: !argv.continuous
     },
     {
       promiseConfig: false,

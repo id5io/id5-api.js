@@ -14,7 +14,7 @@ import {ApiEvent} from '@id5io/multiplexing';
 
 function stubDelayedUserIdReady(id5Status, timeout, data = {fromCache: false}) {
   setTimeout(() => {
-    id5Status.instance._dispatcher.emit(ApiEvent.USER_ID_READY, {
+    id5Status._multiplexingInstance._dispatcher.emit(ApiEvent.USER_ID_READY, {
       responseObj: data.response !== undefined ? data.response : JSON.parse(JSON.stringify(TEST_RESPONSE_ID5_CONSENT)),
       isFromCache: data.fromCache !== undefined ? data.fromCache : false
     });
@@ -22,7 +22,7 @@ function stubDelayedUserIdReady(id5Status, timeout, data = {fromCache: false}) {
 }
 
 function stubUserIdReadyNow(id5Status, data = {fromCache: false}) {
-  id5Status.instance._dispatcher.emit(ApiEvent.USER_ID_READY, {
+  id5Status._multiplexingInstance._dispatcher.emit(ApiEvent.USER_ID_READY, {
     responseObj: data.response !== undefined ? data.response : JSON.parse(JSON.stringify(TEST_RESPONSE_ID5_CONSENT)),
     isFromCache: data.fromCache !== undefined ? data.fromCache : false
   });
@@ -154,7 +154,7 @@ describe('Async Responses', function () {
           sinon.assert.notCalled(onUpdateSpy);
         }
       }, {
-        timeout: CALLBACK_TIMEOUT_MS - 1,
+        timeout: CALLBACK_TIMEOUT_MS + 1,
         fn: () => {
           sinon.assert.calledOnce(onAvailableSpy);
           sinon.assert.notCalled(onUpdateSpy);
@@ -199,7 +199,7 @@ describe('Async Responses', function () {
       expect(id5Status.getLinkType()).to.be.undefined;
 
       execSequence(clock, {
-        timeout: SHORT_CALLBACK_TIMEOUT_MS - 1,
+        timeout: SHORT_CALLBACK_TIMEOUT_MS,
         fn: () => {
           // USER_ID_READY not emitted
           sinon.assert.notCalled(onAvailableSpy);
@@ -383,15 +383,15 @@ describe('Async Responses', function () {
       execSequence(clock, {
         timeout: 1,
         fn: () => {
-          sinon.assert.calledOnce(onAvailableSpy);
-          sinon.assert.calledOnce(onUpdateSpy);
+          expect(onAvailableSpy).to.have.been.calledOnce;
+          expect(onUpdateSpy).to.have.been.calledOnce;
         }
       }, {
         timeout: LONG_TIMEOUT,
         fn: () => {
           // make sure the watchdog timeout from init is cleared before moving on
-          sinon.assert.calledOnce(onAvailableSpy);
-          sinon.assert.calledOnce(onUpdateSpy);
+          expect(onAvailableSpy).to.have.been.calledOnce;
+          expect(onUpdateSpy).to.have.been.calledOnce;
           expect(id5Status.getUserId()).to.be.equal(stored_response.universal_uid);
           expect(id5Status.getLinkType()).to.be.equal(stored_response.ext.linkType);
 
@@ -404,25 +404,25 @@ describe('Async Responses', function () {
       }, {
         timeout: 1,
         fn: () => {
-          sinon.assert.calledOnce(onAvailableSpy);
-          sinon.assert.notCalled(onRefreshSpy);
-          sinon.assert.calledOnce(onUpdateSpy);
+          expect(onAvailableSpy).to.have.been.calledOnce;
+          expect(onUpdateSpy).to.have.been.calledOnce;
+          expect(onRefreshSpy).to.not.have.been.called;
         }
       }, {
-        timeout: USER_ID_READY_DELAY_MS + 1,
+        timeout: USER_ID_READY_DELAY_MS + 2,
         fn: () => {
-          sinon.assert.calledOnce(onAvailableSpy);
-          sinon.assert.calledOnce(onRefreshSpy);
-          sinon.assert.calledTwice(onUpdateSpy);
+          expect(onAvailableSpy).to.have.been.calledOnce;
+          expect(onRefreshSpy).to.have.been.calledOnce;
+          expect(onUpdateSpy).to.have.been.calledTwice;
           expect(id5Status.getUserId()).to.be.equal(updated_response.universal_uid);
           expect(id5Status.getLinkType()).to.be.equal(updated_response.ext.linkType);
         }
       }, {
         timeout: LONG_TIMEOUT,
         fn: () => {
-          sinon.assert.calledOnce(onAvailableSpy);
-          sinon.assert.calledOnce(onRefreshSpy);
-          sinon.assert.calledTwice(onUpdateSpy);
+          expect(onAvailableSpy).to.have.been.calledOnce;
+          expect(onRefreshSpy).to.have.been.calledOnce;
+          expect(onUpdateSpy).to.have.been.calledTwice;
           expect(id5Status.getUserId()).to.be.equal(updated_response.universal_uid);
           expect(id5Status.getLinkType()).to.be.equal(updated_response.ext.linkType);
           done();
@@ -442,7 +442,7 @@ describe('Async Responses', function () {
       execSequence(clock, {
         timeout: 1,
         fn: () => {
-          sinon.assert.calledOnce(onAvailableSpy);
+          expect(onAvailableSpy).to.have.been.calledOnce;
           expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
           expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
         }
@@ -450,25 +450,27 @@ describe('Async Responses', function () {
         timeout: LONG_TIMEOUT,
         fn: () => {
           // make sure the watchdog timeout from init is cleared before moving on
-          sinon.assert.calledOnce(onAvailableSpy);
+          expect(onAvailableSpy).to.have.been.calledOnce;
 
           ID5.refreshId(id5Status, true).onRefresh(onRefreshSpy, SHORT_CALLBACK_TIMEOUT_MS);
           // do nothing id will not be delivered
         }
       }, {
-        timeout: SHORT_CALLBACK_TIMEOUT_MS + 1,
+        timeout: SHORT_CALLBACK_TIMEOUT_MS + 2,
         fn: () => {
-          sinon.assert.calledOnce(onAvailableSpy);
-          sinon.assert.calledOnce(onRefreshSpy);
+          expect(onAvailableSpy).to.have.been.calledOnce;
+          expect(onRefreshSpy).to.have.been.calledOnce;
+
           // Should callback with stored value a ajax response was not received
-          expect(onAvailableSpy.getCall(0).args[0].getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
-          expect(onAvailableSpy.getCall(0).args[0].getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
+          const instance = onAvailableSpy.firstCall.firstArg;
+          expect(instance.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
+          expect(instance.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
         }
       }, {
         timeout: LONG_TIMEOUT,
         fn: () => {
-          sinon.assert.calledOnce(onAvailableSpy);
-          sinon.assert.calledOnce(onRefreshSpy);
+          expect(onAvailableSpy).to.have.been.calledOnce;
+          expect(onRefreshSpy).to.have.been.calledOnce;
           done();
         }
       });

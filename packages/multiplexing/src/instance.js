@@ -11,7 +11,7 @@ import {
   // eslint-disable-next-line no-unused-vars
   Logger,
   NamedLogger,
-  NoopLogger
+  NO_OP_LOGGER
 } from './logger.js';
 import {ActualLeader, AwaitedLeader, ProxyLeader} from './leader.js';
 import {ApiEventsDispatcher, MultiplexingEvent} from './apiEvent.js';
@@ -402,7 +402,7 @@ export class Instance {
    * @param {Id5CommonMetrics} metrics
    * @param {Logger} logger
    */
-  constructor(wnd, configuration, storage, metrics, logger = NoopLogger) {
+  constructor(wnd, configuration, storage, metrics, logger = NO_OP_LOGGER) {
     const id = Utils.generateId();
     this.properties = Object.assign({
       id: id,
@@ -414,7 +414,7 @@ export class Instance {
     this._metrics = metrics;
     this._instanceCounters = new InstancesCounters(metrics, this.properties);
     this._loadTime = performance.now();
-    this._logger = (logger !== undefined) ? new NamedLogger(`Instance(id=${id})`, logger) : NoopLogger;
+    this._logger = (logger !== undefined) ? new NamedLogger(`Instance(id=${id})`, logger) : NO_OP_LOGGER;
     this._window = wnd;
     this._dispatcher = new ApiEventsDispatcher(this._logger);
     this._leader = new AwaitedLeader(); // AwaitedLeader buffers requests to leader in case some events happened before leader is elected (i.e. consent update)

@@ -5,7 +5,7 @@ import { RefreshedResponse, UidFetcher} from '../../src/fetch.js';
 import {CachedResponse, Store} from '../../src/store.js';
 import { API_TYPE, ConsentData, LocalStorageGrant, NoConsentError } from '../../src/consent.js';
 import { ConsentManagement } from '../../src/consentManagement.js';
-import { NoopLogger } from '../../src/logger.js';
+import { NO_OP_LOGGER } from '../../src/logger.js';
 import { Follower } from '../../src/follower.js';
 import { Properties } from '../../src/instance.js';
 import { Counter, Id5CommonMetrics } from '@id5io/diagnostics';
@@ -241,7 +241,7 @@ describe('ActualLeader', () => {
     follower3.getFetchIdData.returns(follower3FetchIdData);
     follower3.getWindow.returns(leaderWindow);
     follower3.getCacheId.returns('cacheId3');
-    leader = new ActualLeader(leaderWindow, leaderProperties, leaderStorage, store, consentManager, sinon.createStubInstance(Id5CommonMetrics), NoopLogger, uidFetcher);
+    leader = new ActualLeader(leaderWindow, leaderProperties, leaderStorage, store, consentManager, sinon.createStubInstance(Id5CommonMetrics), NO_OP_LOGGER, uidFetcher);
   });
 
   it('should getId on start and notify followers when uid ready', async () => {

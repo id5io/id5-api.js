@@ -20,11 +20,8 @@ describe('Counters', function () {
   let server;
   let extensionsStub, extensionsCreatorStub;
 
-  before(function () {
-    resetAllInLocalStorage();
-  });
-
   beforeEach(function () {
+    resetAllInLocalStorage();
     server = sinon.fakeServer.create();
     server.respondImmediately = true;
     server.respondWith(sinonFetchResponder(request =>
@@ -75,7 +72,7 @@ describe('Counters', function () {
     localStorage.setItemWithExpiration(TEST_PRIVACY_STORAGE_CONFIG, TEST_PRIVACY_DISALLOWED);
 
     const id5Status = ID5.init(defaultInit());
-    id5Status.instance.on(ApiEvent.USER_ID_FETCH_CANCELED, () => {
+    id5Status._multiplexingInstance.on(ApiEvent.USER_ID_FETCH_CANCELED, () => {
       expect(extensionsStub.gather).to.not.have.been.called;
       expect(server.requests).to.have.lengthOf(0);
 

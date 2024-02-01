@@ -7,46 +7,11 @@
 <body>
 <!-- ID5 API -->
 <script type="text/javascript" src="https://cdn.id5-sync.com/api/integration/id5-api.js"></script>
+<script type="text/javascript" src="https://cdn.id5-sync.com/api/integration/multiplexing-test-helper.js"></script>
 <script>
-    const leaderElectionCallback = function (instance) {
-        return (role, leader) => {
-            window.fetch('https://instances.log/on-election', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'text/plain'
-                },
-                mode: 'no-cors',
-                body: JSON.stringify({
-                    location: window.location.href,
-                    id: instance.properties.id,
-                    role: role,
-                    leader: leader.id,
-                    knownInstances: Array.from(instance._knownInstances.keys())
-                })
-            });
-        };
-    };
-    const uidCallback = function (status) {
-        const instance = status.instance;
-        const uid = status.getUserId();
-        window.fetch('https://instances.log/on-available', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'text/plain'
-            },
-            mode: 'no-cors',
-            body: JSON.stringify({
-                location: window.location.href,
-                id: instance.properties.id,
-                role: instance.role,
-                uid: uid
-            })
-        });
-    };
-
     ID5.debug = true;
 
-    const id5Status1 = ID5.init(
+    const id5Instance1 = ID5.init(
         {
             partnerId: 99,
             refreshInSeconds: 5,
@@ -71,11 +36,11 @@
         }
     ).onAvailable(uidCallback);
 
-    const instance1 = id5Status1.instance;
-    instance1.on('leader-elected', leaderElectionCallback(instance1));
+    const mxInstance1 = id5Instance1._multiplexingInstance;
+    mxInstance1.on('leader-elected', leaderElectionCallback(mxInstance1));
 
 
-    const id5Status2 = ID5.init({
+    const id5Instance2 = ID5.init({
             partnerId: 98,
             refreshInSeconds: 5,
             cmpApi: 'static',
@@ -98,8 +63,8 @@
             segments: [{destination: '22', ids: ['abc']}]
         }
     ).onAvailable(uidCallback);
-    const instance2 = id5Status2.instance;
-    instance2.on('leader-elected', leaderElectionCallback(instance2));
+    const mxInstance2 = id5Instance2._multiplexingInstance;
+    mxInstance2.on('leader-elected', leaderElectionCallback(mxInstance2));
 
 </script>
 <!-- /ID5 API -->

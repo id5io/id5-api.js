@@ -2,13 +2,13 @@ import {spy, stub} from 'sinon';
 import {ConsentManagement} from '../../src/consentManagement.js';
 import CONSTANTS from '../../src/constants.js';
 import {ConsentData, API_TYPE, GRANT_TYPE, LocalStorageGrant} from '../../src/consent.js';
-import {NoopLogger} from '../../src/logger.js';
+import {NO_OP_LOGGER} from '../../src/logger.js';
 import {StorageConfig} from '../../src/store.js';
 
 const STORAGE_CONFIG = new StorageConfig();
 
 function newConsentManagement(localStorageMock, forceGrant = false) {
-    return new ConsentManagement(localStorageMock, STORAGE_CONFIG, forceGrant, NoopLogger);
+    return new ConsentManagement(localStorageMock, STORAGE_CONFIG, forceGrant, NO_OP_LOGGER);
 }
 
 describe('Consent Management', function () {

@@ -1,4 +1,4 @@
-import {NoopLogger} from './logger.js';
+import {NO_OP_LOGGER} from './logger.js';
 
 const ANY_MSG_TYPE = '*';
 export const DST_BROADCAST = undefined;
@@ -110,7 +110,7 @@ export class ProxyMethodCallHandler {
    *
    * @param logger
    */
-  constructor(logger = NoopLogger) {
+  constructor(logger = NO_OP_LOGGER) {
     this._log = logger;
   }
 
@@ -164,7 +164,7 @@ export class CrossInstanceMessenger {
    */
   _onMessageCallBackFunction = undefined;
 
-  constructor(id, window, logger = NoopLogger) {
+  constructor(id, window, logger = NO_OP_LOGGER) {
     this._id = id;
     this._messageFactory = new Id5MessageFactory(this._id);
     this._log = logger;

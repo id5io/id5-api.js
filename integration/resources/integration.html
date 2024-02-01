@@ -9,9 +9,9 @@
     <!-- ID5 API -->
     <script type="text/javascript" src="https://cdn.id5-sync.com/api/integration/id5-api.js"></script>
     <script>
-        var id5Callback = function (id5Status) {
+        var id5Callback = function (id5Instance) {
             var i = new Image();
-            i.src = "https://dummyimage.com/600x200?text=" + id5Status.getUserId();
+            i.src = "https://dummyimage.com/600x200?text=" + id5Instance.getUserId();
 
             var doneParagraph = document.createElement('p');
             doneParagraph.setAttribute('id', 'done');
@@ -19,8 +19,16 @@
             placeholder.appendChild(i);
             placeholder.appendChild(doneParagraph);
         };
+
+        window.id5UpdateCallback = 0;
+        var onUpdateCallback = function(id5Instance) {
+            window.id5Update = id5Instance.getUserId();
+            window.id5UpdateCallback += 1;
+        };
+
         ID5.debug = true;
-        var id5Status = ID5.init({
+
+        window.id5Instance = ID5.init({
             partnerId: 99,
             refreshInSeconds: 5,
             cmpApi: 'static',
@@ -36,8 +44,7 @@
                 }
             },
             segments: [{ destination: '22', ids: ['abc']}]
-        });
-        id5Status.onAvailable(id5Callback);
+        }).onAvailable(id5Callback).onUpdate(onUpdateCallback);
     </script>
     <!-- /ID5 API -->
 

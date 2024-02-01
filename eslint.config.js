@@ -4,7 +4,7 @@ import js from "@eslint/js";
 
 export default [
   {
-    ignores: ['test/pages/**']
+    ignores: ['test/pages/**', 'integration/resources/**']
   },
   js.configs.recommended,
   {

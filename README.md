@@ -64,9 +64,9 @@ Install the ID5 API after your CMP (if applicable), but as high in the `<head>` 
 <script>
   (function() {
     // TODO: modify with your own partnerId
-    // beware of scope of id5Status and myId5
+    // beware of scope of id5Instance and myId5
     var myId5;
-    var id5Status = ID5.init({partnerId: 173}).onAvailable(function(status) {;
+    var id5Instance = ID5.init({partnerId: 173}).onAvailable(function(status) {;
       // ... do something ...
       myId5 = status.getUserId();
     });
@@ -121,8 +121,8 @@ Here is an example of how integrating the ES6 module might look like:
 ```javascript
 import ID5 from '@id5io/id5-api.js'
 
-const id5Status = ID5.init({ partnerId: 173 });
-id5Status.onAvailable((status) => {
+const id5Instance = ID5.init({ partnerId: 173 });
+id5Instance.onAvailable((status) => {
     console.log(status.getUserId());
 });
 ```
@@ -228,8 +228,8 @@ After loading the script, you must initialize the API with the `ID5.init()` meth
 
 ```javascript
 // TODO modify with your own partnerId
-// beware to scope the id5Status variable or uniquely name it to avoid collisions
-var id5Status = ID5.init({partnerId: 173});
+// beware to scope the id5Instance variable or uniquely name it to avoid collisions
+var id5Instance = ID5.init({partnerId: 173});
 ```
 
 ### Access the ID5 ID
@@ -237,7 +237,7 @@ var id5Status = ID5.init({partnerId: 173});
 Once the API has been loaded and initialized, the ID5 ID can be accessed by any javascript on the page (provided your variable is scoped appropriately) including Prebid.js, your ad tags, or pixels and scripts from third party vendors, with the `getUserId()` method on your status variable.
 
 ```javascript
-var id5Id = id5Status.getUserId();
+var id5Id = id5Instance.getUserId();
 ```
 
 The `getUserId()` method always answers (once the API is loaded) and will return immediately with a value. If there is no ID available yet, the `getUserId()` will return a value of `undefined`.
@@ -282,7 +282,7 @@ Note that in case `cmpApi` is `'static'` and the `consentData` object is either 
 #### Static Consent Example
 Here's an example of using a static `tcString` to share the consent preferences. We will use the static `tcString` the same way we would use one collected from the `cmpApi`.
 ```javascript
-    var id5Status = ID5.init({
+    var id5Instance = ID5.init({
         partnerId: 173, // modify with your own partnerId
         refreshInSeconds: 15,
         cmpApi: 'static',
@@ -299,7 +299,7 @@ Here's an example of using a static `tcString` to share the consent preferences.
 Here's an example of using Allowed Vendors to share that consent was received for ID5 (GVL ID `131`), a platform with GVL ID `3`, and a brand with ID5 partner number `5`:
 
 ```javascript
-var id5Status = ID5.init({
+var id5Instance = ID5.init({
   partnerId: 173, // modify with your own partnerId
   cmpApi: 'static',
   consentData: {
@@ -312,7 +312,7 @@ var id5Status = ID5.init({
 Taking the example from [Passing Partner Data to ID5](https://support.id5.io/portal/en/kb/articles/passing-partner-data-to-id5), here's how your configuration could look when initializing the API:
 
 ```javascript
-var id5Status = ID5.init({
+var id5Instance = ID5.init({
   partnerId: 173, // modify with your own partnerId
   pd: "MT1iNTBjYTA4MjcxNzk1YThlN2U0MDEyODEzZjIzZDUwNTE5M2Q3NWMwZjJlMmJiOTliYWE2M2FhODIyZjY2ZWQzJjU9bSVDMyVCNmxsZXIlMjZmcmFuJUMzJUE3b2lz"
 });
@@ -322,7 +322,7 @@ var id5Status = ID5.init({
 
 You may want to test the value of the ID5 ID with their downstream partners. While there are various ways to do this, A/B testing is a standard approach. Instead of manually enabling or disabling the ID5 API based on their control group settings (which leads to fewer calls to ID5, reducing our ability to recognize the user), we have baked this in to the API itself.
 
-To turn on A/B Testing, simply edit the configuration (see below) to enable it and set what percentage of users you would like to set for the control group. The control group is the set of users where an ID5 ID will not be exposed in `id5Status.getUserId()` - this method will return `0` for the control group. It's important to note that the control group is user based, and not request based. In other words, from one page view to another, a given user may will *always* be in or out of the control group.
+To turn on A/B Testing, simply edit the configuration (see below) to enable it and set what percentage of users you would like to set for the control group. The control group is the set of users where an ID5 ID will not be exposed in `id5Instance.getUserId()` - this method will return `0` for the control group. It's important to note that the control group is user based, and not request based. In other words, from one page view to another, a given user may will *always* be in or out of the control group.
 
 The configuration object for `abTesting` contains two variables:
 
@@ -345,7 +345,7 @@ The `segments` array is a list of objects containing a `destination` and list of
 | ids         | Required | array of strings | A list of segment ids/codes to add the user to in the destination platform                                                        |
 
 ```javascript
-var id5Status = ID5.init({
+var id5Instance = ID5.init({
   partnerId: 173, // modify with your own partnerId
   segments: [{
     destination: '999',
@@ -360,21 +360,21 @@ The ID5 API provides several methods and variables for you to use. See below for
 
 | Name                                      | Type     | Return Type | Description                                                                                                                                                                                                                                                                                                                                                                                                      |
 |-------------------------------------------|----------|-------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| ID5.init({})                              | method   | n/a         | Takes a config object as the only parameter and initializes the API with these configuration options, returns an `Id5Status` object                                                                                                                                                                                                                                                                              |
-| ID5.refreshId(id5Status, boolean, config) | method   | n/a         | A method to refresh the ID without reloading the page. Must come _after_ the `init()` method is called. First parameter is the `id5Status` returned from `init()`, the second (optional) param is a boolean, set to `true` to force a fetch call to ID5, set to `false` to only call ID5 if necessary. The third (optional) parameter is a valid config object to add/change options prior to refreshing the ID. |
+| ID5.init({})                              | method   | n/a         | Takes a config object as the only parameter and initializes the API with these configuration options, returns an `Id5Instance` object                                                                                                                                                                                                                                                                              |
+| ID5.refreshId(id5Instance, boolean, config) | method   | n/a         | A method to refresh the ID without reloading the page. Must come _after_ the `init()` method is called. First parameter is the `id5Instance` returned from `init()`, the second (optional) param is a boolean, set to `true` to force a fetch call to ID5, set to `false` to only call ID5 if necessary. The third (optional) parameter is a valid config object to add/change options prior to refreshing the ID. |
 | ID5.loaded                                | variable | boolean     | This variable will be set to `true` once the API is loaded and ready for use                                                                                                                                                                                                                                                                                                                                     |
-| id5Status.getUserId()                     | method | string      | The ID5 ID value. If not set yet, returns `undefined`                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |                                                                                                                                                                                                                                                                                                                                                                                                                           |
-| id5Status.getLinkType()                   | method | number      | Indicates the type of connection ID5 has made with this ID across domains. If `userId` is not set yet, returns `undefined`                                                                                                                                                                                                                                                                                                                                                                                              |
-| id5Status.isFromCache()                   | method | boolean     | Indicates whether the `userId` value is from cache (when set to `true`) or from a server response (when set to `false`). If `userId` is not set yet, returns `undefined`                                                                                                                                                                                                                                                                                                                                                |
-| id5Status.exposeUserId()                  | method | boolean     | Applicable when [A/B Testing](#ab-testing) is turned on; when this method returns `true`, the user is not in the control group and `id5Status.getUserId()` is populated with the ID5 ID; when `false`, the user is considered as part of the control group and `id5Status.getUserId()` will be `0`. This method can be used to inform your reporting systems that an ID was available or not, instead of relying on the value of `id5Status.getUserId()` directly.                                                      |
-| id5Status.getUserIdAsEid()                | method | object      | Retrieve the ID5 ID as an object that can be directly added to an `eids` array in an OpenRTB bid request. See [below](#eids-object-output) for a example output                                                                                                                                                                                                                                                                                                                                                         |
-| id5Status.getExt()                        | method | object      | The `ext` object that is a part of OpenRTB request, see [below](#eids-object-output). If not set yet, returns `undefined`                                                                                                                                                                                                                                                                                                                                                                                               |
-| id5Status.onAvailable(fn, timeout)        | method | id5Status   | Set an event to be called when the ID5 ID is available. Will be called only once per `ID5.init()`. The first parameter is a function to call, which will receive as its only parameter the `id5Status` object. The second, optional, parameter, is a timeout in ms; if the `fn` has not been called when the timeout is hit, then it will force a call to `fn` even if the ID5 ID is not available yet. If not provided, then it will wait indefinitely until the ID5 ID is available to call `fn`.                     |
-| id5Status.onUpdate(fn)                    | method | id5Status   | Set an event listener to be called any time the ID5 ID is updated. For example, if the ID was found in cache, then the `onAvailable` event would immediately fire; but there may be a need to call the ID5 servers for an updated ID. When the call to ID5 returns, the `onUpdate` event will fire. If `refreshId` is called, when the ID is refreshed, the `onUpdate` event will also fire. The first and only parameter is a function to call, which will receive as its only parameter the `id5Status` object.       |
-| id5Status.onRefresh(fn, timeout)          | method | id5Status   | Set an event listener to be called any time the `refreshId` method has returned with an ID. The first parameter is a function to call, which will receive as its only parameter the `id5Status` object. The second, optional, parameter, is a timeout in ms; if the `fn` has not been called when the timeout is hit, then it will force a call to `fn` even if the `refreshId` has not returned with an ID. If not provided, then it will wait indefinitely until the ID5 ID is returned from `refreshId` to call `fn` |
+| id5Instance.getUserId()                     | method | string      | The ID5 ID value. If not set yet, returns `undefined`                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| id5Instance.getLinkType()                   | method | number      | Indicates the type of connection ID5 has made with this ID across domains. If `userId` is not set yet, returns `undefined`                                                                                                                                                                                                                                                                                                                                                                                              |
+| id5Instance.isFromCache()                   | method | boolean     | Indicates whether the `userId` value is from cache (when set to `true`) or from a server response (when set to `false`). If `userId` is not set yet, returns `undefined`                                                                                                                                                                                                                                                                                                                                                |
+| id5Instance.exposeUserId()                  | method | boolean     | Applicable when [A/B Testing](#ab-testing) is turned on; when this method returns `true`, the user is not in the control group and `id5Instance.getUserId()` is populated with the ID5 ID; when `false`, the user is considered as part of the control group and `id5Instance.getUserId()` will be `0`. This method can be used to inform your reporting systems that an ID was available or not, instead of relying on the value of `id5Instance.getUserId()` directly.                                                      |
+| id5Instance.getUserIdAsEid()                | method | object      | Retrieve the ID5 ID as an object that can be directly added to an `eids` array in an OpenRTB bid request. See [below](#eids-object-output) for a example output                                                                                                                                                                                                                                                                                                                                                         |
+| id5Instance.getExt()                        | method | object      | The `ext` object that is a part of OpenRTB request, see [below](#eids-object-output). If not set yet, returns `undefined`                                                                                                                                                                                                                                                                                                                                                                                               |
+| id5Instance.onAvailable(fn, timeout)        | method | id5Instance   | Set an event to be called when the ID5 ID is available. Will be called only once per `ID5.init()`. The first parameter is a function to call, which will receive as its only parameter the `id5Instance` object. The second, optional, parameter, is a timeout in ms; if the `fn` has not been called when the timeout is hit, then it will force a call to `fn` even if the ID5 ID is not available yet. If not provided, then it will wait indefinitely until the ID5 ID is available to call `fn`.                     |
+| id5Instance.onUpdate(fn)                    | method | id5Instance   | Set an event listener to be called any time the ID5 ID is updated. For example, if the ID was found in cache, then the `onAvailable` event would immediately fire; but there may be a need to call the ID5 servers for an updated ID. When the call to ID5 returns, the `onUpdate` event will fire. If `refreshId` is called, when the ID is refreshed, the `onUpdate` event will also fire. The first and only parameter is a function to call, which will receive as its only parameter the `id5Instance` object.       |
+| id5Instance.onRefresh(fn, timeout)          | method | id5Instance   | Set an event listener to be called any time the `refreshId` method has returned with an ID. The first parameter is a function to call, which will receive as its only parameter the `id5Instance` object. The second, optional, parameter, is a timeout in ms; if the `fn` has not been called when the timeout is hit, then it will force a call to `fn` even if the `refreshId` has not returned with an ID. If not provided, then it will wait indefinitely until the ID5 ID is returned from `refreshId` to call `fn` |
 
 #### EIDs Object Output
-When passing the ID5 ID in a bid request, the common practice is to include it in the `user.ext.eids[]` array. To make it easy to retrieve the ID in a format that can be included in the `eids` array, the `id5Status.getUserIdAsEid()` method can be used. An example of the output of this method is below:
+When passing the ID5 ID in a bid request, the common practice is to include it in the `user.ext.eids[]` array. To make it easy to retrieve the ID in a format that can be included in the `eids` array, the `id5Instance.getUserIdAsEid()` method can be used. An example of the output of this method is below:
 
 ```javascript
 {
@@ -398,9 +398,9 @@ Default configuration options
 ```html
 <script src="/path/to/js/id5-api.js"></script>
 <script>
-  var id5Status = ID5.init({partnerId: 173}); // modify with your own partnerId
+  var id5Instance = ID5.init({partnerId: 173}); // modify with your own partnerId
 
-  var id5Id = id5Status.getUserId();
+  var id5Id = id5Instance.getUserId();
 </script>
 ```
 
@@ -409,12 +409,12 @@ Setting some configuration options at initialization
 ```html
 <script src="/path/to/js/id5-api.js"></script>
 <script>
-  var id5Status = ID5.init({
+  var id5Instance = ID5.init({
     partnerId: 173, // modify with your own partnerId
     refreshInSeconds: 3600,
   });
 
-  var id5Id = id5Status.getUserId();
+  var id5Id = id5Instance.getUserId();
 </script>
 ```
 
@@ -423,8 +423,8 @@ Setting an `onAvailable` event listener to retrieve the ID5 ID
 ```html
 <script src="/path/to/js/id5-api.js"></script>
 <script>
-  var id5Callback = function (id5Status) {
-    var id5Id = id5Status.getUserId();
+  var id5Callback = function (id5Instance) {
+    var id5Id = id5Instance.getUserId();
 
     // do something with the ID5 ID
     if(id5Id) {
@@ -443,8 +443,8 @@ Setting an `onAvailable` and `onUpdate` event listeners to retrieve the ID5 ID u
 ```html
 <script src="/path/to/js/id5-api.js"></script>
 <script>
-  var id5Callback = function (id5Status) {
-    var id5Id = id5Status.getUserId();
+  var id5Callback = function (id5Instance) {
+    var id5Id = id5Instance.getUserId();
 
     // do something with the ID5 ID
     fireMyPixel(`https://pixel.url.com?id5id=${id5Id}`);
@@ -454,11 +454,13 @@ Setting an `onAvailable` and `onUpdate` event listeners to retrieve the ID5 ID u
 </script>
 ```
 
+**Note:** setting an event listener from within another event listener onto the ID5 API Instance can lead to unpredictable results.
+
 #### Enabling Debug Output
 To enable debug output in the browser console, set `ID5.debug` to true before any call, or add a `id5_debug=true` to the query string of the page url.
 ```javascript
 ID5.debug = true;
-var id5Status = ID5.init({ ... });
+var id5Instance = ID5.init({ ... });
 ```
 
 ### Test locally
@@ -540,7 +542,8 @@ pbjs.setConfig({
         userIds: [{
             name: "id5Id",
             params: {
-                partner: 173            // same value as in the API config
+                partner: 173                                                               // same value as in the API config
+                externalModuleUrl: 'https://cdn.id5-sync.com/api/1.0/id5PrebidModule.js',  // highly recommended to enable the external module
             },
             storage: {
                 type: "html5",
