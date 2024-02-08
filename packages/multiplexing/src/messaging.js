@@ -123,6 +123,7 @@ export class ProxyMethodCallHandler {
     this._targets[target] = targetObject;
     return this;
   }
+
   /**
    *
    * @param {ProxyMethodCallMessage} proxyMethodCallMessage
@@ -211,7 +212,7 @@ export class CrossInstanceMessenger {
     });
   }
 
-  deregister() {
+  unregister() {
     if (this._abortController) {
       this._abortController.abort();
     }

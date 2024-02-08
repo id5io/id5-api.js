@@ -171,10 +171,26 @@ export class MeterRegistry {
    * @return {MeterRegistry}
    */
   schedulePublishBeforeUnload(publisher) {
-    let registry = this;
-    addEventListener('beforeunload', () => registry.publish(publisher, {
-      trigger: 'beforeunload'
-    }));
+    const registry = this;
+    const abortController = typeof AbortController !== 'undefined' ? new AbortController() : undefined;
+    if (abortController) {
+      abortController.publisher = publisher;
+      addEventListener('beforeunload', () => registry.publish(publisher, {trigger: 'beforeunload'}),
+        {
+          capture: false,
+          signal: abortController.signal
+        }
+      );
+      this._onUnloadPublishAbortController = abortController;
+    }
     return this;
+  }
+
+  unregister() {
+    const abortController = this._onUnloadPublishAbortController;
+    if (abortController) {
+      abortController.abort();
+      return this.publish(abortController.publisher, {trigger: 'unregister'});
+    }
   }
 }

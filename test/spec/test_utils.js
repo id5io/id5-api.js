@@ -1,7 +1,13 @@
 import sinon from 'sinon';
-import multiplexing, {LocalStorage, StorageConfig, WindowStorage, ApiEventsDispatcher, utils} from '@id5io/multiplexing';
-import { NO_OP_LOGGER } from '@id5io/multiplexing';
-import { Config } from '../../lib/config';
+import multiplexing, {
+  LocalStorage,
+  StorageConfig,
+  WindowStorage,
+  ApiEventsDispatcher,
+  utils
+} from '@id5io/multiplexing';
+import {NO_OP_LOGGER} from '@id5io/multiplexing';
+import {Config} from '../../lib/config';
 
 export const TEST_ID5_PARTNER_ID = 99;
 export const ID5_FETCH_ENDPOINT = `https://id5-sync.com/gm/v3`;
@@ -26,7 +32,7 @@ export const TEST_CONSENT_DATA_STORAGE_CONFIG = {
 export const TEST_PRIVACY_STORAGE_CONFIG = {
   name: 'id5id_privacy',
   expiresDays: 30
-}
+};
 
 export const TEST_PRIVACY_ALLOWED = JSON.stringify({
   'jurisdiction': 'other',
@@ -68,7 +74,7 @@ export const TEST_RESPONSE_CASCADE = {
 export const DEFAULT_EXTENSIONS = {
   lb: 'lbValue',
   lbCDN: '%%LB_CDN%%'
-}
+};
 
 export function prepareMultiplexingResponse(genericResponse, requestString) {
   const request = JSON.parse(requestString);
@@ -82,30 +88,31 @@ export function defaultInit(partnerId = TEST_ID5_PARTNER_ID) {
     partnerId,
     disableUaHints: true,
     multiplexing: {_disabled: true}
-  }
+  };
 }
 
 export function defaultInitBypassConsent(partnerId = TEST_ID5_PARTNER_ID) {
   return {
     ...defaultInit(partnerId),
     debugBypassConsent: true
-  }
+  };
 }
 
-export function setupGppV11Stub(){
+export function setupGppV11Stub() {
   window.__gpp = function (command) {
-    if(command==='ping'){
+    if (command === 'ping') {
       return {
-        gppVersion        : '1.1',
-        cmpStatus         : 'stub',
-        signalStatus    : 'ready',
+        gppVersion: '1.1',
+        cmpStatus: 'stub',
+        signalStatus: 'ready',
         applicableSections: [-1, 0],
-        gppString         : 'GPP_STRING'
+        gppString: 'GPP_STRING'
       };
     }
-  }
+  };
 }
-export function clearGppStub(){
+
+export function clearGppStub() {
   window.__gpp = undefined;
 }
 
@@ -113,7 +120,7 @@ export function clearGppStub(){
 export const localStorage = new LocalStorage(new WindowStorage(window));
 
 export function resetAllInLocalStorage() {
-  localStorage.removeExpiredObjectWithPrefix(StorageConfig.DEFAULT.ID5_V2.name, true)
+  localStorage.removeExpiredObjectWithPrefix(StorageConfig.DEFAULT.ID5_V2.name, true);
   localStorage.removeItemWithExpiration(TEST_ID5ID_STORAGE_CONFIG);
   localStorage.removeItemWithExpiration(TEST_LAST_STORAGE_CONFIG);
   localStorage.removeItemWithExpiration(TEST_PRIVACY_STORAGE_CONFIG);
@@ -130,19 +137,19 @@ export function makeCacheId(options) {
     provider: configOptions.provider,
     abTesting: configOptions.abTesting,
     segments: JSON.stringify(configOptions.segments),
-    providedRefresh: config.getProvidedOptions().refreshInSeconds,
+    providedRefresh: config.getProvidedOptions().refreshInSeconds
   };
   return utils.cyrb53Hash(JSON.stringify(uniqueData));
 }
 
-export function setStoredResponse(cacheId, response, responseTimestamp=Date.now(), nb=0) {
+export function setStoredResponse(cacheId, response, responseTimestamp = Date.now(), nb = 0) {
   localStorage.setObjectWithExpiration(StorageConfig.DEFAULT.ID5_V2.withNameSuffixed(cacheId),
-    { response, responseTimestamp, nb }
+    {response, responseTimestamp, nb}
   );
 }
 
 export function getStoredResponse(cacheId) {
-  return localStorage.getObjectWithExpiration(StorageConfig.DEFAULT.ID5_V2.withNameSuffixed(cacheId))
+  return localStorage.getObjectWithExpiration(StorageConfig.DEFAULT.ID5_V2.withNameSuffixed(cacheId));
 }
 
 export function setExpiredStoredResponse(cacheId) {
@@ -185,7 +192,7 @@ export class MultiplexingStub {
 
   constructor() {
     this.realCreate = multiplexing.createInstance;
-    this.stubCreate = sinon.stub(multiplexing, multiplexing.createInstance.name)
+    this.stubCreate = sinon.stub(multiplexing, multiplexing.createInstance.name);
   }
 
   returnsInstance(instance) {
@@ -196,20 +203,20 @@ export class MultiplexingStub {
     const thisStub = this;
     this.stubCreate.callsFake((...args) => {
       return interceptor(thisStub.realCreate(...args));
-    })
+    });
   }
 
   restore() {
-    this.stubCreate.restore()
+    this.stubCreate.restore();
   }
 }
 
 export function sinonFetchResponder(responseProvider) {
   return (request) => {
     if (request.url === ID5_FETCH_ENDPOINT) {
-      request.respond(200, { 'Content-Type': ' application/json' }, responseProvider(request));
+      request.respond(200, {'Content-Type': ' application/json'}, responseProvider(request));
     }
-  }
+  };
 }
 
 export class MultiplexInstanceStub {
@@ -217,10 +224,13 @@ export class MultiplexInstanceStub {
 
   constructor() {
     this._dispatcher = new ApiEventsDispatcher(NO_OP_LOGGER);
+    const id = globalThis.crypto.randomUUID();
     sinon.stub(this, 'register');
     sinon.stub(this, 'updateConsent');
     sinon.stub(this, 'refreshUid');
     sinon.stub(this, 'updateFetchIdData');
+    sinon.stub(this, 'getId').returns(id);
+    sinon.stub(this, 'unregister');
   }
 
   on(event, callback) {
@@ -240,4 +250,8 @@ export class MultiplexInstanceStub {
   refreshUid() {}
 
   updateFetchIdData() {}
+
+  getId(){}
+
+  unregister() {}
 }
