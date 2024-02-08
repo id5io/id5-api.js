@@ -128,10 +128,10 @@ describe('ID5 instance', function () {
       sourceVersion: sourceVersion,
       sourceConfiguration: sourceConfig,
       fetchIdData: fetchIdData
-    }, sinon.createStubInstance(StorageApi),  metrics, logger);
+    }, sinon.createStubInstance(StorageApi), metrics, logger);
     createdInstances.push(instance);
     return instance;
-  }
+  };
 
   beforeEach(function () {
     const now = performance.now();
@@ -140,9 +140,9 @@ describe('ID5 instance', function () {
     metrics = new Id5CommonMetrics('api', '1');
   });
   afterEach(function () {
-    createdInstances.forEach(instance => instance.deregister());
+    createdInstances.forEach(instance => instance.unregister());
     performanceNowStub.restore();
-  })
+  });
 
   it('should create instance ', function () {
     // when
@@ -216,12 +216,12 @@ describe('ID5 instance', function () {
         fetchIdData: {partnerId: 99},
         href: window.location.href,
         domain: window.location.hostname
-      }
+      };
 
       // when
       let instance = createInstance(initialConfig.source, initialConfig.sourceVersion, initialConfig.sourceConfiguration, initialConfig.fetchIdData, metrics);
 
-      instance.updateConfig(config)
+      instance.updateConfig(config);
 
       // then
       const id = instance.properties.id;
@@ -311,7 +311,7 @@ describe('ID5 instance', function () {
         // when
         let allKnowsEachOther = Promise.all([instancesKnowEachOtherPromise(instance1, lateJoiner), instancesKnowEachOtherPromise(instance2, lateJoiner)]);
 
-        const addFollowerSpy  = sinon.spy(instance2._leader, 'addFollower');
+        const addFollowerSpy = sinon.spy(instance2._leader, 'addFollower');
         lateJoiner.init(electionDelayMsec);
         expect(lateJoiner._election._state).is.eql(ElectionState.SCHEDULED);
         return Promise.all([lateJoinerElection, allKnowsEachOther])
@@ -358,7 +358,7 @@ describe('ID5 instance', function () {
       let verifyCallback = callback => {
         expect(callback).to.have.been.calledOnce;
         expect(callback.firstCall.firstArg).to.be.eql(expectedJoinedInstance);
-      }
+      };
 
       verifyCallback(firstCallback);
       verifyCallback(failingCallback);
@@ -391,7 +391,7 @@ describe('ID5 instance', function () {
         expect(callback).to.have.been.calledTwice; // HELLO message and instance1's HELLO response
         expect(callback.firstCall.firstArg.src).to.be.eql(instance2.properties.id);
         expect(callback.secondCall.firstArg.src).to.be.eql(instance2.properties.id);
-      }
+      };
 
       verifyCallback(firstCallback);
       verifyCallback(failingCallback);
@@ -429,7 +429,7 @@ describe('ID5 instance', function () {
         expect(callback).to.have.been.calledOnce;
         expect(callback.firstCall.args[0]).to.be.eql(expectedRole);
         expect(callback.firstCall.args[1]).to.be.eql(expectedLeader);
-      }
+      };
 
       verifyCallback(firstCallback, ID5Integration.Role.FOLLOWER);
       verifyCallback(failingCallback, ID5Integration.Role.FOLLOWER);
@@ -439,4 +439,4 @@ describe('ID5 instance', function () {
       done();
     }, 150);
   });
-})
+});

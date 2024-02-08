@@ -95,8 +95,8 @@ export function isEmpty(object) {
 }
 
 export function generateId() {
-  if (isPlainObject(globalThis) 
-    && isPlainObject(globalThis.crypto) 
+  if (isDefined(globalThis)
+    && isDefined(globalThis.crypto)
     && isFn(globalThis.crypto.randomUUID)
   ) {
     return globalThis.crypto.randomUUID();

@@ -2,15 +2,15 @@ import sinon from 'sinon';
 import {
   defaultInitBypassConsent,
   MultiplexInstanceStub,
-  TEST_ID5_PARTNER_ID,
+  TEST_ID5_PARTNER_ID
 } from './test_utils.js';
-import { Id5Instance, PageLevelInfo } from '../../lib/id5Instance.js';
-import { Config } from '../../lib/config.js'
-import { ConsentDataProvider } from '../../lib/consentProvider.js';
-import { CONSTANTS, NO_OP_LOGGER, ApiEvent, ConsentManagement, ConsentData } from '@id5io/multiplexing';
-import { Id5CommonMetrics } from '@id5io/diagnostics';
-import { UaHints } from '../../lib/uaHints.js';
-import { version } from '../../generated/version.js';
+import {Id5Instance, PageLevelInfo} from '../../lib/id5Instance.js';
+import {Config} from '../../lib/config.js';
+import {ConsentDataProvider} from '../../lib/consentProvider.js';
+import {CONSTANTS, NO_OP_LOGGER, ApiEvent, ConsentManagement, ConsentData} from '@id5io/multiplexing';
+import {Id5CommonMetrics} from '@id5io/diagnostics';
+import {UaHints} from '../../lib/uaHints.js';
+import {version} from '../../generated/version.js';
 
 describe('Id5Instance', function () {
   const MOCK_PAGE_LEVEL_INFO = new PageLevelInfo(null, '0.0', true);
@@ -31,7 +31,7 @@ describe('Id5Instance', function () {
 
     afterEach(() => {
       imageSpy.restore();
-    })
+    });
 
     it('should fire "call" sync pixel with configured maxCascades, gpp info and gdpr info', function () {
       // given
@@ -41,7 +41,7 @@ describe('Id5Instance', function () {
       }, NO_OP_LOGGER);
 
       const instanceUnderTest = new Id5Instance(config, null, null, null, null, NO_OP_LOGGER, multiplexingInstanceStub, null);
-      instanceUnderTest.bootstrap()
+      instanceUnderTest.bootstrap();
 
       // when
       multiplexingInstanceStub.emit(ApiEvent.CASCADE_NEEDED, {
@@ -73,16 +73,16 @@ describe('Id5Instance', function () {
       const config = new Config({
         ...defaultInitBypassConsent(),
         maxCascades: 4,
-        partnerUserId: 'PUID',
+        partnerUserId: 'PUID'
       }, NO_OP_LOGGER);
 
       const instanceUnderTest = new Id5Instance(config, null, null, null, null, NO_OP_LOGGER, multiplexingInstanceStub, null);
-      instanceUnderTest.bootstrap()
+      instanceUnderTest.bootstrap();
 
       // when
       multiplexingInstanceStub.emit(ApiEvent.CASCADE_NEEDED, {
         partnerId: TEST_ID5_PARTNER_ID,
-        userId: 'ID5-ID-31313',
+        userId: 'ID5-ID-31313'
       });
 
       // then
@@ -104,11 +104,11 @@ describe('Id5Instance', function () {
       }, NO_OP_LOGGER);
 
       const instanceUnderTest = new Id5Instance(config, null, null, null, null, NO_OP_LOGGER, multiplexingInstanceStub, null);
-      instanceUnderTest.bootstrap()
+      instanceUnderTest.bootstrap();
 
       // when
       multiplexingInstanceStub.emit(ApiEvent.CASCADE_NEEDED, {
-        userId: 'ID5-ID-31313',
+        userId: 'ID5-ID-31313'
       });
 
       // then
@@ -123,11 +123,11 @@ describe('Id5Instance', function () {
       }, NO_OP_LOGGER);
 
       const instanceUnderTest = new Id5Instance(config, null, null, null, null, NO_OP_LOGGER, multiplexingInstanceStub, null);
-      instanceUnderTest.bootstrap()
+      instanceUnderTest.bootstrap();
 
       // when
       multiplexingInstanceStub.emit(ApiEvent.CASCADE_NEEDED, {
-        userId: 'ID5-ID-31313',
+        userId: 'ID5-ID-31313'
       });
 
       // then
@@ -139,7 +139,7 @@ describe('Id5Instance', function () {
 
     it('should set exposeUserId to true without any A/B testing', function (done) {
       // given
-      const config = new Config({ ...defaultInitBypassConsent() }, NO_OP_LOGGER);
+      const config = new Config({...defaultInitBypassConsent()}, NO_OP_LOGGER);
       const metrics = sinon.createStubInstance(Id5CommonMetrics);
       const instanceUnderTest = new Id5Instance(config, null, null, metrics, null, NO_OP_LOGGER, multiplexingInstanceStub, null);
       instanceUnderTest.bootstrap();
@@ -154,7 +154,7 @@ describe('Id5Instance', function () {
       multiplexingInstanceStub.emit(ApiEvent.USER_ID_READY, {
         isFromCache: false,
         responseObj: {
-          universal_uid: 'ID5*the_id5_id',
+          universal_uid: 'ID5*the_id5_id'
           // Note: no ab_testing object
         }
       });
@@ -171,7 +171,7 @@ describe('Id5Instance', function () {
           'linkType': 1
         }
       };
-      const config = new Config({ ...defaultInitBypassConsent() }, NO_OP_LOGGER);
+      const config = new Config({...defaultInitBypassConsent()}, NO_OP_LOGGER);
       const metrics = sinon.createStubInstance(Id5CommonMetrics);
       const instanceUnderTest = new Id5Instance(config, null, null, metrics, null, NO_OP_LOGGER, multiplexingInstanceStub, null);
       instanceUnderTest.bootstrap();
@@ -198,7 +198,7 @@ describe('Id5Instance', function () {
       // when
       multiplexingInstanceStub.emit(ApiEvent.USER_ID_READY, {
         isFromCache: false,
-        responseObj: TEST_RESPONSE_ABTEST,
+        responseObj: TEST_RESPONSE_ABTEST
       });
     });
 
@@ -213,7 +213,7 @@ describe('Id5Instance', function () {
           'linkType': 1
         }
       };
-      const config = new Config({ ...defaultInitBypassConsent() }, NO_OP_LOGGER);
+      const config = new Config({...defaultInitBypassConsent()}, NO_OP_LOGGER);
       const metrics = sinon.createStubInstance(Id5CommonMetrics);
       const instanceUnderTest = new Id5Instance(config, null, null, metrics, null, NO_OP_LOGGER, multiplexingInstanceStub, null);
       instanceUnderTest.bootstrap();
@@ -239,14 +239,14 @@ describe('Id5Instance', function () {
       // when
       multiplexingInstanceStub.emit(ApiEvent.USER_ID_READY, {
         isFromCache: false,
-        responseObj: TEST_RESPONSE_ABTEST,
+        responseObj: TEST_RESPONSE_ABTEST
       });
     });
 
     it('should set ab feature flags on the fetch request', async function () {
       const config = new Config({
         ...defaultInitBypassConsent(),
-        abTesting: { enabled: true, controlGroupPct: 0.8 }
+        abTesting: {enabled: true, controlGroupPct: 0.8}
       }, NO_OP_LOGGER);
       const metrics = sinon.createStubInstance(Id5CommonMetrics);
       const consentManagement = sinon.createStubInstance(ConsentManagement);
@@ -256,7 +256,7 @@ describe('Id5Instance', function () {
 
       expect(multiplexingInstanceStub.register).to.have.been.calledOnce;
       const registerObj = multiplexingInstanceStub.register.firstCall.firstArg;
-      expect(registerObj.sourceConfiguration.options.abTesting).to.deep.eq({ enabled: true, controlGroupPct: 0.8 });
+      expect(registerObj.sourceConfiguration.options.abTesting).to.deep.eq({enabled: true, controlGroupPct: 0.8});
     });
   });
 
@@ -278,13 +278,13 @@ describe('Id5Instance', function () {
 
     afterEach(() => {
       gatherUaHintsStub.restore();
-    })
+    });
 
     it('should set consent data into the consentManagement object and in the multiplexing instance', async function () {
-      const config = new Config({ ...defaultInitBypassConsent() }, NO_OP_LOGGER);
+      const config = new Config({...defaultInitBypassConsent()}, NO_OP_LOGGER);
       const metrics = sinon.createStubInstance(Id5CommonMetrics);
       const consentManagement = sinon.createStubInstance(ConsentManagement);
-      const consentDataProvider = sinon.createStubInstance(ConsentDataProvider)
+      const consentDataProvider = sinon.createStubInstance(ConsentDataProvider);
       consentDataProvider.refreshConsentData.resolves(MOCK_CONSENT_DATA);
       const instanceUnderTest = new Id5Instance(config, null, consentManagement, metrics, consentDataProvider, NO_OP_LOGGER, multiplexingInstanceStub, MOCK_PAGE_LEVEL_INFO);
 
@@ -308,7 +308,7 @@ describe('Id5Instance', function () {
       const metrics = sinon.createStubInstance(Id5CommonMetrics);
       const consentManagement = sinon.createStubInstance(ConsentManagement);
       consentManagement.isForceAllowLocalStorageGrant.returns(false);
-      const consentDataProvider = sinon.createStubInstance(ConsentDataProvider)
+      const consentDataProvider = sinon.createStubInstance(ConsentDataProvider);
       consentDataProvider.refreshConsentData.resolves(MOCK_CONSENT_DATA);
       const instanceUnderTest = new Id5Instance(config, null, consentManagement, metrics, consentDataProvider, NO_OP_LOGGER, multiplexingInstanceStub, MOCK_PAGE_LEVEL_INFO);
       instanceUnderTest.bootstrap();
@@ -334,11 +334,12 @@ describe('Id5Instance', function () {
         consentData: {
           getConsentData: {
             consentData: undefined,
-            gdprApplies: undefined,
+            gdprApplies: undefined
           },
-          getVendorConsents: {},
+          getVendorConsents: {}
         },
         debugBypassConsent: false,
+        unregisterOnGC: true,
         diagnostics: {
           publishAfterLoadInMsec: 30000,
           publishBeforeWindowUnload: true,
@@ -348,7 +349,7 @@ describe('Id5Instance', function () {
         disableUaHints: false,
         maxCascades: 8,
         multiplexing: {
-          _disabled: false,
+          _disabled: false
         },
         refreshInSeconds: 33,
         segments: undefined,
@@ -387,10 +388,10 @@ describe('Id5Instance', function () {
     });
 
     it('should not block ID fetching if consent provider failed to refresh consent data', async function () {
-      const config = new Config({ ...defaultInitBypassConsent() }, NO_OP_LOGGER);
+      const config = new Config({...defaultInitBypassConsent()}, NO_OP_LOGGER);
       // const metrics = sinon.createStubInstance(Id5CommonMetrics);
       const consentManagement = sinon.createStubInstance(ConsentManagement);
-      const consentDataProvider = sinon.createStubInstance(ConsentDataProvider)
+      const consentDataProvider = sinon.createStubInstance(ConsentDataProvider);
       consentDataProvider.refreshConsentData.rejects('Some error');
       const instanceUnderTest = new Id5Instance(config, null, consentManagement, null, consentDataProvider, NO_OP_LOGGER, multiplexingInstanceStub, MOCK_PAGE_LEVEL_INFO);
 
@@ -403,9 +404,9 @@ describe('Id5Instance', function () {
 
   describe('upon refresh', function () {
     it('should update options in the config object', async function () {
-      const config = new Config({ partnerId: 99 }, NO_OP_LOGGER);
+      const config = new Config({partnerId: 99}, NO_OP_LOGGER);
       const consentManagement = sinon.createStubInstance(ConsentManagement);
-      const consentDataProvider = sinon.createStubInstance(ConsentDataProvider)
+      const consentDataProvider = sinon.createStubInstance(ConsentDataProvider);
       consentDataProvider.refreshConsentData.resolves(MOCK_CONSENT_DATA);
       const instanceUnderTest = new Id5Instance(config, null, consentManagement, null, consentDataProvider, NO_OP_LOGGER, multiplexingInstanceStub, MOCK_PAGE_LEVEL_INFO);
 
@@ -415,7 +416,7 @@ describe('Id5Instance', function () {
         refreshInSeconds: 12,
         partnerUserId: 'puid-abcd',
         pd: 'some-pd-string',
-        abTesting: { enabled: true, controlGroupPct: 0.76 },
+        abTesting: {enabled: true, controlGroupPct: 0.76},
         provider: 'xyz',
         maxCascades: 3,
         applyCreativeRestrictions: true,
@@ -423,7 +424,7 @@ describe('Id5Instance', function () {
         storageExpirationDays: 945,
         att: 1,
         segments: [
-          { destination: '22', ids: ['a', 'b', 'c'] }
+          {destination: '22', ids: ['a', 'b', 'c']}
         ]
       });
 
@@ -433,7 +434,7 @@ describe('Id5Instance', function () {
       expect(updatedOptions.refreshInSeconds).to.eq(12);
       expect(updatedOptions.partnerUserId).to.eq('puid-abcd');
       expect(updatedOptions.pd).to.eq('some-pd-string');
-      expect(updatedOptions.abTesting).to.deep.eq({ enabled: true, controlGroupPct: 0.76 });
+      expect(updatedOptions.abTesting).to.deep.eq({enabled: true, controlGroupPct: 0.76});
       expect(updatedOptions.provider).to.eq('xyz');
       expect(updatedOptions.maxCascades).to.eq(3);
       expect(updatedOptions.applyCreativeRestrictions).to.eq(true);
@@ -441,14 +442,14 @@ describe('Id5Instance', function () {
       expect(updatedOptions.storageExpirationDays).to.eq(945);
       expect(updatedOptions.att).to.eq(1);
       expect(updatedOptions.segments).to.deep.eq([
-        { destination: '22', ids: ['a', 'b', 'c'] }
+        {destination: '22', ids: ['a', 'b', 'c']}
       ]);
     });
 
     it('should update options in the multiplexing instance', async function () {
-      const config = new Config({ partnerId: 99 }, NO_OP_LOGGER);
+      const config = new Config({partnerId: 99}, NO_OP_LOGGER);
       const consentManagement = sinon.createStubInstance(ConsentManagement);
-      const consentDataProvider = sinon.createStubInstance(ConsentDataProvider)
+      const consentDataProvider = sinon.createStubInstance(ConsentDataProvider);
       consentDataProvider.refreshConsentData.resolves(MOCK_CONSENT_DATA);
       const instanceUnderTest = new Id5Instance(config, null, consentManagement, null, consentDataProvider, NO_OP_LOGGER, multiplexingInstanceStub, MOCK_PAGE_LEVEL_INFO);
 
@@ -458,7 +459,7 @@ describe('Id5Instance', function () {
         refreshInSeconds: 12,
         partnerUserId: 'puid-abcd',
         pd: 'some-pd-string',
-        abTesting: { enabled: true, controlGroupPct: 0.76 },
+        abTesting: {enabled: true, controlGroupPct: 0.76},
         provider: 'xyz',
         maxCascades: 3,
         applyCreativeRestrictions: true,
@@ -466,7 +467,7 @@ describe('Id5Instance', function () {
         storageExpirationDays: 945,
         att: 1,
         segments: [
-          { destination: '22', ids: ['a', 'b', 'c'] }
+          {destination: '22', ids: ['a', 'b', 'c']}
         ]
       });
 
@@ -474,9 +475,9 @@ describe('Id5Instance', function () {
       const updatedOptions = multiplexingInstanceStub.updateFetchIdData.firstCall.firstArg;
       expect(updatedOptions.att).to.eq(1);
       expect(updatedOptions.uaHints).to.be.undefined; // Disabled UA Hints lookup
-      expect(updatedOptions.abTesting).to.deep.eq({ enabled: true, controlGroupPct: 0.76 });
+      expect(updatedOptions.abTesting).to.deep.eq({enabled: true, controlGroupPct: 0.76});
       expect(updatedOptions.segments).to.deep.eq([
-        { destination: '22', ids: ['a', 'b', 'c'] }
+        {destination: '22', ids: ['a', 'b', 'c']}
       ]);
       expect(updatedOptions.invalidSegmentsCount).to.eq(0);
       expect(updatedOptions.provider).to.eq('xyz');
@@ -486,10 +487,10 @@ describe('Id5Instance', function () {
     });
 
     it('should NOT (!) refresh consent data into the consentManagement object', async function () {
-      const config = new Config({ ...defaultInitBypassConsent() }, NO_OP_LOGGER);
+      const config = new Config({...defaultInitBypassConsent()}, NO_OP_LOGGER);
       const metrics = sinon.createStubInstance(Id5CommonMetrics);
       const consentManagement = sinon.createStubInstance(ConsentManagement);
-      const consentDataProvider = sinon.createStubInstance(ConsentDataProvider)
+      const consentDataProvider = sinon.createStubInstance(ConsentDataProvider);
       consentDataProvider.refreshConsentData.resolves(MOCK_CONSENT_DATA);
       const instanceUnderTest = new Id5Instance(config, null, consentManagement, metrics, consentDataProvider, NO_OP_LOGGER, multiplexingInstanceStub, MOCK_PAGE_LEVEL_INFO);
 
@@ -499,15 +500,15 @@ describe('Id5Instance', function () {
     });
 
     [
-      [{ debugBypassConsent: false, allowLocalStorageWithoutConsentApi: false }, false],
-      [{ debugBypassConsent: true, allowLocalStorageWithoutConsentApi: false }, true],
-      [{ debugBypassConsent: false, allowLocalStorageWithoutConsentApi: true }, true],
-      [{ debugBypassConsent: true, allowLocalStorageWithoutConsentApi: true }, true],
+      [{debugBypassConsent: false, allowLocalStorageWithoutConsentApi: false}, false],
+      [{debugBypassConsent: true, allowLocalStorageWithoutConsentApi: false}, true],
+      [{debugBypassConsent: false, allowLocalStorageWithoutConsentApi: true}, true],
+      [{debugBypassConsent: true, allowLocalStorageWithoutConsentApi: true}, true]
     ].forEach(([mergeConfig, expectedResult]) => {
       it('should calculate correctly forcibly allowed local storage', async function () {
-        const config = new Config({ partnerId: 99 }, NO_OP_LOGGER);
+        const config = new Config({partnerId: 99}, NO_OP_LOGGER);
         const consentManagement = sinon.createStubInstance(ConsentManagement);
-        const consentDataProvider = sinon.createStubInstance(ConsentDataProvider)
+        const consentDataProvider = sinon.createStubInstance(ConsentDataProvider);
         consentDataProvider.refreshConsentData.resolves(MOCK_CONSENT_DATA);
         const instanceUnderTest = new Id5Instance(config, null, consentManagement, null, consentDataProvider, NO_OP_LOGGER, multiplexingInstanceStub, MOCK_PAGE_LEVEL_INFO);
 
@@ -524,9 +525,9 @@ describe('Id5Instance', function () {
     });
 
     it('should pass forceFetch to multiplexing', async function () {
-      const config = new Config({ partnerId: 99 }, NO_OP_LOGGER);
+      const config = new Config({partnerId: 99}, NO_OP_LOGGER);
       const consentManagement = sinon.createStubInstance(ConsentManagement);
-      const consentDataProvider = sinon.createStubInstance(ConsentDataProvider)
+      const consentDataProvider = sinon.createStubInstance(ConsentDataProvider);
       consentDataProvider.refreshConsentData.resolves(MOCK_CONSENT_DATA);
       const instanceUnderTest = new Id5Instance(config, null, consentManagement, null, consentDataProvider, NO_OP_LOGGER, multiplexingInstanceStub, MOCK_PAGE_LEVEL_INFO);
 
@@ -542,18 +543,18 @@ describe('Id5Instance', function () {
     [
       ['onAvailable', (instance, param) => instance.onAvailable(param)],
       ['onRefresh', (instance, param) => instance.onRefresh(param)],
-      ['onUpdate', (instance, param) => instance.onUpdate(param)],
+      ['onUpdate', (instance, param) => instance.onUpdate(param)]
     ].forEach(([callbackName, callbackInvoker]) => {
       it(`should throw error if the ${callbackName} callback is not a function`, function () {
         // given
         const config = new Config({
-          ...defaultInitBypassConsent(),
+          ...defaultInitBypassConsent()
         }, NO_OP_LOGGER);
 
         const instanceUnderTest = new Id5Instance(config, null, null, null, null, NO_OP_LOGGER, multiplexingInstanceStub, null);
-        instanceUnderTest.bootstrap()
+        instanceUnderTest.bootstrap();
 
-        expect(() => callbackInvoker(instanceUnderTest,'string')).to.throw;
+        expect(() => callbackInvoker(instanceUnderTest, 'string')).to.throw;
       });
     });
 
@@ -564,7 +565,7 @@ describe('Id5Instance', function () {
       }, NO_OP_LOGGER);
 
       const instanceUnderTest = new Id5Instance(config, null, null, null, null, NO_OP_LOGGER, multiplexingInstanceStub, null);
-      instanceUnderTest.bootstrap()
+      instanceUnderTest.bootstrap();
 
       instanceUnderTest.onAvailable(function () {
         done();
@@ -576,7 +577,7 @@ describe('Id5Instance', function () {
 
       multiplexingInstanceStub.emit(ApiEvent.USER_ID_READY, {
         isFromCache: false,
-        responseObj: { universal_uid: 'ID5*the_ID' }
+        responseObj: {universal_uid: 'ID5*the_ID'}
       });
     });
 
@@ -587,10 +588,10 @@ describe('Id5Instance', function () {
       }, NO_OP_LOGGER);
 
       const instanceUnderTest = new Id5Instance(config, null, null, null, null, NO_OP_LOGGER, multiplexingInstanceStub, null);
-      instanceUnderTest.bootstrap()
+      instanceUnderTest.bootstrap();
       multiplexingInstanceStub.emit(ApiEvent.USER_ID_READY, {
         isFromCache: false,
-        responseObj: { universal_uid: 'ID5*the_ID' }
+        responseObj: {universal_uid: 'ID5*the_ID'}
       });
 
       instanceUnderTest.onUpdate(function () {
@@ -605,7 +606,7 @@ describe('Id5Instance', function () {
       }, NO_OP_LOGGER);
 
       const instanceUnderTest = new Id5Instance(config, null, null, null, null, NO_OP_LOGGER, multiplexingInstanceStub, null);
-      instanceUnderTest.bootstrap()
+      instanceUnderTest.bootstrap();
 
       instanceUnderTest.onUpdate(function () {
         done(new Error('this callback should not be called'));
@@ -617,7 +618,7 @@ describe('Id5Instance', function () {
 
       multiplexingInstanceStub.emit(ApiEvent.USER_ID_READY, {
         isFromCache: false,
-        responseObj: { universal_uid: 'ID5*the_ID' }
+        responseObj: {universal_uid: 'ID5*the_ID'}
       });
     });
 
@@ -628,7 +629,7 @@ describe('Id5Instance', function () {
       }, NO_OP_LOGGER);
 
       const instanceUnderTest = new Id5Instance(config, null, null, null, null, NO_OP_LOGGER, multiplexingInstanceStub, null);
-      instanceUnderTest.bootstrap()
+      instanceUnderTest.bootstrap();
       instanceUnderTest.refreshId(false, {});
 
       instanceUnderTest.onRefresh(function () {
@@ -641,7 +642,7 @@ describe('Id5Instance', function () {
 
       multiplexingInstanceStub.emit(ApiEvent.USER_ID_READY, {
         isFromCache: false,
-        responseObj: { universal_uid: 'ID5*the_ID' }
+        responseObj: {universal_uid: 'ID5*the_ID'}
       });
     });
 
@@ -653,7 +654,7 @@ describe('Id5Instance', function () {
       }, NO_OP_LOGGER);
 
       const instanceUnderTest = new Id5Instance(config, null, null, null, null, NO_OP_LOGGER, multiplexingInstanceStub, null);
-      instanceUnderTest.bootstrap()
+      instanceUnderTest.bootstrap();
 
       let invocations = 0;
 
@@ -663,14 +664,14 @@ describe('Id5Instance', function () {
         expect(instanceUnderTest.getUserId()).to.eq('ID5*the_id5_id_2');
         multiplexingInstanceStub.emit(ApiEvent.USER_ID_READY, {
           isFromCache: false,
-          responseObj: { universal_uid: 'ID5*the_id5_id_3' }
+          responseObj: {universal_uid: 'ID5*the_id5_id_3'}
         });
       });
 
       // when
       multiplexingInstanceStub.emit(ApiEvent.USER_ID_READY, {
         isFromCache: false,
-        responseObj: { universal_uid: 'ID5*the_id5_id_2' }
+        responseObj: {universal_uid: 'ID5*the_id5_id_2'}
       });
 
       setTimeout(() => {
@@ -687,7 +688,7 @@ describe('Id5Instance', function () {
       }, NO_OP_LOGGER);
 
       const instanceUnderTest = new Id5Instance(config, null, null, null, null, NO_OP_LOGGER, multiplexingInstanceStub, null);
-      instanceUnderTest.bootstrap()
+      instanceUnderTest.bootstrap();
       instanceUnderTest.refreshId(false, {});
 
       let invocations = 0;
@@ -698,7 +699,7 @@ describe('Id5Instance', function () {
           expect(instanceUnderTest.getUserId()).to.eq('ID5*the_id5_id_2');
           multiplexingInstanceStub.emit(ApiEvent.USER_ID_READY, {
             isFromCache: false,
-            responseObj: { universal_uid: 'ID5*the_id5_id_3' }
+            responseObj: {universal_uid: 'ID5*the_id5_id_3'}
           });
           done();
         } else {
@@ -709,21 +710,21 @@ describe('Id5Instance', function () {
       // when
       multiplexingInstanceStub.emit(ApiEvent.USER_ID_READY, {
         isFromCache: false,
-        responseObj: { universal_uid: 'ID5*the_id5_id_2' }
+        responseObj: {universal_uid: 'ID5*the_id5_id_2'}
       });
     });
 
     [false, true].forEach(_isFromCache => {
-      it(`correctly exposes the user id and extensions (isFromCache: ${_isFromCache}`, function(done) {
+      it(`correctly exposes the user id and extensions (isFromCache: ${_isFromCache}`, function (done) {
         // given
         const TEST_RESPONSE = {
           'universal_uid': 'whateverID',
           'ext': {
             'linkType': 0,
-            'someOtherExt': 'test123',
+            'someOtherExt': 'test123'
           }
         };
-        const config = new Config({ ...defaultInitBypassConsent() }, NO_OP_LOGGER);
+        const config = new Config({...defaultInitBypassConsent()}, NO_OP_LOGGER);
         const metrics = sinon.createStubInstance(Id5CommonMetrics);
         const instanceUnderTest = new Id5Instance(config, null, null, metrics, null, NO_OP_LOGGER, multiplexingInstanceStub, null);
         instanceUnderTest.bootstrap();
@@ -740,7 +741,7 @@ describe('Id5Instance', function () {
               ext: {
                 abTestingControlGroup: false,
                 linkType: 0,
-                someOtherExt: 'test123',
+                someOtherExt: 'test123'
               }
             }]
           });
@@ -751,7 +752,7 @@ describe('Id5Instance', function () {
         // when
         multiplexingInstanceStub.emit(ApiEvent.USER_ID_READY, {
           isFromCache: _isFromCache,
-          responseObj: TEST_RESPONSE,
+          responseObj: TEST_RESPONSE
         });
       });
     });

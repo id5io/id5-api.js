@@ -478,10 +478,6 @@ export class Instance {
     }
     // ready to introduce itself to other instances
     instance._messenger.broadcastMessage(instance._createHelloMessage(false), HelloMessage.TYPE);
-    if (window.__id5_instances === undefined) {
-      window.__id5_instances = [];
-    }
-    window.__id5_instances.push(instance);
   }
 
   /**
@@ -509,14 +505,10 @@ export class Instance {
     instance._joinInstance(hello, message, srcWindow);
   }
 
-  deregister() {
-    let window = this._window;
-    let globalId5Instances = window.__id5_instances;
-    if (globalId5Instances !== undefined) {
-      globalId5Instances.splice(globalId5Instances.indexOf(this), 1);
-    }
+  unregister() {
+    this._logger.info('Unregistering');
     if (this._messenger) {
-      this._messenger.deregister();
+      this._messenger.unregister();
     }
   }
 
@@ -686,6 +678,10 @@ export class Instance {
     }
     instance._logger.debug('Leader elected', leader.id, 'my role', instance.role);
     instance._doFireEvent(MultiplexingEvent.ID5_LEADER_ELECTED, instance.role, instance._leader.getProperties());
+  }
+
+  getId() {
+    return this.properties.id;
   }
 }
 
