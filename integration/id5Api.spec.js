@@ -491,7 +491,10 @@ describe('The ID5 API', function () {
             cachedResponseUsed: false,
             callType: 'direct_method',
             isUpdate: false,
-            lateJoiner: false
+            lateJoiner: false,
+            hasOnAvailable: 'true',
+            hasOnRefresh: false,
+            hasOnUpdate: false
           });
           verifyContainsMeasurement(onlyRequest.measurements, 'id5.api.instance.partySize', 'SUMMARY');
         });
@@ -547,7 +550,10 @@ describe('The ID5 API', function () {
             cachedResponseUsed: false,
             callType: 'direct_method',
             isUpdate: false,
-            lateJoiner: false
+            lateJoiner: false,
+            hasOnAvailable: 'true',
+            hasOnRefresh: false,
+            hasOnUpdate: false
           });
           verifyContainsMeasurement(onlyRequest.measurements, 'id5.api.instance.partySize', 'SUMMARY');
         });

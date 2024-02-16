@@ -152,4 +152,9 @@ export class Id5CommonMetrics extends MeterRegistry {
   storageExpiredKeysCounter(tags = {}) {
     return this.summary('storage.keys.expired.count', tags);
   }
+
+  instanceSurvivalTime(tags = {}) {
+    return this.timer('instance.survival.time', tags);
+  }
+
 }
