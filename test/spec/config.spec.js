@@ -1,4 +1,4 @@
-import {Config} from '../../lib/config.js';
+import {Config, GCReclaimAllowed} from '../../lib/config.js';
 
 describe('config API', function () {
   it('member functions', function () {
@@ -255,6 +255,30 @@ describe('config API', function () {
 
         // then
         expect(config.getOptions().diagnostics).is.deep.eq(tc.expected);
+      });
+    });
+  });
+
+  describe('GC reclaim config', function () {
+    [
+      [undefined, GCReclaimAllowed.AFTER_UID_SET],
+      ["invalid", GCReclaimAllowed.AFTER_UID_SET],
+      ["never", GCReclaimAllowed.NEVER],
+      ["after-uid-set", GCReclaimAllowed.AFTER_UID_SET],
+      ["asap", GCReclaimAllowed.ASAP]
+    ].forEach(([provided,expected]) => {
+      it(`should allow only predefined values - provided (${provided})`, function () {
+        // given
+        let providedOptions = {
+          partnerId: 1,
+          allowGCReclaim: provided
+        };
+
+        // when
+        let config = new Config(providedOptions);
+
+        // then
+        expect(config.getOptions().allowGCReclaim).is.deep.eq(expected);
       });
     });
   });

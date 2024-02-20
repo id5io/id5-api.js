@@ -10,6 +10,7 @@
  * @property {Date} timestamp
  * @property {Object} responseObj
  * @property {boolean} isFromCache
+ * @property {boolean} [willBeRefreshed]
  */
 
 /**
