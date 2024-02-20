@@ -3,9 +3,9 @@ import chromePaths from 'chrome-paths';
 import mockttp from 'mockttp';
 import tmp from 'tmp-promise';
 import path from 'path';
-import { fileURLToPath } from 'url';
-import chai, { expect } from 'chai';
-import { version } from '../generated/version.js';
+import {fileURLToPath} from 'url';
+import chai, {expect} from 'chai';
+import {version} from '../generated/version.js';
 import chaiDateTime from 'chai-datetime';
 import isDocker from 'is-docker';
 
@@ -72,7 +72,7 @@ const multiFetchResponseWithCorsAllowed = (payload, status = 200) => {
 };
 
 const multiFetchResponseWithHeaders = (payload, headers) => {
-  return async request => makeMultiFetchResponse(request, payload, 200 ,headers);
+  return async request => makeMultiFetchResponse(request, payload, 200, headers);
 };
 
 async function makeMultiFetchResponse(request, payload, status, headers) {
@@ -113,7 +113,7 @@ describe('The ID5 API', function () {
   this.timeout((_DEBUG ? 3000 : 30) * 1000);
 
   async function startBrowser() {
-    profileDir = await tmp.dir({ unsafeCleanup: true });
+    profileDir = await tmp.dir({unsafeCleanup: true});
     const args = [
       `--proxy-server=localhost:${server.port}`,
       `--ignore-certificate-errors-spki-list=${caFingerprint}`,
@@ -222,7 +222,7 @@ describe('The ID5 API', function () {
       expect(requestBody.tml).to.equal('https://my-publisher-website.net/');
       expect(requestBody.cu).to.equal('https://www.id5.io/');
       expect(requestBody.ref).to.equal('https://referer-page.com/');
-      expect(requestBody.segments).to.deep.equal([{ destination: '22', ids: ['abc'] }]);
+      expect(requestBody.segments).to.deep.equal([{destination: '22', ids: ['abc']}]);
       expect(requestBody.ua).to.be.a('string');
       expect(requestBody.extensions.lb).to.equal('LB_DATA'); // from MOCK_LB_RESPONSE
       expect(requestBody.extensions.lbCDN).to.equal('%%LB_CDN%%'); // lbCDN substitution macro
@@ -286,8 +286,8 @@ describe('The ID5 API', function () {
       const requestBody1 = (await id5FetchRequests[0].body.getJson()).requests[0];
       const requestBody2 = (await id5FetchRequests[1].body.getJson()).requests[0];
 
-      expect(requestBody1.segments).to.deep.eq([{ destination: '22', ids: ['abc']}]);
-      expect(requestBody2.segments).to.deep.eq([{ destination: '24', ids: ['def']}]);
+      expect(requestBody1.segments).to.deep.eq([{destination: '22', ids: ['abc']}]);
+      expect(requestBody2.segments).to.deep.eq([{destination: '24', ids: ['def']}]);
     });
   });
 
@@ -329,7 +329,7 @@ describe('The ID5 API', function () {
       expect(requestBody.metadata).to.deep.eq({eventId: 'TEST_TEST'});
     });
 
-    it('does not drop local storage items', async function() {
+    it('does not drop local storage items', async function () {
       await server.forPost(FETCH_ENDPOINT)
         .thenCallback(multiFetchResponseWithCorsAllowed(MOCK_FETCH_RESPONSE));
       await server.forGet('https://lb.eu-1-id5-sync.com/lb/v1')
@@ -467,7 +467,13 @@ describe('The ID5 API', function () {
           expect(onlyRequest.metadata.trigger).is.eq('fixed-time');
           expect(onlyRequest.metadata.fixed_time_msec).is.eq(3100);
           expect(onlyRequest.measurements.length).is.gte(12);
-          const commonTags = { version: version, partner: '99', source: 'api', tml: 'https://my-publisher-website.net/' };
+          const commonTags = {
+            version: version,
+            partner: '99',
+            source: 'api',
+            tml: 'https://my-publisher-website.net/',
+            provider: 'default'
+          };
           verifyContainsMeasurementWithTags(onlyRequest.measurements, 'id5.api.instance.load.delay', 'TIMER', commonTags);
           verifyContainsMeasurementWithTags(onlyRequest.measurements, 'id5.api.invocation.count', 'SUMMARY', commonTags);
           verifyContainsMeasurementWithTags(onlyRequest.measurements, 'id5.api.consent.request.time', 'TIMER', {
@@ -526,7 +532,13 @@ describe('The ID5 API', function () {
           expect(onlyRequest.metadata.sampling).is.eq(1);
           expect(onlyRequest.metadata.trigger).is.eq('beforeunload');
           expect(onlyRequest.measurements.length).is.gte(12);
-          const commonTags = { version: version, partner: '99', source: 'api', tml: 'https://my-publisher-website.net/' };
+          const commonTags = {
+            version: version,
+            partner: '99',
+            source: 'api',
+            tml: 'https://my-publisher-website.net/',
+            provider: 'default'
+          };
           verifyContainsMeasurementWithTags(onlyRequest.measurements, 'id5.api.instance.load.delay', 'TIMER', commonTags);
           verifyContainsMeasurementWithTags(onlyRequest.measurements, 'id5.api.invocation.count', 'SUMMARY', commonTags);
           verifyContainsMeasurementWithTags(onlyRequest.measurements, 'id5.api.consent.request.time', 'TIMER', {
@@ -914,7 +926,7 @@ describe('The ID5 API', function () {
   async function fetchLocalStorage(page) {
     return page.evaluate(() => {
       const result = {};
-      for(let i = 0; i < window.localStorage.length; i++) {
+      for (let i = 0; i < window.localStorage.length; i++) {
         const key = window.localStorage.key(i);
         result[key] = window.localStorage.getItem(key);
       }

@@ -85,11 +85,6 @@ export class ActualLeader extends Leader {
   _consentManager;
 
   /**
-   * @type {Id5UserId}
-   * @private
-   */
-  _cachedResponse;
-  /**
    * @type {boolean}
    * @private
    */
@@ -334,6 +329,8 @@ export class ActualLeader extends Leader {
 
     const cacheId = newFollower.getCacheId();
     const responseFromCache = this._store.getCachedResponse(cacheId);
+    const refreshRequired = !responseFromCache || !responseFromCache.isValid() || responseFromCache.isExpired();
+    this._refreshRequired[newFollower.getId()] = refreshRequired;
     if (responseFromCache !== undefined && responseFromCache.isValid()) {
       logger.info('Found valid cached response for follower', {
         id: newFollower.getId(),
@@ -342,15 +339,13 @@ export class ActualLeader extends Leader {
       this._notifyUidReady(newFollower, {
         timestamp: responseFromCache.timestamp,
         responseObj: responseFromCache.response,
-        isFromCache: true
+        isFromCache: true,
+        willBeRefreshed: !!refreshRequired
       });
       this._store.incNb(cacheId);
     } else {
       logger.info(`Couldn't find response for cacheId`, newFollower.getCacheId());
     }
-
-    const refreshRequired = !responseFromCache || !responseFromCache.isValid() || responseFromCache.isExpired();
-    this._refreshRequired[newFollower.getId()] = refreshRequired;
 
     let result = new AddFollowerResult();
     if (this._firstFetchTriggered === true) {

@@ -337,7 +337,8 @@ describe('ActualLeader', () => {
     const uidFromCache = {
       responseObj: cachedResponse.response,
       timestamp: cachedResponse.timestamp,
-      isFromCache: true
+      isFromCache: true,
+      willBeRefreshed: false
     };
 
     const fetchResult = sinon.promise();
@@ -409,7 +410,8 @@ describe('ActualLeader', () => {
       const uidFromCache = {
         responseObj: cachedResponse.response,
         timestamp: cachedResponse.timestamp,
-        isFromCache: true
+        isFromCache: true,
+        willBeRefreshed: isExpired
       };
 
       const fetchResult = Promise.resolve({});
@@ -532,7 +534,8 @@ describe('ActualLeader', () => {
       expect(lateJoiner.notifyUidReady).have.been.calledWith({
         responseObj: cachedResponse.response,
         timestamp: cachedResponse.timestamp,
-        isFromCache: true
+        isFromCache: true,
+        willBeRefreshed: false
       });
       expect(store.incNb).have.been.calledWith(lateJoiner.getCacheId());
       expect(uidFetcher.getId).have.not.been.called;
@@ -554,7 +557,8 @@ describe('ActualLeader', () => {
       expect(follower2.notifyUidReady).have.been.calledWith({
         responseObj: cachedResponse.response,
         timestamp: cachedResponse.timestamp,
-        isFromCache: true
+        isFromCache: true,
+        willBeRefreshed: true
       });
       expect(store.incNb).have.been.calledWith(follower2.getCacheId());
       expect(uidFetcher.getId).have.been.calledWith(
@@ -1163,7 +1167,8 @@ describe('ActualLeader', () => {
     expect(follower1.notifyUidReady).to.have.been.calledWith({
       responseObj: cachedResponse.response,
       timestamp: cachedResponse.timestamp,
-      isFromCache: true
+      isFromCache: true,
+      willBeRefreshed: true
     });
     expect(follower1.canDoCascade).to.have.not.been.called;
     expect(follower1.notifyCascadeNeeded).to.have.not.been.called;
