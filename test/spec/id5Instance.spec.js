@@ -1,11 +1,12 @@
 import sinon from 'sinon';
 import {
+  defaultInit,
   defaultInitBypassConsent,
   MultiplexInstanceStub,
   TEST_ID5_PARTNER_ID
 } from './test_utils.js';
-import {Id5Instance, PageLevelInfo} from '../../lib/id5Instance.js';
-import {Config} from '../../lib/config.js';
+import {Id5Instance, PageLevelInfo, ID5_REGISTRY} from '../../lib/id5Instance.js';
+import {Config, GCReclaimAllowed} from '../../lib/config.js';
 import {ConsentDataProvider} from '../../lib/consentProvider.js';
 import {CONSTANTS, NO_OP_LOGGER, ApiEvent, ConsentManagement, ConsentData} from '@id5io/multiplexing';
 import {Id5CommonMetrics} from '@id5io/diagnostics';
@@ -339,12 +340,12 @@ describe('Id5Instance', function () {
           getVendorConsents: {}
         },
         debugBypassConsent: false,
-        unregisterOnGC: true,
+        allowGCReclaim: GCReclaimAllowed.AFTER_UID_SET,
         diagnostics: {
           publishAfterLoadInMsec: 30000,
           publishBeforeWindowUnload: true,
           publishingDisabled: false,
-          publishingSampleRatio: 0.01,
+          publishingSampleRatio: 0.01
         },
         disableUaHints: false,
         maxCascades: 8,
@@ -754,6 +755,139 @@ describe('Id5Instance', function () {
           isFromCache: _isFromCache,
           responseObj: TEST_RESPONSE
         });
+      });
+    });
+  });
+
+  describe('cleanup', function () {
+    let consentManager;
+    let consentProvider;
+    let registerSpy;
+    let unregisterSpy;
+    let releaseSpy;
+    let metrics;
+    let finalizationRegisterSpy;
+    let finalizationUnRegisterSpy;
+
+    beforeEach(function () {
+      consentManager = sinon.createStubInstance(ConsentManagement);
+      consentProvider = sinon.createStubInstance(ConsentDataProvider);
+      metrics = sinon.createStubInstance(Id5CommonMetrics);
+      registerSpy = sinon.spy(ID5_REGISTRY, 'register');
+      unregisterSpy = sinon.spy(ID5_REGISTRY, 'unregister');
+      releaseSpy = sinon.spy(ID5_REGISTRY, 'releaseInstance');
+      finalizationRegisterSpy = sinon.spy(ID5_REGISTRY._finalizationRegistry, 'register');
+      finalizationUnRegisterSpy = sinon.spy(ID5_REGISTRY._finalizationRegistry, 'unregister');
+    });
+
+    afterEach(function () {
+      registerSpy.restore();
+      releaseSpy.restore();
+      unregisterSpy.restore();
+      finalizationRegisterSpy.restore();
+      finalizationUnRegisterSpy.restore();
+    });
+
+    it('should register instance when created', function () {
+      // when
+      const instanceUnderTest = new Id5Instance(new Config(defaultInit()), null, consentManager, null, consentProvider, NO_OP_LOGGER, multiplexingInstanceStub, MOCK_PAGE_LEVEL_INFO);
+
+      // then
+      expect(registerSpy).have.been.calledWith(instanceUnderTest);
+      expect(finalizationRegisterSpy).have.been.calledWith(instanceUnderTest, instanceUnderTest._unregisterTargets, instanceUnderTest);
+    });
+
+    [
+      [GCReclaimAllowed.ASAP, false],
+      [GCReclaimAllowed.AFTER_UID_SET, true],
+      [GCReclaimAllowed.NEVER, true],
+      [undefined, true] // default
+    ].forEach(([gcAllowed, expectHold]) => {
+      it(`should keep instance reference globally accessible - ${gcAllowed}`, function () {
+        // when
+        const instanceUnderTest = new Id5Instance(new Config({
+          ...defaultInit(),
+          allowGCReclaim: gcAllowed
+        }), null, consentManager, metrics, consentProvider, NO_OP_LOGGER, multiplexingInstanceStub, MOCK_PAGE_LEVEL_INFO);
+
+        // then
+        expect(registerSpy).to.have.been.calledWith(instanceUnderTest);
+
+        expect(ID5_REGISTRY._instancesHolder.has(instanceUnderTest)).to.be.eq(expectHold);
+      });
+    });
+
+    it('should deregister instance when called', function () {
+      // given
+      const instanceUnderTest = new Id5Instance(new Config(defaultInit()), null, consentManager, metrics, consentProvider, NO_OP_LOGGER, multiplexingInstanceStub, MOCK_PAGE_LEVEL_INFO);
+      const unregisterTargetsSpy = sinon.spy(instanceUnderTest._unregisterTargets, 'unregister');
+
+      // when
+      instanceUnderTest.unregister();
+
+      // then
+      expect(unregisterTargetsSpy).have.been.calledWith('api-call');
+      expect(metrics.instanceSurvivalTime).have.been.calledWith({unregisterTrigger: 'api-call'});
+      expect(metrics.unregister).have.been.called;
+      expect(multiplexingInstanceStub.unregister).have.been.called;
+      expect(unregisterSpy).have.been.calledWith(instanceUnderTest);
+      expect(finalizationUnRegisterSpy).have.been.calledWith(instanceUnderTest);
+    });
+
+    [
+      [GCReclaimAllowed.ASAP, false],
+      [GCReclaimAllowed.AFTER_UID_SET, true],
+      [GCReclaimAllowed.NEVER, false]
+    ].forEach(([allowGcConfig, expectedRelease]) => {
+      it(`should release instance when uid set if configured - ${allowGcConfig}`, function () {
+        // given
+        const instanceUnderTest = new Id5Instance(new Config({
+          ...defaultInit(),
+          allowGCReclaim: allowGcConfig
+        }), null, consentManager, null, consentProvider, NO_OP_LOGGER, multiplexingInstanceStub, MOCK_PAGE_LEVEL_INFO);
+
+
+        // when
+        instanceUnderTest._setUserId({
+          universal_uid: 'S'
+        }, false);
+
+        // then
+        if (expectedRelease) {
+          expect(releaseSpy).have.been.calledWith(instanceUnderTest);
+        } else {
+          expect(releaseSpy).have.not.been.calledWith(instanceUnderTest);
+        }
+      });
+    });
+
+    [
+      [true, false, true],
+      [true, true, false],
+      [true, undefined, true],
+      [false, false, true],
+      [false, true, true],
+      [false, undefined, true]
+    ].forEach(([fromCache, willBeRefreshed, expectedRelease]) => {
+      it(`should release instance when configured and will not be refreshed (cached=${fromCache}, refresh=${willBeRefreshed})`, function () {
+        // given
+        const instanceUnderTest = new Id5Instance(new Config({
+          ...defaultInit(),
+          allowGCReclaim: GCReclaimAllowed.AFTER_UID_SET
+        }), null, consentManager, null, consentProvider, NO_OP_LOGGER, multiplexingInstanceStub, MOCK_PAGE_LEVEL_INFO);
+
+
+        // when
+        instanceUnderTest._setUserId({
+          universal_uid: 'S'
+        }, fromCache, willBeRefreshed);
+
+        // then
+        if (expectedRelease) {
+          expect(releaseSpy).have.been.calledWith(instanceUnderTest);
+        } else {
+          expect(releaseSpy).have.not.been.calledWith(instanceUnderTest);
+        }
       });
     });
 
