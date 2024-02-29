@@ -1,15 +1,15 @@
 import sinon from 'sinon';
-import { CrossInstanceMessenger, ProxyMethodCallTarget } from '../../src/messaging.js';
-import { ActualLeader, AddFollowerResult, AwaitedLeader, Leader, ProxyLeader } from '../../src/leader.js';
-import { RefreshedResponse, UidFetcher} from '../../src/fetch.js';
+import {CrossInstanceMessenger, ProxyMethodCallTarget} from '../../src/messaging.js';
+import {ActualLeader, AddFollowerResult, AwaitedLeader, Leader, ProxyLeader} from '../../src/leader.js';
+import {RefreshedResponse, UidFetcher} from '../../src/fetch.js';
 import {CachedResponse, Store} from '../../src/store.js';
-import { API_TYPE, ConsentData, LocalStorageGrant, NoConsentError } from '../../src/consent.js';
-import { ConsentManagement } from '../../src/consentManagement.js';
-import { NO_OP_LOGGER } from '../../src/logger.js';
-import { Follower } from '../../src/follower.js';
-import { Properties } from '../../src/instance.js';
-import { Counter, Id5CommonMetrics } from '@id5io/diagnostics';
-import { ReplicatingStorage } from '../../src/localStorage.js';
+import {API_TYPE, ConsentData, LocalStorageGrant, NoConsentError} from '../../src/consent.js';
+import {ConsentManagement} from '../../src/consentManagement.js';
+import {NO_OP_LOGGER} from '../../src/logger.js';
+import {Follower} from '../../src/follower.js';
+import {Properties} from '../../src/instance.js';
+import {Counter, Id5CommonMetrics} from '@id5io/diagnostics';
+import {ReplicatingStorage} from '../../src/localStorage.js';
 
 describe('ProxyLeader', function () {
   /**
@@ -46,7 +46,18 @@ describe('ProxyLeader', function () {
     leader.refreshUid(forceFetch);
 
     // then
-    expect(messenger.callProxyMethod).to.have.been.calledWith(leaderId, ProxyMethodCallTarget.LEADER, 'refreshUid', [forceFetch]);
+    expect(messenger.callProxyMethod).to.have.been.calledWith(leaderId, ProxyMethodCallTarget.LEADER, 'refreshUid', [forceFetch, undefined]);
+  });
+
+  it('should sent message to call refreshUid with refresherId', function () {
+    // given
+    const forceFetch = sinon.stub();
+
+    // when
+    leader.refreshUid(forceFetch, 'follower-id');
+
+    // then
+    expect(messenger.callProxyMethod).to.have.been.calledWith(leaderId, ProxyMethodCallTarget.LEADER, 'refreshUid', [forceFetch, 'follower-id']);
   });
 
   it('should sent message to call fetchDataUpdate', function () {
@@ -73,6 +84,7 @@ describe('AwaitedLeader', function () {
     const consentData = sinon.stub();
     const fetchData = sinon.stub();
     const refreshOptions = sinon.stub();
+    const refreshOptions2 = sinon.stub();
     const follower = sinon.stub();
 
     const awaitedLeader = new AwaitedLeader();
@@ -82,6 +94,7 @@ describe('AwaitedLeader', function () {
     // when
     awaitedLeader.updateConsent(consentData);
     awaitedLeader.refreshUid(refreshOptions);
+    awaitedLeader.refreshUid(refreshOptions2, 'follower-id');
     awaitedLeader.updateFetchIdData('1', fetchData);
     let addResult = awaitedLeader.addFollower(follower);
 
@@ -99,6 +112,7 @@ describe('AwaitedLeader', function () {
     expect(newLeader.updateConsent).to.have.been.calledWith(consentData);
     expect(newLeader.updateConsent).to.have.been.calledBefore(newLeader.refreshUid);
     expect(newLeader.refreshUid).to.have.been.calledWith(refreshOptions);
+    expect(newLeader.refreshUid).to.have.been.calledWith(refreshOptions2, 'follower-id');
     expect(newLeader.refreshUid).to.have.been.calledBefore(newLeader.updateFetchIdData);
     expect(newLeader.updateFetchIdData).to.have.been.calledWith('1', fetchData);
     expect(newLeader.addFollower).to.have.been.calledWith(follower);
@@ -126,10 +140,10 @@ describe('AwaitedLeader', function () {
     expect(awaitedLeader._callsQueue).has.length(0);
 
     // when
-    awaitedLeader.refreshUid(refreshOptions);
+    awaitedLeader.refreshUid(refreshOptions, 'follower-id');
 
     // then
-    expect(assignedLeader.refreshUid).to.have.been.calledWith(refreshOptions);
+    expect(assignedLeader.refreshUid).to.have.been.calledWith(refreshOptions, 'follower-id');
     expect(awaitedLeader._callsQueue).has.length(0);
 
     // when
@@ -151,7 +165,7 @@ describe('AwaitedLeader', function () {
   it('returns assigned leader properties', function () {
     const awaitedLeader = new AwaitedLeader();
     const leader = sinon.createStubInstance(Leader);
-    const properties = { id: 'a' };
+    const properties = {id: 'a'};
     leader.getProperties.returns(properties);
 
     // then
@@ -244,6 +258,25 @@ describe('ActualLeader', () => {
     leader = new ActualLeader(leaderWindow, leaderProperties, leaderStorage, store, consentManager, sinon.createStubInstance(Id5CommonMetrics), NO_OP_LOGGER, uidFetcher);
   });
 
+  function expectedRequestData(follower, role, requestCount = 1, refresh = false) {
+    return {
+      ...follower.getFetchIdData(),
+      integrationId: follower.getId(),
+      cacheId: follower.getCacheId(),
+      role: role,
+      requestCount: requestCount,
+      refresh: refresh
+    };
+  }
+
+  function expectedLeaderData(follower, requestCount = 1, refresh = false) {
+    return expectedRequestData(follower, 'leader', requestCount, refresh);
+  }
+
+  function expectedFollowerData(follower, requestCount = 1, refresh = false) {
+    return expectedRequestData(follower, 'follower', requestCount, refresh);
+  }
+
   it('should getId on start and notify followers when uid ready', async () => {
 
     // given
@@ -264,34 +297,23 @@ describe('ActualLeader', () => {
 
     // then
     expect(uidFetcher.getId).to.be.calledWith([
-      {
-        ...follower1FetchIdData,
-        integrationId: follower1Id,
-        requestCount: 1,
-        role: 'leader',
-        cacheId: follower1.getCacheId()
-      },
-      {
-        ...follower2FetchIdData,
-        integrationId: follower2Id,
-        requestCount: 1,
-        role: 'follower',
-        cacheId: follower2.getCacheId()
-      }],
+        expectedLeaderData(follower1, 1, true),
+        expectedFollowerData(follower2, 1, true)
+      ],
       true // required refresh no cache
     );
 
     // when
     const refreshedResponse = sinon.createStubInstance(RefreshedResponse);
     refreshedResponse.getResponseFor.withArgs(follower1.getId()).returns({universal_uid: 'id-1'});
-    refreshedResponse.getResponseFor.withArgs(follower2.getId()).returns({ universal_uid: 'id-2' });
+    refreshedResponse.getResponseFor.withArgs(follower2.getId()).returns({universal_uid: 'id-2'});
     refreshedResponse.timestamp = 345;
-    fetchResult.resolve({ refreshedResponse: refreshedResponse });
+    fetchResult.resolve({refreshedResponse: refreshedResponse});
     await fetchResult.refreshResult;
 
     // then
     expect(follower1.notifyUidReady).to.be.calledWith({
-      responseObj: { universal_uid: 'id-1' },
+      responseObj: {universal_uid: 'id-1'},
       timestamp: 345,
       isFromCache: false
     });
@@ -301,37 +323,12 @@ describe('ActualLeader', () => {
       isFromCache: false
     });
 
-    // when
-    uidFetcher.getId.reset();
-    uidFetcher.getId.returns(sinon.promise())
-    leader.refreshUid({
-      forceFetch: false
-    })
-
-    // then
-    expect(uidFetcher.getId).to.be.calledWith([
-        {
-          ...follower1FetchIdData,
-          integrationId: follower1Id,
-          requestCount: 2,
-          role: 'leader',
-          cacheId: follower1.getCacheId()
-        },
-        {
-          ...follower2FetchIdData,
-          integrationId: follower2Id,
-          requestCount: 2,
-          role: 'follower',
-          cacheId: follower2.getCacheId()
-        }],
-      false // already provisioned
-    );
   });
 
   it('should getId on start and notify followers when uid ready from cache and then update when refreshed', async () => {
 
     // given
-    const cachedResponse = sinon.stub(new CachedResponse({ universal_uid: crypto.randomUUID() }, Date.now(), 1));
+    const cachedResponse = sinon.stub(new CachedResponse({universal_uid: crypto.randomUUID()}, Date.now(), 1));
     cachedResponse.isValid.returns(true);
     store.getCachedResponse.returns(cachedResponse);
     const uidFromCache = {
@@ -363,37 +360,26 @@ describe('ActualLeader', () => {
 
     // then
     expect(uidFetcher.getId).to.be.calledWith([
-      {
-        ...follower1FetchIdData,
-        integrationId: follower1Id,
-        requestCount: 1,
-        role: 'leader',
-        cacheId: follower1.getCacheId()
-      },
-      {
-        ...follower2FetchIdData,
-        integrationId: follower2Id,
-        requestCount: 1,
-        role: 'follower',
-        cacheId: follower2.getCacheId()
-      }], false);
+      expectedLeaderData(follower1, 1, false),
+      expectedFollowerData(follower2, 1, false)
+    ], false);
 
     // when
     const refreshedResponse = sinon.createStubInstance(RefreshedResponse);
-    refreshedResponse.getResponseFor.withArgs(follower1.getId()).returns({ universal_uid: 'id-1' });
-    refreshedResponse.getResponseFor.withArgs(follower2.getId()).returns({ universal_uid: 'id-2' });
+    refreshedResponse.getResponseFor.withArgs(follower1.getId()).returns({universal_uid: 'id-1'});
+    refreshedResponse.getResponseFor.withArgs(follower2.getId()).returns({universal_uid: 'id-2'});
     refreshedResponse.timestamp = 345;
-    fetchResult.resolve({ refreshedResponse: refreshedResponse });
+    fetchResult.resolve({refreshedResponse: refreshedResponse});
     await fetchResult.refreshResult;
 
     // then
     expect(follower1.notifyUidReady).to.be.calledWith({
-      responseObj: { universal_uid: 'id-1' },
+      responseObj: {universal_uid: 'id-1'},
       timestamp: 345,
       isFromCache: false
     });
     expect(follower2.notifyUidReady).to.be.calledWith({
-      responseObj: { universal_uid: 'id-2' },
+      responseObj: {universal_uid: 'id-2'},
       timestamp: 345,
       isFromCache: false
     });
@@ -403,7 +389,7 @@ describe('ActualLeader', () => {
     it(`should provision cached response if valid available expired=${isExpired} when follower added and getId on start`, async () => {
 
       // given
-      const cachedResponse = sinon.stub(new CachedResponse({ universal_uid: crypto.randomUUID() }, Date.now(), 1));
+      const cachedResponse = sinon.stub(new CachedResponse({universal_uid: crypto.randomUUID()}, Date.now(), 1));
       cachedResponse.isValid.returns(true);
       cachedResponse.isExpired.returns(isExpired);
       store.getCachedResponse.returns(cachedResponse);
@@ -436,20 +422,9 @@ describe('ActualLeader', () => {
 
       // then
       expect(uidFetcher.getId).to.be.calledWith([
-        {
-          ...follower1FetchIdData,
-          integrationId: follower1Id,
-          requestCount: 1,
-          role: 'leader',
-          cacheId: follower1.getCacheId()
-        },
-        {
-          ...follower2FetchIdData,
-          integrationId: follower2Id,
-          requestCount: 1,
-          role: 'follower',
-          cacheId: follower2.getCacheId()
-        }], isExpired);
+        expectedLeaderData(follower1, 1, isExpired),
+        expectedFollowerData(follower2, 1, isExpired)
+      ], isExpired);
 
       // when
       await fetchResult.refreshResult;
@@ -488,20 +463,9 @@ describe('ActualLeader', () => {
 
     // then
     expect(uidFetcher.getId).to.be.calledWith([
-      {
-        ...follower1FetchIdData,
-        integrationId: follower1Id,
-        requestCount: 1,
-        role: 'leader',
-        cacheId: follower1.getCacheId()
-      },
-      {
-        ...follower2FetchIdData,
-        integrationId: follower2Id,
-        requestCount: 1,
-        role: 'follower',
-        cacheId: follower2.getCacheId()
-      }], true);
+      expectedLeaderData(follower1, 1, true),
+      expectedFollowerData(follower2, 1, true)
+    ], true);
   });
 
   describe('when uid already fetched', () => {
@@ -509,11 +473,21 @@ describe('ActualLeader', () => {
     let cachedResponse;
     beforeEach(async function () {
       // make sure leader astred and after first fetch
-      const response = Promise.resolve({});
-      uidFetcher.getId.returns(response);
+      const fetchResult = sinon.promise();
+      const refreshedResponse = sinon.createStubInstance(RefreshedResponse);
+      refreshedResponse.getResponseFor.returns({
+        universal_uid: 'id5-uid',
+        cascade_needed: true
+      });
+      const refreshResult = {
+        refreshedResponse: refreshedResponse,
+        consentData: new ConsentData()
+      };
+      uidFetcher.getId.returns(fetchResult);
       leader.addFollower(follower1);
       leader.start();
-      await response;
+      fetchResult.resolve(refreshResult);
+      await fetchResult;
       uidFetcher.getId.reset();
 
       cachedResponse = sinon.stub(new CachedResponse({universal_uid: crypto.randomUUID()}, Date.now(), 1));
@@ -530,7 +504,7 @@ describe('ActualLeader', () => {
       const result = leader.addFollower(lateJoiner);
 
       // then
-      expect(result).to.be.eql(new AddFollowerResult(true, false));
+      expect(result).to.be.eql(new AddFollowerResult(true, true));
       expect(lateJoiner.notifyUidReady).have.been.calledWith({
         responseObj: cachedResponse.response,
         timestamp: cachedResponse.timestamp,
@@ -553,6 +527,35 @@ describe('ActualLeader', () => {
       const result = leader.addFollower(follower2);
 
       // then
+      expect(result).to.be.eql(new AddFollowerResult(true, true));
+      expect(follower2.notifyUidReady).have.been.calledWith({
+        responseObj: cachedResponse.response,
+        timestamp: cachedResponse.timestamp,
+        isFromCache: true,
+        willBeRefreshed: true
+      });
+      expect(store.incNb).have.been.calledWith(follower2.getCacheId());
+      expect(uidFetcher.getId).have.been.calledWith(
+        [
+          expectedLeaderData(follower1, 2, false),
+          expectedFollowerData(follower2, 1, true)
+        ],
+        true);
+    });
+
+    it('late joiner should be notified with cached response if available valid and trigger refresh when expired - not unique', function () {
+      // given
+      follower2.getCacheId.returns(follower1.getCacheId()); // not unique
+      store.getCachedResponse.withArgs(follower2.getCacheId()).returns(cachedResponse);
+      cachedResponse.isValid.returns(true);
+      cachedResponse.isExpired.returns(true);
+
+      uidFetcher.getId.returns(Promise.resolve({}));
+
+      // when
+      const result = leader.addFollower(follower2);
+
+      // then
       expect(result).to.be.eql(new AddFollowerResult(true, false));
       expect(follower2.notifyUidReady).have.been.calledWith({
         responseObj: cachedResponse.response,
@@ -562,20 +565,10 @@ describe('ActualLeader', () => {
       });
       expect(store.incNb).have.been.calledWith(follower2.getCacheId());
       expect(uidFetcher.getId).have.been.calledWith(
-        [{
-          ...follower1FetchIdData,
-          integrationId: follower1.getId(),
-          requestCount: 1,
-          role: 'leader',
-          cacheId: follower1.getCacheId()
-        },
-          {
-            ...follower2FetchIdData,
-            integrationId: follower2.getId(),
-            requestCount: 1,
-            role: 'follower',
-            cacheId: follower2.getCacheId()
-          }],
+        [
+          expectedLeaderData(follower1, 2, false),
+          expectedFollowerData(follower2, 1, true)
+        ],
         true);
     });
 
@@ -591,24 +584,14 @@ describe('ActualLeader', () => {
       const result = leader.addFollower(follower2);
 
       // then
-      expect(result).to.be.eql(new AddFollowerResult(true, false));
+      expect(result).to.be.eql(new AddFollowerResult(true, true));
       expect(follower2.notifyUidReady).have.not.been.called;
       expect(store.incNb).have.not.been.called;
       expect(uidFetcher.getId).have.been.calledWith(
-        [{
-          ...follower1FetchIdData,
-          integrationId: follower1.getId(),
-          requestCount: 1,
-          role: 'leader',
-          cacheId: follower1.getCacheId()
-        },
-          {
-            ...follower2FetchIdData,
-            integrationId: follower2.getId(),
-            requestCount: 1,
-            role: 'follower',
-            cacheId: follower2.getCacheId()
-          }],
+        [
+          expectedLeaderData(follower1, 2, false),
+          expectedFollowerData(follower2, 1, true)
+        ],
         true);
     });
 
@@ -626,20 +609,10 @@ describe('ActualLeader', () => {
       expect(follower2.notifyUidReady).have.not.been.called;
       expect(store.incNb).have.not.been.called;
       expect(uidFetcher.getId).have.been.calledWith(
-        [{
-          ...follower1FetchIdData,
-          integrationId: follower1.getId(),
-          requestCount: 1,
-          role: 'leader',
-          cacheId: follower1.getCacheId()
-        },
-          {
-            ...follower2FetchIdData,
-            integrationId: follower2.getId(),
-            requestCount: 1,
-            role: 'follower',
-            cacheId: follower2.getCacheId()
-          }],
+        [
+          expectedLeaderData(follower1, 2, false),
+          expectedFollowerData(follower2, 1, true)
+        ],
         true);
     });
   });
@@ -663,13 +636,8 @@ describe('ActualLeader', () => {
 
         // then
         expect(uidFetcher.getId).to.be.calledWith([
-          {
-            ...follower1FetchIdData,
-            integrationId: follower1Id,
-            requestCount: 1,
-            role: 'leader',
-            cacheId: follower1.getCacheId()
-          }], true);
+          expectedLeaderData(follower1, 1, true)
+        ], true);
 
         // when
         uidFetcher.getId.reset();
@@ -678,7 +646,7 @@ describe('ActualLeader', () => {
           forceAllowLocalStorageGrant: true,
           resetConsent: true,
           forceFetch: true
-        });
+        }, follower1.getId());
 
         // then
         expect(uidFetcher.getId).to.not.be.called;
@@ -691,18 +659,21 @@ describe('ActualLeader', () => {
           // then
           expect(consentManager.resetConsentData).to.be.calledWith(true);
           expect(uidFetcher.getId).to.be.calledWith([
-            {
-              ...follower1FetchIdData,
-              integrationId: follower1Id,
-              requestCount: expectedRequestCount,
-              role: 'leader',
-              cacheId: follower1.getCacheId()
-            }], true);
+            expectedLeaderData(follower1, expectedRequestCount, true)
+          ], true);
         });
       });
     });
 
-    it('late joiner should be notified with cached response then refresh should be triggered', async function () {
+    it('late joiner should triggered refresh when active is completed', async function () {
+      // then
+      expect(uidFetcher.getId).to.be.calledWith([
+        expectedLeaderData(follower1, 1, true)
+      ], true);
+
+      // when
+      uidFetcher.getId.reset();
+
       // given
       store.getCachedResponse.withArgs(follower2.getCacheId()).returns(undefined);
 
@@ -720,30 +691,19 @@ describe('ActualLeader', () => {
       await refreshedResponse;
 
       // then
-      expect(result).to.be.eql(new AddFollowerResult(true, true));
       expect(follower1.notifyUidReady).have.been.calledWith({
         responseObj: {response: 'aa'},
-        timestamp: refreshedResponse .timestamp,
+        timestamp: refreshedResponse.timestamp,
         isFromCache: false
       });
       expect(refreshedResponse.getResponseFor.withArgs(follower2.getCacheId())).have.not.been.called;
       expect(follower2.notifyUidReady).have.not.been.called;
 
       expect(uidFetcher.getId).have.been.calledWith(
-        [{
-          ...follower1FetchIdData,
-          integrationId: follower1.getId(),
-          requestCount: 2,
-          role: 'leader',
-          cacheId: follower1.getCacheId()
-        },
-          {
-            ...follower2FetchIdData,
-            integrationId: follower2.getId(),
-            requestCount: 1,
-            role: 'follower',
-            cacheId: follower2.getCacheId()
-          }],
+        [
+          expectedLeaderData(follower1, 2, false),
+          expectedFollowerData(follower2, 1, true)
+        ],
         true);
     });
   });
@@ -808,8 +768,8 @@ describe('ActualLeader', () => {
     await Promise.allSettled([fetchResult.refreshResult]);
 
     // then
-    expect(follower1.notifyFetchUidCanceled).to.be.calledWith({ reason: 'error' });
-    expect(follower2.notifyFetchUidCanceled).to.be.calledWith({ reason: 'error' });
+    expect(follower1.notifyFetchUidCanceled).to.be.calledWith({reason: 'error'});
+    expect(follower2.notifyFetchUidCanceled).to.be.calledWith({reason: 'error'});
   });
 
   it('should refresh uid', function () {
@@ -837,20 +797,9 @@ describe('ActualLeader', () => {
     // then
     expect(consentManager.resetConsentData).to.not.be.called;
     expect(uidFetcher.getId).to.be.calledWith([
-        {
-          ...follower1FetchIdData,
-          integrationId: follower1Id,
-          requestCount: 1,
-          role: 'leader',
-          cacheId: follower1.getCacheId()
-        },
-        {
-          ...follower2FetchIdData,
-          integrationId: follower2Id,
-          requestCount: 1,
-          role: 'follower',
-          cacheId: follower2.getCacheId()
-        }],
+        expectedLeaderData(follower1),
+        expectedFollowerData(follower2)
+      ],
       false // both provisioned from cache and not expired
     );
   });
@@ -872,20 +821,9 @@ describe('ActualLeader', () => {
       // then
       expect(consentManager.resetConsentData).to.be.calledWith(forceAllowLocalStorageGrant === true);
       expect(uidFetcher.getId).to.be.calledWith([
-        {
-          ...follower1FetchIdData,
-          integrationId: follower1Id,
-          requestCount: 1,
-          role: 'leader',
-          cacheId: follower1.getCacheId()
-        },
-        {
-          ...follower2FetchIdData,
-          integrationId: follower2Id,
-          requestCount: 1,
-          role: 'follower',
-          cacheId: follower2.getCacheId()
-        }], true);
+        expectedLeaderData(follower1, 1, true),
+        expectedFollowerData(follower2, 1, true)
+      ], true);
     });
   });
 
@@ -912,21 +850,182 @@ describe('ActualLeader', () => {
     // then
     expect(consentManager.resetConsentData).to.not.be.called;
     expect(uidFetcher.getId).to.be.calledWith([
-      {
-        ...follower1FetchIdData,
-        integrationId: follower1Id,
-        requestCount: 1,
-        role: 'leader',
-        cacheId: follower1.getCacheId()
-      },
-      {
-        ...follower2FetchIdData,
-        integrationId: follower2Id,
-        requestCount: 1,
-        role: 'follower',
-        cacheId: follower2.getCacheId()
-      }], true);
+      expectedLeaderData(follower1, 1, true),
+      expectedFollowerData(follower2, 1, true)
+    ], true);
   });
+
+  describe('refresh when uid already fetched', () => {
+
+    beforeEach(async () => {
+      leader.addFollower(follower1);
+      leader.addFollower(follower2);
+
+      const fetchResult = sinon.promise();
+      const refreshedResponse = sinon.createStubInstance(RefreshedResponse);
+      refreshedResponse.getResponseFor.returns({
+        universal_uid: 'id5-uid',
+        cascade_needed: true
+      });
+      const refreshResult = {
+        refreshedResponse: refreshedResponse,
+        consentData: new ConsentData()
+      };
+      uidFetcher.getId.returns(fetchResult);
+
+      leader.start();
+      fetchResult.resolve(refreshResult);
+      await fetchResult.refreshResult;
+      uidFetcher.getId.reset();
+      uidFetcher.getId.returns(sinon.promise());
+      store.getCachedResponse.reset();
+    });
+
+    it('should refresh uid with force fetch and requester provided', function () {
+      // given
+      // when
+      leader.refreshUid({
+        forceFetch: true
+      }, follower2.getId());
+
+      // then
+      expect(consentManager.resetConsentData).to.not.be.called;
+      expect(uidFetcher.getId).to.be.calledWith([
+        expectedLeaderData(follower1, 2, false),
+        expectedFollowerData(follower2, 2, true)
+      ], true);
+      expect(store.getCachedResponse).to.have.not.been.called;
+    });
+
+    it('should refresh uid without force fetch and requester provided', async () => {
+      // given
+      store.getCachedResponse.reset();
+
+      // when
+      follower1.notifyUidReady.reset();
+      leader.refreshUid({
+        forceFetch: false
+      }, follower1.getId());
+
+      // then
+      expect(consentManager.resetConsentData).to.not.be.called;
+      expect(uidFetcher.getId).to.be.calledWith([
+        expectedLeaderData(follower1, 2, true),
+        expectedFollowerData(follower2, 2, false)
+      ], true);
+
+      expect(store.getCachedResponse).to.have.not.been.calledWith(follower1.getId());
+      expect(follower1.notifyUidReady).have.not.been.called;
+    });
+
+    it('should refresh uid with without force fetch and provide cached response if valid and not expired', async () => {
+      // given
+      store.getCachedResponse.reset();
+      const timestamp = Date.now();
+      const cachedResponse = sinon.stub(new CachedResponse({
+        universal_uid: 'id5-uid',
+        signature: '12243',
+        cascade_needed: true
+      }, timestamp, 1));
+      cachedResponse.isExpired.returns(false);
+      cachedResponse.isValid.returns(true);
+      store.getCachedResponse.withArgs(follower1.getCacheId()).returns(cachedResponse);
+
+      // when
+      follower1.notifyUidReady.reset();
+      leader.refreshUid({
+        forceFetch: false
+      }, follower1.getId());
+
+      // then
+      expect(store.getCachedResponse).to.have.not.been.calledWith(follower1.getId());
+      expect(follower1.notifyUidReady).to.have.been.calledWith({
+        timestamp: timestamp,
+        responseObj: {
+          universal_uid: 'id5-uid',
+          signature: '12243',
+          cascade_needed: true
+        },
+        isFromCache: true,
+        willBeRefreshed: false
+      });
+      expect(consentManager.resetConsentData).to.not.be.called;
+      expect(uidFetcher.getId).to.be.calledWith([
+        expectedLeaderData(follower1, 2, false),
+        expectedFollowerData(follower2, 2, false)
+      ], false);
+    });
+
+    it('should refresh uid with without force fetch and provide cached response if valid but expired', async () => {
+      // given
+      store.getCachedResponse.reset();
+      const timestamp = Date.now();
+      const cachedResponse = sinon.stub(new CachedResponse({
+        universal_uid: 'id5-uid',
+        signature: '12243',
+        cascade_needed: true
+      }, timestamp, 1));
+      cachedResponse.isExpired.returns(true);
+      cachedResponse.isValid.returns(true);
+      store.getCachedResponse.withArgs(follower1.getCacheId()).returns(cachedResponse);
+
+      // when
+      follower1.notifyUidReady.reset();
+      leader.refreshUid({
+        forceFetch: false
+      }, follower1.getId());
+
+      // then
+      expect(store.getCachedResponse).to.have.not.been.calledWith(follower1.getId());
+      expect(follower1.notifyUidReady).to.have.been.calledWith({
+        timestamp: timestamp,
+        responseObj: {
+          universal_uid: 'id5-uid',
+          signature: '12243',
+          cascade_needed: true
+        },
+        isFromCache: true,
+        willBeRefreshed: true
+      });
+      expect(consentManager.resetConsentData).to.not.be.called;
+      expect(uidFetcher.getId).to.be.calledWith([
+        expectedLeaderData(follower1, 2, true),
+        expectedFollowerData(follower2, 2, false)
+      ], true);
+    });
+
+    it('should refresh uid with without force fetch and NOT provide cached response if not valid', async () => {
+      // given
+      store.getCachedResponse.reset();
+      const timestamp = Date.now();
+      const cachedResponse = sinon.stub(new CachedResponse({
+        universal_uid: 'id5-uid',
+        signature: '12243',
+        cascade_needed: true
+      }, timestamp, 1));
+      cachedResponse.isExpired.returns(false);
+      cachedResponse.isValid.returns(false);
+      store.getCachedResponse.withArgs(follower1.getCacheId()).returns(cachedResponse);
+
+      // when
+      follower1.notifyUidReady.reset();
+      leader.refreshUid({
+        forceFetch: false,
+        resetConsent: true
+      }, follower1.getId());
+
+      // then
+      expect(store.getCachedResponse).to.have.not.been.calledWith(follower1.getId());
+      expect(follower1.notifyUidReady).to.have.not.been.called;
+      expect(consentManager.resetConsentData).to.be.called;
+      expect(uidFetcher.getId).to.be.calledWith([
+        expectedLeaderData(follower1, 2, true),
+        expectedFollowerData(follower2, 2, false)
+      ], true);
+    });
+
+  });
+
 
   it('should update consent data', function () {
     // given
@@ -1009,10 +1108,10 @@ describe('ActualLeader', () => {
     leader.addFollower(follower2);
 
     // when
-    leader.updateFetchIdData(follower2Id, { updated: 'data' });
+    leader.updateFetchIdData(follower2Id, {updated: 'data'});
 
     // then
-    expect(follower2.updateFetchIdData).to.be.calledWith({ updated: 'data' });
+    expect(follower2.updateFetchIdData).to.be.calledWith({updated: 'data'});
     expect(follower1.updateFetchIdData).to.not.be.called;
   });
 
@@ -1187,7 +1286,7 @@ describe('ActualLeader', () => {
       universal_uid: 'id5-uid'
     });
     refreshedResponse.timestamp = 1;
-    const fetchResult = Promise.resolve({ refreshedResponse: refreshedResponse });
+    const fetchResult = Promise.resolve({refreshedResponse: refreshedResponse});
     uidFetcher.getId.returns(fetchResult);
     // when
     leader.start();

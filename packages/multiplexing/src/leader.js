@@ -236,11 +236,13 @@ export class ActualLeader extends Leader {
       const followerId = follower.getId();
       const requestCount = (this._followersRequests[followerId] || 0) + 1;
       const leaderId = this._properties.id;
-      shouldRefresh = shouldRefresh || (this._refreshRequired[follower.getId()] === true);
+      const refreshRequired = this._refreshRequired[follower.getId()] === true;
+      shouldRefresh = shouldRefresh || refreshRequired;
       return {
         ...follower.getFetchIdData(),
         integrationId: followerId,
         requestCount: requestCount,
+        refresh: refreshRequired,
         role: leaderId === follower.getId() ? 'leader' : 'follower',
         cacheId: follower.getCacheId()
       };
@@ -272,8 +274,24 @@ export class ActualLeader extends Leader {
   /**
    *
    * @param {RefreshOptions} options
+   * @param {String} followerId
    */
-  refreshUid(options = {}) {
+  refreshUid(options = {}, followerId) {
+    const forceRefresh = options.forceFetch === true;
+    if (followerId) { // to be backward compatible
+      if (forceRefresh) {
+        this._refreshRequired[followerId] = true;
+      } else {
+        const requestingFollower = this._followers.find((follower) => follower.getId() === followerId);
+        if (requestingFollower) {
+          this._provisionFromCache(requestingFollower);
+        }
+      }
+    }
+    this._callRefresh(options);
+  }
+
+  _callRefresh(options = {}) {
     if (this._inProgressFetch) {
       this._queuedRefreshOptions = options;
       return;
@@ -317,8 +335,14 @@ export class ActualLeader extends Leader {
     }
   }
 
+  /**
+   *
+   * @param {Follower} newFollower
+   * @return {AddFollowerResult}
+   */
   addFollower(newFollower) {
     const logger = this._log;
+    const isUnique = this._followers.find((follower) => follower.getCacheId() === newFollower.getCacheId()) === undefined;
     this._followers.push(newFollower);
     logger.info('Added follower', newFollower.getId(), 'cacheId', newFollower.getCacheId());
     if (this._window !== newFollower.getWindow()) {
@@ -326,7 +350,24 @@ export class ActualLeader extends Leader {
       logger.info(`Adding follower's`, newFollower.getId(), 'storage as replica');
       this._leaderStorage.addReplica(followerStorage);
     }
+    const refreshRequired = this._provisionFromCache(newFollower);
 
+    let result = new AddFollowerResult();
+    const isLateJoiner = this._firstFetchTriggered === true;
+    if (isLateJoiner) {
+      result.lateJoiner = true;
+      result.uniqueLateJoiner = isUnique;
+      if (refreshRequired) {
+        this._callRefresh({
+          forceFetch: true
+        }); // this will be added to queue if in progress
+      }
+    }
+    return result;
+  }
+
+  _provisionFromCache(newFollower) {
+    const logger = this._log;
     const cacheId = newFollower.getCacheId();
     const responseFromCache = this._store.getCachedResponse(cacheId);
     const refreshRequired = !responseFromCache || !responseFromCache.isValid() || responseFromCache.isExpired();
@@ -347,17 +388,7 @@ export class ActualLeader extends Leader {
       logger.info(`Couldn't find response for cacheId`, newFollower.getCacheId());
     }
 
-    let result = new AddFollowerResult();
-    if (this._firstFetchTriggered === true) {
-      result.lateJoiner = true;
-      result.uniqueLateJoiner = !responseFromCache;
-      if (refreshRequired) {
-        this.refreshUid({
-          forceFetch: true
-        }); // this will be added to queue if in progress
-      }
-    }
-    return result;
+    return refreshRequired;
   }
 
   /**
@@ -370,7 +401,7 @@ export class ActualLeader extends Leader {
   _handleFetchCompleted() {
     this._inProgressFetch = undefined;
     if (this._queuedRefreshOptions) {
-      this.refreshUid(this._queuedRefreshOptions);
+      this._callRefresh(this._queuedRefreshOptions);
       this._queuedRefreshOptions = undefined;
     }
   }
@@ -417,8 +448,8 @@ export class ProxyLeader extends Leader {
     this._sendToLeader('updateConsent', [consentData]);
   }
 
-  refreshUid(options) {
-    this._sendToLeader('refreshUid', [options]);
+  refreshUid(options, requester) {
+    this._sendToLeader('refreshUid', [options, requester]);
   }
 
   updateFetchIdData(instanceId, fetchIdData) {
@@ -445,8 +476,8 @@ export class AwaitedLeader extends Leader {
     this._callOrBuffer('updateFetchIdData', [instanceId, fetchIdData]);
   }
 
-  refreshUid(refreshOptions) {
-    this._callOrBuffer('refreshUid', [refreshOptions]);
+  refreshUid(refreshOptions, requester) {
+    this._callOrBuffer('refreshUid', [refreshOptions, requester]);
   }
 
   addFollower(follower) {

@@ -650,7 +650,7 @@ export class Instance {
   }
 
   refreshUid(options) {
-    this._leader.refreshUid(options);
+    this._leader.refreshUid(options, this.properties.id);
   }
 
   _doElection() {
