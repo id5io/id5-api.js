@@ -5,9 +5,9 @@ import {
   ProxyMethodCallTarget
 } from '../../src/messaging.js';
 import sinon from 'sinon';
-import {Follower, ProxyFollower, ProxyStorage} from "../../src/follower.js";
+import {Follower, ProxyFollower, ProxyStorage} from '../../src/follower.js';
 import {DiscoveredInstance, Properties} from '../../src/instance.js';
-import {Leader, ProxyLeader} from "../../src/leader.js";
+import {Leader, ProxyLeader} from '../../src/leader.js';
 import {StorageApi} from '../../src/localStorage.js';
 
 function pcmMessagesReceived(receiver, expectedCount) {
@@ -37,7 +37,7 @@ describe('Proxy Method Call', function () {
     targetFollowerMessenger.onProxyMethodCall(
       new ProxyMethodCallHandler()
         .registerTarget(ProxyMethodCallTarget.FOLLOWER, targetFollower)
-    )
+    );
 
     const proxyFollower = new ProxyFollower(new DiscoveredInstance(properties, undefined, window), callerMessenger);
 
@@ -70,13 +70,15 @@ describe('Proxy Method Call', function () {
     const proxyLeader = new ProxyLeader(callerMessenger, targetId);
 
     // when
-    proxyLeader.refreshUid({refresh: 'options'});
+    proxyLeader.refreshUid({refresh: 'legacy'});
+    proxyLeader.refreshUid({refresh: 'options'}, 'requester-id');
     proxyLeader.updateConsent({consent: 'updated'});
     proxyLeader.updateFetchIdData({instance: 'id'}, {fetch: 'id_data'});
 
     // then
-    return pcmMessagesReceived(targetLeaderMessenger, 3).then(() => {
-      expect(targetLeader.refreshUid).has.been.calledWith({refresh: 'options'});
+    return pcmMessagesReceived(targetLeaderMessenger, 4).then(() => {
+      expect(targetLeader.refreshUid).has.been.calledWith({refresh: 'legacy'});
+      expect(targetLeader.refreshUid).has.been.calledWith({refresh: 'options'}, 'requester-id');
       expect(targetLeader.updateConsent).has.been.calledWith({consent: 'updated'});
       expect(targetLeader.updateFetchIdData).has.been.calledWith({instance: 'id'}, {fetch: 'id_data'});
     });
@@ -92,8 +94,8 @@ describe('Proxy Method Call', function () {
 
     const targetStorage = sinon.createStubInstance(StorageApi);
     targetMessenger.onProxyMethodCall(
-        new ProxyMethodCallHandler().registerTarget(ProxyMethodCallTarget.STORAGE, targetStorage)
-    )
+      new ProxyMethodCallHandler().registerTarget(ProxyMethodCallTarget.STORAGE, targetStorage)
+    );
 
     const proxyStorage = new ProxyStorage(callerMessenger, targetId);
 
@@ -104,7 +106,7 @@ describe('Proxy Method Call', function () {
 
     // then
     return pcmMessagesReceived(targetMessenger, 2).then(() => {
-      expect(targetStorage.setItem).has.been.calledWith('key','value');
+      expect(targetStorage.setItem).has.been.calledWith('key', 'value');
       expect(targetStorage.removeItem).has.been.calledWith('key1');
       // getItem is not called
     });

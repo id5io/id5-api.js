@@ -23,6 +23,7 @@ const MULTI_FETCH_ENDPOINT_V3 = `/gm/v3`;
  * @property {string} role - multiplexing integration role {leader|follower}
  * @property {string} requestCount - number of times integration was included in multiplexed requests so far within session
  * @property {string} cacheId - instance client storage cache identifier
+ * @property {boolean} refresh - true if this instance require refresh, false otherwise
  */
 
 /**
@@ -181,6 +182,7 @@ export class UidRefresher {
       'requestCount': fetchIdData.requestCount,
       'role': fetchIdData.role,
       'cacheId': fetchIdData.cacheId,
+      'refresh': fetchIdData.refresh,
       'partner': partner,
       'v': fetchIdData.originVersion,
       'o': fetchIdData.origin,

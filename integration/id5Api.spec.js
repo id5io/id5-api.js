@@ -288,6 +288,8 @@ describe('The ID5 API', function () {
 
       expect(requestBody1.segments).to.deep.eq([{destination: '22', ids: ['abc']}]);
       expect(requestBody2.segments).to.deep.eq([{destination: '24', ids: ['def']}]);
+      expect(requestBody2.requestCount).to.be.eq(2);
+      expect(requestBody2.refresh).to.be.eq(true);
     });
   });
 
