@@ -295,97 +295,128 @@ describe('Id5Instance', function () {
       expect(multiplexingInstanceStub.updateConsent).to.have.been.calledWith(MOCK_CONSENT_DATA);
     });
 
-    it('should register a new multiplexing instance with correct options and correct fetch ID data', async function () {
-      const config = new Config({
-        partnerId: TEST_ID5_PARTNER_ID,
-        refreshInSeconds: 33,
-        partnerUserId: 'puid-abc',
-        callbackTimeoutInMs: 450,
-        pd: 'some_pd_string',
-        provider: 'unit-test',
-        storageExpirationDays: 13,
-        att: 1
-      }, NO_OP_LOGGER);
-      const metrics = sinon.createStubInstance(Id5CommonMetrics);
-      const consentManagement = sinon.createStubInstance(ConsentManagement);
-      consentManagement.isForceAllowLocalStorageGrant.returns(false);
-      const consentDataProvider = sinon.createStubInstance(ConsentDataProvider);
-      consentDataProvider.refreshConsentData.resolves(MOCK_CONSENT_DATA);
-      const instanceUnderTest = new Id5Instance(config, null, consentManagement, metrics, consentDataProvider, NO_OP_LOGGER, multiplexingInstanceStub, MOCK_PAGE_LEVEL_INFO);
-      instanceUnderTest.bootstrap();
-
-      await instanceUnderTest.firstFetch();
-
-      expect(multiplexingInstanceStub.register).to.have.been.calledOnce;
-      const registerObj = multiplexingInstanceStub.register.firstCall.firstArg;
-      expect(registerObj.source).to.eq('api');
-      expect(registerObj.sourceVersion).to.eq(version);
-      expect(registerObj.sourceConfiguration.options).to.deep.eq({
-        partnerId: TEST_ID5_PARTNER_ID,
-        abTesting: {
-          controlGroupPct: 0,
-          enabled: false
+    [
+      ['default',
+        {},
+        {}
+      ],
+      ['allowedVendors',
+        {
+          consentData: {
+            allowedVendors: ['1', '123']
+          }
         },
-        acr: false,
-        allowLocalStorageWithoutConsentApi: false,
-        applyCreativeRestrictions: false,
-        callbackOnAvailable: undefined,
-        callbackOnUpdates: undefined,
-        cmpApi: 'iab',
-        consentData: {
-          getConsentData: {
-            consentData: undefined,
-            gdprApplies: undefined
+        {
+          allowedVendors: ['1', '123'],
+          consentSource: 'cmp'
+        }],
+      ['consentSource - cmp',
+        {
+          cmpApi: 'iab'
+        },
+        {
+          consentSource: 'cmp'
+        }],
+      ['consentSource - partner',
+        {
+          cmpApi: 'static'
+        },
+        {
+          consentSource: 'partner'
+        }]
+    ].forEach(([tc, additionalConfig, additionalExpectedRegistration]) => {
+      it(`should register a new multiplexing instance with correct options and correct fetch ID data - ${tc}`, async function () {
+        const config = new Config({
+          partnerId: TEST_ID5_PARTNER_ID,
+          refreshInSeconds: 33,
+          partnerUserId: 'puid-abc',
+          callbackTimeoutInMs: 450,
+          pd: 'some_pd_string',
+          provider: 'unit-test',
+          storageExpirationDays: 13,
+          att: 1,
+          ...additionalConfig
+        }, NO_OP_LOGGER);
+        const metrics = sinon.createStubInstance(Id5CommonMetrics);
+        const consentManagement = sinon.createStubInstance(ConsentManagement);
+        consentManagement.isForceAllowLocalStorageGrant.returns(false);
+        const consentDataProvider = sinon.createStubInstance(ConsentDataProvider);
+        consentDataProvider.refreshConsentData.resolves(MOCK_CONSENT_DATA);
+        const instanceUnderTest = new Id5Instance(config, null, consentManagement, metrics, consentDataProvider, NO_OP_LOGGER, multiplexingInstanceStub, MOCK_PAGE_LEVEL_INFO);
+        instanceUnderTest.bootstrap();
+
+        await instanceUnderTest.firstFetch();
+
+        expect(multiplexingInstanceStub.register).to.have.been.calledOnce;
+        const registerObj = multiplexingInstanceStub.register.firstCall.firstArg;
+        expect(registerObj.source).to.eq('api');
+        expect(registerObj.sourceVersion).to.eq(version);
+        expect(registerObj.sourceConfiguration.options).to.deep.eq({
+          partnerId: TEST_ID5_PARTNER_ID,
+          abTesting: {
+            controlGroupPct: 0,
+            enabled: false
           },
-          getVendorConsents: {}
-        },
-        debugBypassConsent: false,
-        allowGCReclaim: GCReclaimAllowed.AFTER_UID_SET,
-        diagnostics: {
-          publishAfterLoadInMsec: 30000,
-          publishBeforeWindowUnload: true,
-          publishingDisabled: false,
-          publishingSampleRatio: 0.01
-        },
-        disableUaHints: false,
-        maxCascades: 8,
-        multiplexing: {
-          _disabled: false
-        },
-        refreshInSeconds: 33,
-        segments: undefined,
-        partnerUserId: 'puid-abc',
-        callbackTimeoutInMs: 450,
-        pd: 'some_pd_string',
-        provider: 'unit-test',
-        storageExpirationDays: 13,
-        att: 1
+          acr: false,
+          allowLocalStorageWithoutConsentApi: false,
+          applyCreativeRestrictions: false,
+          callbackOnAvailable: undefined,
+          callbackOnUpdates: undefined,
+          cmpApi: 'iab',
+          consentData: {
+          },
+          debugBypassConsent: false,
+          allowGCReclaim: GCReclaimAllowed.AFTER_UID_SET,
+          diagnostics: {
+            publishAfterLoadInMsec: 30000,
+            publishBeforeWindowUnload: true,
+            publishingDisabled: false,
+            publishingSampleRatio: 0.01
+          },
+          disableUaHints: false,
+          maxCascades: 8,
+          multiplexing: {
+            _disabled: false
+          },
+          refreshInSeconds: 33,
+          segments: undefined,
+          partnerUserId: 'puid-abc',
+          callbackTimeoutInMs: 450,
+          pd: 'some_pd_string',
+          provider: 'unit-test',
+          storageExpirationDays: 13,
+          att: 1,
+          ...additionalConfig
+        });
+        expect(registerObj.fetchIdData).to.deep.eq({
+          partnerId: TEST_ID5_PARTNER_ID,
+          refererInfo: null,
+          origin: 'api',
+          originVersion: '0.0',
+          isUsingCdn: true,
+          att: 1,
+          uaHints: MOCK_UA_HINTS,
+          abTesting: {
+            controlGroupPct: 0,
+            enabled: false
+          },
+          segments: undefined,
+          invalidSegmentsCount: 0,
+          provider: 'unit-test',
+          pd: 'some_pd_string',
+          partnerUserId: 'puid-abc',
+          refreshInSeconds: 33,
+          providedRefreshInSeconds: 33,
+          trace: false,
+          consentSource: 'cmp',
+          allowedVendors: undefined,
+          ...additionalExpectedRegistration
+        });
+        expect(registerObj.singletonMode).to.be.false;
+        expect(registerObj.canDoCascade).to.be.true;
+        expect(registerObj.forceAllowLocalStorageGrant).to.be.false;
+        expect(registerObj.storageExpirationDays).to.eq(13);
       });
-      expect(registerObj.fetchIdData).to.deep.eq({
-        partnerId: TEST_ID5_PARTNER_ID,
-        refererInfo: null,
-        origin: 'api',
-        originVersion: '0.0',
-        isUsingCdn: true,
-        att: 1,
-        uaHints: MOCK_UA_HINTS,
-        abTesting: {
-          controlGroupPct: 0,
-          enabled: false
-        },
-        segments: undefined,
-        invalidSegmentsCount: 0,
-        provider: 'unit-test',
-        pd: 'some_pd_string',
-        partnerUserId: 'puid-abc',
-        refreshInSeconds: 33,
-        providedRefreshInSeconds: 33,
-        trace: false
-      });
-      expect(registerObj.singletonMode).to.be.false;
-      expect(registerObj.canDoCascade).to.be.true;
-      expect(registerObj.forceAllowLocalStorageGrant).to.be.false;
-      expect(registerObj.storageExpirationDays).to.eq(13);
     });
 
     it('should not block ID fetching if consent provider failed to refresh consent data', async function () {

@@ -157,4 +157,11 @@ export class Id5CommonMetrics extends MeterRegistry {
     return this.timer('instance.survival.time', tags);
   }
 
+  localStorageGrantCounter(tags = {}) {
+    return this.counter('consent.lsg.count', tags);
+  }
+
+  consentDiscrepancyCounter(tags = {}) {
+    return this.counter('consent.discrepancy.count', tags);
+  }
 }

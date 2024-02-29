@@ -1,42 +1,9 @@
 import sinon from 'sinon';
 import {ConsentDataProvider} from '../../lib/consentProvider.js';
-import {API_TYPE, GRANT_TYPE, ID5_GVL_ID, NO_OP_LOGGER} from "@id5io/multiplexing";
-import {Id5CommonMetrics} from "@id5io/diagnostics";
+import {API_TYPE, GRANT_TYPE, ID5_GVL_ID, NO_OP_LOGGER, ConsentSource} from '@id5io/multiplexing';
+import {Id5CommonMetrics} from '@id5io/diagnostics';
 
 chai.should();
-
-const TEST_CONSENT_DATA_V1 = {
-  getConsentData: {
-    'gdprApplies': true,
-    'hasGlobalScope': false,
-    'consentData': 'BOOgjO9OOgjO9APABAENAi-AAAAWd7_______9____7_9uz_Gv_r_ff_3nW0739P1A_r_Oz_rm_-zzV44_lpQQRCEA'
-  },
-  getVendorConsents: {
-    'metadata': 'BOOgjO9OOgjO9APABAENAi-AAAAWd7_______9____7_9uz_Gv_r_ff_3nW0739P1A_r_Oz_rm_-zzV44_lpQQRCEA',
-    'gdprApplies': true,
-    'hasGlobalScope': false,
-    'isEU': true,
-    'cookieVersion': 1,
-    'created': '2018-05-29T07:45:48.522Z',
-    'lastUpdated': '2018-05-29T07:45:48.522Z',
-    'cmpId': 15,
-    'cmpVersion': 1,
-    'consentLanguage': 'EN',
-    'vendorListVersion': 34,
-    'maxVendorId': 10,
-    'purposeConsents': {
-      '1': true, // Cookies/local storage access
-      '2': true,
-      '3': true,
-      '4': true,
-      '5': true
-    },
-    'vendorConsents': {
-      '1': true,
-      '2': true
-    }
-  }
-};
 
 const TEST_CONSENT_DATA_V2 = {
   getTCData: {
@@ -113,7 +80,7 @@ describe('Consent Data Provider', function () {
 
   beforeEach(function () {
     logger = NO_OP_LOGGER; // `= console;` for debug purposes
-    metrics = new Id5CommonMetrics('api', '1')
+    metrics = new Id5CommonMetrics('api', '1');
     consentProvider = new ConsentDataProvider(metrics, logger);
     logErrorSpy = sinon.spy(logger, 'error');
     logWarnSpy = sinon.spy(logger, 'warn');
@@ -133,7 +100,7 @@ describe('Consent Data Provider', function () {
     // then
     return consentDataPromise.catch(exception => {
       expect(logErrorSpy).to.be.called;
-      expect(exception.message).to.be.eql('Unknown consent API: bad')
+      expect(exception.message).to.be.eql('Unknown consent API: bad');
     });
   });
 
@@ -168,6 +135,7 @@ describe('Consent Data Provider', function () {
 
         // then
         return consentDataPromise.then(consentData => {
+          expect(consentData.source).to.eq(ConsentSource.partner);
           expect(consentData.api).to.equal(API_TYPE.TCF_V2);
           expect(consentData.gdprApplies).is.eq(tcData && tcData.gdprApplies);
           expect(consentData.consentString).is.eq(tcStringWithStorageConsent);
@@ -194,6 +162,7 @@ describe('Consent Data Provider', function () {
 
         // then
         return consentDataPromise.then(consentData => {
+          expect(consentData.source).to.eq(ConsentSource.partner);
           expect(consentData.api).to.equal(API_TYPE.TCF_V2);
           expect(consentData.gdprApplies).is.eq(tcData && tcData.gdprApplies);
           expect(consentData.consentString).is.eq(tcStringWithStorageConsent);
@@ -215,6 +184,7 @@ describe('Consent Data Provider', function () {
       // then
       return consentDataPromise.then(consentData => {
         expect(logWarnSpy).to.be.called;
+        expect(consentData.source).to.eq(ConsentSource.partner);
         expect(consentData.api).to.equal(API_TYPE.NONE);
         expect(consentData.gdprApplies).to.be.false;
         expect(consentData.isGranted()).to.be.true;
@@ -232,45 +202,8 @@ describe('Consent Data Provider', function () {
       // then
       return consentDataPromise.then(consentData => {
         expect(logWarnSpy).to.be.called;
+        expect(consentData.source).to.eq(ConsentSource.partner);
         expect(consentData.api).to.equal(API_TYPE.NONE);
-        expect(consentData.gdprApplies).to.be.false;
-        expect(consentData.isGranted()).to.be.true;
-        const localStorageGrant = consentData.localStorageGrant();
-        expect(localStorageGrant.allowed).is.eq(true);
-        expect(localStorageGrant.grantType).is.eq(GRANT_TYPE.PROVISIONAL);
-        expect(localStorageGrant.api).is.eq(API_TYPE.NONE);
-      });
-    });
-
-    it('should parse correctly TCFv1 static data', function () {
-      // when
-      const consentDataPromise = consentProvider.refreshConsentData(false, 'static', TEST_CONSENT_DATA_V1);
-
-      // then
-      return consentDataPromise.then(consentData => {
-        expect(consentData.api).to.equal(API_TYPE.TCF_V1);
-        expect(consentData.consentString).to.equal(TEST_CONSENT_DATA_V1.getConsentData.consentData);
-        expect(consentData.gdprApplies).to.be.true;
-        expect(consentData.isGranted()).to.be.true;
-        const localStorageGrant = consentData.localStorageGrant();
-        expect(localStorageGrant.allowed).is.eq(true);
-        expect(localStorageGrant.grantType).is.eq(GRANT_TYPE.CONSENT_API);
-        expect(localStorageGrant.api).is.eq(API_TYPE.TCF_V1);
-      });
-    });
-
-    it('prints an error if static TCFv1 data is invalid', function () {
-      // when
-      const consentDataPromise = consentProvider.refreshConsentData(false, 'static', {
-        getConsentData: {},
-        getVendorConsents: {}
-      });
-
-      // then
-      return consentDataPromise.then(consentData => {
-        expect(logErrorSpy).to.be.called;
-        expect(consentData.api).to.equal(API_TYPE.NONE);
-        expect(consentData.consentString).to.equal(undefined);
         expect(consentData.gdprApplies).to.be.false;
         expect(consentData.isGranted()).to.be.true;
         const localStorageGrant = consentData.localStorageGrant();
@@ -287,6 +220,7 @@ describe('Consent Data Provider', function () {
       // then
       return consentDataPromise.then(consentData => {
         expect(logWarnSpy).to.be.called;
+        expect(consentData.source).to.eq(ConsentSource.partner);
         expect(consentData.api).to.equal(API_TYPE.NONE);
         expect(consentData.consentString).to.equal(undefined);
         expect(consentData.gdprApplies).to.be.false;
@@ -304,8 +238,8 @@ describe('Consent Data Provider', function () {
 
       // then
       return consentDataPromise.then(consentData => {
-        expect(logWarnSpy).to.not.be.called;
         expect(logErrorSpy).to.not.be.called;
+        expect(consentData.source).to.eq(ConsentSource.partner);
         expect(consentData.api).to.equal(API_TYPE.TCF_V2);
         expect(consentData.consentString).to.equal(TEST_CONSENT_DATA_V2.getTCData.tcString);
         expect(consentData.gdprApplies).to.be.true;
@@ -324,6 +258,7 @@ describe('Consent Data Provider', function () {
       // then
       return consentDataPromise.then(consentData => {
         expect(logErrorSpy).to.be.called;
+        expect(consentData.source).to.eq(ConsentSource.partner);
         expect(consentData.api).to.equal(API_TYPE.NONE);
         expect(consentData.consentString).to.equal(undefined);
         expect(consentData.gdprApplies).to.be.false;
@@ -341,6 +276,7 @@ describe('Consent Data Provider', function () {
 
       // then
       return consentDataPromise.then(consentData => {
+        expect(consentData.source).to.eq(ConsentSource.partner);
         expect(consentData.api).to.equal(API_TYPE.USP_V1);
         expect(consentData.consentString).to.equal(undefined);
         expect(consentData.gdprApplies).to.be.false;
@@ -360,6 +296,7 @@ describe('Consent Data Provider', function () {
       // then
       return consentDataPromise.then(consentData => {
         expect(logErrorSpy).to.be.called;
+        expect(consentData.source).to.eq(ConsentSource.partner);
         expect(consentData.api).to.equal(API_TYPE.NONE);
         expect(consentData.consentString).to.equal(undefined);
         expect(consentData.gdprApplies).to.be.false;
@@ -380,6 +317,7 @@ describe('Consent Data Provider', function () {
       return consentDataPromise.then(consentData => {
         expect(logErrorSpy).to.not.be.called;
         expect(logWarnSpy).to.not.be.called;
+        expect(consentData.source).to.eq(ConsentSource.partner);
         expect(consentData.api).to.equal(API_TYPE.ID5_ALLOWED_VENDORS);
         expect(consentData.consentString).to.be.undefined;
         expect(consentData.gdprApplies).to.be.true;
@@ -400,6 +338,7 @@ describe('Consent Data Provider', function () {
       return consentDataPromise.then(consentData => {
         expect(logErrorSpy).to.not.be.called;
         expect(logWarnSpy).to.not.be.called;
+        expect(consentData.source).to.eq(ConsentSource.partner);
         expect(consentData.api).to.equal(API_TYPE.ID5_ALLOWED_VENDORS);
         expect(consentData.consentString).to.be.undefined;
         expect(consentData.gdprApplies).to.be.true;
@@ -441,196 +380,12 @@ describe('Consent Data Provider', function () {
       let consentData = await consentProvider.refreshConsentData(false, 'iab', undefined);
 
       // then
+      expect(consentData.source).to.eq(ConsentSource.cmp);
       expect(consentData.api).to.eq(API_TYPE.NONE);
       expect(logWarnSpy).to.be.calledWith('cmpApi: GPP not found! Using defaults.');
       let measurements = metrics.getAllMeasurements();
-      expect(measurements.find(m => m.name === 'id5.api.gpp.failure')).is.undefined
+      expect(measurements.find(m => m.name === 'id5.api.gpp.failure')).is.undefined;
 
-    });
-  });
-  describe('with TCFv1 IAB compliant CMP', function () {
-    let cmpStub;
-
-    beforeEach(function () {
-      window.__cmp = cmpStub = sinon.stub();
-    });
-
-    afterEach(function () {
-      delete window.__cmp;
-    });
-
-    it('can receive the data in a normal call flow', async () => {
-      // given
-      cmpStub.callsFake((command, param, callback) => {
-        callback(TEST_CONSENT_DATA_V1[command], true);
-      });
-
-      // when
-      const consentDataPromise = consentProvider.refreshConsentData(false, 'iab', undefined);
-
-      // then
-      return consentDataPromise.then(consentData => {
-        expect(cmpStub).to.be.calledWith('getConsentData');
-        expect(cmpStub).to.be.calledWith('getVendorConsents');
-        expect(consentData.consentString).to.equal(TEST_CONSENT_DATA_V1.getConsentData.consentData);
-        expect(consentData.localStoragePurposeConsent).to.equal(TEST_CONSENT_DATA_V1.getVendorConsents.purposeConsents['1']);
-        expect(consentData.gdprApplies).to.be.true;
-        expect(consentData.api).to.equal(API_TYPE.TCF_V1);
-        let localStorageGrant = consentData.localStorageGrant();
-        expect(localStorageGrant.grantType).to.be.eq(GRANT_TYPE.CONSENT_API);
-        expect(localStorageGrant.api).to.be.eq(API_TYPE.TCF_V1);
-        expect(localStorageGrant.allowed).to.be.eq(true);
-      });
-    });
-
-    [false, null, undefined, "xxx"].forEach(value => {
-      it(`disallows local storage when vendor purpose 1 has value ${value}`, async () => {
-        const cloneTestData = clone(TEST_CONSENT_DATA_V1);
-        cloneTestData.getVendorConsents.purposeConsents['1'] = value;
-        cmpStub.callsFake((command, param, callback) => {
-          callback(cloneTestData[command], true);
-        });
-        // when
-        const consentDataPromise = consentProvider.refreshConsentData(false, 'iab', undefined);
-
-        // then
-        return consentDataPromise.then(consentData => {
-          expect(cmpStub).to.be.calledWith('getConsentData');
-          expect(cmpStub).to.be.calledWith('getVendorConsents');
-          expect(consentData.consentString).to.equal(cloneTestData.getConsentData.consentData);
-          expect(consentData.localStoragePurposeConsent).to.equal(value);
-          expect(consentData.gdprApplies).to.be.true;
-          expect(consentData.api).to.equal(API_TYPE.TCF_V1);
-          let localStorageGrant = consentData.localStorageGrant();
-          expect(localStorageGrant.grantType).to.be.eq(GRANT_TYPE.CONSENT_API);
-          expect(localStorageGrant.api).to.be.eq(API_TYPE.TCF_V1);
-          expect(localStorageGrant.allowed).to.be.eq(false);
-        });
-      });
-    });
-
-    it('allows local storage when not in GDPR jurisdiction', function () {
-      const cloneTestData = clone(TEST_CONSENT_DATA_V1);
-      cloneTestData.getConsentData.gdprApplies = false;
-      cloneTestData.getVendorConsents.purposeConsents['1'] = false;
-      cmpStub.callsFake((command, param, callback) => {
-        callback(cloneTestData[command], true);
-      });
-      // when
-      const consentDataPromise = consentProvider.refreshConsentData(false, 'iab', undefined);
-
-      // then
-      return consentDataPromise.then(consentData => {
-        expect(cmpStub).to.be.calledWith('getConsentData');
-        expect(cmpStub).to.be.calledWith('getVendorConsents');
-        expect(consentData.consentString).to.equal(cloneTestData.getConsentData.consentData);
-        expect(consentData.localStoragePurposeConsent).to.equal(false);
-        expect(consentData.gdprApplies).to.be.false;
-        expect(consentData.api).to.equal(API_TYPE.TCF_V1);
-        let localStorageGrant = consentData.localStorageGrant();
-        expect(localStorageGrant.grantType).to.be.eq(GRANT_TYPE.CONSENT_API);
-        expect(localStorageGrant.api).to.be.eq(API_TYPE.TCF_V1);
-        expect(localStorageGrant.allowed).to.be.eq(true);
-      });
-    });
-
-    it('should bypass CMP when calling 2nd time while 1st is in progress and return stored result', async () => {
-      // given
-      let providerCallbacks = {};
-      cmpStub.callsFake((command, param, callback) => {
-        providerCallbacks[command] = callback;
-      });
-
-      // when
-      const firstCallPromise = consentProvider.refreshConsentData(false, 'iab', undefined);
-
-      // then
-      expect(cmpStub).to.be.calledWith('getConsentData');
-      expect(cmpStub).to.be.calledWith('getVendorConsents');
-
-      // when
-      cmpStub.resetHistory();
-      const secondCallPromise = consentProvider.refreshConsentData(false, 'iab', undefined);
-      for (const command of ['getConsentData', 'getVendorConsents']) {
-        providerCallbacks[command](TEST_CONSENT_DATA_V1[command], true)
-      }
-
-      return Promise.all([firstCallPromise, secondCallPromise]).then(() => {
-        expect(firstCallPromise).to.be.eq(secondCallPromise);
-        expect(cmpStub).to.not.be.called;
-      })
-    });
-
-    it('should refresh consent data', async () => {
-      // given
-      cmpStub.callsFake((command, param, callback) => {
-        callback(TEST_CONSENT_DATA_V1[command]);
-      });
-
-
-      // when
-      return consentProvider.refreshConsentData(false, 'iab', undefined)
-        .then(() => {
-          expect(cmpStub).to.be.calledWith('getConsentData');
-          expect(cmpStub).to.be.calledWith('getVendorConsents');
-          cmpStub.resetHistory();
-          // second call
-          return consentProvider.refreshConsentData(false, 'iab', undefined);
-        }).then(() => {
-          // second call cmp
-          expect(cmpStub).to.be.calledWith('getConsentData');
-          expect(cmpStub).to.be.calledWith('getVendorConsents');
-        });
-    });
-
-    [
-      {
-        getConsentData: null,
-        getVendorConsents: TEST_CONSENT_DATA_V1.getVendorConsents
-      },
-      {
-        getConsentData: {getConsentData: {}},
-        getVendorConsents: TEST_CONSENT_DATA_V1.getVendorConsents
-      },
-      {
-        getConsentData: {getConsentData: {gdprApplies: ''}},
-        getVendorConsents: TEST_CONSENT_DATA_V1.getVendorConsents
-      },
-      {
-        getConsentData: {getConsentData: {gdprApplies: true, consentData: null}},
-        getVendorConsents: TEST_CONSENT_DATA_V1.getVendorConsents
-      },
-      {
-        getConsentData: TEST_CONSENT_DATA_V1.getConsentData,
-        getVendorConsents: null
-      },
-      {
-        getConsentData: TEST_CONSENT_DATA_V1.getConsentData,
-        getVendorConsents: {getVendorConsents: {}}
-      }
-    ].forEach((dataObj) => {
-        it('prints an error when TCF data is invalid', async () => {
-          cmpStub.callsFake((command, param, callback) => {
-            callback(dataObj[command], true);
-          });
-          return consentProvider.refreshConsentData(false, 'iab', undefined)
-            .then(consent => {
-              expect(logErrorSpy).to.be.calledWith('cmpApi: Invalid CMP data. Using defaults for GDPR.');
-              expect(consent.api).to.equal(API_TYPE.NONE);
-            });
-        });
-      }
-    );
-
-    it('prints an error when TCF callback unsuccesful', async () => {
-      cmpStub.callsFake((command, param, callback) => {
-        callback(null, false);
-      });
-      return consentProvider.refreshConsentData(false, 'iab', undefined)
-        .then(consent => {
-          expect(logErrorSpy).to.be.calledWith('cmpApi: Invalid CMP data. Using defaults for GDPR.');
-          expect(consent.api).to.equal(API_TYPE.NONE);
-        });
     });
   });
 
@@ -655,6 +410,7 @@ describe('Consent Data Provider', function () {
       return consentProvider.refreshConsentData(false, 'iab', undefined)
         .then(consent => {
           expect(cmpStub).to.be.calledWith('addEventListener', 2);
+          expect(consent.source).to.eq(ConsentSource.cmp);
           expect(consent.api).to.be.eq(API_TYPE.TCF_V2);
           expect(consent.consentString).to.equal(TEST_CONSENT_DATA_V2.getTCData.tcString);
           expect(consent.localStoragePurposeConsent).to.equal(TEST_CONSENT_DATA_V2.getTCData.purpose.consents['1']);
@@ -691,10 +447,10 @@ describe('Consent Data Provider', function () {
       });
     });
 
-    [false, null, undefined, "xxx"].forEach(value => {
+    [false, null, undefined, 'xxx'].forEach(value => {
       it(`disallows local storage when vendor purpose 1 has value ${value} and no given consent in encoded string`, async () => {
         const cloneTestData = clone(TEST_CONSENT_DATA_V2);
-        cloneTestData.getTCData.tcString = TCF_V2_STRING_WITHOUT_STORAGE_ACCESS_CONSENT
+        cloneTestData.getTCData.tcString = TCF_V2_STRING_WITHOUT_STORAGE_ACCESS_CONSENT;
         cloneTestData.getTCData.purpose.consents['1'] = value;
 
         cmpStub.callsFake((command, version, callback) => {
@@ -704,6 +460,7 @@ describe('Consent Data Provider', function () {
         });
         return consentProvider.refreshConsentData(false, 'iab', undefined)
           .then(consent => {
+            expect(consent.source).to.eq(ConsentSource.cmp);
             expect(consent.api).to.be.eq(API_TYPE.TCF_V2);
             expect(consent.consentString).to.equal(cloneTestData.getTCData.tcString);
             expect(consent.localStoragePurposeConsent).to.equal(false);
@@ -716,7 +473,7 @@ describe('Consent Data Provider', function () {
           });
       });
     });
-    [null, undefined, "xxx"].forEach(value => {
+    [null, undefined, 'xxx'].forEach(value => {
       it(`allows local storage when vendor purpose 1 is undefined or invalid but given consent is in encoded string`, async () => {
         const cloneTestData = clone(TEST_CONSENT_DATA_V2);
         cloneTestData.getTCData.tcString = TCF_V2_STRING_WITH_STORAGE_ACCESS_CONSENT;
@@ -728,6 +485,7 @@ describe('Consent Data Provider', function () {
         });
         return consentProvider.refreshConsentData(false, 'iab', undefined)
           .then(consent => {
+            expect(consent.source).to.eq(ConsentSource.cmp);
             expect(consent.api).to.be.eq(API_TYPE.TCF_V2);
             expect(consent.consentString).to.equal(cloneTestData.getTCData.tcString);
             expect(consent.localStoragePurposeConsent).to.equal(true);
@@ -749,10 +507,11 @@ describe('Consent Data Provider', function () {
       });
       return consentProvider.refreshConsentData(false, 'iab', undefined)
         .then(consent => {
+          expect(consent.source).to.eq(ConsentSource.cmp);
           expect(consent.api).to.be.eq(API_TYPE.TCF_V2);
           expect(consent.consentString).to.equal(cloneTestData.getTCData.tcString);
           expect(consent.localStoragePurposeConsent).to.equal(cloneTestData.getTCData.purpose.consents['1']);
-          expect(consent.gdprApplies).to.be.false
+          expect(consent.gdprApplies).to.be.false;
           expect(consent.isGranted()).to.be.true;
           let lsGrant = consent.localStorageGrant();
           expect(lsGrant.allowed).to.be.true;
@@ -818,6 +577,7 @@ describe('Consent Data Provider', function () {
       return consentProvider.refreshConsentData(false, 'iab', undefined)
         .then(consent => {
           expect(cmpStub).to.be.calledWith('getUSPData', 1);
+          expect(consent.source).to.eq(ConsentSource.cmp);
           expect(consent.gdprApplies).to.be.false;
           expect(consent.ccpaString).to.equal('1YYN');
           expect(consent.api).to.be.eq(API_TYPE.USP_V1);
@@ -887,26 +647,26 @@ describe('Consent Data Provider', function () {
   function createGppV10Flow() {
     return {
       ping: {
-        gppVersion: "1.0",
-        cmpStatus: "loading",
-        cmpDisplayStatus: "hidden"
+        gppVersion: '1.0',
+        cmpStatus: 'loading',
+        cmpDisplayStatus: 'hidden'
       },
       firstEvent: {
         eventName: 'cmpStatus',
         pingData: {
-          cmpStatus: "loaded",
-          cmpDisplayStatus: "visible"
+          cmpStatus: 'loaded',
+          cmpDisplayStatus: 'visible'
         }
       },
       secondEvent: {
         eventName: 'cmpStatus',
         pingData: {
-          cmpStatus: "loaded",
-          cmpDisplayStatus: "hidden"
+          cmpStatus: 'loaded',
+          cmpDisplayStatus: 'hidden'
         }
       },
       gppData: {
-        gppString: "GPP_STRING",
+        gppString: 'GPP_STRING',
         applicableSections: [2] //tcfv2
       },
       tcfData: {
@@ -949,9 +709,10 @@ describe('Consent Data Provider', function () {
       return consentProvider.refreshConsentData(false, 'iab', undefined)
         .then(consent => {
           expect(cmpStub).to.be.callCount(4);
+          expect(consent.source).to.eq(ConsentSource.cmp);
           expect(consent.api).to.be.eq(API_TYPE.GPP_V1_0);
           expect(consent.isGranted()).to.be.true;
-          expect(consent.gppData.gppString).is.eq("GPP_STRING");
+          expect(consent.gppData.gppString).is.eq('GPP_STRING');
           expect(consent.gppData.applicableSections).deep.equal([2]);
           expect(consent.gppData.version).is.eq(API_TYPE.GPP_V1_0);
           expect(consent.gppData.localStoragePurposeConsent).is.true;
@@ -963,7 +724,7 @@ describe('Consent Data Provider', function () {
         });
     });
 
-    [false, null, undefined, "xxx"].forEach(value => {
+    [false, null, undefined, 'xxx'].forEach(value => {
       it(`disallows local storage when vendor purpose 1 has value ${value}`, async () => {
         cmpStub.callsFake(createGppV10Stub((responses) => responses.tcfData = {
           PurposeConsent: [value],
@@ -996,42 +757,44 @@ describe('Consent Data Provider', function () {
         }));
         return consentProvider.refreshConsentData(false, 'iab', undefined)
           .then(consent => {
+            expect(consent.source).to.eq(ConsentSource.cmp);
             expect(consent.api).to.be.eq(API_TYPE.NONE);
-            expect(consent.gppData).to.be.undefined
-            expect(logErrorSpy).to.be.calledWith('cmpApi: creating GPP client not successful. Using defaults for Gpp.')
+            expect(consent.gppData).to.be.undefined;
+            expect(logErrorSpy).to.be.calledWith('cmpApi: creating GPP client not successful. Using defaults for Gpp.');
           });
-      })
+      });
       it('prints an error when no gpp data', async () => {
         cmpStub.callsFake(createGppV10Stub((responses) => {
           responses.gppData = undefined;
         }));
         return consentProvider.refreshConsentData(false, 'iab', undefined)
           .then(consent => {
+            expect(consent.source).to.eq(ConsentSource.cmp);
             expect(consent.api).to.be.eq(API_TYPE.NONE);
-            expect(consent.gppData).to.be.undefined
-            expect(logErrorSpy).to.be.calledWith('cmpApi: getting GPP consent not successful. Using defaults for Gpp.')
+            expect(consent.gppData).to.be.undefined;
+            expect(logErrorSpy).to.be.calledWith('cmpApi: getting GPP consent not successful. Using defaults for Gpp.');
           });
-      })
+      });
     });
   });
 
   function createGppV11Flow() {
     return {
       ping: {
-        gppVersion: "1.1",
-        signalStatus: "not ready"
+        gppVersion: '1.1',
+        signalStatus: 'not ready'
       },
       firstEvent: {
         eventName: 'signalStatus',
         pingData: {
-          signalStatus: "not ready"
+          signalStatus: 'not ready'
         }
       },
       secondEvent: {
         eventName: 'signalStatus',
         pingData: {
-          signalStatus: "ready",
-          gppString: "GPP_STRING_V1_1",
+          signalStatus: 'ready',
+          gppString: 'GPP_STRING_V1_1',
           applicableSections: [1, 2],
           parsedSections: {
             tcfeuv2: [{
@@ -1073,9 +836,10 @@ describe('Consent Data Provider', function () {
       return consentProvider.refreshConsentData(false, 'iab', undefined)
         .then(consent => {
           expect(cmpStub).to.be.callCount(2);
+          expect(consent.source).to.eq(ConsentSource.cmp);
           expect(consent.api).to.be.eq(API_TYPE.GPP_V1_1);
           expect(consent.isGranted()).to.be.true;
-          expect(consent.gppData.gppString).is.eq("GPP_STRING_V1_1");
+          expect(consent.gppData.gppString).is.eq('GPP_STRING_V1_1');
           expect(consent.gppData.applicableSections).deep.equal([1, 2]);
           expect(consent.gppData.version).is.eq(API_TYPE.GPP_V1_1);
           expect(consent.gppData.localStoragePurposeConsent).is.true;
@@ -1087,7 +851,7 @@ describe('Consent Data Provider', function () {
         });
     });
 
-    [false, null, undefined, "xxx"].forEach(value => {
+    [false, null, undefined, 'xxx'].forEach(value => {
       it(`disallows local storage when vendor purpose 1 has value ${value}`, async () => {
         cmpStub.callsFake(createGppV11Stub((responses) => responses.secondEvent.pingData.parsedSections.tcfeuv2[0].PurposeConsent = [value]));
         return consentProvider.refreshConsentData(false, 'iab', undefined)
@@ -1118,10 +882,10 @@ describe('Consent Data Provider', function () {
         return consentProvider.refreshConsentData(false, 'iab', undefined)
           .then(consent => {
             expect(consent.api).to.be.eq(API_TYPE.NONE);
-            expect(consent.gppData).to.be.undefined
-            expect(logErrorSpy).to.be.calledWith('cmpApi: creating GPP client not successful. Using defaults for Gpp.')
+            expect(consent.gppData).to.be.undefined;
+            expect(logErrorSpy).to.be.calledWith('cmpApi: creating GPP client not successful. Using defaults for Gpp.');
           });
-      })
+      });
       it('prints an error when no gpp data', async () => {
         cmpStub.callsFake(createGppV11Stub((responses) => {
           responses.secondEvent.pingData = undefined;
@@ -1129,51 +893,14 @@ describe('Consent Data Provider', function () {
         return consentProvider.refreshConsentData(false, 'iab', undefined)
           .then(consent => {
             expect(consent.api).to.be.eq(API_TYPE.NONE);
-            expect(consent.gppData).to.be.undefined
-            expect(logErrorSpy).to.be.calledWith('cmpApi: getting GPP consent not successful. Using defaults for Gpp.')
+            expect(consent.gppData).to.be.undefined;
+            expect(logErrorSpy).to.be.calledWith('cmpApi: getting GPP consent not successful. Using defaults for Gpp.');
           });
-      })
+      });
     });
-  })
+  });
 
   describe('when API is running in iframe and CMP in top frame', function () {
-    describe('with TCFv1', function () {
-      let eventListener;
-      beforeEach(function () {
-        eventListener = (event) => {
-          if (event.data.__cmpCall) {
-            const command = event.data.__cmpCall.command;
-            expect(command).to.be.oneOf(['getConsentData', 'getVendorConsents']);
-            const returnMessage = {
-              __cmpReturn: {
-                returnValue: TEST_CONSENT_DATA_V1[command],
-                success: true,
-                callId: event.data.__cmpCall.callId
-              }
-            }
-            event.source.postMessage(returnMessage, '*');
-          }
-        };
-        window.frames['__cmpLocator'] = {};
-        window.addEventListener('message', eventListener);
-      });
-
-      afterEach(function () {
-        delete window.frames['__cmpLocator'];
-        window.removeEventListener('message', eventListener);
-      });
-
-      it('can receive the data', async () => {
-        return consentProvider.refreshConsentData(false, 'iab', undefined)
-          .then(consentData => {
-            expect(consentData.consentString).to.equal(TEST_CONSENT_DATA_V1.getConsentData.consentData);
-            expect(consentData.localStoragePurposeConsent).to.equal(TEST_CONSENT_DATA_V1.getVendorConsents.purposeConsents['1']);
-            expect(consentData.gdprApplies).to.be.true;
-            expect(consentData.api).to.equal(API_TYPE.TCF_V1);
-          });
-      });
-    });
-
     function uspApiMessageResponse(event) {
       if (event.data.__uspapiCall) {
         expect(event.data.__uspapiCall.version).to.equal(1);
@@ -1184,7 +911,7 @@ describe('Consent Data Provider', function () {
             success: true,
             callId: event.data.__uspapiCall.callId
           }
-        }
+        };
         event.source.postMessage(returnMessage, '*');
       }
     }
@@ -1207,6 +934,7 @@ describe('Consent Data Provider', function () {
       it('can receive the data', async () => {
         return consentProvider.refreshConsentData(false, 'iab', undefined)
           .then(consentData => {
+            expect(consentData.source).to.eq(ConsentSource.cmp);
             expect(consentData.ccpaString).to.equal('1YYN');
             expect(consentData.gdprApplies).to.be.false;
             expect(consentData.api).to.equal(API_TYPE.USP_V1);
@@ -1230,7 +958,7 @@ describe('Consent Data Provider', function () {
 
     describe('with GPP v1_0', function () {
 
-      let gpp10NormalFlow = createGppV10Flow()
+      let gpp10NormalFlow = createGppV10Flow();
       let eventListener;
       beforeEach(function () {
         eventListener = (event) => {
@@ -1260,20 +988,20 @@ describe('Consent Data Provider', function () {
       it('returns consent data', async () => {
         return consentProvider.refreshConsentData(false, 'iab', undefined)
           .then(consentData => {
-            expect(consentData.gppData.gppString).is.eq("GPP_STRING");
+            expect(consentData.gppData.gppString).is.eq('GPP_STRING');
             expect(consentData.gppData.applicableSections).deep.equal([2]);
             expect(consentData.gppData.version).is.eq(API_TYPE.GPP_V1_0);
             expect(consentData.gppData.localStoragePurposeConsent).is.true;
             let measurements = metrics.getAllMeasurements();
             expect(measurements.length).is.eq(1);
-            expect(measurements.find(m => m.name === 'id5.api.gpp.delay')).is.not.undefined
+            expect(measurements.find(m => m.name === 'id5.api.gpp.delay')).is.not.undefined;
           });
       });
-    })
+    });
 
     describe('with GPP v1_1', function () {
       let eventListener;
-      let gpp11NormalFlow = createGppV11Flow()
+      let gpp11NormalFlow = createGppV11Flow();
       beforeEach(function () {
         eventListener = (event) => {
           if (event.data.__gppCall) {
@@ -1298,15 +1026,15 @@ describe('Consent Data Provider', function () {
       it('returns consent data', async () => {
         return consentProvider.refreshConsentData(false, 'iab', undefined)
           .then(consentData => {
-            expect(consentData.gppData.gppString).is.eq("GPP_STRING_V1_1");
+            expect(consentData.gppData.gppString).is.eq('GPP_STRING_V1_1');
             expect(consentData.gppData.applicableSections).deep.equal([1, 2]);
             expect(consentData.gppData.version).is.eq(API_TYPE.GPP_V1_1);
             expect(consentData.gppData.localStoragePurposeConsent).is.true;
             let measurements = metrics.getAllMeasurements();
             expect(measurements.length).is.eq(1);
-            expect(measurements.find(m => m.name === 'id5.api.gpp.delay')).is.not.undefined
+            expect(measurements.find(m => m.name === 'id5.api.gpp.delay')).is.not.undefined;
           });
       });
-    })
+    });
   });
 });

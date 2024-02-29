@@ -33,14 +33,16 @@ export class ConsentManagement extends ConsentManager {
    * @param {StorageConfig} storageConfig local storage config
    * @param {boolean} forceAllowLocalStorageGrant
    * @param {Logger} logger
+   * @param {Id5CommonMetrics} metrics
    */
-  constructor(localStorage, storageConfig, forceAllowLocalStorageGrant, logger) {
+  constructor(localStorage, storageConfig, forceAllowLocalStorageGrant, logger, metrics) {
     super();
     this._log = logger;
     this.localStorage = localStorage;
     this.storageConfig = storageConfig;
     this._consentDataHolder = new LazyValue();
     this._forceAllowLocalStorageGrant = forceAllowLocalStorageGrant;
+    this._metrics = metrics;
   }
 
   isForceAllowLocalStorageGrant() {
@@ -59,8 +61,21 @@ export class ConsentManagement extends ConsentManager {
   /**
    * Test if consent module is present, applies, and is valid for local storage or cookies (purpose 1)
    * @returns {LocalStorageGrant} the result of checking the grant
+   * @param {string} usageContext
    */
-  localStorageGrant() {
+  localStorageGrant(usageContext= "unknown") {
+    const lsg = this._getLocalStorageGrant();
+    this._metrics?.localStorageGrantCounter({
+      allowed: lsg.allowed,
+      grantType: lsg.grantType,
+      apiType: lsg.api,
+      lsgContext: usageContext,
+      consentSet: this._consentDataHolder?.hasValue()
+    })?.inc();
+    return lsg;
+  }
+
+  _getLocalStorageGrant() {
     const log = this._log;
     if (this._forceAllowLocalStorageGrant === true) {
       log.warn('cmpApi: Local storage access granted by configuration override, consent will not be checked');

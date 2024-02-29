@@ -206,7 +206,9 @@ export class UidRefresher {
       data.gdpr_consent = gdprConsentString;
     }
 
-    if (isDefined(consentData.allowedVendors)) {
+    if (isDefined(fetchIdData.allowedVendors)) {
+      data.allowed_vendors = fetchIdData.allowedVendors;
+    } else if(isDefined(consentData.allowedVendors)){
       data.allowed_vendors = consentData.allowedVendors;
     }
 
@@ -355,7 +357,7 @@ export class UidFetcher {
       if (waitForConsentTimer) {
         waitForConsentTimer.recordNow();
       }
-      const localStorageGrant = consentManager.localStorageGrant();
+      const localStorageGrant = consentManager.localStorageGrant('fetcher-before-request');
       log.info('Local storage grant', localStorageGrant);
       if (!localStorageGrant.allowed) {
         log.info('No legal basis to use ID5', consentData);
@@ -408,7 +410,7 @@ export class UidFetcher {
     const refreshedResponse = new RefreshedResponse(response);
     // privacy has to be stored first, so we can use it when storing other values
     consentManager.setStoredPrivacy(response.generic.privacy);
-    const localStorageGrant = consentManager.localStorageGrant();
+    const localStorageGrant = consentManager.localStorageGrant('fetcher-after-response');
     if (localStorageGrant.isDefinitivelyAllowed()) {
       log.info('Storing ID and request hashes in cache');
       store.updateNbs(cachedData);

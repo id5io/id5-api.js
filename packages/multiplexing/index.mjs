@@ -10,6 +10,7 @@ export {ClientStore} from './src/clientStore.js';
 export {ApiEventsDispatcher, ApiEvent, MultiplexingEvent} from './src/apiEvent.js';
 export * as utils from './src/utils.js';
 export {default as CONSTANTS} from './src/constants.js';
+export {ConsentSource} from './src/data.js'
 
 class MultiplexingRegistry {
   /**

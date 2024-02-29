@@ -617,8 +617,8 @@ export class Instance {
     const replicatingStorage = new ReplicatingStorage(this._storage);
     const localStorage = new LocalStorage(replicatingStorage);
     const storageConfig = new StorageConfig(properties.storageExpirationDays);
-    const consentManagement = new ConsentManagement(localStorage, storageConfig, properties.forceAllowLocalStorageGrant, logger);
-    const grantChecker = () => consentManagement.localStorageGrant();
+    const consentManagement = new ConsentManagement(localStorage, storageConfig, properties.forceAllowLocalStorageGrant, logger, metrics);
+    const grantChecker = () => consentManagement.localStorageGrant('client-store');
     const store = new Store(new ClientStore(grantChecker, localStorage, storageConfig, logger));
     const fetcher = new UidFetcher(consentManagement, store, metrics, logger, EXTENSIONS.createExtensions(metrics, logger));
 
