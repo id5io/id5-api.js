@@ -113,6 +113,9 @@ export class ConsentData {
   /** @type {GppConsentData} */
   gppData;
 
+  /** @type {ConsentSource} */
+  source;
+
   constructor(
     api = API_TYPE.NONE,
     gdprApplies = false,

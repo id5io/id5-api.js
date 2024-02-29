@@ -1,5 +1,5 @@
 import sinon from 'sinon';
-import { RefreshedResponse, UidFetcher} from '../../src/fetch.js';
+import {RefreshedResponse, UidFetcher} from '../../src/fetch.js';
 import {Extensions} from '../../src/extensions.js';
 import {
   API_TYPE,
@@ -8,11 +8,12 @@ import {
   GppConsentData,
   GRANT_TYPE,
   LocalStorageGrant,
-  NoConsentError} from '../../src/consent.js';
-import { NO_OP_LOGGER } from '../../src/logger.js';
-import { WindowStorage } from '../../src/localStorage.js';
-import { Id5CommonMetrics } from '@id5io/diagnostics';
-import { CachedResponse, Store } from '../../src/store.js';
+  NoConsentError
+} from '../../src/consent.js';
+import {NO_OP_LOGGER} from '../../src/logger.js';
+import {WindowStorage} from '../../src/localStorage.js';
+import {Id5CommonMetrics} from '@id5io/diagnostics';
+import {CachedResponse, Store} from '../../src/store.js';
 
 const LOCAL_STORAGE_GRANT_ALLOWED_BY_API = new LocalStorageGrant(true, GRANT_TYPE.CONSENT_API, API_TYPE.TCF_V2);
 const CONSENT_DATA_GDPR_ALLOWED = Object.assign(new ConsentData(), {
@@ -37,7 +38,7 @@ const DEFAULT_EXTENSIONS = {
 const origin = 'api';
 const originVersion = '1.0.36';
 
-const PRIVACY_DATA_RETURNED = { jurisdiction: 'gdpr', id5_consent: true };
+const PRIVACY_DATA_RETURNED = {jurisdiction: 'gdpr', id5_consent: true};
 
 const _DEBUG = false;
 
@@ -181,7 +182,7 @@ function prepareJsonResponse(genericResponse, requestString) {
   const request = JSON.parse(requestString);
   const responses = {};
   request.requests.forEach(rq => responses[rq.requestId] = {});
-  return JSON.stringify({ generic: genericResponse, responses: responses });
+  return JSON.stringify({generic: genericResponse, responses: responses});
 }
 
 describe('UidFetcher', function () {
@@ -251,11 +252,11 @@ describe('UidFetcher', function () {
 
       [
         ['default', {}, {}],
-        ['with pd', { pd: 'PD_DATA' }, { pd: 'PD_DATA' }],
-        ['with partnerUserId', { partnerUserId: '1234567' }, { puid: '1234567' }],
-        ['with provider', { provider: 'some_provider' }, { provider: 'some_provider' }],
-        ['with ua hints', { uaHints: buildTestUaHints() }, { ua_hints: buildTestUaHints() }],
-        ['with abTesting', { abTesting: { enabled: true, controlGroupPct: 0.5 } }, {
+        ['with pd', {pd: 'PD_DATA'}, {pd: 'PD_DATA'}],
+        ['with partnerUserId', {partnerUserId: '1234567'}, {puid: '1234567'}],
+        ['with provider', {provider: 'some_provider'}, {provider: 'some_provider'}],
+        ['with ua hints', {uaHints: buildTestUaHints()}, {ua_hints: buildTestUaHints()}],
+        ['with abTesting', {abTesting: {enabled: true, controlGroupPct: 0.5}}, {
           ab_testing: {
             enabled: true,
             control_group_pct: 0.5
@@ -263,32 +264,35 @@ describe('UidFetcher', function () {
         }],
         ['with segments', {
           segments: [
-            { destination: '22', ids: ['abc'] },
-            { destination: '21', ids: ['abcd'] }
+            {destination: '22', ids: ['abc']},
+            {destination: '21', ids: ['abcd']}
           ]
         }, {
-            segments: [
-              { destination: '22', ids: ['abc'] },
-              { destination: '21', ids: ['abcd'] }
-            ]
-          }],
+          segments: [
+            {destination: '22', ids: ['abc']},
+            {destination: '21', ids: ['abcd']}
+          ]
+        }],
         ['with invalid segments', {
           segments: [
-            { destination: '22', ids: ['abc'] }
+            {destination: '22', ids: ['abc']}
           ],
           invalidSegmentsCount: 10
         }, {
-            segments: [
-              { destination: '22', ids: ['abc'] }
-            ],
-            _invalid_segments: 10
-          }],
-        ['with provided refreshInSeconds', { providedRefreshInSeconds: 1000 }, {
+          segments: [
+            {destination: '22', ids: ['abc']}
+          ],
+          _invalid_segments: 10
+        }],
+        ['with provided refreshInSeconds', {providedRefreshInSeconds: 1000}, {
           provided_options: {
             refresh_in_seconds: 1000
           }
         }],
-        ['with trace', { trace: true }, { _trace: true }]
+        ['with allowed vendors', {allowedVendors: ['1', '2', '3']}, {
+          allowed_vendors: ['1', '2', '3']
+        }],
+        ['with trace', {trace: true}, {_trace: true}]
       ].forEach(([description, data, expectedInRequest]) => {
         it(`should call multi-fetch and correctly use parameters to create the fetch request body (${description})`, async () => {
           // given
@@ -513,9 +517,9 @@ describe('UidFetcher', function () {
           expect(data.refreshedResponse.timestamp).is.not.undefined;
           expect(data.refreshedResponse.response).is.eql(expectedResponse);
           expect(store.updateNbs).to.have.been.calledWith(new Map([
-            [cacheId_1,cachedData1],
-            [cacheId_2,cachedData2],
-            [cacheId_4,cachedData4],
+            [cacheId_1, cachedData1],
+            [cacheId_2, cachedData2],
+            [cacheId_4, cachedData4]
           ]));
         });
       });
@@ -736,7 +740,7 @@ describe('UidFetcher', function () {
     it('when ajax fails', function () {
       // given
       server.respondWith((request) => {
-        request.respond(500, { 'Content-Type': ' application/json' }, 'Error');
+        request.respond(500, {'Content-Type': ' application/json'}, 'Error');
       });
 
       // when
@@ -823,7 +827,7 @@ function expectHttpPOST(request, url, body) {
 
 function sinonFetchResponder(responseProvider) {
   return (request) => {
-    request.respond(200, { 'Content-Type': ' application/json' }, responseProvider(request));
+    request.respond(200, {'Content-Type': ' application/json'}, responseProvider(request));
   };
 }
 

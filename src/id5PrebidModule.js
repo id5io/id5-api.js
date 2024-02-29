@@ -8,7 +8,7 @@ import {
 import { version as currentVersion } from '../generated/version.js';
 import { Config } from '../lib/config.js';
 import { createPublisher, Id5CommonMetrics, partnerTag, startTimeMeasurement } from '@id5io/diagnostics';
-import multiplexing, { API_TYPE, ConsentData, ApiEvent, WindowStorage, GppConsentData } from '@id5io/multiplexing';
+import multiplexing, { API_TYPE, ConsentData, ApiEvent, WindowStorage, GppConsentData, ConsentSource } from '@id5io/multiplexing';
 import { semanticVersionCompare } from '@id5io/multiplexing/src/utils.js';
 import {UaHints} from '../lib/uaHints.js';
 import { GPPClient } from '../lib/consentProvider.js';
@@ -170,7 +170,8 @@ class Id5PrebidIntegration {
       singletonMode: options?.multiplexing?._disabled === true,
       canDoCascade: false, // Disable cascading within prebid
       forceAllowLocalStorageGrant: false,
-      storageExpirationDays: options.storageExpirationDays
+      storageExpirationDays: options.storageExpirationDays,
+      consentSource: ConsentSource.prebid
     });
 
     return instancePromise;
@@ -185,6 +186,7 @@ class Id5PrebidIntegration {
    */
   _buildConsentData(gdprConsentData, uspConsentData, gppConsentData) {
     const consentData = new ConsentData(API_TYPE.PREBID);
+    consentData.source = ConsentSource.prebid;
     if (gdprConsentData) {
       consentData.gdprApplies = gdprConsentData.gdprApplies;
       consentData.consentString = gdprConsentData.consentString;

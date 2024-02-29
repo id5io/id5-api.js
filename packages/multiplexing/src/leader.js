@@ -174,7 +174,7 @@ export class ActualLeader extends Leader {
       // handle cascades
       const consentData = refreshResult.consentData;
       if (consentData !== undefined) {
-        if (cascadeRequested.length > 0 && this._consentManager.localStorageGrant().isDefinitivelyAllowed()) {
+        if (cascadeRequested.length > 0 && this._consentManager.localStorageGrant('leader-before-cascade').isDefinitivelyAllowed()) {
           this._handleCascade(cascadeRequested, refreshedResponse, consentData);
         }
       }

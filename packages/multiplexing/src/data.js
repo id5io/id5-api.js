@@ -45,6 +45,15 @@
  */
 
 /**
+ * @enum {ConsentSource}
+ */
+export const ConsentSource = Object.freeze({
+  cmp: 'cmp',
+  partner: 'partner',
+  prebid: 'prebid'
+});
+
+/**
  * FetchIdData data provided by instance when registering to multiplexing
  * @typedef {Object} FetchIdData
  * @property {string} origin
@@ -63,6 +72,8 @@
  * @property {number} [refreshInSeconds] - Default operating uid refresh time in seconds
  * @property {number} [providedRefreshInSeconds] - Configured uid refresh time in seconds
  * @property {boolean} [trace]
+ * @property {Array<string>} [allowedVendors]
+ * @property {ConsentSource} [consentSource] - cmp/partner/prebid
  */
 
 /**
