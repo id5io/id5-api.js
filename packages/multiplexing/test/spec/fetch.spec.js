@@ -257,7 +257,7 @@ describe('UidFetcher', function () {
         const inputFetchData = [fetchData];
 
         // when
-        const fetchIdResult = fetcher.getId(inputFetchData, CONSENT_DATA_GDPR_ALLOWED, true);
+        const fetchIdResult = fetcher.fetchId(inputFetchData, CONSENT_DATA_GDPR_ALLOWED, true);
 
         // then
         return fetchIdResult.then(refreshedResponse => {
@@ -318,7 +318,7 @@ describe('UidFetcher', function () {
 
         // when
         const inputRequestData = [firstInstanceData, secondInstanceData];
-        const fetchIdResult = fetcher.getId(inputRequestData, CONSENT_DATA_GDPR_ALLOWED, true);
+        const fetchIdResult = fetcher.fetchId(inputRequestData, CONSENT_DATA_GDPR_ALLOWED, true);
 
         // then
         return fetchIdResult.then(refreshedResponse => {
@@ -399,7 +399,7 @@ describe('UidFetcher', function () {
 
       // when
       const inputRequestData = [firstInstanceData, secondInstanceData, thirdInstanceData, fourthInstanceData, fifthInstanceData];
-      const fetchIdResult = fetcher.getId(inputRequestData, CONSENT_DATA_GDPR_ALLOWED, true);
+      const fetchIdResult = fetcher.fetchId(inputRequestData, CONSENT_DATA_GDPR_ALLOWED, true);
 
       // then
       return fetchIdResult.then(refreshedResponse => {
@@ -441,7 +441,7 @@ describe('UidFetcher', function () {
 
         // when
         const inputFetchData = [DEFAULT_FETCH_DATA];
-        const fetchIdResult = fetcher.getId(inputFetchData, CONSENT_DATA_GDPR_ALLOWED, accessibilityResult);
+        const fetchIdResult = fetcher.fetchId(inputFetchData, CONSENT_DATA_GDPR_ALLOWED, accessibilityResult);
 
         // then
         return fetchIdResult.then(() => {
@@ -461,7 +461,7 @@ describe('UidFetcher', function () {
 
       // when
       const inputFetchData = [DEFAULT_FETCH_DATA];
-      const fetchIdResult = fetcher.getId(inputFetchData, gppAllowed, true);
+      const fetchIdResult = fetcher.fetchId(inputFetchData, gppAllowed, true);
 
       // then
       return fetchIdResult.then(() => {
@@ -494,7 +494,7 @@ describe('UidFetcher', function () {
       server.respondWith(sinonFetchResponder(() => ''));
 
       // when
-      const fetchIdResult = fetcher.getId([fetchData], CONSENT_DATA_GDPR_ALLOWED, true);
+      const fetchIdResult = fetcher.fetchId([fetchData], CONSENT_DATA_GDPR_ALLOWED, true);
 
       // then
       return fetchIdResult.catch(error => {
@@ -508,7 +508,7 @@ describe('UidFetcher', function () {
       server.respondWith(sinonFetchResponder(() => '{'));
 
       // when
-      const fetchIdResult = fetcher.getId([fetchData], CONSENT_DATA_GDPR_ALLOWED, true);
+      const fetchIdResult = fetcher.fetchId([fetchData], CONSENT_DATA_GDPR_ALLOWED, true);
 
 
       // then
@@ -525,7 +525,7 @@ describe('UidFetcher', function () {
       });
 
       // when
-      const fetchIdResult = fetcher.getId([fetchData], CONSENT_DATA_GDPR_ALLOWED, true);
+      const fetchIdResult = fetcher.fetchId([fetchData], CONSENT_DATA_GDPR_ALLOWED, true);
 
       // then
       return fetchIdResult.catch(error => {
@@ -539,7 +539,7 @@ describe('UidFetcher', function () {
       server.respondWith(sinonFetchResponder(() => '{ "property" : 10 }'));
 
       // when
-      const fetchIdResult = fetcher.getId([fetchData], CONSENT_DATA_GDPR_ALLOWED, true);
+      const fetchIdResult = fetcher.fetchId([fetchData], CONSENT_DATA_GDPR_ALLOWED, true);
 
       // then
       return fetchIdResult.catch(error => {

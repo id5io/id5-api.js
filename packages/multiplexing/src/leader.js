@@ -304,7 +304,7 @@ export class ActualLeader extends Leader {
           log.info(`Fetching ID5 ID (forceFetch:${forceRefresh})`);
           this._inProgressFetch = true;
           this._firstFetchTriggered = true; // after first any new follower will be recognized as late joiner
-          this._fetcher.getId(fetchRequestData, consentData, isLocalStorageAvailable)
+          this._fetcher.fetchId(fetchRequestData, consentData, isLocalStorageAvailable)
             .then(refreshResult => {
               this._handleRefreshResult(fetchRequestData, cacheData, consentData, refreshResult);
               this._handleFetchCompleted();

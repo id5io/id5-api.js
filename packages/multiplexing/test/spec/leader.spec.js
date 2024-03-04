@@ -310,7 +310,7 @@ describe('ActualLeader', () => {
 
       // given
       const fetchIdPromise = sinon.promise();
-      uidFetcher.getId.returns(fetchIdPromise);
+      uidFetcher.fetchId.returns(fetchIdPromise);
       localStorageGrant.isDefinitivelyAllowed.returns(true);
 
       // when
@@ -341,7 +341,7 @@ describe('ActualLeader', () => {
         expectedLeaderData(follower1, 1, true),
         expectedFollowerData(follower2, 1, true)
       ];
-      expect(uidFetcher.getId).to.be.calledWith(requestData,
+      expect(uidFetcher.fetchId).to.be.calledWith(requestData,
         CONSENT_DATA_GDPR_ALLOWED,
         true
       );
@@ -369,7 +369,7 @@ describe('ActualLeader', () => {
 
       // given
       const fetchIdPromise = sinon.promise();
-      uidFetcher.getId.returns(fetchIdPromise);
+      uidFetcher.fetchId.returns(fetchIdPromise);
       localStorageGrant.isDefinitivelyAllowed.returns(true);
 
       // when
@@ -402,7 +402,7 @@ describe('ActualLeader', () => {
         expectedLeaderData(follower1, 1, true),
         expectedFollowerData(follower2, 1, true)
       ];
-      expect(uidFetcher.getId).to.be.calledWith(requestData,
+      expect(uidFetcher.fetchId).to.be.calledWith(requestData,
         CONSENT_DATA_GDPR_ALLOWED,
         true
       );
@@ -430,7 +430,7 @@ describe('ActualLeader', () => {
 
       // given
       const fetchIdPromise = sinon.promise();
-      uidFetcher.getId.returns(fetchIdPromise);
+      uidFetcher.fetchId.returns(fetchIdPromise);
       localStorageGrant.isDefinitivelyAllowed.returns(false);
 
       // when
@@ -461,7 +461,7 @@ describe('ActualLeader', () => {
         expectedLeaderData(follower1, 1, true),
         expectedFollowerData(follower2, 1, true)
       ];
-      expect(uidFetcher.getId).to.be.calledWith(requestData,
+      expect(uidFetcher.fetchId).to.be.calledWith(requestData,
         CONSENT_DATA_GDPR_ALLOWED,
         true
       );
@@ -514,7 +514,7 @@ describe('ActualLeader', () => {
       store.getCachedResponse.withArgs(follower2.getCacheId()).returns(cachedResponse2);
 
       const fetchResult = sinon.promise();
-      uidFetcher.getId.returns(fetchResult);
+      uidFetcher.fetchId.returns(fetchResult);
 
       store.hasConsentChanged.returns(true);
 
@@ -538,7 +538,7 @@ describe('ActualLeader', () => {
 
       // then
       expect(store.hasConsentChanged).to.be.calledWith(CONSENT_DATA_GDPR_ALLOWED);
-      expect(uidFetcher.getId).to.be.calledWith([
+      expect(uidFetcher.fetchId).to.be.calledWith([
         expectedLeaderData(follower1, 1, false, cachedResponse1),
         expectedFollowerData(follower2, 1, false, cachedResponse2)
       ], CONSENT_DATA_GDPR_ALLOWED, true);
@@ -584,7 +584,7 @@ describe('ActualLeader', () => {
       };
 
       const fetchResult = sinon.promise();
-      uidFetcher.getId.returns(fetchResult);
+      uidFetcher.fetchId.returns(fetchResult);
 
       store.hasConsentChanged.returns(false);
 
@@ -608,7 +608,7 @@ describe('ActualLeader', () => {
 
       // then
       expect(store.hasConsentChanged).to.be.calledWith(CONSENT_DATA_GDPR_ALLOWED);
-      expect(uidFetcher.getId).to.not.be.called;
+      expect(uidFetcher.fetchId).to.not.be.called;
     });
 
     [true, false].forEach((isExpired) => {
@@ -628,7 +628,7 @@ describe('ActualLeader', () => {
         };
 
         const fetchResult = Promise.resolve(new RefreshedResponse({}));
-        uidFetcher.getId.returns(fetchResult);
+        uidFetcher.fetchId.returns(fetchResult);
 
         // when
         let add1Result = leader.addFollower(follower1);
@@ -649,7 +649,7 @@ describe('ActualLeader', () => {
 
         await resolved(consentPromise);
         // then
-        expect(uidFetcher.getId).to.be.calledWith([
+        expect(uidFetcher.fetchId).to.be.calledWith([
           expectedLeaderData(follower1, 1, isExpired, cachedResponse),
           expectedFollowerData(follower2, 1, isExpired, cachedResponse)
         ], CONSENT_DATA_GDPR_ALLOWED, true);
@@ -665,7 +665,7 @@ describe('ActualLeader', () => {
       store.getCachedResponse.returns(cachedResponse);
 
       const fetchResult = Promise.resolve(new RefreshedResponse({}));
-      uidFetcher.getId.returns(fetchResult);
+      uidFetcher.fetchId.returns(fetchResult);
 
       // when
       let add1Result = leader.addFollower(follower1);
@@ -684,7 +684,7 @@ describe('ActualLeader', () => {
       leader.start();
       // then
       await resolved(consentPromise);
-      expect(uidFetcher.getId).to.be.calledWith([
+      expect(uidFetcher.fetchId).to.be.calledWith([
         expectedLeaderData(follower1, 1, true, cachedResponse),
         expectedFollowerData(follower2, 1, true, cachedResponse)
       ], CONSENT_DATA_GDPR_ALLOWED, true);
@@ -702,13 +702,13 @@ describe('ActualLeader', () => {
           cascade_needed: true
         });
 
-        uidFetcher.getId.returns(fetchResult);
+        uidFetcher.fetchId.returns(fetchResult);
         leader.addFollower(follower1);
         leader.start();
         await resolved(consentPromise);
         fetchResult.resolve(refreshedResponse);
         await resolved(fetchResult);
-        uidFetcher.getId.reset();
+        uidFetcher.fetchId.reset();
 
         cachedResponse = sinon.stub(new CachedResponse({universal_uid: crypto.randomUUID()}, Date.now(), 1));
       });
@@ -732,7 +732,7 @@ describe('ActualLeader', () => {
           willBeRefreshed: false
         });
         expect(store.incNb).have.been.calledWith(lateJoiner.getCacheId());
-        expect(uidFetcher.getId).have.not.been.called;
+        expect(uidFetcher.fetchId).have.not.been.called;
       });
 
       it('late joiner should be notified with cached response if available valid and trigger refresh when expired', async () => {
@@ -741,7 +741,7 @@ describe('ActualLeader', () => {
         cachedResponse.isValid.returns(true);
         cachedResponse.isExpired.returns(true);
 
-        uidFetcher.getId.returns(Promise.resolve({}));
+        uidFetcher.fetchId.returns(Promise.resolve({}));
 
         // when
         const result = leader.addFollower(follower2);
@@ -757,7 +757,7 @@ describe('ActualLeader', () => {
         expect(store.incNb).have.been.calledWith(follower2.getCacheId());
 
         await resolved(consentPromise);
-        expect(uidFetcher.getId).have.been.calledWith(
+        expect(uidFetcher.fetchId).have.been.calledWith(
           [
             expectedLeaderData(follower1, 2, false),
             expectedFollowerData(follower2, 1, true, cachedResponse)
@@ -772,7 +772,7 @@ describe('ActualLeader', () => {
         cachedResponse.isValid.returns(true);
         cachedResponse.isExpired.returns(true);
 
-        uidFetcher.getId.returns(Promise.resolve(new RefreshedResponse({})));
+        uidFetcher.fetchId.returns(Promise.resolve(new RefreshedResponse({})));
 
         // when
         const result = leader.addFollower(follower2);
@@ -788,7 +788,7 @@ describe('ActualLeader', () => {
         expect(store.incNb).have.been.calledWith(follower2.getCacheId());
 
         await resolved(consentPromise);
-        expect(uidFetcher.getId).have.been.calledWith(
+        expect(uidFetcher.fetchId).have.been.calledWith(
           [
             expectedLeaderData(follower1, 2, false, cachedResponse),
             expectedFollowerData(follower2, 1, true, cachedResponse)
@@ -803,7 +803,7 @@ describe('ActualLeader', () => {
         cachedResponse.isValid.returns(false);
         cachedResponse.isExpired.returns(false);
 
-        uidFetcher.getId.returns(Promise.resolve(new RefreshedResponse({})));
+        uidFetcher.fetchId.returns(Promise.resolve(new RefreshedResponse({})));
 
         // when
         const result = leader.addFollower(follower2);
@@ -815,7 +815,7 @@ describe('ActualLeader', () => {
 
         await resolved(consentPromise);
 
-        expect(uidFetcher.getId).have.been.calledWith(
+        expect(uidFetcher.fetchId).have.been.calledWith(
           [
             expectedLeaderData(follower1, 2, false),
             expectedFollowerData(follower2, 1, true, cachedResponse)
@@ -828,7 +828,7 @@ describe('ActualLeader', () => {
         // given
         store.getCachedResponse.withArgs(follower2.getCacheId()).returns(undefined);
 
-        uidFetcher.getId.returns(Promise.resolve(new RefreshedResponse({})));
+        uidFetcher.fetchId.returns(Promise.resolve(new RefreshedResponse({})));
 
         // when
         const result = leader.addFollower(follower2);
@@ -840,7 +840,7 @@ describe('ActualLeader', () => {
 
         await resolved(consentPromise);
 
-        expect(uidFetcher.getId).have.been.calledWith(
+        expect(uidFetcher.fetchId).have.been.calledWith(
           [
             expectedLeaderData(follower1, 2, false),
             expectedFollowerData(follower2, 1, true)
@@ -856,7 +856,7 @@ describe('ActualLeader', () => {
       beforeEach(async () => {
         leader.addFollower(follower1);
         fetchInProgressResult = sinon.promise();
-        uidFetcher.getId.returns(fetchInProgressResult);
+        uidFetcher.fetchId.returns(fetchInProgressResult);
         leader.start();
         await resolved(consentPromise);
       });
@@ -869,12 +869,12 @@ describe('ActualLeader', () => {
         it(`should schedule refresh uid when in progress and execute when previous is done (${descr})`, async () => {
 
           // then
-          expect(uidFetcher.getId).to.be.calledWith([
+          expect(uidFetcher.fetchId).to.be.calledWith([
             expectedLeaderData(follower1, 1, true)
           ], CONSENT_DATA_GDPR_ALLOWED, true);
 
           // when
-          uidFetcher.getId.reset();
+          uidFetcher.fetchId.reset();
 
           leader.refreshUid({
             forceAllowLocalStorageGrant: true,
@@ -883,7 +883,7 @@ describe('ActualLeader', () => {
           }, follower1.getId());
 
           // then
-          expect(uidFetcher.getId).to.not.be.called;
+          expect(uidFetcher.fetchId).to.not.be.called;
           expect(consentManager.resetConsentData).to.not.be.called;
 
           // when
@@ -893,7 +893,7 @@ describe('ActualLeader', () => {
             // then
             expect(consentManager.resetConsentData).to.be.calledWith(true);
             await resolved(consentPromise);
-            expect(uidFetcher.getId).to.be.calledWith([
+            expect(uidFetcher.fetchId).to.be.calledWith([
               expectedLeaderData(follower1, expectedRequestCount, true)
             ], CONSENT_DATA_GDPR_ALLOWED, true);
           });
@@ -902,12 +902,12 @@ describe('ActualLeader', () => {
 
       it('late joiner should triggered refresh when active is completed', async function () {
         // then
-        expect(uidFetcher.getId).to.be.calledWith([
+        expect(uidFetcher.fetchId).to.be.calledWith([
           expectedLeaderData(follower1, 1, true)
         ], CONSENT_DATA_GDPR_ALLOWED, true);
 
         // when
-        uidFetcher.getId.reset();
+        uidFetcher.fetchId.reset();
 
         // given
         store.getCachedResponse.withArgs(follower2.getCacheId()).returns(undefined);
@@ -934,7 +934,7 @@ describe('ActualLeader', () => {
         expect(refreshedResponse.getResponseFor.withArgs(follower2.getCacheId())).have.not.been.called;
         expect(follower2.notifyUidReady).have.not.been.called;
 
-        expect(uidFetcher.getId).have.been.calledWith(
+        expect(uidFetcher.fetchId).have.been.calledWith(
           [
             expectedLeaderData(follower1, 2, false),
             expectedFollowerData(follower2, 1, true)
@@ -973,7 +973,7 @@ describe('ActualLeader', () => {
       leader.addFollower(follower2);
 
       const fetchResult = sinon.promise();
-      uidFetcher.getId.returns(fetchResult);
+      uidFetcher.fetchId.returns(fetchResult);
 
       // when
       leader.start();
@@ -1000,15 +1000,15 @@ describe('ActualLeader', () => {
           universal_uid: 'id5-uid',
           cascade_needed: true
         });
-        uidFetcher.getId.returns(fetchResult);
+        uidFetcher.fetchId.returns(fetchResult);
 
         leader.start();
         await resolved(consentPromise);
 
         fetchResult.resolve(refreshedResponse);
         await fetchResult;
-        uidFetcher.getId.reset();
-        uidFetcher.getId.returns(sinon.promise());
+        uidFetcher.fetchId.reset();
+        uidFetcher.fetchId.returns(sinon.promise());
         store.getCachedResponse.reset();
         consentManager.getConsentData.reset();
         consentManager.getConsentData.resolves(consentPromise);
@@ -1029,7 +1029,7 @@ describe('ActualLeader', () => {
 
         await resolved(consentPromise);
 
-        expect(uidFetcher.getId).to.be.calledWith([
+        expect(uidFetcher.fetchId).to.be.calledWith([
           expectedLeaderData(follower1, 2, false),
           expectedFollowerData(follower2, 2, true)
         ], CONSENT_DATA_GDPR_ALLOWED, true);
@@ -1057,7 +1057,7 @@ describe('ActualLeader', () => {
 
         await resolved(consentPromise);
 
-        expect(uidFetcher.getId).to.be.calledWith([
+        expect(uidFetcher.fetchId).to.be.calledWith([
           expectedLeaderData(follower1, 2, true),
           expectedFollowerData(follower2, 2, false)
         ], CONSENT_DATA_GDPR_ALLOWED, true);
@@ -1104,7 +1104,7 @@ describe('ActualLeader', () => {
         });
         expect(consentManager.resetConsentData).to.not.be.called;
         await resolved(consentPromise);
-        expect(uidFetcher.getId).to.be.calledWith([
+        expect(uidFetcher.fetchId).to.be.calledWith([
           expectedLeaderData(follower1, 2, false, cachedResponse),
           expectedFollowerData(follower2, 2, false)
         ], CONSENT_DATA_GDPR_ALLOWED, true);
@@ -1144,7 +1144,7 @@ describe('ActualLeader', () => {
         expect(consentManager.resetConsentData).to.not.be.called;
         await resolved(consentPromise);
 
-        expect(uidFetcher.getId).to.be.calledWith([
+        expect(uidFetcher.fetchId).to.be.calledWith([
           expectedLeaderData(follower1, 2, true, cachedResponse),
           expectedFollowerData(follower2, 2, false)
         ], CONSENT_DATA_GDPR_ALLOWED, true);
@@ -1176,7 +1176,7 @@ describe('ActualLeader', () => {
         expect(consentManager.resetConsentData).to.be.called;
         await resolved(consentPromise);
 
-        expect(uidFetcher.getId).to.be.calledWith([
+        expect(uidFetcher.fetchId).to.be.calledWith([
           expectedLeaderData(follower1, 2, true, cachedResponse),
           expectedFollowerData(follower2, 2, false)
         ], CONSENT_DATA_GDPR_ALLOWED, true);
@@ -1195,7 +1195,7 @@ describe('ActualLeader', () => {
 
         await resolved(consentPromise);
 
-        expect(uidFetcher.getId).to.be.calledWith([
+        expect(uidFetcher.fetchId).to.be.calledWith([
             expectedLeaderData(follower1, 2, false),
             expectedFollowerData(follower2, 2, false)
           ],
@@ -1220,7 +1220,7 @@ describe('ActualLeader', () => {
           expect(consentManager.resetConsentData).to.be.calledWith(forceAllowLocalStorageGrant === true);
 
           await resolved(consentPromise);
-          expect(uidFetcher.getId).to.be.calledWith([
+          expect(uidFetcher.fetchId).to.be.calledWith([
             expectedLeaderData(follower1, 2, false),
             expectedFollowerData(follower2, 2, false)
           ], CONSENT_DATA_GDPR_ALLOWED, true);
@@ -1345,7 +1345,7 @@ describe('ActualLeader', () => {
         cascade_needed: true
       });
 
-      uidFetcher.getId.returns(fetchResult);
+      uidFetcher.fetchId.returns(fetchResult);
 
       // when
       leader.start();
@@ -1406,7 +1406,7 @@ describe('ActualLeader', () => {
       });
 
 
-      uidFetcher.getId.returns(fetchResult);
+      uidFetcher.fetchId.returns(fetchResult);
 
       // when
       leader.start();
@@ -1473,7 +1473,7 @@ describe('ActualLeader', () => {
       });
       refreshedResponse.timestamp = 1;
       const fetchResult = Promise.resolve(refreshedResponse);
-      uidFetcher.getId.returns(fetchResult);
+      uidFetcher.fetchId.returns(fetchResult);
 
       // when
       leader.start();
@@ -1508,7 +1508,7 @@ describe('ActualLeader', () => {
       });
       const fetchResult = Promise.resolve(refreshedResponse);
 
-      uidFetcher.getId.returns(fetchResult);
+      uidFetcher.fetchId.returns(fetchResult);
 
       follower1.canDoCascade.returns(false);
       follower1FetchIdData.refererInfo = {
@@ -1539,7 +1539,7 @@ describe('ActualLeader', () => {
 
         // then
         expect(localStorageCheckStub).to.be.calledOnce;
-        expect(uidFetcher.getId).to.be.calledWith(
+        expect(uidFetcher.fetchId).to.be.calledWith(
           [
             expectedLeaderData(follower1, 1, true)
           ],
@@ -1577,7 +1577,7 @@ describe('ActualLeader', () => {
       expect(follower1.notifyFetchUidCanceled).to.be.calledWith(cancel);
       expect(follower2.notifyFetchUidCanceled).to.be.calledWith(cancel);
       expect(localStorageCheckStub).to.not.be.called;
-      expect(uidFetcher.getId).to.not.be.called;
+      expect(uidFetcher.fetchId).to.not.be.called;
       expect(store.storeConsent).to.not.be.called;
     });
   });

@@ -39,7 +39,6 @@ const MULTI_FETCH_ENDPOINT_V3 = `/gm/v3`;
  * @property {FetchResponse} generic
  * @property {Map<string, FetchResponse>} responses
  */
-
 export class RefreshedResponse {
   /**
    * @type number
@@ -78,7 +77,7 @@ export class RefreshedResponse {
   }
 }
 
-export class UidRefresher {
+export class UidFetcher {
   /**
    * @type {Extensions}
    * @private
@@ -94,7 +93,7 @@ export class UidRefresher {
    */
   _log;
 
-  constructor(extensions, metrics, log) {
+  constructor(metrics, log, extensions) {
     this._extensionsProvider = extensions;
     this._metrics = metrics;
     this._log = log;
@@ -104,9 +103,9 @@ export class UidRefresher {
    * @param {array<FetchIdRequestData>} fetchRequestIdData
    * @param {ConsentData} consentData
    * @param {boolean} isLocalStorageAvailable
-   * @return {Promise<MultiFetchResponse>}
+   * @return {Promise<RefreshedResponse>}
    */
-  refreshUid(fetchRequestIdData, consentData, isLocalStorageAvailable) {
+  fetchId(fetchRequestIdData, consentData, isLocalStorageAvailable) {
     return this._extensionsProvider.gather(fetchRequestIdData)
       .then(extensions => {
         const requests = fetchRequestIdData.map(fetchIdData => {
@@ -128,7 +127,7 @@ export class UidRefresher {
               log.info('Success at fetch call:', jsonResponse);
               fetchTimeMeasurement.record(metrics?.fetchSuccessfulCallTimer());
               try {
-                resolve(refresher._validateResponse(jsonResponse));
+                resolve(new RefreshedResponse(refresher._validateResponse(jsonResponse)));
               } catch (e) {
                 reject(e);
               }
@@ -263,43 +262,5 @@ export class UidRefresher {
     data.used_refresh_in_seconds = refreshInSecondUsed;
     data.extensions = extensions;
     return data;
-  }
-}
-
-export class UidFetcher {
-  /**
-   * @type {UidRefresher}
-   * @private
-   */
-  _uidRefresher;
-
-  /**
-   * @type {Logger}
-   * @private
-   */
-  _log;
-
-  /**
-   * @param {Id5CommonMetrics} metrics
-   * @param {Logger} logger
-   * @param {Extensions} extensions
-   * @param {UidRefresher} uidRefresher
-   */
-  constructor(metrics, logger, extensions, uidRefresher = new UidRefresher(extensions, metrics, logger)) {
-    this._log = logger;
-    this._uidRefresher = uidRefresher;
-  }
-
-  /**
-   * This function get the user ID for the given config
-
-   * @param {array<FetchIdRequestData>} fetchRequestIdData
-   * @param {ConsentData} consentData
-   * @param {boolean} isLocalStorageAvailable
-   * @return {Promise<RefreshedResponse>}
-   */
-  getId(fetchRequestIdData, consentData, isLocalStorageAvailable) {
-    this._log.info('UidFetcher: requested to get an id:', fetchRequestIdData);
-    return this._uidRefresher.refreshUid(fetchRequestIdData, consentData, isLocalStorageAvailable).then(response => new RefreshedResponse(response));
   }
 }
