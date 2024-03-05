@@ -1,14 +1,15 @@
-import {cyrb53Hash} from './utils.js';
+import {cyrb53Hash, isDefined, isPlainObject} from './utils.js';
 
 export const ID5_GVL_ID = '131';
 
+/** @enum {API_TYPE} */
 export const API_TYPE = Object.freeze({
   NONE: 'none',
   TCF_V1: 'TCFv1',
   TCF_V2: 'TCFv2',
   USP_V1: 'USPv1',
   ID5_ALLOWED_VENDORS: 'ID5',
-  PREBID: 'PBJS',
+  PREBID: 'PBJS', // @deprecated, can be removed when 99.9% of multiplexing versions used with pb.js are greater than v1.0.23
   GPP_V1_0: 'GPPv1.0',
   GPP_V1_1: 'GPPv1.1'
 });
@@ -38,7 +39,10 @@ export class GppConsentData {
    * @param {number[]} applicableSections
    * @param {string} gppString
    */
-  constructor(version, localStoragePurposeConsent, applicableSections, gppString) {
+  constructor(version = undefined,
+              localStoragePurposeConsent = undefined,
+              applicableSections = undefined,
+              gppString = undefined) {
     this.version = version;
     this.localStoragePurposeConsent = localStoragePurposeConsent;
     this.applicableSections = applicableSections;
@@ -48,7 +52,7 @@ export class GppConsentData {
   // section mapping from https://github.com/InteractiveAdvertisingBureau/Global-Privacy-Platform/blob/main/Sections/Section%20Information.md
   isGranted() {
     if (this.applicableSections.includes(2)) {
-      return this.localStoragePurposeConsent;
+      return this.localStoragePurposeConsent === true;
     } else if (this.applicableSections.includes(6)) {
       return true;
     } else if (this.applicableSections.includes(0) || this.applicableSections.includes(-1) || this.applicableSections.length === 0) {
@@ -59,12 +63,33 @@ export class GppConsentData {
   }
 }
 
+/**
+ * @property {ConsentData} oldVersionData
+ * @return {array<API_TYPE>}
+ */
+function _getApiTypesFormOldVersion(oldVersionData) {
+  // to be compatible with older consentData
+  const api = oldVersionData.api;
+  if (api === API_TYPE.NONE) {
+    return [];
+  } else if (api === API_TYPE.PREBID) {
+    const apis = [];
+    if (isDefined(oldVersionData.gdprApplies) || isDefined(oldVersionData.consentString)) {
+      apis.push(API_TYPE.TCF_V2);
+    }
+    if (isDefined(oldVersionData.ccpaString)) {
+      apis.push(API_TYPE.USP_V1);
+    }
+    return apis;
+  }
+  return [api];
+}
+
 export class ConsentData {
   /**
-   * The API type which is used to determine consent to access local storage and call the ID5 back-end
-   * @type {string}
-   */
-  api;
+   * The API types which are used to determine consent to access local storage and call the ID5 back-end
+   * @type {array<API_TYPE>} */
+  apiTypes;
 
   /** @type {boolean} */
   gdprApplies;
@@ -99,53 +124,51 @@ export class ConsentData {
   /** @type {ConsentSource} */
   source;
 
-  constructor(
-    api = API_TYPE.NONE,
-    gdprApplies = false,
-    consentString = undefined,
-    localStoragePurposeConsent = false,
-    ccpaString = undefined,
-    allowedVendors = undefined,
-    forcedGrantByConfig = false,
-    gppData = undefined
-  ) {
-    this.api = api;
-    this.gdprApplies = gdprApplies;
-    this.consentString = consentString;
-    this.localStoragePurposeConsent = localStoragePurposeConsent;
-    this.ccpaString = ccpaString;
-    this.allowedVendors = allowedVendors;
-    this.forcedGrantByConfig = forcedGrantByConfig;
-    this.gppData = gppData;
+  constructor() {
+    this.apiTypes = [];
+    this.gdprApplies = false;
+    this.consentString = undefined;
+    this.localStoragePurposeConsent = false;
+    this.ccpaString = undefined;
+    this.allowedVendors = undefined;
+    this.forcedGrantByConfig = false;
+    this.gppData = undefined;
   }
 
   localStorageGrant() {
-    const grantType = (this.forcedGrantByConfig === true)
-      ? GRANT_TYPE.FORCE_ALLOWED_BY_CONFIG
-      : ((this.api === undefined || this.api === API_TYPE.NONE) ? GRANT_TYPE.PROVISIONAL : GRANT_TYPE.CONSENT_API);
-    return new LocalStorageGrant(this.isGranted(), grantType, this.api);
+    if (this.forcedGrantByConfig === true) {
+      return new LocalStorageGrant(true, GRANT_TYPE.FORCE_ALLOWED_BY_CONFIG);
+    }
+    if (this.apiTypes.length === 0) {
+      return new LocalStorageGrant(true, GRANT_TYPE.PROVISIONAL);
+    }
+    return this._getLocalStorageGrantFromApi();
   }
 
-  isGranted() {
-    switch (this.api) {
-      case API_TYPE.NONE:
-        // By default (so no indication from the owner of the page
-        // and no consent framework detected on page) we assume that we can use local storage
-        return true;
-      case API_TYPE.TCF_V1:
-        return !this.gdprApplies || this.localStoragePurposeConsent === true;
-      case API_TYPE.TCF_V2:
-      case API_TYPE.PREBID:
-        return this.gdprApplies === false || this.localStoragePurposeConsent === true;
-      case API_TYPE.ID5_ALLOWED_VENDORS:
-        return this.allowedVendors.includes(ID5_GVL_ID);
-      case API_TYPE.USP_V1:
-        // CCPA never disallows local storage
-        return true;
-      case API_TYPE.GPP_V1_0:
-      case API_TYPE.GPP_V1_1:
-        return this.gppData.isGranted();
+  _getLocalStorageGrantFromApi() {
+    const apiTypes = this.apiTypes;
+    const apiGrants = {};
+    if (apiTypes.includes(API_TYPE.TCF_V1)) {
+      apiGrants[API_TYPE.TCF_V1] = !this.gdprApplies || this.localStoragePurposeConsent === true;
     }
+    if (apiTypes.includes(API_TYPE.TCF_V2)) {
+      apiGrants[API_TYPE.TCF_V2] = this.gdprApplies === false || this.localStoragePurposeConsent === true;
+    }
+    if (apiTypes.includes(API_TYPE.ID5_ALLOWED_VENDORS)) {
+      apiGrants[API_TYPE.ID5_ALLOWED_VENDORS] = this.allowedVendors.includes(ID5_GVL_ID);
+    }
+    if (apiTypes.includes(API_TYPE.USP_V1)) {
+      // CCPA never disallows local storage
+      apiGrants[API_TYPE.USP_V1] = true;
+    }
+    if (apiTypes.includes(API_TYPE.GPP_V1_0)) {
+      apiGrants[API_TYPE.GPP_V1_0] = this.gppData.isGranted();
+    }
+    if (apiTypes.includes(API_TYPE.GPP_V1_1)) {
+      apiGrants[API_TYPE.GPP_V1_1] = this.gppData.isGranted();
+    }
+    const isGranted = Object.keys(apiGrants).map((api) => apiGrants[api]).reduce((prev, current) => prev && current, true);
+    return new LocalStorageGrant(isGranted, GRANT_TYPE.CONSENT_API, apiGrants);
   }
 
   /**
@@ -162,6 +185,22 @@ export class ConsentData {
     //eslint-disable-next-line no-unused-vars
     const {localStoragePurposeConsent, ccpaString, ...others} = this;
     return cyrb53Hash(JSON.stringify(others));
+  }
+
+  static createFrom(object) {
+    const consentData = Object.assign(new ConsentData(), object);
+
+    if (isDefined(consentData.api)) {
+      // old version data
+      // let's convert to new version
+      consentData.apiTypes = _getApiTypesFormOldVersion(object);
+      consentData.api = undefined;
+    }
+
+    if (isPlainObject(consentData.gppData)) {
+      consentData.gppData = Object.assign(new GppConsentData(), consentData.gppData);
+    }
+    return consentData;
   }
 }
 
@@ -198,12 +237,15 @@ export class LocalStorageGrant {
   grantType = GRANT_TYPE.NONE;
 
   /**
-   * The consent API type which is used to determine consent to access local storage
-   * @type {string}
+   * The consent API types which were used to determine consent to access local storage
+   * api[API_TYPE] === true - given API allows
+   * api[API_TYPE] === false - given API disallows
+   * api[API_TYPE] === undefined - given API was not used
+   * @type {Object}
    */
-  api = API_TYPE.NONE;
+  api = {};
 
-  constructor(allowed, grantType, api) {
+  constructor(allowed, grantType, api = {}) {
     this.allowed = allowed;
     this.grantType = grantType;
     this.api = api;

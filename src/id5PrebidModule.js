@@ -185,14 +185,16 @@ class Id5PrebidIntegration {
    * @returns {ConsentData}
    */
   _buildConsentData(gdprConsentData, uspConsentData, gppConsentData) {
-    const consentData = new ConsentData(API_TYPE.PREBID);
+    const consentData = new ConsentData();
     consentData.source = ConsentSource.prebid;
     if (gdprConsentData) {
+      consentData.apiTypes.push(API_TYPE.TCF_V2);
       consentData.gdprApplies = gdprConsentData.gdprApplies;
       consentData.consentString = gdprConsentData.consentString;
       consentData.localStoragePurposeConsent = delve(gdprConsentData.vendorData, 'purpose.consents.1');
     }
     if (uspConsentData) {
+      consentData.apiTypes.push(API_TYPE.USP_V1);
       consentData.ccpaString = uspConsentData;
       consentData.localStoragePurposeConsent = true;
     }
@@ -200,6 +202,9 @@ class Id5PrebidIntegration {
       const tcfData = gppConsentData.parsedSections?.tcfeuv2;
       const localStoragePurposeConsent = tcfData ? GPPClient.tcfDataHasLocalStorageGrant(tcfData[0]) : undefined;
       const gppVersion = this._translateGppVersion(gppConsentData.gppVersion);
+      if(gppVersion) {
+        consentData.apiTypes.push(gppVersion);
+      }
       consentData.gppData = new GppConsentData(gppVersion, localStoragePurposeConsent, gppConsentData.applicableSections, gppConsentData.gppString);
     }
     return consentData;
