@@ -67,7 +67,7 @@ export class GppConsentData {
  * @property {ConsentData} oldVersionData
  * @return {array<API_TYPE>}
  */
-function _getApiTypesFormOldVersion(oldVersionData) {
+function _getApiTypesFromOldVersion(oldVersionData) {
   // to be compatible with older consentData
   const api = oldVersionData.api;
   if (api === API_TYPE.NONE) {
@@ -193,7 +193,7 @@ export class ConsentData {
     if (isDefined(consentData.api)) {
       // old version data
       // let's convert to new version
-      consentData.apiTypes = _getApiTypesFormOldVersion(object);
+      consentData.apiTypes = _getApiTypesFromOldVersion(object);
       consentData.api = undefined;
     }
 
