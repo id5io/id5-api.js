@@ -6,8 +6,10 @@ import {
 import {ProxyMethodCallTarget} from './messaging.js';
 
 /* eslint-disable no-unused-vars */
-import {ConsentData, NoConsentError} from './consent.js';
+import {ConsentData} from './consent.js';
 import {Store} from './store.js';
+import {WindowStorage} from './localStorage.js';
+import {RefreshedResponse} from './fetch.js';
 
 /* eslint-enable no-unused-vars */
 
@@ -144,12 +146,28 @@ export class ActualLeader extends Leader {
   /**
    *
    * @param {Array<FetchIdRequestData>} requestData
-   * @param {RefreshResult} refreshResult
+   * @param {Map<string, CachedResponse>} cachedData
+   * @param {ConsentData} consentData
+   * @param {RefreshedResponse} refreshedResponse
    * @private
    */
-  _handleRefreshResult(requestData, refreshResult) {
-    const refreshedResponse = refreshResult.refreshedResponse;
+  _handleRefreshResult(requestData, cachedData, consentData, refreshedResponse) {
+    const log = this._log;
+    const consentManager = this._consentManager;
+    const store = this._store;
     if (refreshedResponse !== undefined) {
+      // privacy has to be stored first, so we can use it when storing other values
+      consentManager.setStoredPrivacy(refreshedResponse.getGenericResponse()?.privacy);
+      const localStorageGrant = consentManager.localStorageGrant('fetcher-after-response');
+      if (localStorageGrant.isDefinitivelyAllowed()) {
+        log.info('Storing ID and request hashes in cache');
+        store.updateNbs(cachedData);
+        store.storeResponse(requestData, refreshedResponse);
+      } else {
+        log.info('Cannot use local storage to cache ID', localStorageGrant);
+        store.clearAll(requestData);
+      }
+
       for (const followerData of requestData) {
         // increase requests count for followers
         const followerId = followerData.integrationId;
@@ -172,7 +190,6 @@ export class ActualLeader extends Leader {
         }
       }
       // handle cascades
-      const consentData = refreshResult.consentData;
       if (consentData !== undefined) {
         if (cascadeRequested.length > 0 && this._consentManager.localStorageGrant('leader-before-cascade').isDefinitivelyAllowed()) {
           this._handleCascade(cascadeRequested, refreshedResponse, consentData);
@@ -231,37 +248,94 @@ export class ActualLeader extends Leader {
   }
 
   _getId(forceRefresh = false) {
-    let shouldRefresh = forceRefresh;
-    const fetchIds = this._followers.map(follower => {
-      const followerId = follower.getId();
-      const requestCount = (this._followersRequests[followerId] || 0) + 1;
-      const leaderId = this._properties.id;
-      const refreshRequired = this._refreshRequired[follower.getId()] === true;
-      shouldRefresh = shouldRefresh || refreshRequired;
-      return {
-        ...follower.getFetchIdData(),
-        integrationId: followerId,
-        requestCount: requestCount,
-        refresh: refreshRequired,
-        role: leaderId === follower.getId() ? 'leader' : 'follower',
-        cacheId: follower.getCacheId()
-      };
-    });
-    this._inProgressFetch = true;
-    this._firstFetchTriggered = true; // after first any new follower will be recognized as late joiner
-    this._fetcher.getId(fetchIds, shouldRefresh)
-      .then(refreshResult => {
-        this._handleRefreshResult(fetchIds, refreshResult);
-        this._handleFetchCompleted();
-      })
-      .catch(error => {
-        if (error instanceof NoConsentError) {
-          this._handleCancel(error.message);
-        } else {
-          this._handleFailed(error);
+    const log = this._log;
+    this._waitForConsent().then(consentData => {
+      const localStorageGrant = this._consentManager.localStorageGrant('fetch-before-request');
+      log.info('Local storage grant', localStorageGrant);
+      if (!localStorageGrant.allowed) {
+        log.info('No legal basis to use ID5', consentData);
+        this._handleCancel('No legal basis to use ID5');
+      } else {
+        const store = this._store;
+        const consentHasChanged = this._store.hasConsentChanged(consentData);
+        // store hashed consent data for future page loads if local storage allowed
+        if (localStorageGrant.isDefinitivelyAllowed()) {
+          store.storeConsent(consentData);
         }
-        this._handleFetchCompleted();
-      });
+
+        // with given consent we can check if it is accessible
+        const isLocalStorageAvailable = WindowStorage.checkIfAccessible();
+
+        /** @type {Map<string, CachedResponse>} */
+        const cacheData = new Map();
+        let shouldRefresh = forceRefresh;
+        const fetchRequestData = this._followers.map(follower => {
+          const followerId = follower.getId();
+          const requestCount = (this._followersRequests[followerId] || 0) + 1;
+          const leaderId = this._properties.id;
+          const refreshRequired = this._refreshRequired[follower.getId()] === true;
+          shouldRefresh = shouldRefresh || refreshRequired;
+          const cacheId = follower.getCacheId();
+          if (!cacheData.has(cacheId)) {
+            const cachedResponse = this._store.getCachedResponse(cacheId);
+            if (cachedResponse) {
+              cacheData.set(cacheId, cachedResponse);
+            }
+          }
+          return {
+            ...follower.getFetchIdData(),
+            integrationId: followerId,
+            requestCount: requestCount,
+            refresh: refreshRequired,
+            role: leaderId === follower.getId() ? 'leader' : 'follower',
+            cacheId: cacheId,
+            cacheData: cacheData.get(cacheId)
+          };
+        });
+
+        // make a call to fetch a new ID5 ID if:
+        // - consent has changed since the last ID was fetched
+        if (consentHasChanged || shouldRefresh) {
+          log.info(`Decided to fetch a fresh ID5 ID`, {
+            consentHasChanged,
+            shouldRefresh
+          });
+
+          log.info(`Fetching ID5 ID (forceFetch:${forceRefresh})`);
+          this._inProgressFetch = true;
+          this._firstFetchTriggered = true; // after first any new follower will be recognized as late joiner
+          this._fetcher.fetchId(fetchRequestData, consentData, isLocalStorageAvailable)
+            .then(refreshResult => {
+              this._handleRefreshResult(fetchRequestData, cacheData, consentData, refreshResult);
+              this._handleFetchCompleted();
+            })
+            .catch(error => {
+              this._handleFailed(error);
+              this._handleFetchCompleted();
+            });
+        } else {
+          log.info('Not decided to refresh ID5 ID', {consentHasChanged, shouldRefresh});
+          // to let caller know it's done
+          this._handleFetchCompleted();
+        }
+      }
+    });
+  }
+
+  _waitForConsent() {
+    const log = this._log;
+    const consentManager = this._consentManager;
+    const metrics = this._metrics;
+
+    log.info('Waiting for consent');
+    const waitForConsentTimer = metrics.timer('fetch.consent.wait.time');
+    return consentManager.getConsentData().then(consentData => {
+      log.info('Consent received', consentData);
+      if (waitForConsentTimer) {
+        waitForConsentTimer.recordNow();
+      }
+      return consentData;
+    });
   }
 
   start() {

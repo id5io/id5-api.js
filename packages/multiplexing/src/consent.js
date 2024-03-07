@@ -13,23 +13,6 @@ export const API_TYPE = Object.freeze({
   GPP_V1_1: 'GPPv1.1'
 });
 
-export class NoConsentError extends Error {
-  /**
-   * @type {ConsentData}
-   */
-  consentData;
-
-  /**
-   *
-   * @param {ConsentData} consentData
-   * @param {String} message
-   */
-  constructor(consentData, message) {
-    super(message);
-    this.consentData = consentData;
-  }
-}
-
 export class GppConsentData {
   /** Version of gpp specification, reusing API_TYPE values for consistency
    * @type {string}

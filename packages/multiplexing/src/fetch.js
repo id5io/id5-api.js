@@ -1,15 +1,8 @@
 import {ajax, isDefined, isStr, isPlainObject, objectEntries} from './utils.js';
-import {
-  /* eslint-disable no-unused-vars */
-  ConsentManager,
-  /* eslint-enable no-unused-vars */
-  NoConsentError
-} from './consent.js';
 import {startTimeMeasurement} from '@id5io/diagnostics';
 
 /* eslint-disable no-unused-vars */
-import {Store, CachedResponse} from './store.js';
-import {WindowStorage} from './localStorage.js';
+import {CachedResponse} from './store.js';
 import {Logger} from './logger.js';
 /* eslint-enable no-unused-vars */
 
@@ -24,6 +17,7 @@ const MULTI_FETCH_ENDPOINT_V3 = `/gm/v3`;
  * @property {string} requestCount - number of times integration was included in multiplexed requests so far within session
  * @property {string} cacheId - instance client storage cache identifier
  * @property {boolean} refresh - true if this instance require refresh, false otherwise
+ * @property {CachedResponse} cacheData
  */
 
 /**
@@ -35,6 +29,7 @@ const MULTI_FETCH_ENDPOINT_V3 = `/gm/v3`;
  * @typedef {Object} FetchResponse
  * @property {string} universal_uid
  * @property {string} signature
+ * @property {object} [privacy]
  * @property {ResponseCacheControl} [cache_control]
  * @property {boolean|undefined} [cascade_needed]
  */
@@ -44,7 +39,6 @@ const MULTI_FETCH_ENDPOINT_V3 = `/gm/v3`;
  * @property {FetchResponse} generic
  * @property {Map<string, FetchResponse>} responses
  */
-
 export class RefreshedResponse {
   /**
    * @type number
@@ -60,6 +54,9 @@ export class RefreshedResponse {
     this.timestamp = timestamp;
   }
 
+  /**
+   * @return {FetchResponse}
+   */
   getGenericResponse() {
     return this.response.generic;
   }
@@ -70,7 +67,7 @@ export class RefreshedResponse {
    * @return {FetchResponse}
    */
   getResponseFor(requestId) {
-    if (this.response.responses[requestId]) {
+    if (this.response?.responses && this.response?.responses[requestId]) {
       return {
         ...this.response.generic,
         ...this.response.responses[requestId]
@@ -80,7 +77,7 @@ export class RefreshedResponse {
   }
 }
 
-export class UidRefresher {
+export class UidFetcher {
   /**
    * @type {Extensions}
    * @private
@@ -96,24 +93,23 @@ export class UidRefresher {
    */
   _log;
 
-  constructor(extensions, metrics, log) {
+  constructor(metrics, log, extensions) {
     this._extensionsProvider = extensions;
     this._metrics = metrics;
     this._log = log;
   }
 
   /**
-   * @param {ConsentData} consentData
    * @param {array<FetchIdRequestData>} fetchRequestIdData
-   * @param {Map<string, CachedResponse>} cacheData
+   * @param {ConsentData} consentData
    * @param {boolean} isLocalStorageAvailable
-   * @return {Promise<MultiFetchResponse>}
+   * @return {Promise<RefreshedResponse>}
    */
-  refreshUid(fetchRequestIdData, consentData, cacheData, isLocalStorageAvailable) {
+  fetchId(fetchRequestIdData, consentData, isLocalStorageAvailable) {
     return this._extensionsProvider.gather(fetchRequestIdData)
       .then(extensions => {
         const requests = fetchRequestIdData.map(fetchIdData => {
-          const cachedRequest = cacheData.get(fetchIdData.cacheId);
+          const cachedRequest = fetchIdData.cacheData;
           const signature = cachedRequest?.response?.signature;
           const nbValue = cachedRequest?.nb;
           const cacheMaxAge = cachedRequest?.getMaxAge();
@@ -131,7 +127,7 @@ export class UidRefresher {
               log.info('Success at fetch call:', jsonResponse);
               fetchTimeMeasurement.record(metrics?.fetchSuccessfulCallTimer());
               try {
-                resolve(refresher._validateResponse(jsonResponse));
+                resolve(new RefreshedResponse(refresher._validateResponse(jsonResponse)));
               } catch (e) {
                 reject(e);
               }
@@ -208,7 +204,7 @@ export class UidRefresher {
 
     if (isDefined(fetchIdData.allowedVendors)) {
       data.allowed_vendors = fetchIdData.allowedVendors;
-    } else if(isDefined(consentData.allowedVendors)){
+    } else if (isDefined(consentData.allowedVendors)) {
       data.allowed_vendors = consentData.allowedVendors;
     }
 
@@ -266,176 +262,5 @@ export class UidRefresher {
     data.used_refresh_in_seconds = refreshInSecondUsed;
     data.extensions = extensions;
     return data;
-  }
-}
-
-/**
- * @typedef {Object} RefreshResult
- * @property {RefreshedResponse} refreshedResponse
- * @property {ConsentData} consentData
- */
-
-export class RefreshResult {
-  /**
-   * @type {ConsentData}
-   */
-  consentData;
-
-  /**
-   * @type {RefreshedResponse}
-   */
-  refreshedResponse;
-
-  constructor(consentData, refreshedResponse = undefined) {
-    this.consentData = consentData;
-    this.refreshedResponse = refreshedResponse;
-  }
-}
-
-export class UidFetcher {
-  /**
-   * @type {Store}
-   */
-  _store;
-
-  /**
-   * @type {ConsentManager}
-   */
-  _consentManager;
-
-  /**
-   * @type {UidRefresher}
-   * @private
-   */
-  _uidRefresher;
-
-  /**
-   * @type {Id5CommonMetrics}
-   */
-  _metrics;
-
-  /**
-   * @type {Logger}
-   * @private
-   */
-  _log;
-
-  /**
-   * @param {ConsentManager} consentManager
-   * @param {Store} store
-   * @param {Id5CommonMetrics} metrics
-   * @param {Logger} logger
-   * @param {Extensions} extensions
-   * @param {UidRefresher} uidRefresher
-   */
-  constructor(consentManager, store, metrics, logger, extensions, uidRefresher = new UidRefresher(extensions, metrics, logger)) {
-    this._store = store;
-    this._consentManager = consentManager;
-    this._metrics = metrics;
-    this._log = logger;
-    this._uidRefresher = uidRefresher;
-  }
-
-  /**
-   * This function get the user ID for the given config
-
-   * @param {array<FetchIdRequestData>} fetchRequestIdData
-   * @param {boolean} refreshRequired - Force a call to server
-   * @return {Promise<RefreshResult>}
-   */
-  getId(fetchRequestIdData, refreshRequired = true) {
-    const log = this._log;
-    log.info('UidFetcher: requested to get an id:', fetchRequestIdData);
-    const store = this._store;
-    const consentManager = this._consentManager;
-    const metrics = this._metrics;
-
-    log.info('Waiting for consent');
-    const waitForConsentTimer = metrics.timer('fetch.consent.wait.time');
-    return consentManager.getConsentData().then(consentData => {
-      log.info('Consent received', consentData);
-      if (waitForConsentTimer) {
-        waitForConsentTimer.recordNow();
-      }
-      const localStorageGrant = consentManager.localStorageGrant('fetcher-before-request');
-      log.info('Local storage grant', localStorageGrant);
-      if (!localStorageGrant.allowed) {
-        log.info('No legal basis to use ID5', consentData);
-        throw new NoConsentError(consentData, 'No legal basis to use ID5');
-      }
-
-      // with given consent we can check if it is accessible
-      const isLocalStorageAvailable = WindowStorage.checkIfAccessible();
-
-      const consentHasChanged = store.hasConsentChanged(consentData);
-      // store hashed consent data for future page loads if local storage allowed
-      if (localStorageGrant.isDefinitivelyAllowed()) {
-        store.storeConsent(consentData);
-      }
-
-      // make a call to fetch a new ID5 ID if:
-      // - consent has changed since the last ID was fetched
-      // - refreshedRequired (leader decision - i.e. fetch is being forced (e.g. by refreshId()),  no valid cached data for any follower)
-      if (consentHasChanged || refreshRequired) {
-        log.info(`Decided to fetch a fresh ID5 ID`, {
-          consentHasChanged,
-          refreshRequired
-        });
-        const cacheData = this._collectCacheData(fetchRequestIdData);
-        const fetcher = this;
-        log.info(`Fetching ID5 ID (forceFetch:${refreshRequired})`);
-        return this._uidRefresher.refreshUid(fetchRequestIdData, consentData, cacheData, isLocalStorageAvailable)
-          .then(response => {
-            return fetcher._handleSuccessfulFetchResponse(response, fetchRequestIdData, consentData, cacheData);
-          });
-      } else {
-        log.info('Not decided to refresh ID5 ID', {consentHasChanged, refreshRequired});
-        // to let caller know it's done
-        return new RefreshResult(consentData, undefined);
-      }
-    });
-  }
-
-  /**
-   * @param {MultiFetchResponse} response
-   * @param {array<FetchIdRequestData>} fetchIdData
-   * @param {ConsentData} consentData
-   * @param {Map<string, CachedResponse>} cachedData
-   * @return {RefreshResult}
-   */
-  _handleSuccessfulFetchResponse(response, fetchIdData, consentData, cachedData) {
-    const log = this._log;
-    const consentManager = this._consentManager;
-    const store = this._store;
-    const refreshedResponse = new RefreshedResponse(response);
-    // privacy has to be stored first, so we can use it when storing other values
-    consentManager.setStoredPrivacy(response.generic.privacy);
-    const localStorageGrant = consentManager.localStorageGrant('fetcher-after-response');
-    if (localStorageGrant.isDefinitivelyAllowed()) {
-      log.info('Storing ID and request hashes in cache');
-      store.updateNbs(cachedData);
-      store.storeResponse(fetchIdData, refreshedResponse);
-    } else {
-      log.info('Cannot use local storage to cache ID', localStorageGrant);
-      store.clearAll(fetchIdData);
-    }
-    return new RefreshResult(consentData, refreshedResponse);
-  }
-
-  _collectCacheData(fetchRequestIdData) {
-    // collect cache data to include in request (nb counters, signature)
-    // this data may not be accessible by leader earlier so get this here
-    /** @type {Map<string, CachedResponse>} */
-    const cacheData = new Map();
-    for (const requestData of fetchRequestIdData) {
-      const cacheId = requestData.cacheId;
-      if (!cacheData.has(cacheId)) {
-        const cachedResponse = this._store.getCachedResponse(cacheId);
-        if (cachedResponse) {
-          cacheData.set(cacheId, cachedResponse);
-        }
-      }
-    }
-    return cacheData;
   }
 }
