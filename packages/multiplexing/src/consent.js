@@ -80,6 +80,9 @@ function _getApiTypesFromOldVersion(oldVersionData) {
     if (isDefined(oldVersionData.ccpaString)) {
       apis.push(API_TYPE.USP_V1);
     }
+    if (isDefined(oldVersionData.gppData) && isDefined(oldVersionData.gppData.version)) {
+      apis.push(oldVersionData.gppData.version);
+    }
     return apis;
   }
   return [api];

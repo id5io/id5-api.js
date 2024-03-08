@@ -45,6 +45,32 @@ describe('Consent Data', function () {
       expect(consentData.consentString).to.be.eql('ABCD');
     });
 
+    [
+      API_TYPE.GPP_V1_1,
+      API_TYPE.GPP_V1_0
+    ].forEach((gppVersion) => {
+      it(`should support API PREBID - ${gppVersion}`, () => {
+
+        // when
+        const consentData = ConsentData.createFrom({
+          api: API_TYPE.PREBID,
+          gppData: {
+            version: gppVersion,
+            localStoragePurposeConsent: true,
+            applicableSections: [6],
+            gppString: 'gppString'
+          }
+        });
+
+        // then
+        expect(consentData.apiTypes).to.be.eql([gppVersion]);
+        const expectedApi = {};
+        expectedApi[gppVersion] = true;
+        expect(consentData.localStorageGrant()).to.be.eql(new LocalStorageGrant(true, GRANT_TYPE.CONSENT_API, expectedApi));
+        expect(consentData.gppData).to.be.eql(new GppConsentData(gppVersion, true, [6], 'gppString'));
+      });
+    });
+
     it('should support API PREBID - USPv1', () => {
 
       // when
@@ -61,7 +87,7 @@ describe('Consent Data', function () {
       expect(consentData.ccpaString).to.be.eql('ccpa');
     });
 
-    it('should support API PREBID - TCFv2 & USPv1', () => {
+    it('should support API PREBID - TCFv2 & USPv1 & GPP', () => {
 
       // when
       const consentData = ConsentData.createFrom({
@@ -69,17 +95,25 @@ describe('Consent Data', function () {
         gdprApplies: true,
         localStoragePurposeConsent: true,
         consentString: 'ABCD',
-        ccpaString: 'ccpa'
+        ccpaString: 'ccpa',
+        gppData: {
+          version: API_TYPE.GPP_V1_0,
+          localStoragePurposeConsent: true,
+          applicableSections: [6],
+          gppString: 'gppString'
+        }
       });
 
       // then
-      expect(consentData.apiTypes).to.be.eql([API_TYPE.TCF_V2, API_TYPE.USP_V1]);
+      expect(consentData.apiTypes).to.be.eql([API_TYPE.TCF_V2, API_TYPE.USP_V1, API_TYPE.GPP_V1_0]);
       expect(consentData.localStorageGrant()).to.be.eql(new LocalStorageGrant(true, GRANT_TYPE.CONSENT_API, {
         'TCFv2': true,
-        'USPv1': true
+        'USPv1': true,
+        'GPPv1.0': true
       }));
       expect(consentData.consentString).to.be.eql('ABCD');
       expect(consentData.ccpaString).to.be.eql('ccpa');
+      expect(consentData.gppData).to.be.eql(new GppConsentData(API_TYPE.GPP_V1_0, true, [6], 'gppString'))
     });
 
     it('should support API TCFv1', () => {
