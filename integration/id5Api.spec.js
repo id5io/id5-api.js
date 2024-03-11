@@ -482,7 +482,7 @@ describe('The ID5 API', function () {
             ...commonTags,
             requestType: 'static',
             success: 'true',
-            apiType: 'TCFv2'
+            'TCFv2': 'true'
           });
           verifyContainsMeasurementWithTags(onlyRequest.measurements, 'id5.api.fetch.consent.wait.time', 'TIMER', commonTags);
           verifyContainsMeasurementWithTags(onlyRequest.measurements, 'id5.api.extensions.call.time', 'TIMER', {
@@ -547,7 +547,7 @@ describe('The ID5 API', function () {
             ...commonTags,
             requestType: 'static',
             success: 'true',
-            apiType: 'TCFv2'
+            'TCFv2': 'true'
           });
           verifyContainsMeasurementWithTags(onlyRequest.measurements, 'id5.api.fetch.consent.wait.time', 'TIMER', commonTags);
           verifyContainsMeasurementWithTags(onlyRequest.measurements, 'id5.api.extensions.call.time', 'TIMER', {

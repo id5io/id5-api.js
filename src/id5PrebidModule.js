@@ -5,13 +5,20 @@ import {
   InvocationLogger,
   isGlobalTrace
 } from '../lib/utils.js';
-import { version as currentVersion } from '../generated/version.js';
-import { Config } from '../lib/config.js';
-import { createPublisher, Id5CommonMetrics, partnerTag, startTimeMeasurement } from '@id5io/diagnostics';
-import multiplexing, { API_TYPE, ConsentData, ApiEvent, WindowStorage, GppConsentData, ConsentSource } from '@id5io/multiplexing';
-import { semanticVersionCompare } from '@id5io/multiplexing/src/utils.js';
+import {version as currentVersion} from '../generated/version.js';
+import {Config} from '../lib/config.js';
+import {createPublisher, Id5CommonMetrics, partnerTag, startTimeMeasurement} from '@id5io/diagnostics';
+import multiplexing, {
+  API_TYPE,
+  ConsentData,
+  ApiEvent,
+  WindowStorage,
+  GppConsentData,
+  ConsentSource
+} from '@id5io/multiplexing';
+import {semanticVersionCompare} from '@id5io/multiplexing/src/utils.js';
 import {UaHints} from '../lib/uaHints.js';
-import { GPPClient } from '../lib/consentProvider.js';
+import {GPPClient} from '../lib/consentProvider.js';
 
 /**
  * @typedef {Object} IdResponse
@@ -134,7 +141,7 @@ class Id5PrebidIntegration {
       instance
         .on(ApiEvent.USER_ID_READY, (userIdData, notificationContext) => {
           try {
-            const notificationContextTags = notificationContext?.tags ? { ...notificationContext.tags } : {};
+            const notificationContextTags = notificationContext?.tags ? {...notificationContext.tags} : {};
             if (notificationContext?.timestamp) {
               metrics.userIdNotificationDeliveryDelayTimer(notificationContextTags).record(Date.now() - notificationContext.timestamp);
             }
@@ -185,14 +192,16 @@ class Id5PrebidIntegration {
    * @returns {ConsentData}
    */
   _buildConsentData(gdprConsentData, uspConsentData, gppConsentData) {
-    const consentData = new ConsentData(API_TYPE.PREBID);
+    const consentData = new ConsentData();
     consentData.source = ConsentSource.prebid;
     if (gdprConsentData) {
+      consentData.apiTypes.push(API_TYPE.TCF_V2);
       consentData.gdprApplies = gdprConsentData.gdprApplies;
       consentData.consentString = gdprConsentData.consentString;
       consentData.localStoragePurposeConsent = delve(gdprConsentData.vendorData, 'purpose.consents.1');
     }
     if (uspConsentData) {
+      consentData.apiTypes.push(API_TYPE.USP_V1);
       consentData.ccpaString = uspConsentData;
       consentData.localStoragePurposeConsent = true;
     }
@@ -200,7 +209,10 @@ class Id5PrebidIntegration {
       const tcfData = gppConsentData.parsedSections?.tcfeuv2;
       const localStoragePurposeConsent = tcfData ? GPPClient.tcfDataHasLocalStorageGrant(tcfData[0]) : undefined;
       const gppVersion = this._translateGppVersion(gppConsentData.gppVersion);
-      consentData.gppData = new GppConsentData(gppVersion, localStoragePurposeConsent, gppConsentData.applicableSections, gppConsentData.gppString);
+      if (gppVersion) {
+        consentData.apiTypes.push(gppVersion);
+        consentData.gppData = new GppConsentData(gppVersion, localStoragePurposeConsent, gppConsentData.applicableSections, gppConsentData.gppString);
+      }
     }
     return consentData;
   }

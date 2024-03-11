@@ -4,7 +4,7 @@ import {
 } from './utils.js';
 import CONSTANTS from './constants.js';
 import {LazyValue} from './promise.js';
-import {API_TYPE, GRANT_TYPE, LocalStorageGrant, ConsentManager, ConsentData} from './consent.js';
+import {GRANT_TYPE, LocalStorageGrant, ConsentManager, ConsentData} from './consent.js';
 
 export class ConsentManagement extends ConsentManager {
   /** @type {LazyValue<ConsentData>} */
@@ -63,14 +63,14 @@ export class ConsentManagement extends ConsentManager {
    * @returns {LocalStorageGrant} the result of checking the grant
    * @param {string} usageContext
    */
-  localStorageGrant(usageContext= "unknown") {
+  localStorageGrant(usageContext = 'unknown') {
     const lsg = this._getLocalStorageGrant();
     this._metrics?.localStorageGrantCounter({
       allowed: lsg.allowed,
       grantType: lsg.grantType,
-      apiType: lsg.api,
       lsgContext: usageContext,
-      consentSet: this._consentDataHolder?.hasValue()
+      consentSet: this._consentDataHolder?.hasValue(),
+      ...lsg.api
     })?.inc();
     return lsg;
   }
@@ -79,9 +79,9 @@ export class ConsentManagement extends ConsentManager {
     const log = this._log;
     if (this._forceAllowLocalStorageGrant === true) {
       log.warn('cmpApi: Local storage access granted by configuration override, consent will not be checked');
-      return new LocalStorageGrant(true, GRANT_TYPE.FORCE_ALLOWED_BY_CONFIG, API_TYPE.NONE);
+      return new LocalStorageGrant(true, GRANT_TYPE.FORCE_ALLOWED_BY_CONFIG);
     }
-    if (!this._consentDataHolder.hasValue() || this._consentDataHolder.getValue().api === API_TYPE.NONE) {
+    if (!this._consentDataHolder.hasValue() || this._consentDataHolder.getValue().apiTypes.length === 0) {
       // Either no CMP on page or too early to say, so we check if we had stored
       // privacy data from a previous request.
       if (!isPlainObject(this.storedPrivacyData)) {
@@ -91,18 +91,18 @@ export class ConsentManagement extends ConsentManager {
       }
 
       if (this.storedPrivacyData && this.storedPrivacyData.id5_consent === true) {
-        return new LocalStorageGrant(true, GRANT_TYPE.ID5_CONSENT, API_TYPE.NONE);
+        return new LocalStorageGrant(true, GRANT_TYPE.ID5_CONSENT);
       }
 
       if (!this.storedPrivacyData || !isDefined(this.storedPrivacyData.jurisdiction)) {
         // No stored privacy data (or jurisdiction) and no consent data. We grant provisional use.
-        return new LocalStorageGrant(true, GRANT_TYPE.PROVISIONAL, API_TYPE.NONE);
+        return new LocalStorageGrant(true, GRANT_TYPE.PROVISIONAL);
       }
       // We had no id5_consent but depending on the jurisdiction, we may still grant local storage.
       const jurisdiction = this.storedPrivacyData.jurisdiction;
       const jurisdictionRequiresConsent = (jurisdiction in CONSTANTS.PRIVACY.JURISDICTIONS)
         ? CONSTANTS.PRIVACY.JURISDICTIONS[jurisdiction] : false;
-      return new LocalStorageGrant(jurisdictionRequiresConsent === false, GRANT_TYPE.JURISDICTION, API_TYPE.NONE);
+      return new LocalStorageGrant(jurisdictionRequiresConsent === false, GRANT_TYPE.JURISDICTION);
     }
 
     return this._consentDataHolder.getValue().localStorageGrant();
@@ -125,7 +125,7 @@ export class ConsentManagement extends ConsentManager {
 
   setConsentData(consentData) {
     this._log.debug('Set consent data', consentData);
-    let consent = Object.assign(new ConsentData(), consentData); // this may be delivered by remote follower serialized , so need to reassign
+    let consent = ConsentData.createFrom(consentData); // this may be delivered by remote follower serialized , so need to reassign
     this._consentDataHolder.set(consent);
   }
 
