@@ -206,8 +206,8 @@ class Id5PrebidIntegration {
       consentData.localStoragePurposeConsent = true;
     }
     if (gppConsentData?.gppString) {
-      const tcfData = gppConsentData.parsedSections?.tcfeuv2;
-      const localStoragePurposeConsent = tcfData ? GPPClient.tcfDataHasLocalStorageGrant(tcfData[0]) : undefined;
+      let tcfData = GPPClient.getTcfData(gppConsentData.parsedSections);
+      const localStoragePurposeConsent = tcfData ? GPPClient.tcfDataHasLocalStorageGrant(tcfData) : undefined;
       const gppVersion = this._translateGppVersion(gppConsentData.gppVersion);
       if (gppVersion) {
         consentData.apiTypes.push(gppVersion);
@@ -217,6 +217,9 @@ class Id5PrebidIntegration {
     return consentData;
   }
 
+  /**
+   * @return {undefined|API_TYPE}
+   */
   _translateGppVersion(gppVersion) {
     switch (gppVersion) {
       case '1.0':
