@@ -3,6 +3,7 @@ import {ProxyMethodCallTarget} from './messaging.js';
 import {NO_OP_LOGGER} from './logger.js';
 import {NoopStorage, StorageApi} from './localStorage.js';
 import {cyrb53Hash} from './utils.js';
+import {ConsentSource} from './data.js';
 /**
  * @typedef {Object} NotificationContext
  * @param {number} timestamp
@@ -88,6 +89,13 @@ export class Follower {
     return cyrb53Hash(JSON.stringify(uniqueData));
   }
 
+  /**
+   * @return {ConsentSource}
+   */
+  getDeclaredConsentSource() {
+    const consentSource = this._instanceProperties.fetchIdData.consentSource;
+    return consentSource || ConsentSource.cmp; // by default for backward compatibility assume cmp
+  }
   /**
    *
    * @param {Id5UserId} uid

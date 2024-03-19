@@ -132,4 +132,8 @@ export class ConsentManagement extends ConsentManager {
   getConsentData() {
     return this._consentDataHolder.getValuePromise();
   }
+
+  hasConsentSet() {
+    return this._consentDataHolder.hasValue();
+  }
 }

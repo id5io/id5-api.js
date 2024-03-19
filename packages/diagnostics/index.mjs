@@ -145,6 +145,10 @@ export class Id5CommonMetrics extends MeterRegistry {
     return this.counter('leader.consent.change.count', tags);
   }
 
+  consentIgnoreCounter(tags = {}) {
+    return this.counter('leader.consent.ignore.count', tags);
+  }
+
   storageAllKeysCounter(tags = {}) {
     return this.summary('storage.keys.all.count', tags);
   }
@@ -163,5 +167,12 @@ export class Id5CommonMetrics extends MeterRegistry {
 
   consentDiscrepancyCounter(tags = {}) {
     return this.counter('consent.discrepancy.count', tags);
+  }
+
+  refreshCallCounter(target, tags = {}) {
+    return this.counter('refresh.call.count', {
+      target: target,
+      ...tags
+    });
   }
 }

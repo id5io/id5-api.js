@@ -205,6 +205,29 @@ export class ConsentData {
     }
     return consentData;
   }
+
+  getApiTypeData(apiType) {
+    if (this.apiTypes.includes(apiType)) {
+      if (apiType === API_TYPE.USP_V1) {
+        return {
+          ccpaString: this.ccpaString
+        };
+      } else if (apiType === API_TYPE.TCF_V2) {
+        return {
+          consentString: this.consentString,
+          gdprApplies: this.gdprApplies,
+          localStoragePurposeConsent: this.localStoragePurposeConsent
+        };
+      } else if (apiType === API_TYPE.GPP_V1_1 || apiType === API_TYPE.GPP_V1_0) {
+        return this.gppData;
+      } else if (apiType === API_TYPE.ID5_ALLOWED_VENDORS) {
+        return {
+          allowedVendors: this.allowedVendors
+        };
+      }
+    }
+    return undefined;
+  }
 }
 
 /**
