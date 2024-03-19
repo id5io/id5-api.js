@@ -363,8 +363,7 @@ describe('Id5Instance', function () {
           callbackOnAvailable: undefined,
           callbackOnUpdates: undefined,
           cmpApi: 'iab',
-          consentData: {
-          },
+          consentData: {},
           debugBypassConsent: false,
           allowGCReclaim: GCReclaimAllowed.AFTER_UID_SET,
           diagnostics: {
@@ -435,12 +434,17 @@ describe('Id5Instance', function () {
   });
 
   describe('upon refresh', function () {
+    let metrics;
+    beforeEach(function () {
+      metrics = new Id5CommonMetrics('source', '1.2.3', 99);
+    });
+
     it('should update options in the config object', async function () {
       const config = new Config({partnerId: 99}, NO_OP_LOGGER);
       const consentManagement = sinon.createStubInstance(ConsentManagement);
       const consentDataProvider = sinon.createStubInstance(ConsentDataProvider);
       consentDataProvider.refreshConsentData.resolves(MOCK_CONSENT_DATA);
-      const instanceUnderTest = new Id5Instance(config, null, consentManagement, null, consentDataProvider, NO_OP_LOGGER, multiplexingInstanceStub, MOCK_PAGE_LEVEL_INFO);
+      const instanceUnderTest = new Id5Instance(config, null, consentManagement, metrics, consentDataProvider, NO_OP_LOGGER, multiplexingInstanceStub, MOCK_PAGE_LEVEL_INFO);
 
       await instanceUnderTest.refreshId(false, {
         debugBypassConsent: true,
@@ -483,7 +487,7 @@ describe('Id5Instance', function () {
       const consentManagement = sinon.createStubInstance(ConsentManagement);
       const consentDataProvider = sinon.createStubInstance(ConsentDataProvider);
       consentDataProvider.refreshConsentData.resolves(MOCK_CONSENT_DATA);
-      const instanceUnderTest = new Id5Instance(config, null, consentManagement, null, consentDataProvider, NO_OP_LOGGER, multiplexingInstanceStub, MOCK_PAGE_LEVEL_INFO);
+      const instanceUnderTest = new Id5Instance(config, null, consentManagement, metrics, consentDataProvider, NO_OP_LOGGER, multiplexingInstanceStub, MOCK_PAGE_LEVEL_INFO);
 
       await instanceUnderTest.refreshId(false, {
         debugBypassConsent: true,
@@ -520,7 +524,6 @@ describe('Id5Instance', function () {
 
     it('should NOT (!) refresh consent data into the consentManagement object', async function () {
       const config = new Config({...defaultInitBypassConsent()}, NO_OP_LOGGER);
-      const metrics = sinon.createStubInstance(Id5CommonMetrics);
       const consentManagement = sinon.createStubInstance(ConsentManagement);
       const consentDataProvider = sinon.createStubInstance(ConsentDataProvider);
       consentDataProvider.refreshConsentData.resolves(MOCK_CONSENT_DATA);
@@ -542,7 +545,7 @@ describe('Id5Instance', function () {
         const consentManagement = sinon.createStubInstance(ConsentManagement);
         const consentDataProvider = sinon.createStubInstance(ConsentDataProvider);
         consentDataProvider.refreshConsentData.resolves(MOCK_CONSENT_DATA);
-        const instanceUnderTest = new Id5Instance(config, null, consentManagement, null, consentDataProvider, NO_OP_LOGGER, multiplexingInstanceStub, MOCK_PAGE_LEVEL_INFO);
+        const instanceUnderTest = new Id5Instance(config, null, consentManagement, metrics, consentDataProvider, NO_OP_LOGGER, multiplexingInstanceStub, MOCK_PAGE_LEVEL_INFO);
 
         await instanceUnderTest.refreshId(false, mergeConfig);
 
@@ -561,7 +564,7 @@ describe('Id5Instance', function () {
       const consentManagement = sinon.createStubInstance(ConsentManagement);
       const consentDataProvider = sinon.createStubInstance(ConsentDataProvider);
       consentDataProvider.refreshConsentData.resolves(MOCK_CONSENT_DATA);
-      const instanceUnderTest = new Id5Instance(config, null, consentManagement, null, consentDataProvider, NO_OP_LOGGER, multiplexingInstanceStub, MOCK_PAGE_LEVEL_INFO);
+      const instanceUnderTest = new Id5Instance(config, null, consentManagement, metrics, consentDataProvider, NO_OP_LOGGER, multiplexingInstanceStub, MOCK_PAGE_LEVEL_INFO);
 
       await instanceUnderTest.refreshId(true, {});
 

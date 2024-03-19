@@ -640,7 +640,7 @@ export class Instance {
   }
 
   updateConsent(consentData) {
-    this._leader.updateConsent(consentData);
+    this._leader.updateConsent(consentData, this.properties.id);
   }
 
   updateFetchIdData(fetchIdDataUpdate) {

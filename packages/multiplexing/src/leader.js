@@ -4,7 +4,8 @@ import {
   NO_OP_LOGGER
 } from './logger.js';
 import {ProxyMethodCallTarget} from './messaging.js';
-
+import {ConsentSource} from './data.js';
+import {API_TYPE} from './consent.js';
 /* eslint-disable no-unused-vars */
 import {ConsentData} from './consent.js';
 import {Store} from './store.js';
@@ -92,10 +93,10 @@ export class ActualLeader extends Leader {
    */
   _inProgressFetch;
   /**
-   * @type {RefreshOptions}
+   * @type {Array}
    * @private
    */
-  _queuedRefreshOptions;
+  _queuedRefreshArgs;
   /**
    * @type {ConsentData}
    * @private
@@ -362,16 +363,20 @@ export class ActualLeader extends Leader {
         }
       }
     }
-    this._callRefresh(options);
+    this._metrics.refreshCallCounter('leader', {
+      overwrites: this._queuedRefreshArgs === undefined
+    }).inc();
+    this._callRefresh(options, followerId);
   }
 
-  _callRefresh(options = {}) {
+  _callRefresh(options = {}, followerId) {
     if (this._inProgressFetch) {
-      this._queuedRefreshOptions = options;
+      this._queuedRefreshArgs = [options, followerId];
       return;
     }
     if (options.resetConsent === true) {
       this._consentManager.resetConsentData(options.forceAllowLocalStorageGrant === true);
+      this._awaitedConsentFrom = followerId;
     }
     this._getId(options.forceFetch === true);
   }
@@ -379,23 +384,66 @@ export class ActualLeader extends Leader {
   /**
    *
    * @param {ConsentData} newConsentData
+   * @param {string} followerId
    */
-  updateConsent(newConsentData) {
-    const prevConsentData = this._lastConsentDataSet;
-    if (prevConsentData) {
-      const apiChanged = newConsentData?.api !== prevConsentData.api;
-      const consentStringChanged = newConsentData?.consentString !== prevConsentData.consentString;
-      const usPrivacyChanged = newConsentData?.ccpaString !== prevConsentData.ccpaString;
-      if (apiChanged || consentStringChanged || usPrivacyChanged) {
-        this._metrics.consentChangeCounter({
-          apiChanged: apiChanged,
-          consentStringChanged: consentStringChanged,
-          usPrivacyChanged: usPrivacyChanged
-        }).inc();
+  updateConsent(newConsentData, followerId) {
+    if (!this._consentManager.hasConsentSet()) {
+      const declaredConsentSources = new Set(this._followers.map(follower => follower.getDeclaredConsentSource()));
+      const receivedConsentSource = newConsentData.source || ConsentSource.cmp;
+      const onlyPartnerDeclared = declaredConsentSources.size === 1 && declaredConsentSources.has(ConsentSource.partner);
+      if (this._awaitedConsentFrom) { // follower called refresh and requested consent reset
+        if (this._awaitedConsentFrom === followerId) {
+          this._consentManager.setConsentData(newConsentData);
+          this._awaitedConsentFrom = undefined;
+        } else {
+          this._handleIgnoredConsent(newConsentData, 'awaited');
+        }
+      } else if (receivedConsentSource !== ConsentSource.partner || onlyPartnerDeclared) {
+        this._consentManager.setConsentData(newConsentData);
+      } else {
+        this._handleIgnoredConsent(newConsentData, 'partner');
       }
+    } else {
+      this._handleIgnoredConsentUpdate(newConsentData);
     }
-    this._consentManager.setConsentData(newConsentData);
-    this._lastConsentDataSet = newConsentData;
+    // TODO update? compare? refresh?
+  }
+
+  _handleIgnoredConsentUpdate(newConsentData) {
+    try {
+      const prevConsentData = this._consentManager._consentDataHolder.getValue();
+      if (prevConsentData) {
+        const tags = {};
+        const receivedConsentData = ConsentData.createFrom(newConsentData);
+        Object.values(API_TYPE).forEach(apiType => {
+          if (receivedConsentData.apiTypes.includes(apiType) && prevConsentData.apiTypes.includes(apiType)) {
+            const prevApiData = JSON.stringify(prevConsentData.getApiTypeData(apiType));
+            const receivedApiData = JSON.stringify(receivedConsentData.getApiTypeData(apiType));
+            tags[apiType] = prevApiData === receivedApiData ? 'same' : 'different';
+          } else if (receivedConsentData.apiTypes.includes(apiType)) {
+            tags[apiType] = 'added';
+          } else if (prevConsentData.apiTypes.includes(apiType)) {
+            tags[apiType] = 'missed';
+          }
+        });
+        this._metrics.consentChangeCounter(tags).inc();
+      }
+    } catch (e) {
+      this._log.error(e);
+    }
+  }
+
+  _handleIgnoredConsent(newConsentData, reason) {
+    try {
+      const tags = {
+        reason: reason,
+        source: newConsentData.source
+      };
+      newConsentData.apiTypes.forEach(apiType => tags[apiType] = true);
+      this._metrics.consentIgnoreCounter(tags);
+    } catch (e) {
+      this._log.error(e);
+    }
   }
 
   updateFetchIdData(instanceId, fetchIdData) {
@@ -474,9 +522,9 @@ export class ActualLeader extends Leader {
 
   _handleFetchCompleted() {
     this._inProgressFetch = undefined;
-    if (this._queuedRefreshOptions) {
-      this._callRefresh(this._queuedRefreshOptions);
-      this._queuedRefreshOptions = undefined;
+    if (this._queuedRefreshArgs) {
+      this._callRefresh(...this._queuedRefreshArgs);
+      this._queuedRefreshArgs = undefined;
     }
   }
 
@@ -518,8 +566,8 @@ export class ProxyLeader extends Leader {
     this._messenger.callProxyMethod(this._leaderInstanceProperties.id, ProxyMethodCallTarget.LEADER, methodName, args);
   }
 
-  updateConsent(consentData) {
-    this._sendToLeader('updateConsent', [consentData]);
+  updateConsent(consentData, followerId) {
+    this._sendToLeader('updateConsent', [consentData, followerId]);
   }
 
   refreshUid(options, requester) {
@@ -541,9 +589,10 @@ export class AwaitedLeader extends Leader {
 
   /**
    * @param {ConsentData} consentData
+   * @param {string} followerId - consent data sender
    */
-  updateConsent(consentData) {
-    this._callOrBuffer('updateConsent', [consentData]);
+  updateConsent(consentData, followerId) {
+    this._callOrBuffer('updateConsent', [consentData, followerId]);
   }
 
   updateFetchIdData(instanceId, fetchIdData) {

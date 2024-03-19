@@ -8,9 +8,9 @@ import {ConsentManagement} from '../../src/consentManagement.js';
 import {NO_OP_LOGGER} from '../../src/logger.js';
 import {Follower} from '../../src/follower.js';
 import {Properties} from '../../src/instance.js';
-import {Counter, Id5CommonMetrics} from '@id5io/diagnostics';
-import {ReplicatingStorage} from '../../src/localStorage.js';
-import {WindowStorage} from '../../src/localStorage.js';
+import {Id5CommonMetrics} from '@id5io/diagnostics';
+import {ReplicatingStorage, WindowStorage} from '../../src/localStorage.js';
+import {ConsentSource} from '../../src/data.js';
 
 describe('ProxyLeader', function () {
   /**
@@ -36,7 +36,18 @@ describe('ProxyLeader', function () {
     leader.updateConsent(consentData);
 
     // then
-    expect(messenger.callProxyMethod).to.have.been.calledWith(leaderId, ProxyMethodCallTarget.LEADER, 'updateConsent', [consentData]);
+    expect(messenger.callProxyMethod).to.have.been.calledWith(leaderId, ProxyMethodCallTarget.LEADER, 'updateConsent', [consentData, undefined]);
+  });
+
+  it('should sent message to call consnetData with followerId', function () {
+    // given
+    const consentData = sinon.stub();
+
+    // when
+    leader.updateConsent(consentData, 'followerId');
+
+    // then
+    expect(messenger.callProxyMethod).to.have.been.calledWith(leaderId, ProxyMethodCallTarget.LEADER, 'updateConsent', [consentData, 'followerId']);
   });
 
   it('should sent message to call refreshUid', function () {
@@ -257,7 +268,7 @@ describe('ActualLeader', () => {
     follower3.getFetchIdData.returns(follower3FetchIdData);
     follower3.getWindow.returns(leaderWindow);
     follower3.getCacheId.returns('cacheId3');
-    leader = new ActualLeader(leaderWindow, leaderProperties, leaderStorage, store, consentManager, sinon.createStubInstance(Id5CommonMetrics), NO_OP_LOGGER, uidFetcher);
+    leader = new ActualLeader(leaderWindow, leaderProperties, leaderStorage, store, consentManager, new Id5CommonMetrics('source', '1.2.3', 1), NO_OP_LOGGER, uidFetcher);
     localStorageCheckStub = sinon.stub(WindowStorage, 'checkIfAccessible').returns(true);
   });
 
@@ -896,6 +907,7 @@ describe('ActualLeader', () => {
             expect(uidFetcher.fetchId).to.be.calledWith([
               expectedLeaderData(follower1, expectedRequestCount, true)
             ], CONSENT_DATA_GDPR_ALLOWED, true);
+            expect(leader._awaitedConsentFrom).to.be.eq(follower1.getId());
           });
         });
       });
@@ -1228,82 +1240,6 @@ describe('ActualLeader', () => {
       });
     });
 
-
-    it('should update consent data', function () {
-      // given
-      const consentData = sinon.stub();
-
-      // when
-      leader.updateConsent(consentData);
-
-      // then
-      expect(consentManager.setConsentData).to.be.calledWith(consentData);
-    });
-
-    it('should update consent data and measure change', function () {
-      // given
-      const consentData = Object.assign(new ConsentData(), {
-        api: API_TYPE.TCF_V2,
-        consentString: 'string'
-      });
-
-      const consentStringChangedData = Object.assign(new ConsentData(), {
-        api: API_TYPE.TCF_V2,
-        consentString: 'new-string'
-      });
-
-      const apiChangedConsentData = Object.assign(new ConsentData(), {
-        api: API_TYPE.USP_V1,
-        consentString: 'new-string',
-        ccpaString: 'ccpa'
-      });
-
-      const metrics = leader._metrics;
-      const counter = sinon.createStubInstance(Counter);
-      metrics.consentChangeCounter.returns(counter);
-
-      // when
-      leader.updateConsent(consentData);
-
-      // then
-      expect(consentManager.setConsentData).to.be.calledWith(consentData);
-      expect(metrics.consentChangeCounter).have.not.been.called;
-
-      // when
-      leader.updateConsent(consentStringChangedData);
-
-      // then
-      expect(consentManager.setConsentData).to.be.calledWith(consentStringChangedData);
-      expect(metrics.consentChangeCounter).have.been.calledWith({
-        apiChanged: false,
-        consentStringChanged: true,
-        usPrivacyChanged: false
-      });
-
-      // when
-      metrics.consentChangeCounter.reset();
-      metrics.consentChangeCounter.returns(counter);
-      leader.updateConsent(consentStringChangedData);
-
-      // then
-      expect(consentManager.setConsentData).to.be.calledWith(consentStringChangedData);
-      expect(metrics.consentChangeCounter).have.not.been.called;
-
-      // when
-      metrics.consentChangeCounter.reset();
-      metrics.consentChangeCounter.returns(counter);
-      leader.updateConsent(apiChangedConsentData);
-
-      // then
-      expect(consentManager.setConsentData).to.be.calledWith(consentStringChangedData);
-      expect(metrics.consentChangeCounter).have.been.calledWith({
-        apiChanged: true,
-        consentStringChanged: false,
-        usPrivacyChanged: true
-      });
-      expect(counter.inc).to.have.calledTwice;
-    });
-
     it('should update follower data', function () {
       // given
       leader.addFollower(follower1);
@@ -1579,6 +1515,160 @@ describe('ActualLeader', () => {
       expect(localStorageCheckStub).to.not.be.called;
       expect(uidFetcher.fetchId).to.not.be.called;
       expect(store.storeConsent).to.not.be.called;
+    });
+  });
+
+  describe('when consent data has not been set yet', function () {
+    beforeEach(() => {
+      consentManager.hasConsentSet.returns(false);
+      consentManager.getConsentData.returns(sinon.promise());
+      uidFetcher.fetchId.returns(sinon.promise());
+    });
+    [
+      [ConsentSource.cmp, ConsentSource.cmp, ConsentSource.prebid, ConsentSource.partner],
+      [ConsentSource.cmp, ConsentSource.cmp, ConsentSource.partner, ConsentSource.partner],
+      [undefined, undefined, ConsentSource.cmp, ConsentSource.cmp], // undefined assumed as cmp
+      [ConsentSource.cmp, ConsentSource.cmp, ConsentSource.cmp, ConsentSource.cmp],
+      [ConsentSource.prebid, ConsentSource.prebid, ConsentSource.partner, ConsentSource.partner],
+      [ConsentSource.prebid, ConsentSource.prebid, ConsentSource.cmp, ConsentSource.cmp],
+      [ConsentSource.partner, ConsentSource.partner, ConsentSource.partner, ConsentSource.partner]
+    ].forEach(([provisionedSource, declaredSource1, declaredSource2, declaredSource3]) => {
+      it(`should accept consent from ${provisionedSource} when declared ${[declaredSource1, declaredSource2, declaredSource3]}`, function () {
+        // given
+        follower1.getDeclaredConsentSource.returns(declaredSource1);
+        follower2.getDeclaredConsentSource.returns(declaredSource2);
+        follower3.getDeclaredConsentSource.returns(declaredSource3);
+
+        leader.addFollower(follower1);
+        leader.addFollower(follower2);
+        leader.addFollower(follower3);
+
+        const provisionedConsentData = new ConsentData();
+        provisionedConsentData.consentString = crypto.randomUUID();
+        provisionedConsentData.source = provisionedSource;
+        const provisionedId = follower1.getId(); // no matter who
+
+        // when
+        leader.updateConsent(provisionedConsentData, provisionedId);
+
+        // then
+        expect(consentManager.setConsentData).to.be.calledWith(provisionedConsentData);
+        expect(follower1.getDeclaredConsentSource).to.be.called;
+        expect(follower2.getDeclaredConsentSource).to.be.called;
+        expect(follower3.getDeclaredConsentSource).to.be.called;
+      });
+    });
+
+    [
+      [ConsentSource.cmp],
+      [ConsentSource.prebid],
+      [ConsentSource.partner]
+    ].forEach(([provisionedSource]) => {
+      it(`should accept consent only from awaited follower after refresh. Ignore source=${provisionedSource}`, function () {
+        // given
+        follower1.getDeclaredConsentSource.returns(ConsentSource.partner);
+        follower2.getDeclaredConsentSource.returns(ConsentSource.partner);
+        follower3.getDeclaredConsentSource.returns(ConsentSource.partner);
+
+        leader.addFollower(follower1);
+        leader.addFollower(follower2);
+        leader.addFollower(follower3);
+
+        const provisionedConsentData = new ConsentData();
+        provisionedConsentData.consentString = crypto.randomUUID();
+        provisionedConsentData.source = provisionedSource;
+
+        //when
+        leader.refreshUid({resetConsent: true}, follower2.getId());
+
+        // given
+        expect(consentManager.resetConsentData).to.be.called;
+
+        // when
+        leader.updateConsent(provisionedConsentData, follower1.getId());
+
+        // then
+        expect(consentManager.setConsentData).to.not.be.calledWith(provisionedConsentData);
+        expect(follower1.getDeclaredConsentSource).to.be.called;
+        expect(follower2.getDeclaredConsentSource).to.be.called;
+        expect(follower3.getDeclaredConsentSource).to.be.called;
+
+        //when
+        leader.updateConsent(provisionedConsentData, follower2.getId());
+
+        // then
+        expect(consentManager.setConsentData).to.be.calledWith(provisionedConsentData);
+      });
+    });
+
+    [
+      [ConsentSource.partner, ConsentSource.cmp, ConsentSource.prebid, ConsentSource.partner],
+      [ConsentSource.partner, ConsentSource.cmp, ConsentSource.partner, ConsentSource.partner],
+      [ConsentSource.partner, undefined, ConsentSource.partner, ConsentSource.partner], // undefined assumed as cmp
+      [ConsentSource.partner, ConsentSource.cmp, ConsentSource.cmp, ConsentSource.cmp],
+      [ConsentSource.partner, ConsentSource.prebid, ConsentSource.partner, ConsentSource.partner],
+      [ConsentSource.partner, ConsentSource.partner, ConsentSource.cmp, ConsentSource.cmp]
+    ].forEach(([provisionedSource, declaredSource1, declaredSource2, declaredSource3]) => {
+      it(`should NOT accept consent from ${provisionedSource} when declared ${[declaredSource1, declaredSource2, declaredSource3]}`, function () {
+        // given
+        follower1.getDeclaredConsentSource.returns(declaredSource1);
+        follower2.getDeclaredConsentSource.returns(declaredSource2);
+        follower3.getDeclaredConsentSource.returns(declaredSource3);
+
+        leader.addFollower(follower1);
+        leader.addFollower(follower2);
+        leader.addFollower(follower3);
+
+        const provisionedConsentData = new ConsentData();
+        provisionedConsentData.consentString = crypto.randomUUID();
+        provisionedConsentData.source = provisionedSource;
+        const provisionedId = follower1.getId(); // no matter who
+
+        // when
+        leader.updateConsent(provisionedConsentData, provisionedId);
+
+        // then
+        expect(consentManager.setConsentData).to.not.be.called;
+        expect(follower1.getDeclaredConsentSource).to.be.called;
+        expect(follower2.getDeclaredConsentSource).to.be.called;
+        expect(follower3.getDeclaredConsentSource).to.be.called;
+      });
+    });
+  });
+
+  describe('when consent data has been set already', function () {
+    beforeEach(() => {
+      consentManager.hasConsentSet.returns(true);
+    });
+    [
+      [ConsentSource.cmp, ConsentSource.cmp, ConsentSource.prebid, ConsentSource.partner],
+      [ConsentSource.prebid, ConsentSource.cmp, ConsentSource.prebid, ConsentSource.partner],
+      [ConsentSource.partner, ConsentSource.partner, ConsentSource.partner, ConsentSource.partner]
+    ].forEach(([provisionedSource, declaredSource1, declaredSource2, declaredSource3]) => {
+      it(`should NOT accept consent from ${provisionedSource} when already set`, function () {
+        // given
+        follower1.getDeclaredConsentSource.returns(declaredSource1);
+        follower2.getDeclaredConsentSource.returns(declaredSource2);
+        follower3.getDeclaredConsentSource.returns(declaredSource3);
+
+        leader.addFollower(follower1);
+        leader.addFollower(follower2);
+        leader.addFollower(follower3);
+
+        const provisionedConsentData = new ConsentData();
+        provisionedConsentData.consentString = crypto.randomUUID();
+        provisionedConsentData.source = provisionedSource;
+        const provisionedId = follower1.getId(); // no matter who
+
+        // when
+        leader.updateConsent(provisionedConsentData, provisionedId);
+
+        // then
+        expect(consentManager.setConsentData).to.not.be.called;
+        expect(follower1.getDeclaredConsentSource).to.not.be.called;
+        expect(follower2.getDeclaredConsentSource).to.not.be.called;
+        expect(follower3.getDeclaredConsentSource).to.not.be.called;
+      });
     });
   });
 
