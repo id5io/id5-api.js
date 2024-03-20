@@ -790,6 +790,13 @@ describe('Consent Data Provider', function () {
     };
   }
 
+  function expectGppV11(consent) {
+    expect(consent.api).to.be.eq(undefined);
+    expect(consent.apiTypes).to.be.eql([API_TYPE.GPP_V1_1]);
+    expect(consent.gppData.gppString).is.eq('GPP_STRING_V1_1');
+    expect(consent.gppData.version).is.eq(API_TYPE.GPP_V1_1);
+  }
+
   describe('with GPPv1.1 IAB compliant CMP', function () {
     let cmpStub;
 
@@ -807,12 +814,9 @@ describe('Consent Data Provider', function () {
         .then(consent => {
           expect(cmpStub).to.be.callCount(2);
           expect(consent.source).to.eq(ConsentSource.cmp);
-          expect(consent.api).to.be.eq(undefined);
-          expect(consent.apiTypes).to.be.eql([API_TYPE.GPP_V1_1]);
-          expect(consent.gppData.gppString).is.eq('GPP_STRING_V1_1');
           expect(consent.gppData.applicableSections).eql([1, 2]);
-          expect(consent.gppData.version).is.eq(API_TYPE.GPP_V1_1);
           expect(consent.gppData.localStoragePurposeConsent).is.true;
+          expectGppV11(consent);
         });
     });
 
@@ -821,12 +825,9 @@ describe('Consent Data Provider', function () {
         cmpStub.callsFake(createGppV11Stub((responses) => responses.secondEvent.pingData.parsedSections.tcfeuv2[0].PurposeConsent = [value]));
         return consentProvider.refreshConsentData(false, 'iab', undefined)
           .then(consent => {
-            expect(consent.api).to.be.eq(undefined);
-            expect(consent.apiTypes).to.be.eql([API_TYPE.GPP_V1_1]);
-            expect(consent.gppData.gppString).is.eq('GPP_STRING_V1_1');
             expect(consent.gppData.applicableSections).eql([1, 2]);
-            expect(consent.gppData.version).is.eq(API_TYPE.GPP_V1_1);
             expect(consent.gppData.localStoragePurposeConsent).is.false;
+            expectGppV11(consent);
           });
       });
     });
@@ -838,13 +839,21 @@ describe('Consent Data Provider', function () {
       }));
       return consentProvider.refreshConsentData(false, 'iab', undefined)
         .then(consent => {
-          expect(consent.api).to.be.eq(undefined);
-          expect(consent.apiTypes).to.be.eql([API_TYPE.GPP_V1_1]);
-          expect(consent.gppData.gppString).is.eq('GPP_STRING_V1_1');
           expect(consent.gppData.applicableSections).eql([6]);
-          expect(consent.gppData.version).is.eq(API_TYPE.GPP_V1_1);
           expect(consent.gppData.localStoragePurposeConsent).is.false;
           expect(ConsentData.createFrom(consent).localStorageGrant().allowed).to.be.true;
+        });
+    });
+
+    it('handles tcf section being an object instead of array of subsections', async () => {
+      cmpStub.callsFake(createGppV11Stub((responses) => responses.secondEvent.pingData.parsedSections.tcfeuv2 = responses.secondEvent.pingData.parsedSections.tcfeuv2[0]));
+      return consentProvider.refreshConsentData(false, 'iab', undefined)
+        .then(consent => {
+          expect(cmpStub).to.be.callCount(2);
+          expect(consent.source).to.eq(ConsentSource.cmp);
+          expect(consent.gppData.applicableSections).eql([1, 2]);
+          expect(consent.gppData.localStoragePurposeConsent).is.true;
+          expectGppV11(consent);
         });
     });
 
