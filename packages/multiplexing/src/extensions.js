@@ -1,6 +1,8 @@
 import {startTimeMeasurement} from '@id5io/diagnostics';
+import {isDefined} from './utils.js';
 
 export const ID5_LB_ENDPOINT = `https://lb.eu-1-id5-sync.com/lb/v1`;
+export const ID5_BOUNCE_ENDPOINT = `https://id5-sync.com/bounce`;
 
 export class Extensions {
   /**
@@ -114,13 +116,15 @@ export class Extensions {
    */
   gather(fetchDataList) {
     let extensionsCallTimeMeasurement = startTimeMeasurement();
+    let bouncePromise = this._submitBounce(fetchDataList);
     return this.submitExtensionCall(ID5_LB_ENDPOINT, 'lb')
       .then(lbResult => {
         let chunksEnabled = this.getChunksEnabled(fetchDataList, lbResult);
         return Promise.allSettled([
           Promise.resolve(lbResult),
           this.gatherChunks(chunksEnabled, Extensions.CHUNKS_CONFIGS.devChunks),
-          this.gatherChunks(chunksEnabled, Extensions.CHUNKS_CONFIGS.groupChunks)
+          this.gatherChunks(chunksEnabled, Extensions.CHUNKS_CONFIGS.groupChunks),
+          bouncePromise
         ]);
       }).then((results) => {
         extensionsCallTimeMeasurement.record(this._metrics.extensionsCallTimer('all', true));
@@ -136,6 +140,20 @@ export class Extensions {
         this._log.error(`Got error ${error} when gathering extensions data`);
         return Extensions.DEFAULT_RESPONSE;
       });
+  }
+
+  /**
+   *
+   * @param {Array<FetchIdRequestData>} fetchRequestDataList - config for extensions
+   * @return {Promise<{bounce:boolean}>}
+   * @private
+   */
+  _submitBounce(fetchRequestDataList) {
+    const hasSignature = fetchRequestDataList.some(fetchRequest => isDefined(fetchRequest.cacheData?.signature));
+    if (hasSignature) {
+      return Promise.resolve({});
+    }
+    return this.submitExtensionCall(ID5_BOUNCE_ENDPOINT, 'bounce');
   }
 
   /**

@@ -175,6 +175,7 @@ describe('The ID5 API', function () {
       mockLbEndpoint = await server.forGet('https://lb.eu-1-id5-sync.com/lb/v1')
         .thenJson(200, MOCK_LB_RESPONSE, MOCK_CORS_HEADERS);
 
+      await mockBounceEndpoint();
       mockDummyImage = await server.forGet('https://dummyimage.com/600x200')
         .thenReply(200, '');
     });
@@ -449,6 +450,8 @@ describe('The ID5 API', function () {
         .thenFromFile(200, TEST_PAGE_PATH);
       await server.forGet('https://lb.eu-1-id5-sync.com/lb/v1')
         .thenJson(200, MOCK_LB_RESPONSE, MOCK_CORS_HEADERS);
+
+      await mockBounceEndpoint();
       await server.forPost(FETCH_ENDPOINT)
         .thenCallback(multiFetchResponseWithCorsAllowed(MOCK_FETCH_RESPONSE));
       await server.forGet('https://dummyimage.com/600x200')
@@ -489,6 +492,11 @@ describe('The ID5 API', function () {
             ...commonTags,
             status: 'success',
             extensionType: 'lb'
+          });
+          verifyContainsMeasurementWithTags(onlyRequest.measurements, 'id5.api.extensions.call.time', 'TIMER', {
+            ...commonTags,
+            status: 'success',
+            extensionType: 'bounce'
           });
           verifyContainsMeasurementWithTags(onlyRequest.measurements, 'id5.api.fetch.call.time', 'TIMER', {
             ...commonTags,
@@ -878,29 +886,41 @@ describe('The ID5 API', function () {
       });
   }
 
-  function verifyContainsMeasurementWithTags(measurements, name, type, tags = {}) {
-    let measurement = verifyContainsMeasurement(measurements, name, type);
-    expect(measurement.tags).is.deep.eq({
-      version: version, partner: '99', source: 'api', tml: 'https://my-publisher-website.net/', ...tags
+  function verifyContainsMeasurementWithTags(measurements, name, type, expectedTags = {}) {
+    let measurementsByName = verifyContainsMeasurement(measurements, name, type);
+    let tags = measurementsByName.map(measurement => measurement.tags);
+    expect(tags).to.deep.contain({
+      version: version, partner: '99', source: 'api', tml: 'https://my-publisher-website.net/', ...expectedTags
     });
-    expect(measurement.values.length).is.gte(1);
-    for (const v of measurement.values) {
-      expect(v.value).is.not.eq(null);
-      expect(v.timestamp).is.not.eq(null);
+
+    for (const measurement of measurementsByName) {
+      expect(measurement.values.length).is.gte(1);
+      for (const v of measurement.values) {
+        expect(v.value).is.not.eq(null);
+        expect(v.timestamp).is.not.eq(null);
+      }
     }
   }
 
+  /**
+   *
+   * @param {Array<Object>} measurements
+   * @param name
+   * @param type
+   * @return {*}
+   */
   function verifyContainsMeasurement(measurements, name, type) {
     let names = measurements.map(x => x.name);
     expect(names).to.include(name);
-    let measurement = measurements.find(m => m.name === name);
-    expect(measurement).is.not.eq(undefined);
-    expect(measurement.type).is.eq(type);
-    return measurement;
+    let measurementsByName = measurements.filter(m => m.name === name);
+    expect(measurementsByName).is.not.eq(undefined);
+    expect(measurementsByName).is.not.empty;
+    expect(measurementsByName[0].type).is.eq(type);
+    return measurementsByName;
   }
 
   function verifyContainsMeasurementWithValues(measurements, name, type, values) {
-    let measurement = verifyContainsMeasurement(measurements, name, type);
+    let measurement = verifyContainsMeasurement(measurements, name, type)[0];
     expect(measurement.values.length).is.gte(values.length);
     for (const expectedValue of values) {
       expect(measurement.values.find(v => v.value === expectedValue)).is.not.eq(undefined);
@@ -935,4 +955,8 @@ describe('The ID5 API', function () {
       return result;
     });
   }
+  async function mockBounceEndpoint() {
+    await server.forGet('https://id5-sync.com/bounce').thenJson(202, '', MOCK_CORS_HEADERS);
+  }
+
 });

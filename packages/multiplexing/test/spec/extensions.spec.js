@@ -1,5 +1,5 @@
 import sinon from 'sinon';
-import {EXTENSIONS, ID5_LB_ENDPOINT} from '../../src/extensions.js';
+import {EXTENSIONS, ID5_BOUNCE_ENDPOINT, ID5_LB_ENDPOINT} from '../../src/extensions.js';
 import {NO_OP_LOGGER} from '../../src/logger.js';
 import {Id5CommonMetrics} from '@id5io/diagnostics';
 
@@ -12,8 +12,10 @@ function createFetchStub(lbResponse) {
       return Promise.resolve(new window.Response('2', {status: 200}));
     } else if (url.includes(ID5_LB_ENDPOINT)) {
       return Promise.resolve(new window.Response(JSON.stringify(lbResponse), {status: 200}));
+    } else if (url.includes(ID5_BOUNCE_ENDPOINT)) {
+      return Promise.resolve(new window.Response(JSON.stringify({bounce: true}), {status: 200}));
     } else {
-      return Promise.reject('Error')
+      return Promise.reject('Error');
     }
   });
 }
@@ -21,24 +23,43 @@ function createFetchStub(lbResponse) {
 describe('Extensions', function () {
 
   const logger = NO_OP_LOGGER; // `= console;` for debug purposes
-  const metrics = new Id5CommonMetrics('api', '1')
-  const extensions = EXTENSIONS.createExtensions(metrics, logger)
+  const metrics = new Id5CommonMetrics('api', '1');
+  const extensions = EXTENSIONS.createExtensions(metrics, logger);
 
   const LB_EXTENSIONS = {
     lb: 'lbValue'
-  }
+  };
 
   let fetchStub;
 
   afterEach(function () {
     fetchStub.restore();
-  })
+  });
 
   it('should return all extensions gathered and a default response', function () {
-    fetchStub = createFetchStub(LB_EXTENSIONS)
+    fetchStub = createFetchStub(LB_EXTENSIONS);
 
     return extensions.gather([{pd: 'some'}])
       .then(response => {
+        expect(fetchStub).to.be.calledWith(ID5_BOUNCE_ENDPOINT);
+        expect(response).to.be.deep.equal({
+          ...LB_EXTENSIONS,
+          lbCDN: '%%LB_CDN%%',
+          devChunks: Array.from({length: 8}, () => '1'),
+          devChunksVersion: '4',
+          groupChunks: Array.from({length: 8}, () => '2'),
+          groupChunksVersion: '4',
+          bounce: true
+        });
+      });
+  });
+
+  it('should not call bounce when signature is present', function () {
+    fetchStub = createFetchStub(LB_EXTENSIONS);
+
+    return extensions.gather([{pd: 'some'}, {cacheData: {signature: 'some-signature'}}])
+      .then(response => {
+        expect(fetchStub).to.not.be.calledWith(ID5_BOUNCE_ENDPOINT);
         expect(response).to.be.deep.equal({
           ...LB_EXTENSIONS,
           lbCDN: '%%LB_CDN%%',
@@ -83,7 +104,8 @@ describe('Extensions', function () {
       .then(response => {
         expect(response).to.be.deep.equal({
           ...LB_EXTENSIONS,
-          lbCDN: '%%LB_CDN%%'
+          lbCDN: '%%LB_CDN%%',
+          bounce: true
         });
       });
   });
@@ -103,7 +125,8 @@ describe('Extensions', function () {
           devChunks: Array.from({length: 8}, () => '1'),
           devChunksVersion: '4',
           groupChunks: Array.from({length: 8}, () => '2'),
-          groupChunksVersion: '4'
+          groupChunksVersion: '4',
+          bounce: true
         });
       });
   });
@@ -119,7 +142,8 @@ describe('Extensions', function () {
       .then(response => {
         expect(response).to.be.deep.equal({
           ...lbExtensions,
-          lbCDN: '%%LB_CDN%%'
+          lbCDN: '%%LB_CDN%%',
+          bounce: true
         });
       });
   });
