@@ -109,14 +109,13 @@ export class Extensions {
 
   /**
    * Gathers extensions data
-   * @param {Array<FetchIdRequestData>} fetchDataList - config for extensions
    * @returns {Promise<ExtensionsData>} - extensions data
    */
-  gather(fetchDataList) {
+  gather() {
     let extensionsCallTimeMeasurement = startTimeMeasurement();
     return this.submitExtensionCall(ID5_LB_ENDPOINT, 'lb')
       .then(lbResult => {
-        let chunksEnabled = this.getChunksEnabled(fetchDataList, lbResult);
+        let chunksEnabled = this.getChunksEnabled(lbResult);
         return Promise.allSettled([
           Promise.resolve(lbResult),
           this.gatherChunks(chunksEnabled, Extensions.CHUNKS_CONFIGS.devChunks),
@@ -139,17 +138,15 @@ export class Extensions {
   }
 
   /**
-   * @param {Array<FetchIdRequestData>} fetchDataList
    * @param {{chunks: integer | undefined}|undefined} lbResponse
    * @returns {boolean}
    */
-  getChunksEnabled(fetchDataList, lbResponse) {
-    let pdEnabled = fetchDataList.some(value => value.pd && value.pd.trim() !== '');
+  getChunksEnabled(lbResponse) {
     let lbEnabled = lbResponse?.chunks;
     if (lbEnabled === 0) {
       return false;
     } else {
-      return pdEnabled || lbEnabled;
+      return lbEnabled;
     }
   }
 }

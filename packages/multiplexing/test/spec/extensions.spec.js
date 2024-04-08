@@ -24,8 +24,11 @@ describe('Extensions', function () {
   const metrics = new Id5CommonMetrics('api', '1')
   const extensions = EXTENSIONS.createExtensions(metrics, logger)
 
-  const LB_EXTENSIONS = {
-    lb: 'lbValue'
+  const lbExtensionsWithChunksFlag = chunksEnabled => {
+    return {
+      lb: 'lbValue',
+      chunks: chunksEnabled ? 1 : 0
+    }
   }
 
   let fetchStub;
@@ -35,12 +38,13 @@ describe('Extensions', function () {
   })
 
   it('should return all extensions gathered and a default response', function () {
-    fetchStub = createFetchStub(LB_EXTENSIONS)
+    let extensionsResponse = lbExtensionsWithChunksFlag(true);
+    fetchStub = createFetchStub(extensionsResponse)
 
-    return extensions.gather([{pd: 'some'}])
+    return extensions.gather()
       .then(response => {
         expect(response).to.be.deep.equal({
-          ...LB_EXTENSIONS,
+          ...extensionsResponse,
           lbCDN: '%%LB_CDN%%',
           devChunks: Array.from({length: 8}, () => '1'),
           devChunksVersion: '4',
@@ -55,7 +59,7 @@ describe('Extensions', function () {
       return Promise.resolve(new window.Response(null, {status: 500}));
     });
 
-    return extensions.gather([{pd: 'some'}])
+    return extensions.gather()
       .then(response => {
         expect(response).to.be.deep.equal({
           lbCDN: '%%LB_CDN%%'
@@ -68,7 +72,7 @@ describe('Extensions', function () {
       return Promise.reject('error');
     });
 
-    return extensions.gather([{pd: 'some'}])
+    return extensions.gather()
       .then(response => {
         expect(response).to.be.deep.equal({
           lbCDN: '%%LB_CDN%%'
@@ -76,26 +80,12 @@ describe('Extensions', function () {
       });
   });
 
-  it('should call dev chunks only when there is pd in fetch data', function () {
-    fetchStub = createFetchStub(LB_EXTENSIONS);
-
-    return extensions.gather([{pd: null}, {}])
-      .then(response => {
-        expect(response).to.be.deep.equal({
-          ...LB_EXTENSIONS,
-          lbCDN: '%%LB_CDN%%'
-        });
-      });
-  });
 
   it('should call chunks when lb returned chunks:1', function () {
-    let lbExtensions = {
-      lb: 'lbValue',
-      chunks: 1
-    };
+    let lbExtensions = lbExtensionsWithChunksFlag(true);
     fetchStub = createFetchStub(lbExtensions);
 
-    return extensions.gather([{pd: null}, {}])
+    return extensions.gather()
       .then(response => {
         expect(response).to.be.deep.equal({
           ...lbExtensions,
@@ -109,13 +99,10 @@ describe('Extensions', function () {
   });
 
   it('should never call chunks when lb returned chunks:0', function () {
-    let lbExtensions = {
-      lb: 'lbValue',
-      chunks: 0
-    };
-    fetchStub = createFetchStub(lbExtensions);
+    let lbExtensions = lbExtensionsWithChunksFlag(false);
+    fetchStub = createFetchStub(lbExtensionsWithChunksFlag(false));
 
-    return extensions.gather([{pd: 'some'}, {}])
+    return extensions.gather()
       .then(response => {
         expect(response).to.be.deep.equal({
           ...lbExtensions,
