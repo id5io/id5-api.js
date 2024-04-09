@@ -106,7 +106,7 @@ export class UidFetcher {
    * @return {Promise<RefreshedResponse>}
    */
   fetchId(fetchRequestIdData, consentData, isLocalStorageAvailable) {
-    return this._extensionsProvider.gather(fetchRequestIdData)
+    return this._extensionsProvider.gather()
       .then(extensions => {
         const requests = fetchRequestIdData.map(fetchIdData => {
           const cachedRequest = fetchIdData.cacheData;
