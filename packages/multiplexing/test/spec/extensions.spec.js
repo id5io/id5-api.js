@@ -47,7 +47,7 @@ describe('Extensions', function () {
       .then(response => {
         expect(fetchStub).to.be.calledWith(ID5_BOUNCE_ENDPOINT);
         expect(response).to.be.deep.equal({
-          ...LB_EXTENSIONS,
+          ...extensionsResponse,
           lbCDN: '%%LB_CDN%%',
           devChunks: Array.from({length: 8}, () => '1'),
           devChunksVersion: '4',
@@ -59,7 +59,9 @@ describe('Extensions', function () {
   });
 
   it('should not call bounce when signature is present', function () {
-    fetchStub = createFetchStub(LB_EXTENSIONS);
+    let extensionsResponse = lbExtensionsWithChunksFlag(true);
+    fetchStub = createFetchStub(extensionsResponse);
+
 
     return extensions.gather([{pd: 'some'}, {cacheData: {signature: 'some-signature'}}])
       .then(response => {
@@ -96,8 +98,7 @@ describe('Extensions', function () {
     return extensions.gather([{pd: 'some'}])
       .then(response => {
         expect(response).to.be.deep.equal({
-          lbCDN: '%%LB_CDN%%',
-          bounce: true
+          lbCDN: '%%LB_CDN%%'
         });
       });
   });

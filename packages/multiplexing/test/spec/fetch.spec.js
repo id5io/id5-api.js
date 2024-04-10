@@ -262,6 +262,8 @@ describe('UidFetcher', function () {
         // then
         return fetchIdResult.then(refreshedResponse => {
 
+          expect(extensions.gather).to.be.calledWith(inputFetchData);
+
           expectHttpPOST(server.requests[0], `https://id5-sync.com/gm/v3`, {
             requests: [
               expectedRequestFor(fetchData, CONSENT_DATA_GDPR_ALLOWED, DEFAULT_EXTENSIONS, expectedInRequest)
@@ -323,6 +325,8 @@ describe('UidFetcher', function () {
         // then
         return fetchIdResult.then(refreshedResponse => {
           const expectedResponse = createResponse(FETCH_RESPONSE_OBJ, inputRequestData);
+
+          expect(extensions.gather).to.be.calledWith(inputRequestData);
 
           expectHttpPOST(server.requests[0], `https://id5-sync.com/gm/v3`, {
             requests: [
