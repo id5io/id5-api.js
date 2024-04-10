@@ -3,6 +3,7 @@ import {EXTENSIONS, ID5_BOUNCE_ENDPOINT, ID5_LB_ENDPOINT} from '../../src/extens
 import {NO_OP_LOGGER} from '../../src/logger.js';
 import {Id5CommonMetrics} from '@id5io/diagnostics';
 
+const BOUNCE_DEFAULT_RESPONSE = {bounce: {setCookie: false}};
 
 function createFetchStub(lbResponse) {
   return sinon.stub(window, 'fetch').callsFake(function (url) {
@@ -13,7 +14,7 @@ function createFetchStub(lbResponse) {
     } else if (url.includes(ID5_LB_ENDPOINT)) {
       return Promise.resolve(new window.Response(JSON.stringify(lbResponse), {status: 200}));
     } else if (url.includes(ID5_BOUNCE_ENDPOINT)) {
-      return Promise.resolve(new window.Response(JSON.stringify({bounce: true}), {status: 200}));
+      return Promise.resolve(new window.Response(JSON.stringify(BOUNCE_DEFAULT_RESPONSE), {status: 200}));
     } else {
       return Promise.reject('Error');
     }
@@ -30,7 +31,7 @@ describe('Extensions', function () {
     return {
       lb: 'lbValue',
       chunks: chunksEnabled ? 1 : 0
-    }
+    };
   };
 
   let fetchStub;
@@ -53,7 +54,7 @@ describe('Extensions', function () {
           devChunksVersion: '4',
           groupChunks: Array.from({length: 8}, () => '2'),
           groupChunksVersion: '4',
-          bounce: true
+          ...BOUNCE_DEFAULT_RESPONSE
         });
       });
   });
@@ -117,7 +118,7 @@ describe('Extensions', function () {
           devChunksVersion: '4',
           groupChunks: Array.from({length: 8}, () => '2'),
           groupChunksVersion: '4',
-          bounce: true
+          ...BOUNCE_DEFAULT_RESPONSE
         });
       });
   });
@@ -131,7 +132,7 @@ describe('Extensions', function () {
         expect(response).to.be.deep.equal({
           ...lbExtensions,
           lbCDN: '%%LB_CDN%%',
-          bounce: true
+          ...BOUNCE_DEFAULT_RESPONSE
         });
       });
   });

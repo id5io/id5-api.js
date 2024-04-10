@@ -111,7 +111,7 @@ export class Extensions {
 
   /**
    * Gathers extensions data
-   * @param {array<FetchIdRequestData>} fetchDataList - fetch request data
+   * @param {array<FetchIdRequestData>} fetchDataList - the fetch requests data which can be used here to configure extension calls
    * @returns {Promise<ExtensionsData>} - extensions data
    */
   gather(fetchDataList) {
@@ -144,7 +144,7 @@ export class Extensions {
 
   /**
    *
-   * @param {array<FetchIdRequestData>} fetchRequestDataList - fetch request data
+   * @param {array<FetchIdRequestData>} fetchRequestDataList - the fetch requests data which can be used here to configure extension calls
    * @return {Promise<{bounce:boolean}>}
    * @private
    */

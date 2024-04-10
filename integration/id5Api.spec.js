@@ -43,9 +43,15 @@ const MOCK_FETCH_RESPONSE = {
     max_age_sec: 7200
   }
 };
+
 const MOCK_CORS_HEADERS = {
   'Access-Control-Allow-Origin': 'https://my-publisher-website.net', 'Access-Control-Allow-Credentials': 'true'
 };
+
+const MOCK_CORS_ALLOW_ALL_HEADERS = {
+  'Access-Control-Allow-Origin': '*'
+};
+
 const jsonWithCorsAllowed = (payload, status = 200) => {
   return (request) => {
     return {
@@ -457,7 +463,7 @@ describe('The ID5 API', function () {
       await server.forGet('https://dummyimage.com/600x200')
         .thenReply(200, '');
       const diagnosticsEndpoint = await server.forPost('https://diagnostics.id5-sync.com/measurements')
-        .thenJson(202, '', MOCK_CORS_HEADERS);
+        .thenJson(202, '', MOCK_CORS_ALLOW_ALL_HEADERS);
       const page = await browser.newPage();
       await page.goto('https://my-publisher-website.net');
 
@@ -527,7 +533,7 @@ describe('The ID5 API', function () {
       await server.forGet('https://dummyimage.com/600x200')
         .thenReply(200, '');
       const diagnosticsEndpoint = await server.forPost('https://diagnostics.id5-sync.com/measurements')
-        .thenJson(202, '', MOCK_CORS_HEADERS);
+        .thenJson(202, '', MOCK_CORS_ALLOW_ALL_HEADERS);
       const page = await browser.newPage();
       await page.goto('https://my-publisher-website.net');
       await expectRequestAt(fetchEndpoint);
@@ -956,7 +962,7 @@ describe('The ID5 API', function () {
     });
   }
   async function mockBounceEndpoint() {
-    await server.forGet('https://id5-sync.com/bounce').thenJson(202, '', MOCK_CORS_HEADERS);
+    await server.forGet('https://id5-sync.com/bounce').thenJson(200, {bounce: {setCookie: false}}, MOCK_CORS_ALLOW_ALL_HEADERS);
   }
 
 });
