@@ -703,6 +703,13 @@ export function electLeader(instances) {
       if (result === 0) { // same source compare it's version
         result = -Utils.semanticVersionCompare(instance1.sourceVersion, instance2.sourceVersion);
       }
+      // still undetermined, then compare by frame depth
+      if (result === 0) {
+        const instance1Depth = instance1.fetchIdData?.refererInfo?.numIframes || Number.MAX_SAFE_INTEGER;
+        const instance2Depth = instance2.fetchIdData?.refererInfo?.numIframes || Number.MAX_SAFE_INTEGER;
+        // then closer to main page the higher chance it will survive longer, so it's better candidate to be leader
+        result = instance1Depth - instance2Depth;
+      }
       // still undetermined, then compare id lexicographically
       if (result === 0) {
         result = instance1.id.localeCompare(instance2.id);

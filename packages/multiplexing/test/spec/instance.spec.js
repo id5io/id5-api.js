@@ -85,17 +85,85 @@ describe('Leader election', () => {
     expect(leader).is.eq(instanceB);
   });
 
-  it('should elect lexicographically first instance', function () {
+  it('should elect lexicographically first instance if each has the same frame depth', function () {
     // given
     let instanceA = new ID5Integration.Properties('a', '1.1.3', 'api', '1.0.26', {});
+    instanceA.fetchIdData = {
+      refererInfo: {
+        numIframes: 1
+      }
+    };
     let instanceB = new ID5Integration.Properties('b', '1.1.3', 'api', '1.0.26', {});
+    instanceB.fetchIdData = {
+      refererInfo: {
+        numIframes: 1
+      }
+    };
     let instanceC = new ID5Integration.Properties('c', '1.1.3', 'api', '1.0.26', {});
+    instanceC.fetchIdData = {
+      refererInfo: {
+        numIframes: 1
+      }
+    };
 
     // when
     let leader = ID5Integration.electLeader([instanceB, instanceC, instanceA]);
 
     // then
     expect(leader).is.eq(instanceA);
+  });
+
+  it('should prefer instances with depth info', function () {
+    // given
+    let instanceA = new ID5Integration.Properties('a', '1.1.3', 'api', '1.0.26', {});
+    instanceA.fetchIdData = {};
+    let instanceB = new ID5Integration.Properties('b', '1.1.3', 'api', '1.0.26', {});
+    instanceB.fetchIdData = {
+      refererInfo: {
+        numIframes: 1
+      }
+    };
+    let instanceC = new ID5Integration.Properties('c', '1.1.3', 'api', '1.0.26', {});
+    instanceC.fetchIdData = {
+      refererInfo: {
+        numIframes: 1
+      }
+    };
+
+    // when
+    let leader = ID5Integration.electLeader([instanceB, instanceC, instanceA]);
+
+    // then
+    expect(leader).is.eq(instanceB); // b as lexicographically  smallest among these closest to the top
+  });
+
+  it('should elect instance which is closest to the top', function () {
+    // given
+    let instanceA = new ID5Integration.Properties('a', '1.1.3', 'api', '1.0.26', {});
+    instanceA.fetchIdData = {
+      refererInfo: {
+        numIframes: 2
+      }
+    };
+    let instanceB = new ID5Integration.Properties('b', '1.1.3', 'api', '1.0.26', {});
+    instanceB.fetchIdData = {
+      refererInfo: {
+        numIframes: 3
+      }
+    };
+
+    let instanceC = new ID5Integration.Properties('c', '1.1.3', 'api', '1.0.26', {});
+    instanceC.fetchIdData = {
+      refererInfo: {
+        numIframes: 1
+      }
+    };
+
+    // when
+    let leader = ID5Integration.electLeader([instanceB, instanceC, instanceA]);
+
+    // then
+    expect(leader).is.eq(instanceC);
   });
 
   [
