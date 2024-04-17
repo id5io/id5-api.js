@@ -145,7 +145,7 @@ export class Extensions {
   /**
    *
    * @param {array<FetchIdRequestData>} fetchRequestDataList - the fetch requests data which can be used here to configure extension calls
-   * @return {Promise<{bounce:boolean}>}
+   * @return {Promise<Object>}
    * @private
    */
   _submitBounce(fetchRequestDataList) {

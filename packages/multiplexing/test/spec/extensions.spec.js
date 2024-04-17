@@ -44,7 +44,7 @@ describe('Extensions', function () {
     let extensionsResponse = lbExtensionsWithChunksFlag(true);
     fetchStub = createFetchStub(extensionsResponse);
 
-    return extensions.gather([{pd: 'some'}])
+    return extensions.gather([{}])
       .then(response => {
         expect(fetchStub).to.be.calledWith(ID5_BOUNCE_ENDPOINT);
         expect(response).to.be.deep.equal({
@@ -64,7 +64,7 @@ describe('Extensions', function () {
     fetchStub = createFetchStub(extensionsResponse);
 
 
-    return extensions.gather([{pd: 'some'}, {cacheData: {signature: 'some-signature'}}])
+    return extensions.gather([{}, {cacheData: {signature: 'some-signature'}}])
       .then(response => {
         expect(fetchStub).to.not.be.calledWith(ID5_BOUNCE_ENDPOINT);
         expect(response).to.be.deep.equal({
@@ -83,7 +83,7 @@ describe('Extensions', function () {
       return Promise.resolve(new window.Response(null, {status: 500}));
     });
 
-    return extensions.gather([{pd: 'some'}])
+    return extensions.gather([{}])
       .then(response => {
         expect(response).to.be.deep.equal({
           lbCDN: '%%LB_CDN%%'
@@ -96,7 +96,7 @@ describe('Extensions', function () {
       return Promise.reject('error');
     });
 
-    return extensions.gather([{pd: 'some'}])
+    return extensions.gather([{}])
       .then(response => {
         expect(response).to.be.deep.equal({
           lbCDN: '%%LB_CDN%%'
@@ -109,7 +109,7 @@ describe('Extensions', function () {
     let lbExtensions = lbExtensionsWithChunksFlag(true);
     fetchStub = createFetchStub(lbExtensions);
 
-    return extensions.gather([{pd: null}, {}])
+    return extensions.gather([{}])
       .then(response => {
         expect(response).to.be.deep.equal({
           ...lbExtensions,
@@ -127,7 +127,7 @@ describe('Extensions', function () {
     let lbExtensions = lbExtensionsWithChunksFlag(false);
     fetchStub = createFetchStub(lbExtensionsWithChunksFlag(false));
 
-    return extensions.gather([{pd: 'some'}, {}])
+    return extensions.gather([{}])
       .then(response => {
         expect(response).to.be.deep.equal({
           ...lbExtensions,
