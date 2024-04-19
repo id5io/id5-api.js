@@ -1,20 +1,25 @@
-import puppeteer from 'puppeteer-core';
-import chromePaths from 'chrome-paths';
 import mockttp from 'mockttp';
-import tmp from 'tmp-promise';
 import path from 'path';
 import {fileURLToPath} from 'url';
 import chai, {expect} from 'chai';
 import {version} from '../generated/version.js';
 import chaiDateTime from 'chai-datetime';
-import isDocker from 'is-docker';
+import {
+  buildBrowser,
+  getDebugFlag,
+  makeMultiFetchResponse,
+  MOCK_FETCH_RESPONSE,
+  MOCK_ID,
+  multiFetchResponseWithCorsAllowed,
+  makeCorsHeaders
+} from "./integrationUtils.mjs";
 
 /**
  * If you want to debug in the browser, you can use "devtools: true" in
  * the launch configuration and block the browser using
  * await browser.waitForTarget(() => false, { timeout: 0 });
  */
-const _DEBUG = false;
+const _DEBUG = getDebugFlag()
 
 chai.use(chaiDateTime);
 
@@ -25,24 +30,6 @@ const ID5_API_JS_FILE = path.join(SCRIPT_DIR, '..', 'build', TARGET_DIR, 'id5-ap
 const ID5_ESP_JS_FILE = path.join(SCRIPT_DIR, '..', 'build', TARGET_DIR, 'esp.js');
 
 const DAYS_TO_MILLISECONDS = (60 * 60 * 24 * 1000);
-const MOCK_ID = 'ID5*LTzsUTSrz4juTlKvKoO0brhnjXyuZIGHv44Iqf4TzN0AAGwYr9heNFf7GF6QAMRq';
-const MOCK_FETCH_RESPONSE = {
-  created_at: '2021-05-26T20:08:13Z',
-  id5_consent: true,
-  universal_uid: MOCK_ID,
-  signature: 'ID5_AQo_xCuSjJ3KsW8cOsbHs1d3AvFDad0XrupUgd5LBsLV0v0pXmrYt0AbE_8WeU_nRC2Bbmif8GPKtcHFpAl4wLo',
-  cascade_needed: false,
-  privacy: {
-    jurisdiction: 'gdpr',
-    id5_consent: true
-  },
-  ext: {
-    'linkType': 2
-  },
-  cache_control: {
-    max_age_sec: 7200
-  }
-};
 
 const MOCK_CORS_HEADERS = {
   'Access-Control-Allow-Origin': 'https://my-publisher-website.net', 'Access-Control-Allow-Credentials': 'true'
@@ -73,38 +60,9 @@ const multiFetchResponseSequence = (payloads, status = 200) => {
   };
 };
 
-const multiFetchResponseWithCorsAllowed = (payload, status = 200) => {
-  return async request => makeMultiFetchResponse(request, payload, status, makeCorsHeaders(request));
-};
-
 const multiFetchResponseWithHeaders = (payload, headers) => {
   return async request => makeMultiFetchResponse(request, payload, 200, headers);
 };
-
-async function makeMultiFetchResponse(request, payload, status, headers) {
-  const requestObj = await request.body.getJson();
-  const responses = {};
-  requestObj.requests.forEach(rq => {
-    responses[rq.requestId] = {};
-  });
-  const response = {
-    status,
-    headers,
-    json: {
-      generic: payload,
-      responses: responses
-    }
-  };
-  _DEBUG && console.log('Multifetch response:', response);
-  return response;
-}
-
-function makeCorsHeaders(request) {
-  return {
-    'Access-Control-Allow-Origin': request.headers['origin'],
-    'Access-Control-Allow-Credentials': 'true'
-  };
-}
 
 const MOCK_LB_RESPONSE = {
   'lb': 'LB_DATA'
@@ -114,51 +72,18 @@ const FETCH_ENDPOINT = 'https://id5-sync.com/gm/v3';
 
 // Note: do not use lambda syntax in describes. https://mochajs.org/#arrow-functions
 describe('The ID5 API', function () {
-  let browser, server, profileDir, caFingerprint;
+  let browser, server;
 
   this.timeout((_DEBUG ? 3000 : 30) * 1000);
 
-  async function startBrowser() {
-    profileDir = await tmp.dir({unsafeCleanup: true});
-    const args = [
-      `--proxy-server=localhost:${server.port}`,
-      `--ignore-certificate-errors-spki-list=${caFingerprint}`,
-      `--user-data-dir=${profileDir.path}`,
-      '--no-first-run',
-      '--disable-features=site-per-process',
-      '--disable-component-update'
-    ];
-
-    if (isDocker()) {
-      args.push('--no-sandbox');
-    }
-
-    browser = await puppeteer.launch({
-      headless: !_DEBUG, executablePath: chromePaths.chrome, devtools: _DEBUG, args
-    });
-  }
-
-  async function stopBrowser() {
-    await browser.close();
-    await profileDir.cleanup();
-  }
-
-  before(async () => {
+  beforeEach(async () => {
     // Create a proxy server with a self-signed HTTPS CA certificate:
     const https = await mockttp.generateCACertificate();
     server = mockttp.getLocal({
       https, debug: _DEBUG
     });
-    caFingerprint = mockttp.generateSPKIFingerprint(https.cert);
 
     await server.start();
-  });
-
-  after(async () => {
-    await server.stop();
-  });
-
-  beforeEach(async () => {
     // The API under test
     await server.forGet('https://cdn.id5-sync.com/api/integration/id5-api.js')
       .thenFromFile(200, ID5_API_JS_FILE);
@@ -168,11 +93,12 @@ describe('The ID5 API', function () {
 
     await server.forGet('/favicon.ico').thenReply(204);
 
-    await startBrowser();
+    browser = await buildBrowser(https.cert, server.port, _DEBUG);
   });
 
   afterEach(async () => {
-    await stopBrowser();
+    await browser.close();
+    await server.stop();
   });
 
   describe('when included directly in the publishers page', function () {

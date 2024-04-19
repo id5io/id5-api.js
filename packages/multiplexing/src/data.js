@@ -74,6 +74,7 @@ export const ConsentSource = Object.freeze({
  * @property {boolean} [trace]
  * @property {Array<string>} [allowedVendors]
  * @property {ConsentSource} [consentSource] - cmp/partner/prebid
+ * @property {TrueLink} [trueLink]
  */
 
 /**
@@ -91,4 +92,12 @@ export const ConsentSource = Object.freeze({
  * @property {boolean} applyCreativeRestrictions - When true some restrictions are applied, for example avoid writing to localStorage and avoid cookie syncing.
  * @property {number} [storageExpirationDays] - Number of days that the ID5 ID and associated metadata will be stored in local storage before expiring (default 90 days).
  * @property {boolean} forceAllowLocalStorageGrant
+ */
+
+/**
+ * True Link information
+ * @typedef {Object} TrueLink
+ * @property {boolean} booted - if true link bootstrap library is present on page
+ * @property {boolean} redirected - if true link library made a redirect on this call
+ * @property {string} id - true link id
  */

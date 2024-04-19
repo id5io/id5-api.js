@@ -1,9 +1,10 @@
-import {ajax, isDefined, isStr, isPlainObject, objectEntries} from './utils.js';
+import {ajax, isDefined, isPlainObject, isStr, objectEntries} from './utils.js';
 import {startTimeMeasurement} from '@id5io/diagnostics';
 
 /* eslint-disable no-unused-vars */
 import {CachedResponse} from './store.js';
 import {Logger} from './logger.js';
+import {TrueLinkAdapter} from "./trueLink.js";
 /* eslint-enable no-unused-vars */
 
 const HOST = 'https://id5-sync.com';
@@ -229,7 +230,8 @@ export class UidFetcher {
       pd: 'pd',
       partnerUserId: 'puid',
       provider: 'provider',
-      segments: 'segments'
+      segments: 'segments',
+      trueLink: "true_link"
     }).forEach(entry => {
       const [optKey, dataKey] = entry;
       if (isDefined(fetchIdData[optKey])) {
