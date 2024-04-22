@@ -962,7 +962,7 @@ describe('The ID5 API', function () {
     });
   }
   async function mockBounceEndpoint() {
-    await server.forGet('https://id5-sync.com/bounce').thenJson(200, {bounce: {setCookie: false}}, MOCK_CORS_ALLOW_ALL_HEADERS);
+    await server.forGet('https://id5-sync.com/bounce').thenJson(200, {bounce: {setCookie: false}}, MOCK_CORS_HEADERS);
   }
 
 });
