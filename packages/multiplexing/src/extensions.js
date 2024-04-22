@@ -56,11 +56,12 @@ export class Extensions {
    *
    * @param {String} url - url of extensions service
    * @param {String} extensionType - type of extension used in metrics
+   * @param {RequestInit} fetchOptions - optional `fetch` call options
    * @returns {Promise}
    */
-  submitExtensionCall(url, extensionType) {
+  submitExtensionCall(url, extensionType, fetchOptions = undefined) {
     let extensionsCallTimeMeasurement = startTimeMeasurement();
-    return fetch(url)
+    return fetch(url, fetchOptions)
       .then(response => {
         if (response.ok) {
           extensionsCallTimeMeasurement.record(this._metrics.extensionsCallTimer(extensionType, true));
@@ -153,7 +154,7 @@ export class Extensions {
     if (hasSignature) {
       return Promise.resolve({});
     }
-    return this.submitExtensionCall(ID5_BOUNCE_ENDPOINT, 'bounce');
+    return this.submitExtensionCall(ID5_BOUNCE_ENDPOINT, 'bounce', {credentials: 'include'});
   }
 
   /**
