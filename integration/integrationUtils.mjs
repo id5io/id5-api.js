@@ -6,7 +6,7 @@ import mockttp from "mockttp";
 
 
 export function getDebugFlag() {
-  const debug = process.env.DEBUG === 'true';
+  const debug = process.env.DEBUG?.toLowerCase() === 'true';
   global.id5Debug = debug;
   return debug;
 }

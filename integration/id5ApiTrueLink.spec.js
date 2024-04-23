@@ -9,8 +9,8 @@ import {
   getDebugFlag,
   MOCK_FETCH_RESPONSE,
   multiFetchResponseWithCorsAllowed
-} from "./integrationUtils.mjs";
-import {decode, stringify} from "querystring";
+} from './integrationUtils.mjs';
+import {decode, stringify} from 'querystring';
 
 
 chai.use(chaiDateTime);
@@ -24,7 +24,7 @@ const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const RESOURCES_DIR = path.join(SCRIPT_DIR, 'resources')
 const TARGET_DIR = _DEBUG ? 'dev' : 'dist';
 const ID5_API_JS_FILE = path.join(SCRIPT_DIR, '..', 'build', TARGET_DIR, 'id5-api.js');
-const ID5_BOOTSTRAP_JS_FILE = path.join(RESOURCES_DIR, 'trueLink', 'id5-bootstrap.js');
+const ID5_CDN = "https://cdn.id5-sync.com/"
 const FETCH_ENDPOINT = 'https://id5-sync.com/gm/v3';
 const TEST_DOMAIN = 'https://true-link-domain.com';
 const TRUE_LINK_ID_PREFIX = 'ID5_TRUE_LINK_';
@@ -49,7 +49,12 @@ describe('The ID5 API true link integration', function () {
     await proxyServer.forGet('/favicon.ico').thenReply(204);
     await proxyServer.forGet('https://cdn.id5-sync.com/api/integration/id5-api.js').thenFromFile(200, ID5_API_JS_FILE);
 
-    await proxyServer.forGet(TEST_DOMAIN + '/id5-bootstrap.js').thenFromFile(200, ID5_BOOTSTRAP_JS_FILE);
+    if(process.env.LOCAL_BOOTSTRAP) {
+      //set LOCAL_BOOTSTRAP env variable to an absolute path to bootstrap js library to test against a local version
+      await proxyServer.forGet(TEST_DOMAIN + '/bootstrap/id5-bootstrap.js').thenFromFile(200, process.env.LOCAL_BOOTSTRAP);
+    } else {
+      await proxyServer.forGet(TEST_DOMAIN + '/bootstrap/id5-bootstrap.js').thenForwardTo(ID5_CDN)
+    }
     await proxyServer.forGet(TEST_DOMAIN).thenFromFile(200, path.join(RESOURCES_DIR, 'trueLink', 'trueLinkIntegration.html'));
     trueLinkMockServer = await mockTrueLinkServerEndpoint()
   });
@@ -90,14 +95,14 @@ describe('The ID5 API true link integration', function () {
     return await proxyServer.forGet('https://id5-sync.com/true-link').thenCallback(async (request) => {
       const params = decode(request.url.split('?')[1]);
       const cookies = request.headers['cookie'] ? parse(request.headers['cookie'], {map: true}) : {};
-
-      console.log('Server: request cookies:', cookies)
+      if(_DEBUG) {
+        console.log('Server: request cookies:', cookies)
+      }
       let id5ServerCookie = 'id5TrueLink';
       const trueLinkId = id5ServerCookie in cookies ? cookies[id5ServerCookie] : (TRUE_LINK_ID_PREFIX + Math.ceil(Math.random() * 1000000));
-      const origLocation = params['location'];
+      const origLocation = params['trueLinkLocation'];
       const redirectTo = origLocation + '?' + stringify({
-        trueLinkId: trueLinkId,
-        trueLinkRedirect: origLocation,
+        trueLinkId: trueLinkId
       });
 
       const expires = new Date();

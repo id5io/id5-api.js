@@ -12,7 +12,7 @@ import {
   MOCK_ID,
   multiFetchResponseWithCorsAllowed,
   makeCorsHeaders
-} from "./integrationUtils.mjs";
+} from './integrationUtils.mjs';
 
 /**
  * If you want to debug in the browser, you can use "devtools: true" in

@@ -19,7 +19,7 @@ import multiplexing, {
 import {semanticVersionCompare} from '@id5io/multiplexing/src/utils.js';
 import {UaHints} from '../lib/uaHints.js';
 import {GPPClient} from '../lib/consentProvider.js';
-import {TrueLinkAdapter} from "@id5io/multiplexing/src/trueLink.js";
+import {TrueLinkAdapter} from '@id5io/multiplexing/src/trueLink.js';
 
 /**
  * @typedef {Object} IdResponse
