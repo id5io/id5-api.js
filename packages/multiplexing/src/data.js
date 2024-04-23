@@ -98,6 +98,6 @@ export const ConsentSource = Object.freeze({
  * True Link information
  * @typedef {Object} TrueLink
  * @property {boolean} booted - if true link bootstrap library is present on page
- * @property {boolean} redirected - if true link library made a redirect on this call
- * @property {string} id - true link id
+ * @property {boolean|undefined} redirected - if true link library made a redirect on this call
+ * @property {string|undefined} id - true link id
  */
