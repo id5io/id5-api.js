@@ -7,3 +7,4 @@ import './spec/id5Instance.spec.js';
 import './spec/api_counters.spec.js';
 import './spec/api_async_responses.spec.js'
 import './spec/api.spec.js';
+import './spec/id5PrebidMoulde.spec.js';
