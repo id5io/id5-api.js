@@ -78,7 +78,10 @@ const DEFAULT_FETCH_DATA = {
   segments: undefined,
   invalidSegmentsCount: undefined,
   refreshInSeconds: 3600,
-  providedRefreshInSeconds: undefined
+  providedRefreshInSeconds: undefined,
+  trueLink: {
+    booted: true
+  }
 };
 
 describe('RefreshedResponse', function () {
@@ -243,7 +246,10 @@ describe('UidFetcher', function () {
       ['with allowed vendors', {allowedVendors: ['1', '2', '3']}, {
         allowed_vendors: ['1', '2', '3']
       }],
-      ['with trace', {trace: true}, {_trace: true}]
+      ['with trace', {trace: true}, {_trace: true}],
+      ['with true link id',
+        {trueLink: {booted: true, redirected: true, id: "tlid"} },
+        {true_link: {booted: true, redirected: true, id: "tlid"} }]
     ].forEach(([description, data, expectedInRequest]) => {
       it(`should call multi-fetch and correctly use parameters to create the fetch request body (${description})`, async () => {
         // given
@@ -317,6 +323,7 @@ describe('UidFetcher', function () {
           refreshInSeconds: 3600,
           role: 'follower',
           sourceVersion: '2.2.2',
+          trueLink: {booted: true},
           ...data
         };
 
@@ -584,6 +591,7 @@ function expectedRequestFor(fetchIdData, consentData, extensions, other = undefi
     top: fetchIdData.refererInfo.reachedTop ? 1 : 0,
     u: fetchIdData.refererInfo.stack[0],
     ua: window.navigator.userAgent,
+    true_link: fetchIdData.trueLink,
     ...other
   };
 }

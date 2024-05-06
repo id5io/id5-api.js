@@ -84,7 +84,8 @@ export class Follower {
       provider: thisData.provider,
       abTesting: thisData.abTesting,
       segments: JSON.stringify(thisData.segments),
-      providedRefresh: thisData.providedRefreshInSeconds
+      providedRefresh: thisData.providedRefreshInSeconds,
+      trueLink: thisData.trueLink?.id
     };
     return cyrb53Hash(JSON.stringify(uniqueData));
   }

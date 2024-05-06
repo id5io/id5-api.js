@@ -47,6 +47,7 @@
     "chai-datetime": "^1.8.0",
     "chrome-paths": "^1.0.1",
     "clone": "^2.1.2",
+    "cookie": "^0.6.0",
     "coveralls": "^3.1.1",
     "del": "^6.0.0",
     "diff": "^5.1.0",

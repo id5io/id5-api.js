@@ -20,6 +20,7 @@ import multiplexing, {
 import {semanticVersionCompare} from '@id5io/multiplexing/src/utils.js';
 import {UaHints} from '../lib/uaHints.js';
 import {GPPClient} from '../lib/consentProvider.js';
+import {TrueLinkAdapter} from '@id5io/multiplexing/src/trueLink.js';
 
 /**
  * @typedef {Object} IdResponse
@@ -179,8 +180,7 @@ class Id5PrebidIntegration {
       singletonMode: options?.multiplexing?._disabled === true,
       canDoCascade: false, // Disable cascading within prebid
       forceAllowLocalStorageGrant: false,
-      storageExpirationDays: options.storageExpirationDays,
-      consentSource: ConsentSource.prebid
+      storageExpirationDays: options.storageExpirationDays
     });
 
     return instancePromise;
@@ -293,7 +293,9 @@ class Id5PrebidIntegration {
       partnerUserId: options.partnerUserId,
       refreshInSeconds: options.refreshInSeconds, // TODO do we need this ?
       providedRefreshInSeconds: config.getProvidedOptions().refreshInSeconds,
-      trace: isGlobalTrace()
+      trace: isGlobalTrace(),
+      consentSource: ConsentSource.prebid,
+      trueLink: new TrueLinkAdapter().getTrueLink(),
     };
   }
 }

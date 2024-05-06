@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>ID5 API :: Domain with ID5 1</title>
+
+    <script src="https://true-link-domain.com/bootstrap/id5-bootstrap.js"></script>
+</head>
+<body>
+<h1>Domain 1</h1>
+<p>Hello!</p>
+<p id="id5trueLink">not set yet</p>
+<p id="id5id">not set yet</p>
+<button onclick="window.id5ButtonClick = true;">Click to proceed</button>
+
+<script>
+    const trueLinkId = window.id5Bootstrap.initTrueLinkId()
+    const trueLinkParagraph = document.getElementById("id5trueLink");
+    trueLinkParagraph.innerText = trueLinkId;
+</script>
+
+<!-- ID5 API -->
+<script src="https://cdn.id5-sync.com/api/integration/id5-api.js"></script>
+<script>
+    ID5.init({
+        partnerId: 173,
+        refreshInSeconds: 1,
+        debug: true,
+        cmpApi: 'static',
+        consentData: {
+            getTCData: {
+                gdprApplies: false
+            }
+        }
+    }).onAvailable((id5Status) => {
+        const id5Paragraph = document.getElementById("id5id");
+        id5Paragraph.innerText = id5Status.getUserId();
+        window.testResults = {id5id: id5Status.getUserId()}
+    }, 5000)
+</script>
+<!-- /ID5 API -->
+
+</body>
+</html>

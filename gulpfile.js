@@ -4,7 +4,6 @@ import yargs from 'yargs';
 import del from 'del';
 import connect from 'gulp-connect';
 import karma from 'karma';
-import karmaConfMaker from './karma.conf.maker.js';
 import gulp from 'gulp';
 import eslint from 'gulp-eslint-new';
 import gulpif from 'gulp-if';
@@ -21,6 +20,7 @@ import babel from '@rollup/plugin-babel';
 import nodeResolve from '@rollup/plugin-node-resolve';
 import { Readable, Transform } from 'node:stream';
 import File from 'vinyl';
+import path from "path";
 
 const id5Api = JSON.parse(await readFile('package.json'));
 const port = 9998;
@@ -179,12 +179,17 @@ function karmaCallback(done) {
 // Run the unit tests in headless chrome.
 // If --continuous is given, the task will re-run unit tests whenever the source code changes
 function test(done) {
-  if (argv.notest) {
-    done();
-  } else {
-    new karma.Server(karmaConfMaker(argv.continuous), karmaCallback(done)).start();
-  }
+  let karmaConfig = karma.config.parseConfig(path.resolve() + '/karma.conf.cjs',
+    {
+      singleRun: !argv.continuous
+    },
+    {
+      promiseConfig: false,
+      throwErrors: true
+    });
+  new karma.Server(karmaConfig, done).start();
 }
+
 
 // support tasks
 gulp.task(lint);
