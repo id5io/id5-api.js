@@ -221,11 +221,18 @@ export function sinonFetchResponder(responseProvider) {
 
 export class MultiplexInstanceStub {
   _dispatcher;
-
+  _registerCallPromise;
+  _resolvers = {};
   constructor() {
     this._dispatcher = new ApiEventsDispatcher(NO_OP_LOGGER);
     const id = globalThis.crypto.randomUUID();
-    sinon.stub(this, 'register');
+    this._registerCallPromise = new Promise((resolve) => {
+      this._resolvers.register = resolve;
+    });
+
+    sinon.stub(this, 'register').callsFake(() => {
+      this._resolvers.register();
+    });
     sinon.stub(this, 'updateConsent');
     sinon.stub(this, 'refreshUid');
     sinon.stub(this, 'updateFetchIdData');
@@ -244,6 +251,10 @@ export class MultiplexInstanceStub {
   }
 
   register() {}
+
+  async instanceRegistered() {
+    return this._registerCallPromise;
+  }
 
   updateConsent() {}
 

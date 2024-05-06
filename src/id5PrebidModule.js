@@ -3,7 +3,8 @@ import {
   isGlobalDebug,
   setGlobalDebug,
   InvocationLogger,
-  isGlobalTrace
+  isGlobalTrace,
+  isDefined
 } from '../lib/utils.js';
 import {version as currentVersion} from '../generated/version.js';
 import {Config} from '../lib/config.js';
@@ -115,6 +116,7 @@ class Id5PrebidIntegration {
    */
   async fetchId5Id(dynamicConfig, prebidConfig, refererInfo, gdprConsentData, uspConsentData, gppConsentData) {
     this.invocationId += 1;
+    const prebidVersion = isDefined(window.pbjs) ? window.pbjs.version : 'unknown';
     const log = new InvocationLogger(ORIGIN, this.invocationId);
     log.info(`ID5 API Prebid  external module version ${this._version}. Invoking fetchId5Id()`, dynamicConfig, prebidConfig);
     const config = new Config({
@@ -128,7 +130,7 @@ class Id5PrebidIntegration {
       dynamicConfig
     }, log);
     const options = config.getOptions();
-    const metrics = this._configureDiagnostics(options.partnerId, options.diagnostics, refererInfo, log);
+    const metrics = this._configureDiagnostics(options.partnerId, options.diagnostics, refererInfo, log, prebidVersion);
     if (metrics) {
       metrics.loadDelayTimer().recordNow(); // records time elapsed since page visit
       metrics.invocationCountSummary().record(this.invocationId); // record invocation count
@@ -166,7 +168,7 @@ class Id5PrebidIntegration {
         });
     });
 
-    const fetchIdData = await this._gatherFetchIdData(config, refererInfo, log);
+    const fetchIdData = await this._gatherFetchIdData(config, refererInfo, log, prebidVersion);
     instance.register({
       source: ORIGIN,
       sourceVersion: currentVersion,
@@ -236,14 +238,16 @@ class Id5PrebidIntegration {
    * @param {number} partnerId
    * @param {Diagnostics} diagnosticsOptions
    * @param {Logger} log
+   * @param {String} prebidVersion
    * @return {Id5CommonMetrics}
    */
-  _configureDiagnostics(partnerId, diagnosticsOptions, refererInfo, log) {
+  _configureDiagnostics(partnerId, diagnosticsOptions, refererInfo, log, prebidVersion) {
     try {
       let metrics = new Id5CommonMetrics(ORIGIN, this._version);
       metrics.addCommonTags({
         ...partnerTag(partnerId),
-        tml: refererInfo.topmostLocation
+        tml: refererInfo.topmostLocation,
+        prebidVersion: prebidVersion
       });
       if (!diagnosticsOptions?.publishingDisabled) {
         let publisher = createPublisher(diagnosticsOptions.publishingSampleRatio);
@@ -266,16 +270,17 @@ class Id5PrebidIntegration {
    * @param {Config} config
    * @param {PrebidRefererInfo} refererInfo
    * @param {Logger} log
+   * @param {String} prebidVersion
    * @returns {FetchIdData} a JSON object to use to make the fetch request
    */
-  async _gatherFetchIdData(config, refererInfo, log) {
+  async _gatherFetchIdData(config, refererInfo, log, prebidVersion) {
     const options = config.getOptions();
     const uaHints = await UaHints.gatherUaHints(options.disableUaHints, log);
     return {
       partnerId: options.partnerId,
       refererInfo: refererInfo,
       origin: ORIGIN,
-      originVersion: this._version,
+      originVersion: prebidVersion,
       isUsingCdn: this._isUsingCdn,
       att: options.att,
       uaHints: uaHints,
@@ -301,4 +306,5 @@ if (!window.id5Prebid) {
 if (!window.id5Prebid.version || semanticVersionCompare(window.id5Prebid.version, currentVersion) <= 0) {
   // There is no previous API or it's an older one. We override with our code.
   window.id5Prebid.integration = new Id5PrebidIntegration();
+  window.id5Prebid.version = currentVersion;
 }

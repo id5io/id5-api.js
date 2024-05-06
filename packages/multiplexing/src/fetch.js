@@ -18,6 +18,7 @@ const MULTI_FETCH_ENDPOINT_V3 = `/gm/v3`;
  * @property {string} cacheId - instance client storage cache identifier
  * @property {boolean} refresh - true if this instance require refresh, false otherwise
  * @property {CachedResponse} cacheData
+ * @property {String} sourceVersion - version that instance has been registered with (can be different from `originVersion` defined in `FetchIdData`)
  */
 
 /**
@@ -179,6 +180,7 @@ export class UidFetcher {
       'role': fetchIdData.role,
       'cacheId': fetchIdData.cacheId,
       'refresh': fetchIdData.refresh,
+      'sourceVersion': fetchIdData.sourceVersion,
       'partner': partner,
       'v': fetchIdData.originVersion,
       'o': fetchIdData.origin,
