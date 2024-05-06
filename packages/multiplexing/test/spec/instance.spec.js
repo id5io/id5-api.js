@@ -113,6 +113,19 @@ describe('Leader election', () => {
     expect(leader).is.eq(instanceA);
   });
 
+  it('should elect lexicographically first instance if source version not comparable', function () {
+    // given
+    let instanceA = new ID5Integration.Properties('a', '1.1.3', 'pbjs', '1.0.26', {});
+    let instanceB = new ID5Integration.Properties('b', '1.1.3', 'pbjs', 'v1.0.26-pre', {});
+    let instanceC = new ID5Integration.Properties('c', '1.1.3', 'pbjs', 'v1.0.26', {});
+
+    // when
+    let leader = ID5Integration.electLeader([instanceB, instanceC, instanceA]);
+
+    // then
+    expect(leader).is.eq(instanceA);
+  });
+
   it('should prefer instances with depth info', function () {
     // given
     let instanceA = new ID5Integration.Properties('a', '1.1.3', 'api', '1.0.26', {});

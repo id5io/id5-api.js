@@ -6,14 +6,14 @@ import {Id5CommonMetrics} from '@id5io/diagnostics';
 const BOUNCE_DEFAULT_RESPONSE = {bounce: {setCookie: false}};
 
 function createFetchStub(lbResponse) {
-  return sinon.stub(window, 'fetch').callsFake(function (url) {
+  return sinon.stub(window, 'fetch').callsFake(function (url, init) {
     if (url.includes('eu-3-id5-sync.com')) {
       return Promise.resolve(new window.Response('1', {status: 200}));
     } else if (url.includes('eu-4-id5-sync.com')) {
       return Promise.resolve(new window.Response('2', {status: 200}));
     } else if (url.includes(ID5_LB_ENDPOINT)) {
       return Promise.resolve(new window.Response(JSON.stringify(lbResponse), {status: 200}));
-    } else if (url.includes(ID5_BOUNCE_ENDPOINT)) {
+    } else if (url.includes(ID5_BOUNCE_ENDPOINT) && init.credentials == 'include') {
       return Promise.resolve(new window.Response(JSON.stringify(BOUNCE_DEFAULT_RESPONSE), {status: 200}));
     } else {
       return Promise.reject('Error');

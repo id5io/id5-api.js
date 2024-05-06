@@ -696,12 +696,12 @@ export function electLeader(instances) {
   }
   let ordered = instances.sort((instance1, instance2) => {
     // newer  version preferred
-    let result = -Utils.semanticVersionCompare(instance1.version, instance2.version);
+    let result = -(Utils.semanticVersionCompare(instance1.version, instance2.version) | 0);
     if (result === 0) {
       // compare source lexicographical, will prefer 'api' over 'pbjs'
       result = instance1.source.localeCompare(instance2.source);
       if (result === 0) { // same source compare it's version
-        result = -Utils.semanticVersionCompare(instance1.sourceVersion, instance2.sourceVersion);
+        result = -(Utils.semanticVersionCompare(instance1.sourceVersion, instance2.sourceVersion) | 0);
       }
       // still undetermined, then compare by frame depth
       if (result === 0) {

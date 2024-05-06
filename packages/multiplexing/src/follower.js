@@ -97,6 +97,10 @@ export class Follower {
     const consentSource = this._instanceProperties.fetchIdData.consentSource;
     return consentSource || ConsentSource.cmp; // by default for backward compatibility assume cmp
   }
+
+  getSourceVersion() {
+    return this._instanceProperties.sourceVersion
+  }
   /**
    *
    * @param {Id5UserId} uid

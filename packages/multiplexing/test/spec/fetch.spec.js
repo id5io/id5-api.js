@@ -4,7 +4,7 @@ import {Extensions} from '../../src/extensions.js';
 import {
   API_TYPE,
   ConsentData,
-  GppConsentData,
+  GppConsentData
 } from '../../src/consent.js';
 import {NO_OP_LOGGER} from '../../src/logger.js';
 import {Id5CommonMetrics} from '@id5io/diagnostics';
@@ -54,6 +54,7 @@ const DEFAULT_FETCH_DATA = {
   requestCount: 1,
   origin: origin,
   originVersion: originVersion,
+  sourceVersion: '1.2.3',
   partnerId: 1234,
   refererInfo: {
     ref: 'http://example.com/page.html',
@@ -321,6 +322,7 @@ describe('UidFetcher', function () {
           att: 10,
           refreshInSeconds: 3600,
           role: 'follower',
+          sourceVersion: '2.2.2',
           trueLink: {booted: true},
           ...data
         };
@@ -580,6 +582,7 @@ function expectedRequestFor(fetchIdData, consentData, extensions, other = undefi
     localStorage: 1,
     o: fetchIdData.origin,
     v: fetchIdData.originVersion,
+    sourceVersion: fetchIdData.sourceVersion,
     partner: fetchIdData.partnerId,
     provided_options: {},
     cu: fetchIdData.refererInfo.canonicalUrl,
