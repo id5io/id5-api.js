@@ -797,6 +797,32 @@ describe('Id5Instance', function () {
         });
       });
     });
+
+    it(`correctly exposes the publisherTrueLinkId`, function (done) {
+      // given
+      const publisherTrueLinkId = 'publisherTLID';
+      const TEST_RESPONSE = {
+        'universal_uid': 'whateverID',
+        'publisherTrueLinkId': publisherTrueLinkId
+      };
+      const config = new Config({...defaultInitBypassConsent()}, NO_OP_LOGGER);
+      const metrics = sinon.createStubInstance(Id5CommonMetrics);
+      const instanceUnderTest = new Id5Instance(config, null, null, metrics, null, NO_OP_LOGGER, multiplexingInstanceStub, null, new TrueLinkAdapter());
+      instanceUnderTest.bootstrap();
+
+      instanceUnderTest.onAvailable(function () {
+        // then
+        expect(instanceUnderTest.getUserId()).to.eq('whateverID');
+        expect(instanceUnderTest.getPublisherTrueLinkId()).to.eq(publisherTrueLinkId);
+        done();
+      });
+
+      // when
+      multiplexingInstanceStub.emit(ApiEvent.USER_ID_READY, {
+        isFromCache: false,
+        responseObj: TEST_RESPONSE
+      });
+    })
   });
 
   describe('cleanup', function () {
