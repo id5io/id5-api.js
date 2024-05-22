@@ -255,13 +255,13 @@ export class ActualLeader extends Leader {
       log.info('Local storage grant', localStorageGrant);
       if (!localStorageGrant.allowed) {
         log.info('No legal basis to use ID5', consentData);
+        this._store.clearAll(this._followers.map(follower => { return {cacheId: follower.getCacheId()}}))
         this._handleCancel('No legal basis to use ID5');
       } else {
-        const store = this._store;
         const consentHasChanged = this._store.hasConsentChanged(consentData);
         // store hashed consent data for future page loads if local storage allowed
         if (localStorageGrant.isDefinitivelyAllowed()) {
-          store.storeConsent(consentData);
+          this._store.storeConsent(consentData);
         }
 
         // with given consent we can check if it is accessible
