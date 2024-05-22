@@ -1520,6 +1520,22 @@ describe('ActualLeader', () => {
       expect(uidFetcher.fetchId).to.not.be.called;
       expect(store.storeConsent).to.not.be.called;
     });
+
+    it('should clear already stored local storage', async () => {
+
+      // given
+      leader.addFollower(follower1);
+      leader.addFollower(follower2);
+
+      // when
+      leader.start();
+      await resolved(consentPromise);
+
+      // then
+      expect(store.clearAll).to.be.calledWith([{cacheId: follower1.getCacheId()}, {cacheId: follower2.getCacheId()}]);
+      expect(uidFetcher.fetchId).to.not.be.called;
+    });
+
   });
 
   describe('when consent data has not been set yet', function () {
