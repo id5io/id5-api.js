@@ -6,6 +6,7 @@ import {version} from '../../generated/version.js';
 import {MultiplexingEvent} from '../../src/apiEvent.js';
 import {StorageApi} from '../../src/localStorage.js';
 import {ElectionState} from '../../src/instance.js';
+import {TrueLinkAdapter} from '../../src/trueLink.js';
 
 /**
  * @param {ID5Integration.Instance} instance
@@ -209,7 +210,7 @@ describe('ID5 instance', function () {
       sourceVersion: sourceVersion,
       sourceConfiguration: sourceConfig,
       fetchIdData: fetchIdData
-    }, sinon.createStubInstance(StorageApi), metrics, logger);
+    }, sinon.createStubInstance(StorageApi), metrics, logger, new TrueLinkAdapter());
     createdInstances.push(instance);
     return instance;
   };

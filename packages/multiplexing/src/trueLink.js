@@ -18,4 +18,14 @@ export class TrueLinkAdapter {
       }
     }
   }
+
+  setPrivacy(privacy) {
+    if(this.isBooted() && window.id5Bootstrap.setPrivacy) {
+      window.id5Bootstrap.setPrivacy(privacy);
+    }
+  }
+
+  clearPrivacy() {
+    this.setPrivacy(undefined);
+  }
 }

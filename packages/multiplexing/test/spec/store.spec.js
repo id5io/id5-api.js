@@ -4,6 +4,7 @@ import {ClientStore} from '../../src/clientStore.js';
 import {API_TYPE, ConsentData} from '../../src/consent.js';
 import CONSTANTS from '../../src/constants.js';
 import {RefreshedResponse} from '../../src/fetch.js';
+import {TrueLinkAdapter} from '../../src/trueLink.js';
 
 
 const FETCH_ID_DATA = [
@@ -53,13 +54,19 @@ describe('Store', function () {
    * @type {ClientStore}
    */
   let clientStore;
+
+  /**
+   * @type {TrueLinkAdapter}
+   */
+  let trueLinkAdapter;
   /**
    * @type {Store}
    */
   let store;
   beforeEach(() => {
     clientStore = sinon.createStubInstance(ClientStore);
-    store = new Store(clientStore);
+    trueLinkAdapter = sinon.createStubInstance(TrueLinkAdapter);
+    store = new Store(clientStore, trueLinkAdapter);
   });
 
 
@@ -130,7 +137,8 @@ describe('Store', function () {
     const responseTime = 10234;
     const genericResponse = {
       universal_uid: 'uid',
-      signature: 'sig'
+      signature: 'sig',
+      privacy: {id5_consent: true}
     };
 
     const response1 = {
@@ -160,6 +168,7 @@ describe('Store', function () {
     expect(clientStore.storeResponseV2).to.be.calledTwice;
     expect(clientStore.storeResponseV2.firstCall).to.be.calledWith(FETCH_ID_DATA[0].cacheId, response1);
     expect(clientStore.storeResponseV2.secondCall).to.be.calledWith(FETCH_ID_DATA[1].cacheId, response2);
+    expect(trueLinkAdapter.setPrivacy).to.be.calledWith(genericResponse.privacy);
   });
 
   it(`should store only non-empty response and one per cacheId`, () => {
@@ -225,6 +234,7 @@ describe('Store', function () {
     expect(clientStore.clearResponseV2.firstCall.args).to.be.eql([FETCH_ID_DATA[0].cacheId]);
     expect(clientStore.clearResponseV2.secondCall.args).to.be.eql([FETCH_ID_DATA[1].cacheId]);
     expect(clientStore.clearHashedConsentData).to.have.been.calledOnce;
+    expect(trueLinkAdapter.clearPrivacy).to.have.been.calledOnce;
   });
 
   it('should return stored response', () => {

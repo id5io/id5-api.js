@@ -137,7 +137,7 @@ class Id5PrebidIntegration {
       metrics.invocationCountSummary().record(this.invocationId); // record invocation count
     }
     const storage = new WindowStorage(window);
-    const instance = multiplexing.createInstance(window, log, metrics, storage);
+    const instance = multiplexing.createInstance(window, log, metrics, storage, new TrueLinkAdapter());
     instance.updateConsent(this._buildConsentData(gdprConsentData, uspConsentData, gppConsentData));
     const userIdReadyTimer = startTimeMeasurement();
     const instancePromise = new Promise((resolve, reject) => {
