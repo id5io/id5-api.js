@@ -408,7 +408,7 @@ export class Instance {
    * @param {Logger} logger
    * @param {TrueLinkAdapter} trueLinkAdapter
    */
-  constructor(wnd, configuration, storage, metrics, logger = NO_OP_LOGGER, trueLinkAdapter) {
+  constructor(wnd, configuration, storage, metrics, logger, trueLinkAdapter) {
     const id = Utils.generateId();
     this.properties = Object.assign({
       id: id,
