@@ -394,6 +394,11 @@ export class Instance {
    * @private
    */
   _storage;
+  /**
+   * @type {TrueLinkAdapter}
+   * @private
+   */
+  _trueLinkAdapter;
 
   /**
    * @param {Window} wnd
@@ -401,8 +406,9 @@ export class Instance {
    * @param {Properties} configuration
    * @param {Id5CommonMetrics} metrics
    * @param {Logger} logger
+   * @param {TrueLinkAdapter} trueLinkAdapter
    */
-  constructor(wnd, configuration, storage, metrics, logger = NO_OP_LOGGER) {
+  constructor(wnd, configuration, storage, metrics, logger, trueLinkAdapter) {
     const id = Utils.generateId();
     this.properties = Object.assign({
       id: id,
@@ -421,6 +427,7 @@ export class Instance {
     this._followerRole = new DirectFollower(this._window, this.properties, this._dispatcher, this._logger);
     this._election = new Election(this);
     this._storage = storage;
+    this._trueLinkAdapter = trueLinkAdapter;
   }
 
   /**
@@ -619,7 +626,7 @@ export class Instance {
     const storageConfig = new StorageConfig(properties.storageExpirationDays);
     const consentManagement = new ConsentManagement(localStorage, storageConfig, properties.forceAllowLocalStorageGrant, logger, metrics);
     const grantChecker = () => consentManagement.localStorageGrant('client-store');
-    const store = new Store(new ClientStore(grantChecker, localStorage, storageConfig, logger));
+    const store = new Store(new ClientStore(grantChecker, localStorage, storageConfig, logger), this._trueLinkAdapter);
     const fetcher = new UidFetcher(metrics, logger, EXTENSIONS.createExtensions(metrics, logger));
 
     const leader = new ActualLeader(this._window, properties, replicatingStorage, store, consentManagement, metrics, logger, fetcher);

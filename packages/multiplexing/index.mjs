@@ -19,10 +19,11 @@ class MultiplexingRegistry {
    * @param logger
    * @param metrics
    * @param {StorageApi} storage
+   * @param {TrueLinkAdapter} trueLinkAdapter
    * @return {MultiplexInstance}
    */
-  createInstance(wnd, logger, metrics, storage) {
-    return new MultiplexInstance(wnd, {}, storage, metrics, logger);
+  createInstance(wnd, logger, metrics, storage, trueLinkAdapter) {
+    return new MultiplexInstance(wnd, {}, storage, metrics, logger, trueLinkAdapter);
   }
 }
 

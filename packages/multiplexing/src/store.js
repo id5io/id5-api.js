@@ -42,13 +42,19 @@ export class Store {
    * @private
    */
   _clientStore;
+  /**
+   * @type {TrueLinkAdapter}
+   * @private
+   */
+  _trueLinkAdapter;
 
   /**
-   *
    * @param {ClientStore} clientStore
+   * @param {TrueLinkAdapter} trueLinkAdapter
    */
-  constructor(clientStore) {
+  constructor(clientStore, trueLinkAdapter) {
     this._clientStore = clientStore;
+    this._trueLinkAdapter = trueLinkAdapter;
   }
 
   /**
@@ -114,6 +120,7 @@ export class Store {
         }
       }
     });
+    this._trueLinkAdapter.setPrivacy(refreshedResponse.getGenericResponse()?.privacy)
   }
 
   clearAll(fetchIdData) {
@@ -124,6 +131,7 @@ export class Store {
       this._clientStore.clearResponseV2(cacheId);
     });
     this._clientStore.clearHashedConsentData();
+    this._trueLinkAdapter.clearPrivacy();
   }
 
   /**
