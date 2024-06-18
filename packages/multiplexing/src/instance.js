@@ -92,7 +92,7 @@ export class Properties {
    */
   version;
   /**
-   * @type {string} source where this instance were loaded from (api/pbjs other)
+   * @type {string} source where this instance were loaded from (api/api-lite/id5-prebid-ext-module other)
    */
   source;
   /**

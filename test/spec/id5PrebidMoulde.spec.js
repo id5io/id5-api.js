@@ -39,7 +39,7 @@ describe('ID5 Prebid module', function () {
     expect(registerObj.source).to.eq('id5-prebid-ext-module');
     expect(registerObj.sourceVersion).to.eq(version);
     expect(registerObj.fetchIdData.partnerId).to.eq(1234);
-    expect(registerObj.fetchIdData.origin).to.eq('id5-prebid-ext-module');
+    expect(registerObj.fetchIdData.origin).to.eq('pbjs');
     expect(registerObj.fetchIdData.originVersion).to.eq(pbjsVersion);
   });
 });

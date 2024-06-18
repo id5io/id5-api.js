@@ -19,6 +19,7 @@ const MULTI_FETCH_ENDPOINT_V3 = `/gm/v3`;
  * @property {boolean} refresh - true if this instance require refresh, false otherwise
  * @property {CachedResponse} cacheData
  * @property {String} sourceVersion - version that instance has been registered with (can be different from `originVersion` defined in `FetchIdData`)
+ * @property {String} source - source where this instance were loaded from like api/api-lite/id5-prebid-ext-module (can be different from `origin` defined in `FetchIdData`)
  */
 
 /**
@@ -180,6 +181,7 @@ export class UidFetcher {
       'role': fetchIdData.role,
       'cacheId': fetchIdData.cacheId,
       'refresh': fetchIdData.refresh,
+      'source' : fetchIdData.source,
       'sourceVersion': fetchIdData.sourceVersion,
       'partner': partner,
       'v': fetchIdData.originVersion,

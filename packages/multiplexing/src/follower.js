@@ -101,6 +101,10 @@ export class Follower {
   getSourceVersion() {
     return this._instanceProperties.sourceVersion
   }
+
+  getSource() {
+    return this._instanceProperties.source
+  }
   /**
    *
    * @param {Id5UserId} uid

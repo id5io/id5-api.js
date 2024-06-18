@@ -258,18 +258,21 @@ describe('ActualLeader', () => {
     follower1.getFetchIdData.returns(follower1FetchIdData);
     follower1.getWindow.returns(leaderWindow);
     follower1.getCacheId.returns('cacheId1');
+    follower1.getSource.returns('api');
     follower1.getSourceVersion.returns('1.1.1')
     follower2 = sinon.createStubInstance(Follower);
     follower2.getId.returns(follower2Id);
     follower2.getFetchIdData.returns(follower2FetchIdData);
     follower2.getWindow.returns(leaderWindow);
     follower2.getCacheId.returns('cacheId2');
+    follower2.getSource.returns('api');
     follower2.getSourceVersion.returns('2.2.2')
     follower3 = sinon.createStubInstance(Follower);
     follower3.getId.returns(follower3Id);
     follower3.getFetchIdData.returns(follower3FetchIdData);
     follower3.getWindow.returns(leaderWindow);
     follower3.getCacheId.returns('cacheId3');
+    follower3.getSource.returns('api-lite');
     follower3.getSourceVersion.returns('3.3.3')
     leader = new ActualLeader(leaderWindow, leaderProperties, leaderStorage, store, consentManager, new Id5CommonMetrics('source', '1.2.3', 1), NO_OP_LOGGER, uidFetcher);
     localStorageCheckStub = sinon.stub(WindowStorage, 'checkIfAccessible').returns(true);
@@ -288,7 +291,8 @@ describe('ActualLeader', () => {
       requestCount: requestCount,
       refresh: refresh,
       cacheData: cacheData,
-      sourceVersion: follower.getSourceVersion()
+      sourceVersion: follower.getSourceVersion(),
+      source: follower.getSource()
     };
   }
 
