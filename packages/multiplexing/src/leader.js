@@ -291,7 +291,8 @@ export class ActualLeader extends Leader {
             role: leaderId === follower.getId() ? 'leader' : 'follower',
             cacheId: cacheId,
             cacheData: cacheData.get(cacheId),
-            sourceVersion: follower.getSourceVersion()
+            sourceVersion: follower.getSourceVersion(),
+            source: follower.getSource()
           };
         });
 

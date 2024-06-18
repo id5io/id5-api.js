@@ -54,6 +54,7 @@ const DEFAULT_FETCH_DATA = {
   requestCount: 1,
   origin: origin,
   originVersion: originVersion,
+  source: 'api',
   sourceVersion: '1.2.3',
   partnerId: 1234,
   refererInfo: {
@@ -322,6 +323,7 @@ describe('UidFetcher', function () {
           att: 10,
           refreshInSeconds: 3600,
           role: 'follower',
+          source: 'api-lite',
           sourceVersion: '2.2.2',
           trueLink: {booted: true},
           ...data
@@ -582,6 +584,7 @@ function expectedRequestFor(fetchIdData, consentData, extensions, other = undefi
     localStorage: 1,
     o: fetchIdData.origin,
     v: fetchIdData.originVersion,
+    source: fetchIdData.source,
     sourceVersion: fetchIdData.sourceVersion,
     partner: fetchIdData.partnerId,
     provided_options: {},

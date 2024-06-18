@@ -1,21 +1,14 @@
-import {
-  delve,
-  isGlobalDebug,
-  setGlobalDebug,
-  InvocationLogger,
-  isGlobalTrace,
-  isDefined
-} from '../lib/utils.js';
+import {delve, InvocationLogger, isDefined, isGlobalDebug, isGlobalTrace, setGlobalDebug} from '../lib/utils.js';
 import {version as currentVersion} from '../generated/version.js';
 import {Config} from '../lib/config.js';
 import {createPublisher, Id5CommonMetrics, partnerTag, startTimeMeasurement} from '@id5io/diagnostics';
 import multiplexing, {
   API_TYPE,
-  ConsentData,
   ApiEvent,
-  WindowStorage,
+  ConsentData,
+  ConsentSource,
   GppConsentData,
-  ConsentSource
+  WindowStorage
 } from '@id5io/multiplexing';
 import {semanticVersionCompare} from '@id5io/multiplexing/src/utils.js';
 import {UaHints} from '../lib/uaHints.js';
@@ -76,7 +69,7 @@ import {TrueLinkAdapter} from '@id5io/multiplexing/src/trueLink.js';
  * @property {(Object|undefined)} parsedSections
  */
 
-const ORIGIN = 'id5-prebid-ext-module';
+const SOURCE = 'id5-prebid-ext-module';
 
 class Id5PrebidIntegration {
   /** @type {boolean} */
@@ -118,7 +111,7 @@ class Id5PrebidIntegration {
   async fetchId5Id(dynamicConfig, prebidConfig, refererInfo, gdprConsentData, uspConsentData, gppConsentData) {
     this.invocationId += 1;
     const prebidVersion = isDefined(window.pbjs) ? window.pbjs.version : 'unknown';
-    const log = new InvocationLogger(ORIGIN, this.invocationId);
+    const log = new InvocationLogger(SOURCE, this.invocationId);
     log.info(`ID5 API Prebid  external module version ${this._version}. Invoking fetchId5Id()`, dynamicConfig, prebidConfig);
     const config = new Config({
       partnerId: prebidConfig.partner,
@@ -171,7 +164,7 @@ class Id5PrebidIntegration {
 
     const fetchIdData = await this._gatherFetchIdData(config, refererInfo, log, prebidVersion);
     instance.register({
-      source: ORIGIN,
+      source: SOURCE,
       sourceVersion: currentVersion,
       sourceConfiguration: {
         options: config.getOptions()
@@ -243,7 +236,7 @@ class Id5PrebidIntegration {
    */
   _configureDiagnostics(partnerId, diagnosticsOptions, refererInfo, log, prebidVersion) {
     try {
-      let metrics = new Id5CommonMetrics(ORIGIN, this._version);
+      let metrics = new Id5CommonMetrics(SOURCE, this._version);
       metrics.addCommonTags({
         ...partnerTag(partnerId),
         tml: refererInfo.topmostLocation,
@@ -279,7 +272,7 @@ class Id5PrebidIntegration {
     return {
       partnerId: options.partnerId,
       refererInfo: refererInfo,
-      origin: ORIGIN,
+      origin: 'pbjs',
       originVersion: prebidVersion,
       isUsingCdn: this._isUsingCdn,
       att: options.att,
