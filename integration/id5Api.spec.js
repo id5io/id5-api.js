@@ -19,7 +19,7 @@ import {
  * the launch configuration and block the browser using
  * await browser.waitForTarget(() => false, { timeout: 0 });
  */
-const _DEBUG = getDebugFlag()
+const _DEBUG = getDebugFlag();
 
 chai.use(chaiDateTime);
 
@@ -448,7 +448,8 @@ describe('The ID5 API', function () {
         });
     });
 
-    it('should publish measurements before unload', async () => {
+    it('should publish measurements before unload', async function () {
+      this.retries(2); // metrics are triggered by `beforeunload` browser event , in some cases it may be unreliable
       const TEST_PAGE_PATH = path.join(RESOURCES_DIR, 'diagnostics_on_unload.html');
       await server.forGet('https://my-publisher-website.net')
         .thenFromFile(200, TEST_PAGE_PATH);
@@ -775,7 +776,8 @@ describe('The ID5 API', function () {
       });
     });
 
-    it('leader election and messaging metrics are collected', async () => {
+    it('leader election and messaging metrics are collected', async function () {
+      this.retries(2); // metrics are triggered by `beforeunload` browser event , in some cases it may be unreliable
       const page = await browser.newPage();
       await page.goto('https://my-publisher-website.net');
 
@@ -863,14 +865,20 @@ describe('The ID5 API', function () {
     return expectRequestsAt(endpoint, 1);
   }
 
-  function expectRequestsAt(endpoint, minCount = 1) {
-    return new Promise((resolve) => {
+  function expectRequestsAt(endpoint, minCount = 1, maxTimeMs = 10000) {
+    return new Promise((resolve, reject) => {
+      let startTime =  Date.now()
       let waitForRequest = async function () {
         let requests = await endpoint.getSeenRequests();
         if (requests && requests.length >= minCount) {
           return resolve(requests);
         } else {
-          setTimeout(waitForRequest, 100);
+          let elapsedTime = Date.now() - startTime;
+          if(elapsedTime > maxTimeMs) {
+            reject(`Expected at least ${minCount} requests at ${endpoint} but received only ${requests.length} in ${elapsedTime}ms`)
+          } else {
+            setTimeout(waitForRequest, 100);
+          }
         }
       };
       waitForRequest();
