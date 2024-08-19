@@ -438,7 +438,7 @@ export class Instance {
     Object.assign(this.properties, configuration);
   }
 
-  init(electionDelayMSec = 1000) {
+  init(electionDelayMSec = 500) {
     let instance = this;
     let window = instance._window;
     instance._mode = instance.properties.singletonMode === true ? OperatingMode.SINGLETON : OperatingMode.MULTIPLEXING;
