@@ -1,5 +1,5 @@
 import sinon from 'sinon';
-import {Store, StorageConfig, CachedResponse} from '../../src/store.js';
+import {CachedResponse, StorageConfig, Store, StoreItemConfig} from '../../src/store.js';
 import {ClientStore} from '../../src/clientStore.js';
 import {API_TYPE, ConsentData} from '../../src/consent.js';
 import CONSTANTS from '../../src/constants.js';
@@ -234,6 +234,7 @@ describe('Store', function () {
     expect(clientStore.clearResponseV2.firstCall.args).to.be.eql([FETCH_ID_DATA[0].cacheId]);
     expect(clientStore.clearResponseV2.secondCall.args).to.be.eql([FETCH_ID_DATA[1].cacheId]);
     expect(clientStore.clearHashedConsentData).to.have.been.calledOnce;
+    expect(clientStore.clearExtensions).to.have.been.calledOnce;
     expect(trueLinkAdapter.clearPrivacy).to.have.been.calledOnce;
   });
 
@@ -260,6 +261,24 @@ describe('Store', function () {
     // then
     expect(clientStore.incNbV2).to.be.calledWith('c1',1);
     expect(clientStore.incNbV2).to.be.calledWith('c2',10);
+  });
+
+  it('should take into account the extension ttl', () => {
+    // when
+    const extensions = {extA: "A", ttl: 60 * 60};
+    store.storeExtensions(extensions);
+
+    // then
+    expect(clientStore.storeExtensions).to.be.calledWith(extensions, new StoreItemConfig(CONSTANTS.STORAGE_CONFIG.EXTENSIONS.name, 1/24) );
+  });
+
+  it('should use a default extension ttl if not provided', () => {
+    // when
+    const extensions = {extA: "A"};
+    store.storeExtensions(extensions);
+
+    // then
+    expect(clientStore.storeExtensions).to.be.calledWith(extensions, new StorageConfig().EXTENSIONS );
   });
 });
 

@@ -31,6 +31,7 @@ export class StorageConfig {
     this.LAST = createConfig(defaultStorageConfig.LAST);
     this.CONSENT_DATA = createConfig(defaultStorageConfig.CONSENT_DATA);
     this.PRIVACY = createConfig(defaultStorageConfig.PRIVACY);
+    this.EXTENSIONS = new StoreItemConfig(defaultStorageConfig.EXTENSIONS.name, defaultStorageConfig.EXTENSIONS.expiresDays);
   }
 
   static DEFAULT = new StorageConfig();
@@ -132,6 +133,7 @@ export class Store {
     });
     this._clientStore.clearHashedConsentData();
     this._trueLinkAdapter.clearPrivacy();
+    this._clientStore.clearExtensions();
   }
 
   /**
@@ -145,6 +147,23 @@ export class Store {
     }
     return undefined;
   }
+
+  /**
+   * @return {ExtensionsData}
+   */
+  getCachedExtensions() {
+    return this._clientStore.getExtensions();
+  }
+
+  /**
+   * @param {ExtensionsData} extensions
+   */
+  storeExtensions(extensions) {
+    let expiresDays = extensions.ttl ? extensions.ttl / 24 / 60 / 60 : CONSTANTS.STORAGE_CONFIG.EXTENSIONS.expiresDays
+    let config = new StoreItemConfig(CONSTANTS.STORAGE_CONFIG.EXTENSIONS.name, expiresDays)
+    return this._clientStore.storeExtensions(extensions, config);
+  }
+
 }
 
 export class CachedResponse {

@@ -4,6 +4,7 @@ import {ClientStore} from '../../src/clientStore.js';
 import {LocalStorage} from '../../src/localStorage.js';
 import {StorageConfig, StoreItemConfig} from '../../src/store.js';
 import {NO_OP_LOGGER} from '../../src/logger.js';
+import Constants from '../../src/constants.js';
 
 const TEST_RESPONSE_ID5_CONSENT = {
   universal_uid: 'testresponseid5id',
@@ -303,5 +304,58 @@ describe('ClientStore', function () {
         });
       });
     });
+
+    describe('extensions', function () {
+
+      describe('with local storage access granted', function () {
+        let grantChecker;
+        /** @type {ClientStore} */
+        let clientStore;
+        let extensionsConfig = new StoreItemConfig(Constants.STORAGE_CONFIG.EXTENSIONS.name, Constants.STORAGE_CONFIG.EXTENSIONS.expiresDays)
+        beforeEach(function () {
+          grantChecker = () => new LocalStorageGrant(true, GRANT_TYPE.CONSENT_API, API_TYPE.TCF_V2);
+          clientStore = new ClientStore(grantChecker, localStorage, DEFAULT_STORAGE_CONFIG, log);
+        });
+
+        it('should store extensions', function () {
+          // given
+          const ext = {
+            extA: {
+              extB: 'C'
+            }
+          };
+
+          localStorage.updateObjectWithExpiration.callsFake((key, updFn) => {
+            return updFn({});
+          });
+          // when
+          const result = clientStore.storeExtensions(ext, extensionsConfig);
+
+          // then
+          expect(localStorage.updateObjectWithExpiration).to.be.called;
+          expect(localStorage.updateObjectWithExpiration.firstCall.args[0]).to.be.eql(extensionsConfig);
+
+          expect(result).to.be.eql(ext);
+        });
+
+        it('should get extensions', function () {
+          // given
+          const storedExtensions = {
+            extA: {
+              extB: 'C'
+            }
+          };
+          localStorage.getObjectWithExpiration.returns(storedExtensions);
+
+          // when
+          const result = clientStore.getExtensions();
+
+          // then
+          expect(localStorage.getObjectWithExpiration).to.be.calledWith(extensionsConfig);
+          expect(result).to.be.eql(storedExtensions);
+        });
+      });
+    });
+
   });
 });
