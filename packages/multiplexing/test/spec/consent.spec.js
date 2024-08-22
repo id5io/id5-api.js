@@ -378,24 +378,12 @@ describe('Consent Data', function () {
     });
 
     [
-      [true, [6, 7, 8], true],
-      [false, [6], true],
-      [undefined, [6], true],
-      [true, [2, 6, 7, 8], true],
-      [false, [2], false],
+      [true, [2, 6], true],
+      [false, [2, 6], false],
       [undefined, [2], false],
-      [true, [], true],
-      [false, [], false],
-      [undefined, [], true],
       [true, [0], true],
-      [false, [0], false],
-      [undefined, [0], true],
-      [true, [-1], true],
-      [false, [-1], false],
-      [undefined, [-1], true],
-      [true, [7, 8], false],
-      [false, [8], false],
-      [undefined, [7], false]
+      [false, [], true],
+      [false, [6], true]
     ].forEach(([lscp, sections, expectedGrant]) => {
       it(`should support API GPP v1.1 (localStoragePurposeConsent=${lscp}, applicableSections=${sections})`, () => {
 

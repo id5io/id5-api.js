@@ -53,12 +53,8 @@ export class GppConsentData {
   isGranted() {
     if (this.applicableSections.includes(2)) {
       return this.localStoragePurposeConsent === true;
-    } else if (this.applicableSections.includes(6)) {
-      return true;
-    } else if (this.applicableSections.includes(0) || this.applicableSections.includes(-1) || this.applicableSections.length === 0) {
-      return this.localStoragePurposeConsent !== undefined ? this.localStoragePurposeConsent : true;
     } else {
-      return false;
+      return true
     }
   }
 }
