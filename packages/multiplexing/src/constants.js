@@ -19,6 +19,10 @@ export default Object.freeze({
     PRIVACY: {
       name: 'id5id_privacy',
       expiresDays: 30
+    },
+    EXTENSIONS: {
+      name: 'id5id_extensions',
+      expiresDays: 8/24
     }
   },
   LEGACY_COOKIE_NAMES: [

@@ -90,6 +90,20 @@ describe('LocalStorage', function () {
       expect(storageMock.setItem).to.be.calledOnce;
     });
 
+    it('expiration policy can use values less than a day', () => {
+      const testStorage = new LocalStorage(storageMock);
+
+      // when
+      testStorage.setObjectWithExpiration({name: 'test', expiresDays: 2/24}, {});
+
+      // then
+      expect(storageMock.setItem).to.be.calledWith('test', JSON.stringify({
+        data: {},
+        expireAt: currentTimeMs + 2 * 3600 * 1000 // 2 hours from the current time
+      }));
+      expect(storageMock.setItem).to.be.calledOnce;
+    });
+
     it('update object with expiration policy', () => {
       // given
       const testStorage = new LocalStorage(storageMock);

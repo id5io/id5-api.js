@@ -2,7 +2,7 @@
  * Module for managing storage of information in browser Local Storage and/or cookies
  */
 
-import {cyrb53Hash, isStr, isNumber} from './utils.js';
+import {isStr, isNumber} from './utils.js';
 
 /* eslint-disable no-unused-vars */
 import {ConsentData, LocalStorageGrant} from './consent.js';
@@ -219,19 +219,6 @@ export class ClientStore {
     }
   }
 
-  /**
-   * creates a hash of a value to be stored
-   * @param {string} value
-   * @returns {string} hashed value
-   */
-  static makeStoredHash(value) {
-    return cyrb53Hash(typeof value === 'string' ? value : '');
-  }
-
-  getDateTime() {
-    return (new Date(this.get(this.storageConfig.LAST))).getTime();
-  }
-
   clearDateTime() {
     this.clear(this.storageConfig.LAST);
   }
@@ -304,5 +291,18 @@ export class ClientStore {
    */
   storedConsentDataMatchesConsentData(consentData) {
     return ClientStore.storedDataMatchesCurrentData(this.getHashedConsentData(), consentData.hashCode());
+  }
+
+  getExtensions() {
+    return this._getObject(this.storageConfig.EXTENSIONS);
+  }
+
+  storeExtensions(extensions, config) {
+
+    return this._updateObject(config, () => extensions)
+  }
+
+  clearExtensions() {
+    return this.clear(this.storageConfig.EXTENSIONS);
   }
 }

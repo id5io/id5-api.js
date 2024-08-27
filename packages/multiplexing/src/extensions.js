@@ -21,12 +21,20 @@ export class Extensions {
   _log;
 
   /**
+   * @type {Store}
+   * @private
+   */
+  _store
+
+  /**
    * @param {Id5CommonMetrics} metrics
    * @param {Logger} logger
+   * @param {Store} store
    */
-  constructor(metrics, logger) {
+  constructor(metrics, logger, store) {
     this._metrics = metrics;
     this._log = logger;
+    this._store = store;
   }
 
   static CHUNKS_CONFIGS = Object.freeze({
@@ -116,6 +124,10 @@ export class Extensions {
    * @returns {Promise<ExtensionsData>} - extensions data
    */
   gather(fetchDataList) {
+    let cachedExtensions = this._store.getCachedExtensions();
+    if (cachedExtensions !== undefined) {
+      return Promise.resolve(cachedExtensions);
+    }
     let extensionsCallTimeMeasurement = startTimeMeasurement();
     let bouncePromise = this._submitBounce(fetchDataList);
     return this.submitExtensionCall(ID5_LB_ENDPOINT, 'lb')
@@ -135,6 +147,7 @@ export class Extensions {
             extensions = {...extensions, ...result.value};
           }
         });
+        this._store.storeExtensions(extensions);
         return extensions;
       }).catch((error) => {
         extensionsCallTimeMeasurement.record(this._metrics.extensionsCallTimer('all', false));
@@ -175,9 +188,10 @@ export const EXTENSIONS = {
   /**
    * @param {Id5CommonMetrics} metrics
    * @param {Logger} log
+   * @param {Store} store
    * @returns {Extensions}
    */
-  createExtensions: function (metrics, log) {
-    return new Extensions(metrics, log);
+  createExtensions: function (metrics, log, store) {
+    return new Extensions(metrics, log, store);
   }
 };

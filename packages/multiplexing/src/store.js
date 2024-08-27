@@ -2,6 +2,7 @@ import {isNumber, isPlainObject, isStr} from './utils.js';
 import CONSTANTS from './constants.js';
 
 const MAX_RESPONSE_AGE_SEC = 14 * 24 * 3600; // 14 days
+const SECONDS_IN_DAY = 24 * 60 * 60;
 
 export class StoreItemConfig {
   constructor(name, expiresDays) {
@@ -31,6 +32,7 @@ export class StorageConfig {
     this.LAST = createConfig(defaultStorageConfig.LAST);
     this.CONSENT_DATA = createConfig(defaultStorageConfig.CONSENT_DATA);
     this.PRIVACY = createConfig(defaultStorageConfig.PRIVACY);
+    this.EXTENSIONS = new StoreItemConfig(defaultStorageConfig.EXTENSIONS.name, defaultStorageConfig.EXTENSIONS.expiresDays);
   }
 
   static DEFAULT = new StorageConfig();
@@ -132,6 +134,7 @@ export class Store {
     });
     this._clientStore.clearHashedConsentData();
     this._trueLinkAdapter.clearPrivacy();
+    this._clientStore.clearExtensions();
   }
 
   /**
@@ -145,6 +148,23 @@ export class Store {
     }
     return undefined;
   }
+
+  /**
+   * @return {ExtensionsData}
+   */
+  getCachedExtensions() {
+    return this._clientStore.getExtensions();
+  }
+
+  /**
+   * @param {ExtensionsData} extensions
+   */
+  storeExtensions(extensions) {
+    let expiresDays = isNumber(extensions.ttl) ? extensions.ttl / SECONDS_IN_DAY  : StorageConfig.DEFAULT.EXTENSIONS.expiresDays
+    let config = new StoreItemConfig(StorageConfig.DEFAULT.EXTENSIONS.name, expiresDays)
+    return this._clientStore.storeExtensions(extensions, config);
+  }
+
 }
 
 export class CachedResponse {
