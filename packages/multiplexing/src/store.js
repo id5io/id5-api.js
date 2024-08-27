@@ -160,8 +160,8 @@ export class Store {
    * @param {ExtensionsData} extensions
    */
   storeExtensions(extensions) {
-    let expiresDays = isNumber(extensions.ttl) ? extensions.ttl / SECONDS_IN_DAY  : CONSTANTS.STORAGE_CONFIG.EXTENSIONS.expiresDays
-    let config = new StoreItemConfig(CONSTANTS.STORAGE_CONFIG.EXTENSIONS.name, expiresDays)
+    let expiresDays = isNumber(extensions.ttl) ? extensions.ttl / SECONDS_IN_DAY  : StorageConfig.DEFAULT.EXTENSIONS.expiresDays
+    let config = new StoreItemConfig(StorageConfig.DEFAULT.EXTENSIONS.name, expiresDays)
     return this._clientStore.storeExtensions(extensions, config);
   }
 
