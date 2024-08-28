@@ -23,9 +23,10 @@ describe('Id5Instance', function () {
   const MOCK_CONSENT_DATA = new ConsentData();
 
   let multiplexingInstanceStub;
-
+  let metrics;
   beforeEach(() => {
     multiplexingInstanceStub = new MultiplexInstanceStub();
+    metrics = sinon.createStubInstance(Id5CommonMetrics);
   });
 
   describe('when cascade triggered', function () {
@@ -146,7 +147,6 @@ describe('Id5Instance', function () {
     it('should set exposeUserId to true without any A/B testing', function (done) {
       // given
       const config = new Config({...defaultInitBypassConsent()}, NO_OP_LOGGER);
-      const metrics = sinon.createStubInstance(Id5CommonMetrics);
       const instanceUnderTest = new Id5Instance(config, null, null, metrics, null, NO_OP_LOGGER, multiplexingInstanceStub, null, new TrueLinkAdapter());
       instanceUnderTest.bootstrap();
 
@@ -178,7 +178,6 @@ describe('Id5Instance', function () {
         }
       };
       const config = new Config({...defaultInitBypassConsent()}, NO_OP_LOGGER);
-      const metrics = sinon.createStubInstance(Id5CommonMetrics);
       const instanceUnderTest = createInstance(config, metrics, multiplexingInstanceStub);
       instanceUnderTest.bootstrap();
 
@@ -220,7 +219,6 @@ describe('Id5Instance', function () {
         }
       };
       const config = new Config({...defaultInitBypassConsent()}, NO_OP_LOGGER);
-      const metrics = sinon.createStubInstance(Id5CommonMetrics);
       const instanceUnderTest = new Id5Instance(config, null, null, metrics, null, NO_OP_LOGGER, multiplexingInstanceStub, null, new TrueLinkAdapter());
       instanceUnderTest.bootstrap();
 
@@ -254,7 +252,6 @@ describe('Id5Instance', function () {
         ...defaultInitBypassConsent(),
         abTesting: {enabled: true, controlGroupPct: 0.8}
       }, NO_OP_LOGGER);
-      const metrics = sinon.createStubInstance(Id5CommonMetrics);
       const consentManagement = sinon.createStubInstance(ConsentManagement);
       const instanceUnderTest = new Id5Instance(config, null, consentManagement, metrics, null, NO_OP_LOGGER, multiplexingInstanceStub, MOCK_PAGE_LEVEL_INFO, new TrueLinkAdapter());
       instanceUnderTest.bootstrap();
@@ -288,7 +285,6 @@ describe('Id5Instance', function () {
 
     it('should set consent data into the consentManagement object and in the multiplexing instance', async function () {
       const config = new Config({...defaultInitBypassConsent()}, NO_OP_LOGGER);
-      const metrics = sinon.createStubInstance(Id5CommonMetrics);
       const consentManagement = sinon.createStubInstance(ConsentManagement);
       const consentDataProvider = sinon.createStubInstance(ConsentDataProvider);
       consentDataProvider.refreshConsentData.resolves(MOCK_CONSENT_DATA);
@@ -342,7 +338,6 @@ describe('Id5Instance', function () {
           att: 1,
           ...additionalConfig
         }, NO_OP_LOGGER);
-        const metrics = sinon.createStubInstance(Id5CommonMetrics);
         const consentManagement = sinon.createStubInstance(ConsentManagement);
         consentManagement.isForceAllowLocalStorageGrant.returns(false);
         const consentDataProvider = sinon.createStubInstance(ConsentDataProvider);
@@ -426,7 +421,6 @@ describe('Id5Instance', function () {
 
     it('should not block ID fetching if consent provider failed to refresh consent data', async function () {
       const config = new Config({...defaultInitBypassConsent()}, NO_OP_LOGGER);
-      // const metrics = sinon.createStubInstance(Id5CommonMetrics);
       const consentManagement = sinon.createStubInstance(ConsentManagement);
       const consentDataProvider = sinon.createStubInstance(ConsentDataProvider);
       consentDataProvider.refreshConsentData.rejects('Some error');
@@ -440,7 +434,6 @@ describe('Id5Instance', function () {
   });
 
   describe('upon refresh', function () {
-    let metrics;
     beforeEach(function () {
       metrics = new Id5CommonMetrics('source', '1.2.3', 99);
     });
@@ -592,7 +585,7 @@ describe('Id5Instance', function () {
           ...defaultInitBypassConsent()
         }, NO_OP_LOGGER);
 
-        const instanceUnderTest = new Id5Instance(config, null, null, null, null, NO_OP_LOGGER, multiplexingInstanceStub, null, new TrueLinkAdapter());
+        const instanceUnderTest = new Id5Instance(config, null, null, metrics, null, NO_OP_LOGGER, multiplexingInstanceStub, null, new TrueLinkAdapter());
         instanceUnderTest.bootstrap();
 
         expect(() => callbackInvoker(instanceUnderTest, 'string')).to.throw;
@@ -605,7 +598,7 @@ describe('Id5Instance', function () {
         maxCascades: 4
       }, NO_OP_LOGGER);
 
-      const instanceUnderTest = new Id5Instance(config, null, null, null, null, NO_OP_LOGGER, multiplexingInstanceStub, null, new TrueLinkAdapter());
+      const instanceUnderTest = new Id5Instance(config, null, null, metrics, null, NO_OP_LOGGER, multiplexingInstanceStub, null, new TrueLinkAdapter());
       instanceUnderTest.bootstrap();
 
       instanceUnderTest.onAvailable(function () {
@@ -628,7 +621,7 @@ describe('Id5Instance', function () {
         maxCascades: 4
       }, NO_OP_LOGGER);
 
-      const instanceUnderTest = new Id5Instance(config, null, null, null, null, NO_OP_LOGGER, multiplexingInstanceStub, null, new TrueLinkAdapter());
+      const instanceUnderTest = new Id5Instance(config, null, null, metrics, null, NO_OP_LOGGER, multiplexingInstanceStub, null, new TrueLinkAdapter());
       instanceUnderTest.bootstrap();
       multiplexingInstanceStub.emit(ApiEvent.USER_ID_READY, {
         isFromCache: false,
@@ -646,7 +639,7 @@ describe('Id5Instance', function () {
         maxCascades: 4
       }, NO_OP_LOGGER);
 
-      const instanceUnderTest = new Id5Instance(config, null, null, null, null, NO_OP_LOGGER, multiplexingInstanceStub, null, new TrueLinkAdapter());
+      const instanceUnderTest = new Id5Instance(config, null, null, metrics, null, NO_OP_LOGGER, multiplexingInstanceStub, null, new TrueLinkAdapter());
       instanceUnderTest.bootstrap();
 
       instanceUnderTest.onUpdate(function () {
@@ -669,7 +662,7 @@ describe('Id5Instance', function () {
         maxCascades: 4
       }, NO_OP_LOGGER);
 
-      const instanceUnderTest = new Id5Instance(config, null, null, null, null, NO_OP_LOGGER, multiplexingInstanceStub, null, new TrueLinkAdapter());
+      const instanceUnderTest = new Id5Instance(config, null, null, metrics, null, NO_OP_LOGGER, multiplexingInstanceStub, null, new TrueLinkAdapter());
       instanceUnderTest.bootstrap();
       instanceUnderTest.refreshId(false, {});
 
@@ -694,7 +687,7 @@ describe('Id5Instance', function () {
         maxCascades: 4
       }, NO_OP_LOGGER);
 
-      const instanceUnderTest = new Id5Instance(config, null, null, null, null, NO_OP_LOGGER, multiplexingInstanceStub, null, new TrueLinkAdapter());
+      const instanceUnderTest = new Id5Instance(config, null, null, metrics, null, NO_OP_LOGGER, multiplexingInstanceStub, null, new TrueLinkAdapter());
       instanceUnderTest.bootstrap();
 
       let invocations = 0;
@@ -728,7 +721,7 @@ describe('Id5Instance', function () {
         maxCascades: 4
       }, NO_OP_LOGGER);
 
-      const instanceUnderTest = new Id5Instance(config, null, null, null, null, NO_OP_LOGGER, multiplexingInstanceStub, null, new TrueLinkAdapter());
+      const instanceUnderTest = new Id5Instance(config, null, null, metrics, null, NO_OP_LOGGER, multiplexingInstanceStub, null, new TrueLinkAdapter());
       instanceUnderTest.bootstrap();
       instanceUnderTest.refreshId(false, {});
 
@@ -766,7 +759,6 @@ describe('Id5Instance', function () {
           }
         };
         const config = new Config({...defaultInitBypassConsent()}, NO_OP_LOGGER);
-        const metrics = sinon.createStubInstance(Id5CommonMetrics);
         const instanceUnderTest = new Id5Instance(config, null, null, metrics, null, NO_OP_LOGGER, multiplexingInstanceStub, null, new TrueLinkAdapter());
         instanceUnderTest.bootstrap();
 
@@ -806,7 +798,6 @@ describe('Id5Instance', function () {
         'publisherTrueLinkId': publisherTrueLinkId
       };
       const config = new Config({...defaultInitBypassConsent()}, NO_OP_LOGGER);
-      const metrics = sinon.createStubInstance(Id5CommonMetrics);
       const instanceUnderTest = new Id5Instance(config, null, null, metrics, null, NO_OP_LOGGER, multiplexingInstanceStub, null, new TrueLinkAdapter());
       instanceUnderTest.bootstrap();
 
@@ -831,14 +822,12 @@ describe('Id5Instance', function () {
     let registerSpy;
     let unregisterSpy;
     let releaseSpy;
-    let metrics;
     let finalizationRegisterSpy;
     let finalizationUnRegisterSpy;
 
     beforeEach(function () {
       consentManager = sinon.createStubInstance(ConsentManagement);
       consentProvider = sinon.createStubInstance(ConsentDataProvider);
-      metrics = sinon.createStubInstance(Id5CommonMetrics);
       registerSpy = sinon.spy(ID5_REGISTRY, 'register');
       unregisterSpy = sinon.spy(ID5_REGISTRY, 'unregister');
       releaseSpy = sinon.spy(ID5_REGISTRY, 'releaseInstance');

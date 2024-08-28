@@ -186,11 +186,11 @@ export class CrossInstanceMessenger {
       let msg = event.data;
       if (event.data !== undefined && event.data._isId5Message) { // is ID5 message
         if (event.data.src === messenger._id) { // is loopback message
-          messenger._log.debug(`Ignore loopback msg`);
+          // Ignore message sent by this instance
           return;
         }
         if (event.data.dst !== undefined && event.data.dst !== messenger._id) {
-          messenger._log.debug(`Ignore msg not to me`);
+          // Ignore message not for this instance
           return;
         }
         try {
