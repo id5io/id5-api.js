@@ -57,7 +57,7 @@ export class Extensions {
   };
 
   static getChunkUrl(i, version) {
-    return `https://c${i}.eu-${version}-id5-sync.com`;
+    return `https://d${i}.eu-${version}-id5-sync.com`;
   }
 
   /**
