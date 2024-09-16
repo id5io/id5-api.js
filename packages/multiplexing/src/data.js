@@ -6,11 +6,27 @@
  */
 
 /**
+ * @typedef FetchResponse
+ * @property {string} universal_uid
+ * @property {string} signature
+ * @property {object} [privacy]
+ * @property {ResponseCacheControl} [cache_control]
+ * @property {boolean|undefined} [cascade_needed]
+ */
+
+/**
  * @typedef Id5UserId
  * @property {Date} timestamp
- * @property {Object} responseObj
+ * @property {FetchResponse} responseObj
  * @property {boolean} isFromCache
  * @property {boolean} [willBeRefreshed]
+ */
+
+/**
+ * @typedef  NotificationContext
+ * @property {string} provisioner
+ * @property {number} timestamp
+ * @property {tags} tags
  */
 
 /**

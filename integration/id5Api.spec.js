@@ -439,10 +439,11 @@ describe('The ID5 API', function () {
             cachedResponseUsed: false,
             callType: 'direct_method',
             isUpdate: false,
-            lateJoiner: false,
             hasOnAvailable: 'true',
             hasOnRefresh: false,
-            hasOnUpdate: false
+            hasOnUpdate: false,
+            provisioner: 'leader',
+            hasChanged: 'true'
           });
           verifyContainsMeasurement(onlyRequest.measurements, 'id5.api.instance.partySize', 'SUMMARY');
         });
@@ -505,10 +506,11 @@ describe('The ID5 API', function () {
             cachedResponseUsed: false,
             callType: 'direct_method',
             isUpdate: false,
-            lateJoiner: false,
             hasOnAvailable: 'true',
             hasOnRefresh: false,
-            hasOnUpdate: false
+            hasOnUpdate: false,
+            provisioner: 'leader',
+            hasChanged: 'true'
           });
           verifyContainsMeasurement(onlyRequest.measurements, 'id5.api.instance.partySize', 'SUMMARY');
         });
@@ -524,6 +526,7 @@ describe('The ID5 API', function () {
 
     beforeEach(async () => {
       const INDEX_PAGE_PATH = path.join(RESOURCES_DIR, 'multiplexing', 'index.html');
+      const INDEX_SINGLE_PAGE_PATH = path.join(RESOURCES_DIR, 'multiplexing', 'index-single.html');
       const TEST_HELPER_SCRIPT_PATH = path.join(RESOURCES_DIR, 'multiplexing', 'multiplexing-test-helper.js');
       const LATE_JOINER_INDEX_PAGE_PATH = path.join(RESOURCES_DIR, 'multiplexing', 'index-latejoiner.html');
       const LATE_JOINER_REFRESH_INDEX_PAGE_PATH = path.join(RESOURCES_DIR, 'multiplexing', 'index-latejoiner-refresh.html');
@@ -535,6 +538,8 @@ describe('The ID5 API', function () {
         .thenFromFile(200, TEST_HELPER_SCRIPT_PATH);
       await server.forGet('https://my-publisher-website.net')
         .thenFromFile(200, INDEX_PAGE_PATH);
+      await server.forGet('https://my-publisher-website.net/single.html')
+        .thenFromFile(200, INDEX_SINGLE_PAGE_PATH);
       await server.forGet('https://my-publisher-website.net/late.html')
         .thenFromFile(200, LATE_JOINER_INDEX_PAGE_PATH);
       await server.forGet('https://my-publisher-website.net/late-refresh.html')
@@ -563,6 +568,47 @@ describe('The ID5 API', function () {
 
     afterEach(async () => {
       await server.reset();
+    });
+
+    it('locally stored id5id should be provisioned immediately when visited again the same page', async () => {
+      // when
+      const leaderElectionDelayMsec = 500;
+      const page = await browser.newPage();
+      await page.goto('https://my-publisher-website.net/single.html');
+      await expectRequestsAt(fetchEndpoint);
+      const firstVisitOnAvailableResult = (await expectRequestsAt(onAvailableEndpoint, 1))[0];
+      const firstVisitMeasurementRequest = await ((await expectRequestsAt(diagnosticsEndpoint, 1))[0].body.getJson());
+      const firstVistProvisioningMeasurements = verifyContainsMeasurement(firstVisitMeasurementRequest.measurements, 'id5.api.userid.provisioning.delay', 'TIMER');
+      expect(firstVistProvisioningMeasurements[0].tags).deep.include({
+          cachedResponseUsed: false,
+          isUpdate: false,
+          provisioner: 'leader',
+          hasChanged: 'true'
+      });
+
+      // then
+      expect(firstVisitOnAvailableResult.uid).is.not.null;
+
+      // when (second visit)
+      await page.goto('https://my-publisher-website.net/single.html');
+
+      // then
+      const secondVisitOnAvailableResult = (await expectRequestsAt(onAvailableEndpoint, 2))[1];
+      expect(secondVisitOnAvailableResult.uid).is.eq(firstVisitOnAvailableResult.uid);
+      const secondVisitMeasurementRequest = await ((await expectRequestsAt(diagnosticsEndpoint, 2))[1].body.getJson());
+
+      const secondVisitProvisioningMeasurements = verifyContainsMeasurement(secondVisitMeasurementRequest.measurements, 'id5.api.userid.provisioning.delay', 'TIMER');
+      const selfProvisionedMeasurement = secondVisitProvisioningMeasurements[0];
+      expect(selfProvisionedMeasurement.tags).deep.include({
+        cachedResponseUsed: 'true',
+        isUpdate: false,
+        hasChanged: 'true',
+        provisioner: 'self'
+      });
+      expect(selfProvisionedMeasurement.values[0].value).is.lessThan(leaderElectionDelayMsec);
+
+      // no more fetch requests received
+      expect((await fetchEndpoint.getSeenRequests()).length).to.eq(1);
     });
 
     it('all integrations eventually should get to know each other and elect the same leader', async () => {
@@ -867,15 +913,15 @@ describe('The ID5 API', function () {
 
   function expectRequestsAt(endpoint, minCount = 1, maxTimeMs = 10000) {
     return new Promise((resolve, reject) => {
-      let startTime =  Date.now()
+      let startTime = Date.now();
       let waitForRequest = async function () {
         let requests = await endpoint.getSeenRequests();
         if (requests && requests.length >= minCount) {
           return resolve(requests);
         } else {
           let elapsedTime = Date.now() - startTime;
-          if(elapsedTime > maxTimeMs) {
-            reject(`Expected at least ${minCount} requests at ${endpoint} but received only ${requests.length} in ${elapsedTime}ms`)
+          if (elapsedTime > maxTimeMs) {
+            reject(`Expected at least ${minCount} requests at ${endpoint} but received only ${requests.length} in ${elapsedTime}ms`);
           } else {
             setTimeout(waitForRequest, 100);
           }
@@ -895,6 +941,7 @@ describe('The ID5 API', function () {
       return result;
     });
   }
+
   async function mockBounceEndpoint() {
     await server.forGet('https://id5-sync.com/bounce').thenJson(200, {bounce: {setCookie: false}}, MOCK_CORS_HEADERS);
   }

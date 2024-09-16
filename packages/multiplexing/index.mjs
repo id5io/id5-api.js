@@ -4,13 +4,13 @@ export {EXTENSIONS, Extensions} from './src/extensions.js';
 export * from './src/logger.js';
 export * from './src/consent.js';
 export {ConsentManagement} from './src/consentManagement.js';
-export {StorageConfig, StoreItemConfig} from './src/store.js';
+export {StorageConfig, StoreItemConfig, Store} from './src/store.js';
 export {LocalStorage, WindowStorage, StorageApi} from './src/localStorage.js';
 export {ClientStore} from './src/clientStore.js';
 export {ApiEventsDispatcher, ApiEvent, MultiplexingEvent} from './src/apiEvent.js';
 export * as utils from './src/utils.js';
 export {default as CONSTANTS} from './src/constants.js';
-export {ConsentSource} from './src/data.js'
+export {ConsentSource} from './src/data.js';
 
 class MultiplexingRegistry {
   /**
@@ -20,10 +20,11 @@ class MultiplexingRegistry {
    * @param metrics
    * @param {StorageApi} storage
    * @param {TrueLinkAdapter} trueLinkAdapter
+   * @param {ClientStore} clientStore
    * @return {MultiplexInstance}
    */
-  createInstance(wnd, logger, metrics, storage, trueLinkAdapter) {
-    return new MultiplexInstance(wnd, {}, storage, metrics, logger, trueLinkAdapter);
+  createInstance(wnd, logger, metrics, storage, trueLinkAdapter, clientStore) {
+    return new MultiplexInstance(wnd, {}, storage, metrics, logger, trueLinkAdapter, clientStore);
   }
 }
 

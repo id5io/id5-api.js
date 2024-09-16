@@ -10,7 +10,6 @@ import {version} from '../generated/version.js';
 import {
   // eslint-disable-next-line no-unused-vars
   Logger,
-  NamedLogger,
   NO_OP_LOGGER
 } from './logger.js';
 import {ActualLeader, AwaitedLeader, ProxyLeader} from './leader.js';
@@ -27,6 +26,7 @@ import {ConsentManagement} from './consentManagement.js';
 import {UidFetcher} from './fetch.js';
 import {ClientStore} from './clientStore.js';
 import {EXTENSIONS} from './extensions.js';
+import {CachedUserIdProvisioner} from './cachedUserId.js';
 
 /**
  * @typedef {string} MultiplexingRole
@@ -366,7 +366,7 @@ export class Instance {
    */
   _metrics;
   /**
-   * @type {Logger}
+   * @type {MultiplexingLogger}
    * @private
    */
   _logger;
@@ -401,14 +401,21 @@ export class Instance {
   _trueLinkAdapter;
 
   /**
+   * @type {CachedUserIdProvisioner}
+   * @private
+   */
+  _cachedIdProvider;
+
+  /**
    * @param {Window} wnd
    * @param {StorageApi} storage
    * @param {Properties} configuration
    * @param {Id5CommonMetrics} metrics
    * @param {Logger} logger
    * @param {TrueLinkAdapter} trueLinkAdapter
+   * @param {ClientStore} clientStore
    */
-  constructor(wnd, configuration, storage, metrics, logger, trueLinkAdapter) {
+  constructor(wnd, configuration, storage, metrics, logger, trueLinkAdapter, clientStore) {
     const id = Utils.generateId();
     this.properties = Object.assign({
       id: id,
@@ -420,14 +427,15 @@ export class Instance {
     this._metrics = metrics;
     this._instanceCounters = new InstancesCounters(metrics, this.properties);
     this._loadTime = performance.now();
-    this._logger = (logger !== undefined) ? new NamedLogger(`Instance(id=${id})`, logger) : NO_OP_LOGGER;
+    this._logger = new MultiplexingLogger(logger, this);
     this._window = wnd;
     this._dispatcher = new ApiEventsDispatcher(this._logger);
     this._leader = new AwaitedLeader(); // AwaitedLeader buffers requests to leader in case some events happened before leader is elected (i.e. consent update)
-    this._followerRole = new DirectFollower(this._window, this.properties, this._dispatcher, this._logger);
+    this._followerRole = new DirectFollower(this._window, this.properties, this._dispatcher, this._logger, this._metrics);
     this._election = new Election(this);
     this._storage = storage;
     this._trueLinkAdapter = trueLinkAdapter;
+    this._cachedIdProvider = new CachedUserIdProvisioner('self', new Store(clientStore, trueLinkAdapter), this._logger, this._metrics);
   }
 
   /**
@@ -690,6 +698,14 @@ export class Instance {
   getId() {
     return this.properties.id;
   }
+
+  /**
+   * @return {ProvisioningResult}
+   */
+  lookupForCachedId() {
+    this._logger.info('Self lookup for cachedId triggered');
+    return this._cachedIdProvider.provisionFromCache(this._followerRole);
+  }
 }
 
 /**
@@ -726,4 +742,38 @@ export function electLeader(instances) {
   });
 
   return ordered[0];
+}
+
+class MultiplexingLogger extends Logger {
+  /**
+   * @type {Instance}
+   * @private
+   */
+  _instance;
+
+  constructor(logger, instance) {
+    super();
+    this._delegate = logger ? logger : NO_OP_LOGGER;
+    this._instance = instance;
+  }
+
+  _prefix() {
+    return `Instance(id=${this._instance.getId()}, role=${this._instance.role})`;
+  }
+
+  debug(...args) {
+    this._delegate.debug(new Date().toISOString(), this._prefix(), ...args);
+  }
+
+  info(...args) {
+    this._delegate.info(new Date().toISOString(), this._prefix(), ...args);
+  }
+
+  warn(...args) {
+    this._delegate.warn(new Date().toISOString(), this._prefix(), ...args);
+  }
+
+  error(...args) {
+    this._delegate.error(new Date().toISOString(), this._prefix(), ...args);
+  }
 }

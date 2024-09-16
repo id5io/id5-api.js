@@ -82,7 +82,7 @@ describe('Counters', function () {
   });
 
   it('should reset counter to 0 after calling ID5 servers if ID in local storage with a previous counter', function (done) {
-    setStoredResponse(CACHE_ID, TEST_RESPONSE_ID5_CONSENT, Date.now() - (TEST_RESPONSE_ID5_CONSENT.cache_control.max_age_sec * 1000 + 1), 5);
+    setStoredResponse(CACHE_ID, TEST_RESPONSE_ID5_CONSENT, Date.now() - (TEST_RESPONSE_ID5_CONSENT.cache_control.max_age_sec * 1000 + 1000), 5);
     localStorage.setItemWithExpiration(TEST_PRIVACY_STORAGE_CONFIG, TEST_PRIVACY_ALLOWED);
 
     ID5.init(defaultInitBypassConsent()).onAvailable(function () {

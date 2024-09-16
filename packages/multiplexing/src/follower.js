@@ -4,11 +4,6 @@ import {NO_OP_LOGGER} from './logger.js';
 import {NoopStorage, StorageApi} from './localStorage.js';
 import {cyrb53Hash} from './utils.js';
 import {ConsentSource} from './data.js';
-/**
- * @typedef {Object} NotificationContext
- * @param {number} timestamp
- * @param {tags} tags
- */
 
 /**
  * @enum {FollowerCallType}
@@ -156,13 +151,61 @@ export class DirectFollower extends Follower {
    */
   _dispatcher;
 
-  constructor(window, properties, dispatcher, logger = NO_OP_LOGGER) {
+  /**
+   * @typedef {Object} UidProvionDetails
+   * @property {DOMHighResTimeStamp} time
+   * @property {string} provisioner
+   * @private
+   */
+
+  /**
+   * @type {Map<string, UidProvionDetails>}
+   * @private
+   */
+  _provisionedUids;
+
+  /**
+   * @type {Id5CommonMetrics}
+   * @private
+   */
+  _metrics;
+
+  /**
+   *
+   * @param window
+   * @param properties
+   * @param dispatcher
+   * @param logger
+   * @param {Id5CommonMetrics} metrics
+   */
+  constructor(window, properties, dispatcher, logger = NO_OP_LOGGER, metrics) {
     super(FollowerCallType.DIRECT_METHOD, window, properties, logger);
     this._dispatcher = dispatcher;
+    this._metrics = metrics;
+    this._provisionedUids = new Map();
   }
 
+  /**
+   * @param {Id5UserId} uid
+   * @param {NotificationContext} notificationContext
+   */
   notifyUidReady(uid, notificationContext) {
-    this._dispatcher.emit(ApiEvent.USER_ID_READY, uid, notificationContext);
+    const id5Id = uid?.responseObj?.universal_uid;
+    if(id5Id) {
+      if(!this._provisionedUids.has(id5Id)) {
+        this._provisionedUids.set(id5Id, {
+          provisioner: notificationContext.provisioner,
+          time: performance.now()
+        })
+        this._dispatcher.emit(ApiEvent.USER_ID_READY, uid, notificationContext);
+      } else {
+        const firstProvisionDetails = this._provisionedUids.get(id5Id);
+        this._metrics.userIdProvisioningDuplicateTimer({
+          provisioner: notificationContext.provisioner,
+          firstProvisioner: firstProvisionDetails.provisioner
+        }).record(performance.now() - firstProvisionDetails.time)
+      }
+    }
   }
 
   notifyFetchUidCanceled(cancelInfo) {

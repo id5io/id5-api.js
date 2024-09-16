@@ -11,6 +11,7 @@ import {ConsentData} from './consent.js';
 import {Store} from './store.js';
 import {WindowStorage} from './localStorage.js';
 import {RefreshedResponse} from './fetch.js';
+import {CachedUserIdProvisioner} from './cachedUserId.js';
 
 /* eslint-enable no-unused-vars */
 
@@ -142,6 +143,7 @@ export class ActualLeader extends Leader {
     this._log = logger;
     this._store = store;
     this._firstFetchTriggered = false;
+    this._cachedIdProvider = new CachedUserIdProvisioner('leader', this._store, this._log, this._metrics);
   }
 
   /**
@@ -199,11 +201,11 @@ export class ActualLeader extends Leader {
     }
   }
 
-  _notifyUidReady(follower, uid, lateJoiner = false) {
+  _notifyUidReady(follower, uid) {
     const notificationContext = {
       timestamp: Date.now(),
+      provisioner: 'leader',
       tags: {
-        lateJoiner: lateJoiner,
         callType: follower.callType
       }
     };
@@ -255,7 +257,9 @@ export class ActualLeader extends Leader {
       log.info('Local storage grant', localStorageGrant);
       if (!localStorageGrant.allowed) {
         log.info('No legal basis to use ID5', consentData);
-        this._store.clearAll(this._followers.map(follower => { return {cacheId: follower.getCacheId()}}))
+        this._store.clearAll(this._followers.map(follower => {
+          return {cacheId: follower.getCacheId()};
+        }));
         this._handleCancel('No legal basis to use ID5');
       } else {
         const consentHasChanged = this._store.hasConsentChanged(consentData);
@@ -491,28 +495,12 @@ export class ActualLeader extends Leader {
   }
 
   _provisionFromCache(newFollower) {
-    const logger = this._log;
-    const cacheId = newFollower.getCacheId();
-    const responseFromCache = this._store.getCachedResponse(cacheId);
-    const refreshRequired = !responseFromCache || !responseFromCache.isValid() || responseFromCache.isExpired();
-    this._refreshRequired[newFollower.getId()] = refreshRequired;
-    if (responseFromCache !== undefined && responseFromCache.isValid()) {
-      logger.info('Found valid cached response for follower', {
-        id: newFollower.getId(),
-        cacheId: newFollower.getCacheId()
-      });
-      this._notifyUidReady(newFollower, {
-        timestamp: responseFromCache.timestamp,
-        responseObj: responseFromCache.response,
-        isFromCache: true,
-        willBeRefreshed: !!refreshRequired
-      });
-      this._store.incNb(cacheId);
-    } else {
-      logger.info(`Couldn't find response for cacheId`, newFollower.getCacheId());
+    const provisionResult = this._cachedIdProvider.provisionFromCache(newFollower);
+    this._refreshRequired[newFollower.getId()] = provisionResult.refreshRequired;
+    if (provisionResult.provisioned) {
+      this._store.incNb(provisionResult.cacheId);
     }
-
-    return refreshRequired;
+    return provisionResult.refreshRequired;
   }
 
   /**

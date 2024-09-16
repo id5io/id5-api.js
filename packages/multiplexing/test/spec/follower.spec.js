@@ -3,6 +3,8 @@ import {CrossInstanceMessenger, ProxyMethodCallTarget} from '../../src/messaging
 import {DirectFollower, Follower, FollowerCallType, ProxyFollower} from '../../src/follower.js';
 import {DiscoveredInstance, Properties} from '../../src/instance.js';
 import {ApiEvent, ApiEventsDispatcher} from '../../src/apiEvent.js';
+import {NO_OP_LOGGER} from '../../src/logger.js';
+import {Id5CommonMetrics, Timer} from '@id5io/diagnostics';
 
 const properties = new Properties('id', 'verison', 'source', 'sourceVersion', {}, window.location);
 describe('ProxyFollower', function () {
@@ -293,24 +295,80 @@ describe('Follower', function () {
 describe('DirectFollower', () => {
   let follower;
   let dispatcher;
+  /** @type {Id5CommonMetrics}*/
+  let metrics;
+  let duplicateTimer;
+  let nowStub;
   beforeEach(() => {
     dispatcher = new ApiEventsDispatcher();
-    follower = new DirectFollower(window, properties, dispatcher);
+    metrics = sinon.createStubInstance(Id5CommonMetrics);
+    duplicateTimer = sinon.createStubInstance(Timer);
+    metrics.userIdProvisioningDuplicateTimer.returns(duplicateTimer);
+    follower = new DirectFollower(window, properties, dispatcher, NO_OP_LOGGER, metrics);
+    nowStub = sinon.stub(performance, 'now');
   });
-  it('should emit event when notifyUidReady', function (done) {
-    // given
-    const uid = sinon.stub();
-    const context = sinon.stub();
 
-    dispatcher.on(ApiEvent.USER_ID_READY, (receivedUid, receivedContext) => {
-      expect(receivedUid).to.be.eql(uid);
-      expect(receivedContext).to.be.eql(context);
-      done();
-    });
+  afterEach(() => {
+    nowStub.restore();
+  });
+
+  it('should emit event when notifyUidReady', function () {
+    // given
+    /** @type {Id5UserId} */
+    const uid = {
+      responseObj: {universal_uid: 'ID5*xyz'}
+    };
+
+    /** @type NotificationContext*/
+    const context = {
+      provisioner: 'leader'
+    };
+
+    const uidReadyCallBack = sinon.stub();
+    dispatcher.on(ApiEvent.USER_ID_READY, uidReadyCallBack);
 
     // when
     follower.notifyUidReady(uid, context);
 
+    //then
+    expect(uidReadyCallBack).to.be.calledWith(uid, context);
+  });
+
+  it('should deduplicate provisioned uids ', function () {
+    // given
+    const uidReadyCallBack = sinon.stub();
+    /** @type {Id5UserId} */
+    const uid = {
+      responseObj: {universal_uid: 'ID5*xyz'}
+    };
+
+    /** @type NotificationContext*/
+    const context = {
+      provisioner: 'self'
+    };
+
+    dispatcher.on(ApiEvent.USER_ID_READY, uidReadyCallBack);
+
+    // when
+    nowStub.returns(1);
+    follower.notifyUidReady(uid, context);
+
+    //then
+    expect(uidReadyCallBack).to.be.called;
+
+    // when
+    nowStub.returns(10);
+    follower.notifyUidReady(uid, {
+      provisioner: 'leader'
+    });
+
+    //then
+    expect(uidReadyCallBack).to.be.calledOnce;
+    expect(metrics.userIdProvisioningDuplicateTimer).to.be.calledWith({
+      firstProvisioner: 'self',
+      provisioner: 'leader'
+    });
+    expect(duplicateTimer.record).to.be.calledWith(9);
   });
 
   it('should emit event when notifyFetchUidCanceled', function (done) {

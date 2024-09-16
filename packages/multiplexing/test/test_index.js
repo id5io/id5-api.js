@@ -13,3 +13,4 @@ import './spec/promise.spec.js';
 import './spec/proxy-call.spec.js';
 import './spec/store.spec.js';
 import './spec/utils.spec.js';
+import './spec/cachedUserId.spec.js'

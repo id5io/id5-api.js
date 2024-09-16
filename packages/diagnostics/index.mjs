@@ -141,6 +141,18 @@ export class Id5CommonMetrics extends MeterRegistry {
     });
   }
 
+  userIdProvisioningDuplicateTimer(tags = {}) {
+    return this.timer('userid.provisioning.duplicate', {
+      ...tags
+    });
+  }
+
+  cachedUserIdAge(tags = {}) {
+    return this.summary('userid.cached.age', {
+      ...tags
+    });
+  }
+
   consentChangeCounter(tags = {}) {
     return this.counter('leader.consent.change.count', tags);
   }
