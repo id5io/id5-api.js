@@ -351,7 +351,7 @@ describe('CachedResponse', function () {
     [0, false],
     [-1, false],
     [daysToMs(14), false],
-    [daysToMs(14) + 1, true],
+    [daysToMs(14) + secondsToMs(1), true],
     [100, false]
   ].forEach(([ageMs, expectedStale]) => {
     it(`should check if stale age-ms=${ageMs}`, function () {
@@ -400,7 +400,7 @@ describe('CachedResponse', function () {
     [hoursToMs(1), {}, true], // invalid age in response
     [hoursToMs(1), {max_age_sec: hoursToSec(1)}, false],
     [hoursToMs(1), {max_age_sec: hoursToSec(2)}, false],
-    [hoursToMs(1) + 1, {max_age_sec: hoursToSec(1)}, true]
+    [hoursToMs(1) + secondsToMs(1), {max_age_sec: hoursToSec(1)}, true]
   ].forEach(([ageMs, cache_control, expected]) => {
     it(`should check if is expired age-ms=${ageMs}, cache-control=${JSON.stringify(cache_control)}`, function () {
 
@@ -427,4 +427,8 @@ function hoursToMs(numOfHours) {
 
 function hoursToSec(numOfHours) {
   return numOfHours * 3600;
+}
+
+function secondsToMs(numOfSeconds) {
+  return numOfSeconds * 1000;
 }

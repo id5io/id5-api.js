@@ -188,7 +188,7 @@ export class CachedResponse {
   }
 
   _isOlderThanSec(maxAgeSec) {
-    return this.timestamp <= 0 || (Date.now() - this.timestamp > (maxAgeSec * 1000));
+    return this.timestamp <= 0 || (this.getAgeSec() > maxAgeSec);
   }
 
   isStale() {
@@ -205,5 +205,13 @@ export class CachedResponse {
 
   getMaxAge() {
     return this.response?.cache_control?.max_age_sec;
+  }
+
+  /**
+   *
+   * @return {number} cached response age in msec
+   */
+  getAgeSec() {
+    return ((Date.now() - this.timestamp)/1000) | 0;
   }
 }

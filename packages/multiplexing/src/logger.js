@@ -29,18 +29,18 @@ export class NamedLogger extends Logger {
   }
 
   debug(...args) {
-    this._delegate.debug(this._prefix, ...args);
+    this._delegate.debug(new Date().toISOString(), this._prefix, ...args);
   }
 
   info(...args) {
-    this._delegate.info(this._prefix, ...args);
+    this._delegate.info(new Date().toISOString(), this._prefix, ...args);
   }
 
   warn(...args) {
-    this._delegate.warn(this._prefix, ...args);
+    this._delegate.warn(new Date().toISOString(), this._prefix, ...args);
   }
 
   error(...args) {
-    this._delegate.error(this._prefix, ...args);
+    this._delegate.error(new Date().toISOString(), this._prefix, ...args);
   }
 }

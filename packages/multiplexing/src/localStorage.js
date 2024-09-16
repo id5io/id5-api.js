@@ -144,9 +144,9 @@ export class LocalStorage {
   getObjectWithExpiration({name}) {
     try {
       const storedItem = JSON.parse(this.getItem(name));
-      if (storedItem.expireAt && (storedItem.expireAt - Date.now()) > 0) {
+      if (storedItem?.expireAt && (storedItem.expireAt - Date.now()) > 0) {
         return storedItem.data;
-      } else if (storedItem.expireAt) { // this means it's expired
+      } else if (storedItem?.expireAt) { // this means it's expired
         this.removeItem(name);
       }
     } catch (e) {

@@ -28,15 +28,6 @@ const MULTI_FETCH_ENDPOINT_V3 = `/gm/v3`;
  */
 
 /**
- * @typedef {Object} FetchResponse
- * @property {string} universal_uid
- * @property {string} signature
- * @property {object} [privacy]
- * @property {ResponseCacheControl} [cache_control]
- * @property {boolean|undefined} [cascade_needed]
- */
-
-/**
  * @typedef {Object} MultiFetchResponse
  * @property {FetchResponse} generic
  * @property {Map<string, FetchResponse>} responses
