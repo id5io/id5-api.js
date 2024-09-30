@@ -340,7 +340,7 @@ The `segments` array is a list of objects containing a `destination` and list of
 
 | Option Name | Scope    | Type             | Description                                                                                                                       |
 |-------------|----------|------------------|-----------------------------------------------------------------------------------------------------------------------------------|
-| destination | Required | string           | The [IAB GVL](https://iabeurope.eu/vendor-list-tcf-v2-0/) ID of the destination platform where the segments should be uploaded to |
+| destination | Required | string           | The [IAB GVL](https://iabeurope.eu/vendor-list-tcf/) ID of the destination platform where the segments should be uploaded to |
 | ids         | Required | array of strings | A list of segment ids/codes to add the user to in the destination platform                                                        |
 
 ```javascript
