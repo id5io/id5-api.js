@@ -466,6 +466,12 @@ var id5Instance = ID5.init({ ... });
 
 ### Test locally
 
+We currently run test with chrome 102 version. If you don't have this version as a default browser, you need to install it
+in a custom directory and point CHROME_BIN environment variable to allow for tests to run.
+```bash
+$ export CHROME_BIN="/your/custom location/to chrome 102"
+```
+
 To lint the code
 
 ```bash

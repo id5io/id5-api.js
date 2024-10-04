@@ -29,7 +29,7 @@ export async function buildBrowser(cert, port, debug = false) {
   //console.log('Starting browser with args:', args)  //uncomment for debug purposes
 
   return await puppeteer.launch({
-    headless: !debug, executablePath: chromePaths.chrome, devtools: debug, args,
+    headless: !debug, executablePath: process.env.CHROME_BIN || chromePaths.chrome, devtools: debug, args,
   });
 }
 
