@@ -16,7 +16,6 @@ build:
   artifacts:
     paths:
       - build/
-      - generated/
   cache:
     paths:
       - "$CI_PROJECT_DIR/node_modules"
@@ -46,7 +45,6 @@ prepare_release:
   artifacts:
     paths:
       - build/
-      - generated/
   cache:
     paths:
       - "$CI_PROJECT_DIR/node_modules"
@@ -87,6 +85,7 @@ npm_release:
       when: manual
   script:
     - echo '//registry.npmjs.org/:_authToken=${NPM_TOKEN}' > .npmrc
+    - npm run npm_prepare_release
     - bash release-npm.sh
   cache:
     paths:

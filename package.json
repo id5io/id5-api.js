@@ -17,7 +17,8 @@
     "lint": "gulp lint",
     "build": "gulp build",
     "build:all": "npm run build -ws && npm run build",
-    "prepare_release": "bash release-prepare.sh"
+    "prepare_release": "bash release-prepare.sh",
+    "npm_prepare_release": "npm run npm_prepare_release -ws && gulp npm-prepare-release"
   },
   "repository": {
     "type": "git",
