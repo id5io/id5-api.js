@@ -239,3 +239,4 @@ gulp.task('serve', gulp.series(
   gulp.parallel('build-bundle-dev', watch, test)
 ));
 
+gulp.task('npm-prepare-release', gulp.series('info', 'clean', 'generate', 'build-bundle-prod'))

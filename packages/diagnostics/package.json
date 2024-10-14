@@ -10,7 +10,8 @@
   "scripts": {
     "test": "gulp test",
     "lint": "gulp lint",
-    "build": "gulp build"
+    "build": "gulp build",
+    "npm_prepare_release": "gulp npm-prepare-release"
   },
   "engines": {
     "node": ">=18.4"

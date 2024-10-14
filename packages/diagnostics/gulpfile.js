@@ -29,3 +29,4 @@ gulp.task(lint)
 gulp.task(test)
 
 gulp.task('build', gulp.series('info', lint, test))
+gulp.task('npm-prepare-release', gulp.series('info'))

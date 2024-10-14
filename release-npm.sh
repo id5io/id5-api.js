@@ -13,7 +13,7 @@ function publishIfNeeded(){
     fi
   fi
 }
-
+npm_config_loglevel=notice
 DIRS=("packages/diagnostics" "packages/multiplexing" ".")
 for dir in "${DIRS[@]}"; do
   cd "${dir}" || exit 1
