@@ -209,14 +209,23 @@ gulp.task('build-bundle-dev', bundleDev);
 gulp.task('build-bundle-prod', bundleProd);
 gulp.task('build-all', gulp.parallel('build-bundle-dev', 'build-bundle-prod'));
 
-gulp.task('inttest', () => (
-  gulp.src('integration/**/*.spec.js', {read: false})
-    // `gulp-mocha` needs filepaths so you can't have any plugins before it
-    .pipe(mocha({
+gulp.task('inttest', () => {
+  // `gulp-mocha` needs filepaths so you can't have any plugins before it
+  const grepIndex = process.argv.indexOf('-g');
+  const grepPattern = grepIndex > -1 ? process.argv[grepIndex + 1] : null;
+
+  const mochaOptions = {
       reporter: isDocker() ? 'spec' : 'nyan',
       inlineDiffs: true,
-    }))
-));
+  };
+
+  if (grepPattern) {
+    mochaOptions.grep = grepPattern;
+  }
+
+  return gulp.src('integration/**/*.spec.js', {read: false})
+    .pipe(mocha(mochaOptions));
+});
 
 // public tasks (dependencies are needed for each task since they can be ran on their own)
 gulp.task('test', gulp.series('clean', 'generate', lint, test));
