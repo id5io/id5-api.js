@@ -494,6 +494,18 @@ Run integrations tests
 $ gulp inttest
 ```
 
+you can run a single integration test by passing -g option
+```bash
+$ gulp inttest -g 'can succesfully retrieve an ID, store in browser and fire callbacks'
+```
+You can debug test in intellij by creating a debug configuration:
+`Run->Edit Configurations-> Add new configuration (+ icon) -> Gulp.js`
+Then populate fields like below:
+- Tasks: inttest
+- Arguments: -g "can succesfully retrieve an ID, store in browser and fire callbacks"
+(note double quotes)
+- Environment DEBUG=true - this will start browser in a non headless config
+
 To generate and view the code coverage reports
 
 ```bash
