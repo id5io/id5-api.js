@@ -66,7 +66,7 @@ Install the ID5 API after your CMP (if applicable), but as high in the `<head>` 
     // TODO: modify with your own partnerId
     // beware of scope of id5Instance and myId5
     var myId5;
-    var id5Instance = ID5.init({partnerId: 173}).onAvailable(function(status) {;
+    var id5Instance = ID5.init({partnerId: 173}).onUpdate(function(status) {;
       // ... do something ...
       myId5 = status.getUserId();
     });
@@ -122,7 +122,7 @@ Here is an example of how integrating the ES6 module might look like:
 import ID5 from '@id5io/id5-api.js'
 
 const id5Instance = ID5.init({ partnerId: 173 });
-id5Instance.onAvailable((status) => {
+id5Instance.onUpdate((status) => {
     console.log(status.getUserId());
 });
 ```
@@ -401,7 +401,12 @@ Default configuration options
 <script>
   var id5Instance = ID5.init({partnerId: 173}); // modify with your own partnerId
 
-  var id5Id = id5Instance.getUserId();
+  var id5Id;  
+  // UserId is not available immediately, it is fetched asynchronously
+  // It is recommended to get it when it's available using `onUpdate` or `onAvailable` callback
+  id5Instance.onUpdate(function(instance) {
+      id5Id = instance.getUserId();
+  });
 </script>
 ```
 
@@ -415,11 +420,36 @@ Setting some configuration options at initialization
     refreshInSeconds: 3600,
   });
 
-  var id5Id = id5Instance.getUserId();
+  var id5Id;
+  // UserId is not available immediately, it is fetched asynchronously
+  // It is recommended to get it when it's available using `onUpdate` or `onAvailable` callback
+  id5Instance.onUpdate(function(instance) {
+      id5Id = instance.getUserId();  
+  });
 </script>
 ```
 
-Setting an `onAvailable` event listener to retrieve the ID5 ID
+Setting an `onUpdate` event listener to retrieve the ID5 ID
+
+```html
+<script src="/path/to/js/id5-api.js"></script>
+<script>
+  var id5Callback = function (id5Instance) {
+    var id5Id = id5Instance.getUserId();
+
+    // do something with the ID5 ID
+    if(id5Id) {
+      fireMyPixel(`https://pixel.url.com?id5id=${id5Id}`);
+    }
+  };
+
+  ID5.init({
+    partnerId: 173 // modify with your own partnerId
+  }).onUpdate(id5Callback); // fire anytime id5 is available or updated
+</script>
+```
+
+Setting an `onAvailable` event listener to retrieve the ID5 ID with timeout
 
 ```html
 <script src="/path/to/js/id5-api.js"></script>
