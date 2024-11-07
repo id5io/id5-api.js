@@ -6,12 +6,25 @@
  */
 
 /**
+ * @typedef Ext
+ * @property {number} linkType
+ */
+
+/**
+ * @typedef ABTestingResult
+ * @property {string} result
+ */
+/**
  * @typedef FetchResponse
  * @property {string} universal_uid
  * @property {string} signature
+ * @property {string} [publisherTrueLinkId]
+ * @property {string} [gp]
  * @property {object} [privacy]
+ * @property {Ext} ext
  * @property {ResponseCacheControl} [cache_control]
  * @property {boolean|undefined} [cascade_needed]
+ * @property {ABTestingResult} [ab_testing]
  */
 
 /**

@@ -814,6 +814,32 @@ describe('Id5Instance', function () {
         responseObj: TEST_RESPONSE
       });
     })
+
+    it(`correctly exposes the GPID`, function (done) {
+      // given
+      const pgId = 'someGpId';
+      const TEST_RESPONSE = {
+        'universal_uid': 'whateverID',
+        'gp': pgId
+      };
+      const config = new Config({...defaultInitBypassConsent()}, NO_OP_LOGGER);
+      const instanceUnderTest = new Id5Instance(config, null, null, metrics, null, NO_OP_LOGGER, multiplexingInstanceStub, null, new TrueLinkAdapter());
+      instanceUnderTest.bootstrap();
+
+      instanceUnderTest.onAvailable(function () {
+        // then
+        expect(instanceUnderTest.getUserId()).to.eq('whateverID');
+        expect(instanceUnderTest.getGpId()).to.eq(pgId);
+        done();
+      });
+
+      // when
+      multiplexingInstanceStub.emit(ApiEvent.USER_ID_READY, {
+        isFromCache: false,
+        responseObj: TEST_RESPONSE
+      });
+    })
+
   });
 
   describe('cleanup', function () {
