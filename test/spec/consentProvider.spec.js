@@ -2,75 +2,9 @@ import sinon from 'sinon';
 import {ConsentDataProvider} from '../../lib/consentProvider.js';
 import {API_TYPE, ID5_GVL_ID, NO_OP_LOGGER, ConsentSource, ConsentData} from '@id5io/multiplexing';
 import {Id5CommonMetrics} from '@id5io/diagnostics';
+import {TEST_CONSENT_DATA_V2, TEST_CONSENT_DATA_V2_CONSENT_DENIED} from './test_utils.js';
 
 chai.should();
-
-const TEST_CONSENT_DATA_V2 = {
-  getTCData: {
-    'tcString': 'COuqj-POu90rDBcBkBENAZCgAPzAAAPAACiQFwwBAABAA1ADEAbQC4YAYAAgAxAG0A',
-    'cmpId': 92,
-    'cmpVersion': 100,
-    'tcfPolicyVersion': 2,
-    'gdprApplies': true,
-    'isServiceSpecific': true,
-    'useNonStandardStacks': false,
-    'purposeOneTreatment': false,
-    'publisherCC': 'US',
-    'cmpStatus': 'loaded',
-    'eventStatus': 'tcloaded',
-    'outOfBand': {
-      'allowedVendors': {},
-      'discloseVendors': {}
-    },
-    'purpose': {
-      'consents': {
-        '1': true,
-        '2': true,
-        '3': true
-      },
-      'legitimateInterests': {
-        '1': false,
-        '2': false,
-        '3': false
-      }
-    },
-    'vendor': {
-      'consents': {
-        '1': true,
-        '2': true,
-        '3': false
-      },
-      'legitimateInterests': {
-        '1': false,
-        '2': true,
-        '3': false,
-        '4': false,
-        '5': false
-      }
-    },
-    'specialFeatureOptins': {
-      '1': false,
-      '2': false
-    },
-    'restrictions': {},
-    'publisher': {
-      'consents': {
-        '1': false,
-        '2': false,
-        '3': false
-      },
-      'legitimateInterests': {
-        '1': false,
-        '2': false,
-        '3': false
-      },
-      'customPurpose': {
-        'consents': {},
-        'legitimateInterests': {}
-      }
-    }
-  }
-};
 
 const TCF_V2_STRING_WITHOUT_STORAGE_ACCESS_CONSENT = 'CPh8d-2Ph8d-2NRAAAENCZCAABoAAAAAAAAAAAAAAAAA.II7Nd_X__bX9n-_7_6ft0eY1f9_r37uQzDhfNs-8F3L_W_LwX32E7NF36tq4KmR4ku1bBIQNtHMnUDUmxaolVrzHsak2cpyNKJ_JkknsZe2dYGF9Pn9lD-YKZ7_5_9_f52T_9_9_-39z3_9f___dv_-__-vjf_599n_v9fV_78_Kf9______-____________8A';
 const TCF_V2_STRING_WITH_STORAGE_ACCESS_CONSENT = 'CPh8dhYPh8dhYJjAAAENCZCAAJHAAAAAAAAAAAAAAAAA.II7Nd_X__bX9n-_7_6ft0eY1f9_r37uQzDhfNs-8F3L_W_LwX32E7NF36tq4KmR4ku1bBIQNtHMnUDUmxaolVrzHsak2cpyNKJ_JkknsZe2dYGF9Pn9lD-YKZ7_5_9_f52T_9_9_-39z3_9f___dv_-__-vjf_599n_v9fV_78_Kf9______-____________8A';
@@ -422,7 +356,7 @@ describe('Consent Data Provider', function () {
       });
     });
 
-    [false, null, undefined, 'xxx'].forEach(value => {
+    [false, null, undefined, 'xxx'].forEach(value => {//
       it(`disallows local storage when vendor purpose 1 has value ${value} and no given consent in encoded string`, async () => {
         const cloneTestData = clone(TEST_CONSENT_DATA_V2);
         cloneTestData.getTCData.tcString = TCF_V2_STRING_WITHOUT_STORAGE_ACCESS_CONSENT;
@@ -928,13 +862,22 @@ describe('Consent Data Provider', function () {
       });
     });
 
+
     function tcfv2ApiMessageResponse(event) {
+      return tcfv2ApiMessageResponseWithTCData(event, TEST_CONSENT_DATA_V2.getTCData)
+    }
+
+    function tcfv2ApiMessageResponseWithoutConsent(event) {
+      return tcfv2ApiMessageResponseWithTCData(event, TEST_CONSENT_DATA_V2_CONSENT_DENIED.getTCData)
+    }
+
+    function tcfv2ApiMessageResponseWithTCData(event, tcData) {
       if (event.data.__tcfapiCall) {
         expect(event.data.__tcfapiCall.version).to.eq(2);
         expect(event.data.__tcfapiCall.command).to.eq('addEventListener');
         const returnMessage = {
           __tcfapiReturn: {
-            returnValue: TEST_CONSENT_DATA_V2.getTCData,
+            returnValue: tcData,
             success: true,
             callId: event.data.__tcfapiCall.callId
           }
@@ -943,7 +886,30 @@ describe('Consent Data Provider', function () {
       }
     }
 
-    describe('with TCFv2', function () {
+    describe('with TCFv2 but with consent denied to id5', function () {//
+      let eventListener;
+      beforeEach(function () {
+        eventListener = (event) => {
+          tcfv2ApiMessageResponseWithoutConsent(event);
+        };
+        window.frames['__tcfapiLocator'] = {};
+        window.addEventListener('message', eventListener);
+      });
+
+      afterEach(function () {
+        delete window.frames['__tcfapiLocator'];
+        window.removeEventListener('message', eventListener);
+      });
+
+      it('can receive the data with id5 consent being denied', async () => {
+        return consentProvider.refreshConsentData(false, 'iab', undefined)
+          .then(consentData => {
+            expect(consentData.vendorsConsentForId5Granted).to.be.false;
+          });
+      });
+    })
+
+    describe('with TCFv2', function () {//
       let eventListener;
       beforeEach(function () {
         eventListener = (event) => {
@@ -967,6 +933,7 @@ describe('Consent Data Provider', function () {
             expect(consentData.consentString).to.eql(TEST_CONSENT_DATA_V2.getTCData.tcString);
             expect(consentData.gdprApplies).to.be.true;
             expect(consentData.localStoragePurposeConsent).to.be.true;
+            expect(consentData.vendorsConsentForId5Granted).to.be.true;
           });
       });
     });

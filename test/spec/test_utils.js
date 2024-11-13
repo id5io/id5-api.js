@@ -266,3 +266,88 @@ export class MultiplexInstanceStub {
 
   unregister() {}
 }
+
+export const TEST_CONSENT_DATA_V2 = _formatConsent(true);
+export const TEST_CONSENT_DATA_V2_CONSENT_DENIED = _formatConsent(false);
+
+  function _formatConsent(id5Consent) {
+    return {getTCData: {
+        'tcString': 'COuqj-POu90rDBcBkBENAZCgAPzAAAPAACiQFwwBAABAA1ADEAbQC4YAYAAgAxAG0A',
+        'cmpId': 92,
+        'cmpVersion': 100,
+        'tcfPolicyVersion': 2,
+        'gdprApplies': true,
+        'isServiceSpecific': true,
+        'useNonStandardStacks': false,
+        'purposeOneTreatment': false,
+        'publisherCC': 'US',
+        'cmpStatus': 'loaded',
+        'eventStatus': 'tcloaded',
+        'outOfBand': {
+          'allowedVendors': {},
+          'discloseVendors': {}
+        },
+        'purpose': {
+          'consents': {
+            '1': true,
+            '2': true,
+            '3': true
+          },
+          'legitimateInterests': {
+            '1': false,
+            '2': false,
+            '3': false
+          }
+        },
+        'vendor': {
+          'consents': {
+            '1': true,
+            '2': true,
+            '3': false,
+            '131': id5Consent
+          },
+          'legitimateInterests': {
+            '1': false,
+            '2': true,
+            '3': false,
+            '4': false,
+            '5': false
+          }
+        },
+        'specialFeatureOptins': {
+          '1': false,
+          '2': false
+        },
+        'restrictions': {},
+        'publisher': {
+          'consents': {
+            '1': false,
+            '2': false,
+            '3': false
+          },
+          'legitimateInterests': {
+            '1': false,
+            '2': false,
+            '3': false
+          },
+          'customPurpose': {
+            'consents': {},
+            'legitimateInterests': {}
+          }
+        }
+      }
+    }
+  }
+
+export function setupMockedConsent(id5HasConsent) {
+  window.__tcfapi = sinon.stub();
+  window.__tcfapi.callsFake((command, version, callback) => {
+    expect(command).to.eq('addEventListener');
+    expect(version).to.eq(2);
+    callback(_formatConsent(id5HasConsent).getTCData, true);
+  });
+}
+
+export function clearMockedConsent() {
+  delete window.__tcfapi;
+}

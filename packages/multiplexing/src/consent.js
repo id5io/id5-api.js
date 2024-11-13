@@ -32,6 +32,10 @@ export class GppConsentData {
   /** @type {string}   */
   gppString;
 
+  /** @type {boolean} */
+  vendorsConsentForId5Granted;
+
+
   /**
    *
    * @param {string} version
@@ -41,18 +45,21 @@ export class GppConsentData {
    */
   constructor(version = undefined,
               localStoragePurposeConsent = undefined,
+              vendorsConsentForId5Granted = undefined,
               applicableSections = undefined,
               gppString = undefined) {
     this.version = version;
     this.localStoragePurposeConsent = localStoragePurposeConsent;
     this.applicableSections = applicableSections;
     this.gppString = gppString;
+    this.vendorsConsentForId5Granted = vendorsConsentForId5Granted;
   }
 
   // section mapping from https://github.com/InteractiveAdvertisingBureau/Global-Privacy-Platform/blob/main/Sections/Section%20Information.md
   isGranted() {
     if (this.applicableSections.includes(2)) {
-      return this.localStoragePurposeConsent === true;
+      return this.localStoragePurposeConsent === true &&
+        this.vendorsConsentForId5Granted !== false /*vendorConsentExplicitlyDenied*/;
     } else {
       return true
     }
@@ -123,6 +130,9 @@ export class ConsentData {
   /** @type {ConsentSource} */
   source;
 
+  /** @type {boolean} */
+  vendorsConsentForId5Granted;
+
   constructor() {
     this.apiTypes = [];
     this.gdprApplies = false;
@@ -147,11 +157,14 @@ export class ConsentData {
   _getLocalStorageGrantFromApi() {
     const apiTypes = this.apiTypes;
     const apiGrants = {};
+    const debugInfo = {}
     if (apiTypes.includes(API_TYPE.TCF_V1)) {
-      apiGrants[API_TYPE.TCF_V1] = !this.gdprApplies || this.localStoragePurposeConsent === true;
+      apiGrants[API_TYPE.TCF_V1] = this._isGranted();
+      this._addToDebugInfo(API_TYPE.TCF_V1, this, debugInfo)
     }
     if (apiTypes.includes(API_TYPE.TCF_V2)) {
-      apiGrants[API_TYPE.TCF_V2] = this.gdprApplies === false || this.localStoragePurposeConsent === true;
+      apiGrants[API_TYPE.TCF_V2] = this._isGranted();
+      this._addToDebugInfo(API_TYPE.TCF_V2, this, debugInfo)
     }
     if (apiTypes.includes(API_TYPE.ID5_ALLOWED_VENDORS)) {
       apiGrants[API_TYPE.ID5_ALLOWED_VENDORS] = this.allowedVendors.includes(ID5_GVL_ID);
@@ -162,14 +175,30 @@ export class ConsentData {
     }
     if (apiTypes.includes(API_TYPE.GPP_V1_0)) {
       apiGrants[API_TYPE.GPP_V1_0] = this.gppData.isGranted();
+      this._addToDebugInfo(API_TYPE.GPP_V1_0, this.gppData, debugInfo)
     }
     if (apiTypes.includes(API_TYPE.GPP_V1_1)) {
       apiGrants[API_TYPE.GPP_V1_1] = this.gppData.isGranted();
+      this._addToDebugInfo(API_TYPE.GPP_V1_1, this.gppData, debugInfo)
     }
     const isGranted = Object.keys(apiGrants).map((api) => apiGrants[api]).reduce((prev, current) => prev && current, true);
-    return new LocalStorageGrant(isGranted, GRANT_TYPE.CONSENT_API, apiGrants);
+    return new LocalStorageGrant(isGranted, GRANT_TYPE.CONSENT_API, apiGrants, debugInfo);
   }
 
+  _addToDebugInfo(apiType, dataSource, debugInfo) {
+    if (dataSource.localStoragePurposeConsent !== undefined) {
+      debugInfo[apiType + '-localStoragePurposeConsent'] = dataSource.localStoragePurposeConsent;
+    }
+    if (dataSource.vendorsConsentForId5Granted !== undefined) {
+      debugInfo[apiType + '-vendorsConsentForId5Granted'] = dataSource.vendorsConsentForId5Granted;
+    }
+    return debugInfo
+  }
+
+  _isGranted() {
+    return this.gdprApplies === false || (this.localStoragePurposeConsent === true &&
+      this.vendorsConsentForId5Granted !== false /*vendorConsentExplicitlyDenied*/);
+  }
   /**
    * Note this is not a generic hash code but rather a hash code
    * used to check whether or not consent has changed across invocations
@@ -266,11 +295,17 @@ export class LocalStorageGrant {
    * @type {Object}
    */
   api = {};
+  /**
+   * Debug info used for metrics
+   * @type {Object}
+   */
+  _debugInfo = {};
 
-  constructor(allowed, grantType, api = {}) {
+  constructor(allowed, grantType, api = {}, _debugInfo={}) {
     this.allowed = allowed;
     this.grantType = grantType;
     this.api = api;
+    this._debugInfo = _debugInfo;
   }
 
   isDefinitivelyAllowed() {

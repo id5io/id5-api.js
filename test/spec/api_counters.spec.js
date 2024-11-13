@@ -7,7 +7,7 @@ import {
   ID5_FETCH_ENDPOINT,
   localStorage,
   prepareMultiplexingResponse,
-  resetAllInLocalStorage, getStoredResponse,  setStoredResponse,
+  resetAllInLocalStorage, getStoredResponse, setStoredResponse,
   sinonFetchResponder,
   TEST_PRIVACY_ALLOWED,
   TEST_PRIVACY_DISALLOWED,

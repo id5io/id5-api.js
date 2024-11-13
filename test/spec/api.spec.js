@@ -1,22 +1,24 @@
 import sinon from 'sinon';
 import ID5 from '../../lib/id5-api.js';
 import {
+  clearMockedConsent,
   DEFAULT_EXTENSIONS,
   defaultInit,
   localStorage,
+  makeCacheId,
   prepareMultiplexingResponse,
   resetAllInLocalStorage,
-  sinonFetchResponder,
   setStoredResponse,
+  setupMockedConsent,
+  sinonFetchResponder,
   TEST_PRIVACY_ALLOWED,
   TEST_PRIVACY_STORAGE_CONFIG,
   TEST_RESPONSE_ID5_CONSENT,
   TEST_RESPONSE_ID5ID,
   TEST_RESPONSE_LINK_TYPE,
-  TEST_RESPONSE_SIGNATURE,
-  makeCacheId
+  TEST_RESPONSE_SIGNATURE
 } from './test_utils.js';
-import {Extensions, EXTENSIONS} from '@id5io/multiplexing';
+import {ApiEvent, Extensions, EXTENSIONS} from '@id5io/multiplexing';
 
 describe('ID5 JS API', function () {
   let extensionsStub, extensionsCreatorStub;
@@ -111,6 +113,7 @@ describe('ID5 JS API', function () {
           expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
           expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
           expect(id5Status.isFromCache()).to.be.true;
+          expect(localStorageGrantNotAllowedCounterValue(id5Status)).to.be.eq(0);
           done();
         });
       });
@@ -143,10 +146,56 @@ describe('ID5 JS API', function () {
           expect(body.requests[0].provided_options.refresh_in_seconds).to.be.eq(undefined);
           expect(id5Status.getUserId()).to.be.equal(TEST_RESPONSE_ID5ID);
           expect(id5Status.getLinkType()).to.be.equal(TEST_RESPONSE_LINK_TYPE);
+          expect(localStorageGrantNotAllowedCounterValue(id5Status)).to.be.eq(0);
           done();
         });
       });
     });
 
+    describe('when id5 has been denied consent', function () {
+      beforeEach(function () {
+        setupMockedConsent(false);
+      });
+
+      afterEach(function (){
+        clearMockedConsent();
+      });
+
+      it('should emit a fetch cancelled event', function (done) {
+        const initOptions = {
+          ...defaultInit(),
+          refreshInSeconds: 1000
+        };
+        setStoredResponse(makeCacheId(initOptions), TEST_RESPONSE_ID5_CONSENT);
+        const id5Status = ID5.init(initOptions);
+
+        id5Status._multiplexingInstance.on(ApiEvent.USER_ID_FETCH_CANCELED, () => {
+          expect(localStorageGrantNotAllowedCounterValue(id5Status)).to.be.eq(1);
+          expect(lsgCounterTag(id5Status,'allowed')).to.be.eq(false);
+          expect(lsgCounterTag(id5Status,'TCFv2-localStoragePurposeConsent')).to.be.eq(true);
+          expect(lsgCounterTag(id5Status,'TCFv2-vendorsConsentForId5Granted')).to.be.eq(false);
+          done();
+        });
+      });
+    });
+
+    function localStorageGrantNotAllowedCounterValue(id5Status) {
+      const counterValue = findLsgCounter(id5Status)
+        ?.values[0]?.value;
+      return counterValue || 0;
+    }
+
+    function lsgCounterTag(id5Status, tag) {
+      const tagValue = findLsgCounter(id5Status)
+        ?.tags[tag];
+      return tagValue || false;
+    }
+
+    function findLsgCounter(id5Status) {
+      return id5Status._metrics.getAllMeasurements()
+        .find(m => m.name == "id5.api.consent.lsg.count"
+          && m.tags['lsgContext'] == 'fetch-before-request'
+          && m.tags['allowed'] == false)
+    }
   });
 });

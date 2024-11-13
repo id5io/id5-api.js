@@ -59,7 +59,8 @@ export class ConsentManagement extends ConsentManager {
   }
 
   /**
-   * Test if consent module is present, applies, and is valid for local storage or cookies (purpose 1)
+   * Test if consent module is present, applies, and is valid for local storage or cookies (purpose 1) and id5 has vendor consent
+   * TODO rename this method to indicate that it works on both localStorage and vendorConsent i.e. localStorageAndVendorConsentGrant
    * @returns {LocalStorageGrant} the result of checking the grant
    * @param {string} usageContext
    */
@@ -70,7 +71,8 @@ export class ConsentManagement extends ConsentManager {
       grantType: lsg.grantType,
       lsgContext: usageContext,
       consentSet: this._consentDataHolder?.hasValue(),
-      ...lsg.api
+      ...lsg.api,
+      ...lsg._debugInfo
     })?.inc();
     return lsg;
   }
