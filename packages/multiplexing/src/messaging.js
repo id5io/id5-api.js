@@ -159,18 +159,25 @@ export class CrossInstanceMessenger {
   _log;
 
   /**
+   * @type {Id5CommonMetrics}
+   * @private
+   */
+  _metrics;
+
+  /**
    *
    * @type {function}
    * @private
    */
   _onMessageCallBackFunction = undefined;
 
-  constructor(id, window, logger = NO_OP_LOGGER) {
+  constructor(id, window, logger = NO_OP_LOGGER, metrics) {
     this._id = id;
     this._messageFactory = new Id5MessageFactory(this._id);
     this._log = logger;
     this._window = window;
     this._handlers = {};
+    this._metrics = metrics;
     this._register();
   }
 
@@ -306,7 +313,35 @@ export class CrossInstanceMessenger {
    */
   onProxyMethodCall(handler) {
     return this.onMessage(ProxyMethodCallMessage.TYPE, message => {
+      if (message.dst === undefined) {
+        this._countInvalidMessage(message, "no-destination-proxy")
+        this._log.error('Received invalid RemoteMethodCallMessage message', JSON.stringify(message), 'Ignoring it....');
+        return;
+      }
       handler._handle(Object.assign(new ProxyMethodCallMessage(), message.payload));
     });
+  }
+
+  /**
+   *
+   * @param message {Id5Message}
+   * @param reason {string}
+   * @private
+   */
+  _countInvalidMessage(message, reason) {
+    const isPresent = field => {
+      return field !== undefined && field !== null
+    }
+
+    if(this._metrics?.instanceInvalidMsgCounter !== undefined) {
+      this._metrics.instanceInvalidMsgCounter({
+        reason: reason,
+        hasDestination: isPresent(message.dst),
+        hasSource: isPresent(message.src),
+        hasPayload: isPresent(message.payload),
+        hasRequest: isPresent(message.request),
+        hasTimestamp: isPresent(message.timestamp)
+      }).inc()
+    }
   }
 }

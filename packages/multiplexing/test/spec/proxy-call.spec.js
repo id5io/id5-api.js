@@ -67,7 +67,7 @@ describe('Proxy Method Call', function () {
         .registerTarget(ProxyMethodCallTarget.LEADER, targetLeader)
     );
 
-    const proxyLeader = new ProxyLeader(callerMessenger, targetId);
+    const proxyLeader = new ProxyLeader(callerMessenger, {id: targetId});
 
     // when
     proxyLeader.refreshUid({refresh: 'legacy'});
