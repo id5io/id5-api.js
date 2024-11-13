@@ -128,6 +128,10 @@ export class Id5CommonMetrics extends MeterRegistry {
     return this.timer('instance.message.delivery.time', tags);
   }
 
+  instanceInvalidMsgCounter(tags = {}) {
+    return this.counter('instance.message.invalid.count', tags);
+  }
+
   userIdProvisioningDelayTimer(fromCache, tags = {}) {
     return this.timer('userid.provisioning.delay', {
       cachedResponseUsed: fromCache,

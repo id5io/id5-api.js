@@ -452,7 +452,7 @@ export class Instance {
     instance._mode = instance.properties.singletonMode === true ? OperatingMode.SINGLETON : OperatingMode.MULTIPLEXING;
     instance._instanceCounters.addInstance(instance.properties);
     collectPartySizeMetrics(instance);
-    instance._messenger = new CrossInstanceMessenger(instance.properties.id, window, instance._logger);
+    instance._messenger = new CrossInstanceMessenger(instance.properties.id, window, instance._logger, instance._metrics);
     instance._messenger
       .onAnyMessage((message, source) => {
         let deliveryTimeMsec = (Date.now() - message.timestamp) | 0;
