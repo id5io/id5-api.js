@@ -472,7 +472,7 @@ describe('UidFetcher', function () {
 
     it(`passes GPP consent information to server`, function () {
       const gppAllowed = new ConsentData(API_TYPE.GPP_V1_1);
-      gppAllowed.gppData = new GppConsentData(API_TYPE.GPP_V1_1, true, [2, 6], 'GPP_STRING');
+      gppAllowed.gppData = new GppConsentData(API_TYPE.GPP_V1_1, true,true, [2, 6], 'GPP_STRING');
 
       // when
       const inputFetchData = [DEFAULT_FETCH_DATA];
