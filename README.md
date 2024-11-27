@@ -280,6 +280,7 @@ Note that in case `cmpApi` is `'static'` and the `consentData` object is either 
 
 #### Static Consent Example
 Here's an example of using a static `tcString` to share the consent preferences. We will use the static `tcString` the same way we would use one collected from the `cmpApi`.
+Both purpose.consent.1 and vendor.consents.131 (ID5) should reflect the values defined in the tcString. For ID5 to be returned, both must be set to true.
 ```javascript
     var id5Instance = ID5.init({
         partnerId: 173, // modify with your own partnerId
@@ -289,6 +290,16 @@ Here's an example of using a static `tcString` to share the consent preferences.
             getTCData: {
                 gdprApplies: true,
                 tcString: "CPBZjR9PBZjR9AKAZAENBMCsAP_AAH_AAAqIHWtf_X_fb39j-_59_9t0eY1f9_7_v-0zjhfds-8Nyf_X_L8X42M7vF36pq4KuR4Eu3LBIQFlHOHUTUmw6okVrTPsak2Mr7NKJ7LEinMbe2dYGHtfn9VTuZKYr97s___z__-__v__79f_r-3_3_vp9X---_e_V3dgdYASYal8BFmJY4Ek0aVQogQhXEh0AoAKKEYWiawgJXBTsrgI9QQMAEBqAjAiBBiCjFgEAAAAASURASAHggEQBEAgABACpAQgAIkAQWAFgYBAAKAaFgBFAEIEhBkcFRymBARItFBPJWAJRd7GGEIZRYAUCj-iowEAAAAA.cAAAAAAAAAAA",
+                purpose: {
+                    consents: {
+                        '1': true
+                    }
+                },
+                vendor: {
+                    consents: {
+                        '131': true
+                    }
+                }
             }
         }
     });

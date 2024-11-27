@@ -7,7 +7,7 @@ import {TEST_CONSENT_DATA_V2, TEST_CONSENT_DATA_V2_CONSENT_DENIED} from './test_
 chai.should();
 
 const TCF_V2_STRING_WITHOUT_STORAGE_ACCESS_CONSENT = 'CPh8d-2Ph8d-2NRAAAENCZCAABoAAAAAAAAAAAAAAAAA.II7Nd_X__bX9n-_7_6ft0eY1f9_r37uQzDhfNs-8F3L_W_LwX32E7NF36tq4KmR4ku1bBIQNtHMnUDUmxaolVrzHsak2cpyNKJ_JkknsZe2dYGF9Pn9lD-YKZ7_5_9_f52T_9_9_-39z3_9f___dv_-__-vjf_599n_v9fV_78_Kf9______-____________8A';
-const TCF_V2_STRING_WITH_STORAGE_ACCESS_CONSENT = 'CPh8dhYPh8dhYJjAAAENCZCAAJHAAAAAAAAAAAAAAAAA.II7Nd_X__bX9n-_7_6ft0eY1f9_r37uQzDhfNs-8F3L_W_LwX32E7NF36tq4KmR4ku1bBIQNtHMnUDUmxaolVrzHsak2cpyNKJ_JkknsZe2dYGF9Pn9lD-YKZ7_5_9_f52T_9_9_-39z3_9f___dv_-__-vjf_599n_v9fV_78_Kf9______-____________8A';
+const TCF_V2_STRING_WITH_STORAGE_ACCESS_CONSENT = 'CQIspsAQIspsAAFADBDEBRFsAP_gAAAAAAYgIchBRCoUTGEAIXgxAMsAGYAUgAAQAEAQAACAACABABAAIAQAkAAAIAQAAAACAQAAIAABAAAEAAAEBAAAAAAEABDAAAAAgAEIIABAAAAAAAIAAAAAAAAAAAAAAAAREAAAmQAAAEKEAEAAAAAAAAAAAAAAAAAFAgMAAAAAAAMAAAAAAgAAAAAAAAIGCQAgAcAMEALDQAYAAghyIgAwABBDkVABgACCHIyADAAEEOQUAGAAIIchIAMAAQQ5HQAYAAghyQgAwABBDklABgACCHJSADAAEEOS0AGAAIIcgAAA.YAAAAAAAAAAA';
 
 describe('Consent Data Provider', function () {
   let consentProvider, logger, logErrorSpy, logWarnSpy, metrics;
@@ -53,6 +53,13 @@ describe('Consent Data Provider', function () {
       {
         purpose: {something: 'wrong'},
         gdprApplies: true
+      },
+      {
+        vendor: {
+          consents: {
+            '131' : true
+          }
+        }
       }
     ].forEach((tcData) => {
       it('should grant localStorage access when not fully decoded tcf v2 data received but consent encoded in tcstring', async () => {
@@ -75,6 +82,7 @@ describe('Consent Data Provider', function () {
           expect(consentData.gdprApplies).is.eq(tcData && tcData.gdprApplies);
           expect(consentData.consentString).is.eq(tcStringWithStorageConsent);
           expect(consentData.localStoragePurposeConsent).is.eq(true);
+          expect(consentData.vendorsConsentForId5Granted).is.eq(tcData?.vendor?.consents?.['131'] || false);
         });
       });
 
@@ -98,6 +106,7 @@ describe('Consent Data Provider', function () {
           expect(consentData.gdprApplies).is.eq(tcData && tcData.gdprApplies);
           expect(consentData.consentString).is.eq(tcStringWithStorageConsent);
           expect(consentData.localStoragePurposeConsent).is.eq(false);
+          expect(consentData.vendorsConsentForId5Granted).is.eq(tcData?.vendor?.consents?.['131'] || false);
         });
       });
     });
