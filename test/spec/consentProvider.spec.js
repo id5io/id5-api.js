@@ -692,6 +692,10 @@ describe('Consent Data Provider', function () {
   });
 
   function createGppV11Flow() {
+    return createGppV11FlowWithFieldNames('PurposeConsent','VendorConsent',ID5_GVL_ID)
+  }
+
+  function createGppV11FlowWithFieldNames(purposeConsentFieldName,vendorConsentFieldName, id5VendorId) {
     return {
       ping: {
         gppVersion: '1.1',
@@ -711,8 +715,8 @@ describe('Consent Data Provider', function () {
           applicableSections: [1, 2],
           parsedSections: {
             tcfeuv2: [{
-              PurposeConsent: [true],
-              VendorConsent: [ID5_GVL_ID]
+              [purposeConsentFieldName]: [true],
+              [vendorConsentFieldName]: [id5VendorId]
             }]
           }
         }
@@ -1004,41 +1008,48 @@ describe('Consent Data Provider', function () {
       });
     });
 
-    describe('with GPP v1_1', function () {
-      let eventListener;
-      let gpp11NormalFlow = createGppV11Flow();
-      beforeEach(function () {
-        eventListener = (event) => {
-          if (event.data.__gppCall) {
-            expect(event.data.__gppCall.command).to.be.oneOf(['addEventListener', 'ping']);
-            if (event.data.__gppCall.command === 'ping') {
-              postResponse(event, gpp11NormalFlow.ping);
-            } else if (event.data.__gppCall.command === 'addEventListener') {
-              postResponse(event, gpp11NormalFlow.firstEvent);
-              postResponse(event, gpp11NormalFlow.secondEvent);
+
+    [
+      ['PurposeConsent', 'VendorConsent', '131'],
+      ['PurposeConsents','VendorConsents', '131'],
+      ['PurposeConsent', 'VendorConsent', 131]
+    ].forEach(([purposeConsentFieldName, vendorConsentFieldName, id5VendorId]) => {
+      describe(`with GPP v1_1 ${purposeConsentFieldName}, ${vendorConsentFieldName}, ${id5VendorId}`, function () {
+        let eventListener;
+        let gpp11NormalFlow = createGppV11FlowWithFieldNames(purposeConsentFieldName, vendorConsentFieldName, id5VendorId);
+        beforeEach(function () {
+          eventListener = (event) => {
+            if (event.data.__gppCall) {
+              expect(event.data.__gppCall.command).to.be.oneOf(['addEventListener', 'ping']);
+              if (event.data.__gppCall.command === 'ping') {
+                postResponse(event, gpp11NormalFlow.ping);
+              } else if (event.data.__gppCall.command === 'addEventListener') {
+                postResponse(event, gpp11NormalFlow.firstEvent);
+                postResponse(event, gpp11NormalFlow.secondEvent);
+              }
             }
-          }
-        };
-        window.frames['__gppLocator'] = {};
-        window.addEventListener('message', eventListener);
-      });
+          };
+          window.frames['__gppLocator'] = {};
+          window.addEventListener('message', eventListener);
+        });
 
-      afterEach(function () {
-        delete window.frames['__gppLocator'];
-        window.removeEventListener('message', eventListener);
-      });
+        afterEach(function () {
+          delete window.frames['__gppLocator'];
+          window.removeEventListener('message', eventListener);
+        });
 
-      it('returns consent data', async () => {
-        return consentProvider.refreshConsentData(false, 'iab', undefined)
-          .then(consentData => {
-            expect(consentData.gppData.gppString).is.eq('GPP_STRING_V1_1');
-            expect(consentData.gppData.applicableSections).eql([1, 2]);
-            expect(consentData.gppData.version).is.eq(API_TYPE.GPP_V1_1);
-            expect(consentData.gppData.localStoragePurposeConsent).is.true;
-            let measurements = metrics.getAllMeasurements();
-            expect(measurements.length).is.eq(1);
-            expect(measurements.find(m => m.name === 'id5.api.gpp.delay')).is.not.undefined;
-          });
+        it('returns consent data', async () => {
+          return consentProvider.refreshConsentData(false, 'iab', undefined)
+            .then(consentData => {
+              expect(consentData.gppData.gppString).is.eq('GPP_STRING_V1_1');
+              expect(consentData.gppData.applicableSections).eql([1, 2]);
+              expect(consentData.gppData.version).is.eq(API_TYPE.GPP_V1_1);
+              expect(consentData.gppData.localStoragePurposeConsent).is.true;
+              let measurements = metrics.getAllMeasurements();
+              expect(measurements.length).is.eq(1);
+              expect(measurements.find(m => m.name === 'id5.api.gpp.delay')).is.not.undefined;
+            });
+        });
       });
     });
   });
