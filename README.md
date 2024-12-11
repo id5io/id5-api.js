@@ -306,7 +306,7 @@ Both purpose.consent.1 and vendor.consents.131 (ID5) should reflect the values d
 ```
 
 #### Allowed Vendors Example
-Here's an example of using Allowed Vendors to share that consent was received for ID5 (GVL ID `131`), a platform with GVL ID `3`, and a brand with ID5 partner number `5`:
+Here's an example of using Allowed Vendors to share that consent was received for ID5 (GVL ID `131`), a platform with GVL ID `3`, and a provider with ID5 partner number `5`:
 
 ```javascript
 var id5Instance = ID5.init({
