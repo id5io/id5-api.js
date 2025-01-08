@@ -319,7 +319,9 @@ var id5Instance = ID5.init({
 ```
 
 #### PD Example
-Taking the example from [Passing Partner Data to ID5](https://support.id5.io/portal/en/kb/articles/passing-partner-data-to-id5), here's how your configuration could look when initializing the API:
+To maximise addressability and produce the highest quality ID5 ID, publishers and advertisers must send additional signals such as Hashed Email, First Party user IDs in the Partner Data (pd) parameter when available. 
+To ensure this information is shared in a secure way, please review the guidance [here](https://wiki.id5.io/en/identitycloud/retrieve-id5-ids/passing-partner-data-to-id5).
+Here's how your configuration could look when initializing the API:
 
 ```javascript
 var id5Instance = ID5.init({
