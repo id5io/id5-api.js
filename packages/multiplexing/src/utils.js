@@ -299,13 +299,3 @@ export function cyrb53Hash(str, seed = 0) {
   h2 = imul(h2 ^ (h2 >>> 16), 2246822507) ^ imul(h1 ^ (h1 >>> 13), 3266489909);
   return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString();
 }
-
-export function objectEntries(obj) {
-  let ownProps = Object.keys(obj);
-  let i = ownProps.length;
-  let resArray = new Array(i); // preallocate the Array
-  while (i--) {
-    resArray[i] = [ownProps[i], obj[ownProps[i]]];
-  }
-  return resArray;
-}

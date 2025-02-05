@@ -698,8 +698,12 @@ describe('Consent Data Provider', function () {
   function createGppV11FlowWithFieldNames(purposeConsentFieldName,vendorConsentFieldName, id5VendorId) {
     return {
       ping: {
-        gppVersion: '1.1',
-        signalStatus: 'not ready'
+        "gppVersion":"1.1",
+        "cmpStatus":"stub",
+        "signalStatus":"not ready",
+        "supportedAPIs":["2:tcfeuv2"],
+        "sectionList":[],
+        "applicableSections":[-1]
       },
       firstEvent: {
         eventName: 'signalStatus',
@@ -801,6 +805,18 @@ describe('Consent Data Provider', function () {
           expect(consent.gppData.applicableSections).eql([1, 2]);
           expect(consent.gppData.localStoragePurposeConsent).is.true;
           expectGppV11(consent);
+        });
+    });
+
+    it('uses stub data if cmp has not started loading when consent is being gathered', async () => {
+      cmpStub.callsFake(createGppV11Stub((responses) => responses.secondEvent.pingData = {"gppVersion":"1.1","cmpStatus":"stub","signalStatus":"not ready","supportedAPIs":["2:tcfeuv2"],"sectionList":[],"applicableSections":[-1]}));
+      return consentProvider.refreshConsentData(false, 'iab', undefined)
+        .then(consent => {
+          expect(cmpStub).to.be.callCount(3);
+          expect(consent.source).to.eq(ConsentSource.cmp);
+          expect(consent.gppData.applicableSections).eql([-1]);
+          expect(consent.gppData.localStoragePurposeConsent).is.undefined;
+          expect(consent.apiTypes).to.be.eql([API_TYPE.GPP_V1_1]);
         });
     });
 

@@ -1,4 +1,4 @@
-import {ajax, isDefined, isPlainObject, isStr, objectEntries} from './utils.js';
+import {ajax, isDefined, isPlainObject, isStr} from './utils.js';
 import {startTimeMeasurement} from '@id5io/diagnostics';
 
 /* eslint-disable no-unused-vars */
@@ -220,14 +220,13 @@ export class UidFetcher {
       data.us_privacy = consentData.ccpaString;
     }
 
-    objectEntries({
+    Object.entries({
       pd: 'pd',
       partnerUserId: 'puid',
       provider: 'provider',
       segments: 'segments',
       trueLink: 'true_link'
-    }).forEach(entry => {
-      const [optKey, dataKey] = entry;
+    }).forEach(([optKey, dataKey]) => {
       if (isDefined(fetchIdData[optKey])) {
         data[dataKey] = fetchIdData[optKey];
       }
