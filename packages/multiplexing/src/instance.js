@@ -12,7 +12,7 @@ import {
   Logger,
   NO_OP_LOGGER
 } from './logger.js';
-import {ActualLeader, AwaitedLeader, ProxyLeader} from './leader.js';
+import {ActualLeader, AwaitedLeader, Leader, ProxyLeader} from './leader.js';
 import {ApiEventsDispatcher, MultiplexingEvent} from './apiEvent.js';
 import {DirectFollower, ProxyFollower} from './follower.js';
 import {
@@ -356,6 +356,12 @@ export class Instance {
    * @private
    */
   _leader;
+
+  /**
+   * @type AwaitedLeader
+   * @private
+   */
+  _remoteCallsToLeaderHandler;
   /**
    * @type OperatingMode
    */
@@ -430,7 +436,8 @@ export class Instance {
     this._logger = new MultiplexingLogger(logger, this);
     this._window = wnd;
     this._dispatcher = new ApiEventsDispatcher(this._logger);
-    this._leader = new AwaitedLeader(); // AwaitedLeader buffers requests to leader in case some events happened before leader is elected (i.e. consent update)
+    this._leader = new AwaitedLeader(); // AwaitedLeader buffers self requests to leader in case some events happened before leader is elected (i.e. consent update)
+    this._remoteCallsToLeaderHandler = new AwaitedLeader(); // AwaitedLeader buffers remoted requests to leader received by this instace in case some events happened before leader is elected (i.e. consent update)
     this._followerRole = new DirectFollower(this._window, this.properties, this._dispatcher, this._logger, this._metrics);
     this._election = new Election(this);
     this._storage = storage;
@@ -476,7 +483,7 @@ export class Instance {
           // register now to receive leader calls before actual leader is assigned
           // it may happen that some followers will elect this instance as the leader before elected instance knows it acts as the leader
           // this way all calls will be buffered and executed when actual leader is elected
-          .registerTarget(ProxyMethodCallTarget.LEADER, instance._leader)
+          .registerTarget(ProxyMethodCallTarget.LEADER, instance._remoteCallsToLeaderHandler)
           // register it now to receive calls to follower before election is completed
           // it may happen that leader instance will elect them self as a leader with followers before all followers are aware they have a remote leader
           // this is very likely and happens quite frequently for late joiner, where Hello response can be delivered and handled after `notifyUidReady` by leader is called
@@ -640,6 +647,7 @@ export class Instance {
     const leader = new ActualLeader(this._window, properties, replicatingStorage, store, consentManagement, metrics, logger, fetcher);
     leader.addFollower(this._followerRole); // add itself to be directly called
     this._leader.assignLeader(leader);
+    this._remoteCallsToLeaderHandler.assignLeader(leader); // accept all buffered and future remote calls to leader
     if (this._mode === OperatingMode.MULTIPLEXING) { // in singleton mode ignore remote followers
       Array.from(this._knownInstances.values())
         .filter(instance => instance.isMultiplexingPartyAllowed())
@@ -649,8 +657,14 @@ export class Instance {
     leader.start();
   }
 
+  /**
+   *
+   * @param {Properties} leaderInstance
+   * @private
+   */
   _followRemoteLeader(leaderInstance) {
     this._leader.assignLeader(new ProxyLeader(this._messenger, leaderInstance)); // remote leader
+    this._remoteCallsToLeaderHandler.assignLeader(new IgnoringLeader(leaderInstance.id, this._logger, this._metrics)); // just to ignore/log/measure received messages that were sent by other instances
     this._logger.info('Following remote leader ', leaderInstance);
   }
 
@@ -682,6 +696,11 @@ export class Instance {
     }
   }
 
+  /**
+   *
+   * @param {Properties} leader
+   * @private
+   */
   _onLeaderElected(leader) {
     const instance = this;
     instance.role = (leader.id === instance.properties.id) ? Role.LEADER : Role.FOLLOWER;
@@ -776,4 +795,64 @@ class MultiplexingLogger extends Logger {
   error(...args) {
     this._delegate.error(new Date().toISOString(), this._prefix(), ...args);
   }
+}
+
+class IgnoringLeader extends Leader {
+  /**
+   * @type {Id5CommonMetrics}
+   * @private
+   */
+  _metrics;
+  /**
+   * @type {Logger}
+   * @private
+   */
+  _log;
+
+  /**
+   * @type {string}
+   * @private
+   */
+  _actualLeaderId;
+
+  /**
+   * @param {string} actualLeaderId
+   * @param {Logger} logger
+   * @param {Id5CommonMetrics} metrics
+   */
+  constructor(actualLeaderId, logger, metrics) {
+    super();
+    this._log = logger;
+    this._metrics = metrics;
+    this._actualLeaderId = actualLeaderId;
+  }
+
+  /**
+   * @private
+   */
+  _handleMethod(methodName, callerId) {
+    try {
+      this._log.warn('Received unexpected call method', methodName, ' call to leader from instance', callerId);
+      this._metrics.instanceUnexpectedMsgCounter({
+        'target': 'remoteLeader',
+        'methodName': methodName,
+        'callFromLeader': this._actualLeaderId === callerId //not good, that would mean caller elected this instance as a leader and this instance elected caller as a leader
+      });
+    } catch (e) {
+      // do nothing
+    }
+  }
+
+  updateConsent(consentData, followerId) {
+    this._handleMethod('updateConsent', followerId);
+  }
+
+  refreshUid(options, requester) {
+    this._handleMethod('refreshUid', requester);
+  }
+
+  updateFetchIdData(instanceId) {
+    this._handleMethod('updateFetchIdData', instanceId);
+  }
+
 }
