@@ -6,7 +6,8 @@ describe('Utils', function () {
     OBJ_NUMBER = 1,
     OBJ_OBJECT = {},
     OBJ_ARRAY = [],
-    OBJ_FUNCTION = function () {};
+    OBJ_FUNCTION = function () {
+    };
 
   const TYPE_STRING = 'String',
     TYPE_NUMBER = 'Number',
@@ -59,10 +60,10 @@ describe('Utils', function () {
 
   describe('all', function () {
     it('should return true when the mappings returns true', function () {
-      expect(utils.all(["a", "b", "c"], utils.isStr)).to.be.true;
+      expect(utils.all(['a', 'b', 'c'], utils.isStr)).to.be.true;
     });
     it('should return false when one of the mappings returns false', function () {
-      expect(utils.all(["a", 12, "c"], utils.isStr)).to.not.be.true;
+      expect(utils.all(['a', 12, 'c'], utils.isStr)).to.not.be.true;
     });
   });
 
@@ -114,14 +115,14 @@ describe('Utils', function () {
   });
 
   describe('isDefined', function () {
-    it('should return true when object is defined', function() {
+    it('should return true when object is defined', function () {
       expect(utils.isDefined(44)).to.be.true;
       expect(utils.isDefined({})).to.be.true;
       expect(utils.isDefined(null)).to.be.true;
       expect(utils.isDefined(() => 0)).to.be.true;
     });
 
-    it('should return false when object is undefined', function() {
+    it('should return false when object is undefined', function () {
       expect(utils.isDefined(undefined)).to.not.be.true;
     });
   });
@@ -241,7 +242,7 @@ describe('Utils', function () {
     });
 
     it('should return false with non-empty object', function () {
-      var obj = { a: 'b' };
+      var obj = {a: 'b'};
       var output = utils.isEmpty(obj);
       expect(output).to.be.false;
     });
@@ -275,7 +276,9 @@ describe('Utils', function () {
     it('should not be called synchronously, and called on DOMContentLoaded', function (done) {
       // Fake document.readyState
       Object.defineProperty(document, 'readyState', {
-        get() { return 'loading'; },
+        get() {
+          return 'loading';
+        },
         configurable: true
       });
 
@@ -308,7 +311,7 @@ describe('Utils', function () {
         name: 'John',
         age: 30,
         address: {
-          street: '123 Main St',
+          street: '123 Main St'
         },
         hobbies: ['swimming']
       };
@@ -316,7 +319,7 @@ describe('Utils', function () {
         name: 'John',
         age: 30,
         address: {
-          street: '123 Main St',
+          street: '123 Main St'
         },
         hobbies: ['swimming']
       };
@@ -326,11 +329,11 @@ describe('Utils', function () {
     it('should return false for objects with different properties', () => {
       const obj1 = {
         name: 'John1',
-        age: 30,
+        age: 30
       };
       const obj2 = {
         name: 'John2',
-        age: 30,
+        age: 30
       };
       expect(utils.deepEqual(obj1, obj2)).to.be.false;
     });
@@ -338,13 +341,13 @@ describe('Utils', function () {
     it('should return false for objects with different nested properties', () => {
       const obj1 = {
         address: {
-          street: '123 Main St',
-        },
+          street: '123 Main St'
+        }
       };
       const obj2 = {
         address: {
-          street: '123 Other St',
-        },
+          street: '123 Other St'
+        }
       };
       expect(utils.deepEqual(obj1, obj2)).to.be.false;
     });
@@ -368,11 +371,11 @@ describe('Utils', function () {
     it('should return true for objects with different property order', () => {
       const obj1 = {
         name: 'John',
-        age: 30,
+        age: 30
       };
       const obj2 = {
         age: 30,
-        name: 'John',
+        name: 'John'
       };
       expect(utils.deepEqual(obj1, obj2)).to.be.true;
     });
@@ -380,14 +383,81 @@ describe('Utils', function () {
     it('should return false for objects with different property set', () => {
       const obj1 = {
         name: 'John',
-        age: 30,
+        age: 30
       };
       const obj2 = {
         age: 30,
         name: 'John',
-        surname: 'Doe',
+        surname: 'Doe'
       };
       expect(utils.deepEqual(obj1, obj2)).to.be.false;
+    });
+
+    [
+      ['array of objects vs undefined', [{s: 'A'}], undefined, false],
+      ['empty array vs null', [], null, false],
+      ['empty vs empty', [], [], true],
+      ['equal arrays of primitive', [1], [1], true],
+      ['empty array vs array of primitive', [1], [], false],
+      ['equal arrays of primitive', [1], [1, 2], false],
+      ['equal arrays of strings', ['string1', 'string2'], ['string1', 'string2'], true],
+      ['different arrays of strings', ['string1', 'string2'], ['string1', 'string3'], false],
+      ['arrays of empty object', [{}], [{}], true],
+      ['equal array of objects', [{
+        source: 'A'
+      }], [{
+        source: 'A'
+      }], true],
+      ['different array of objects', [{
+        source: 'A'
+      }], [{
+        source: 'B'
+      }], false],
+      ['equal array of objects with nested array', [{
+        source: 'A',
+        uids: [{id: 'XYZ', ext: {pba: 'a'}}]
+      }], [{
+        source: 'A',
+        uids: [{id: 'XYZ', ext: {pba: 'a'}}]
+      }], true],
+      ['different array of objects with nested array', [{
+        source: 'A',
+        uids: [{id: 'XYZ', ext: {}}]
+      }], [{
+        source: 'A',
+        uids: [{id: 'XYZ'}]
+      }], false],
+      ['different array of objects with nested array of different object', [{
+        source: 'A',
+        uids: [{id: 'XYZ'}]
+      }], [{
+        source: 'A',
+        uids: [{id: 'XYY'}]
+      }], false],
+      ['different array of objects with nested array with different nested object', [{
+        source: 'A',
+        uids: [{id: 'XYZ', ext: {pba: 'a'}}]
+      }], [{
+        source: 'A',
+        uids: [{id: 'XYZ', ext: {pba: 'b'}}]
+      }], false],
+      ['different array of objects - different size ', [{
+        source: 'A',
+        uids: [{id: 'XYZ', ext: {pba: 'a'}}]
+      }], [{
+        source: 'A',
+        uids: [{id: 'XYZ', ext: {pba: 'a'}}]
+      }, {
+        source: 'B',
+        uids: [{id: 'AAA'}]
+      }], false],
+      ['array vs object', [{a: 1}], {}, false],
+      ['array vs primitive', [{a: 1}], 1, false]
+    ].forEach(([description, array1, array2, expected]) => {
+      it(`should compare arrays - ${description}`, () => {
+        expect(utils.deepEqual(array1, array2)).to.be.eq(expected);
+        expect(utils.deepEqual(array2, array1)).to.be.eq(expected);
+      });
     });
   });
 });

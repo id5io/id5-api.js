@@ -24,6 +24,8 @@
         var onUpdateCallback = function(id5Instance) {
             window.id5Update = id5Instance.getUserId();
             window.id5UpdateCallback += 1;
+            window.id5idEid = id5Instance.getUserIdAsEid();
+            window.id5Eids = id5Instance.getUserIdsAsEids();
         };
 
         ID5.debug = true;

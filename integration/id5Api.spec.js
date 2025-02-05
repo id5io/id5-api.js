@@ -11,7 +11,7 @@ import {
   MOCK_FETCH_RESPONSE,
   MOCK_ID,
   multiFetchResponseWithCorsAllowed,
-  makeCorsHeaders
+  makeCorsHeaders, EIDS, ID5ID_EID
 } from './integrationUtils.mjs';
 
 /**
@@ -193,6 +193,8 @@ describe('The ID5 API', function () {
 
       expect(await page.evaluate(() => window.id5Update)).to.eq(MOCK_ID);
       expect(await page.evaluate(() => window.id5UpdateCallback)).to.eq(1);
+      expect(await page.evaluate(() => window.id5idEid)).to.eql(ID5ID_EID);
+      expect(await page.evaluate(() => window.id5Eids)).to.eql(EIDS);
     });
 
     it('can successfully refresh an ID, store in browser and fire callbacks', async () => {
@@ -580,10 +582,10 @@ describe('The ID5 API', function () {
       const firstVisitMeasurementRequest = await ((await expectRequestsAt(diagnosticsEndpoint, 1))[0].body.getJson());
       const firstVistProvisioningMeasurements = verifyContainsMeasurement(firstVisitMeasurementRequest.measurements, 'id5.api.userid.provisioning.delay', 'TIMER');
       expect(firstVistProvisioningMeasurements[0].tags).deep.include({
-          cachedResponseUsed: false,
-          isUpdate: false,
-          provisioner: 'leader',
-          hasChanged: 'true'
+        cachedResponseUsed: false,
+        isUpdate: false,
+        provisioner: 'leader',
+        hasChanged: 'true'
       });
 
       // then

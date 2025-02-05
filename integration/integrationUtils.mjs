@@ -1,8 +1,8 @@
 import puppeteer from 'puppeteer-core';
 import isDocker from 'is-docker';
 import chromePaths from 'chrome-paths';
-import tmp from "tmp-promise";
-import mockttp from "mockttp";
+import tmp from 'tmp-promise';
+import mockttp from 'mockttp';
 
 
 export function getDebugFlag() {
@@ -29,7 +29,7 @@ export async function buildBrowser(cert, port, debug = false) {
   //console.log('Starting browser with args:', args)  //uncomment for debug purposes
 
   return await puppeteer.launch({
-    headless: !debug, executablePath: process.env.CHROME_BIN || chromePaths.chrome, devtools: debug, args,
+    headless: !debug, executablePath: process.env.CHROME_BIN || chromePaths.chrome, devtools: debug, args
   });
 }
 
@@ -56,6 +56,32 @@ export async function makeMultiFetchResponse(request, payload, status, headers) 
   return response;
 }
 
+export const ID5ID_EID = {
+  source: 'id5-sync.com',
+  uids: [{
+    atype: 1,
+    id: 'id5id',
+    ext: {
+      abTestingControlGroup: false,
+      linkType: 0,
+      someOtherExt: 'test123'
+    }
+  }
+  ]
+};
+export const TLID_EID = {
+  source: 'true-link-id5-sync.com',
+  uids: [{
+    atype: 1,
+    id: 'true-link-id'
+  }
+  ]
+};
+
+export const EIDS = [
+  ID5ID_EID,
+  TLID_EID
+];
 
 export const MOCK_ID = 'ID5*LTzsUTSrz4juTlKvKoO0brhnjXyuZIGHv44Iqf4TzN0AAGwYr9heNFf7GF6QAMRq';
 export const MOCK_FETCH_RESPONSE = {
@@ -73,6 +99,14 @@ export const MOCK_FETCH_RESPONSE = {
   },
   cache_control: {
     max_age_sec: 7200
+  },
+  ids: {
+    id5id : {
+      eid: ID5ID_EID
+    },
+    trueLinkId: {
+      eid: TLID_EID
+    }
   }
 };
 

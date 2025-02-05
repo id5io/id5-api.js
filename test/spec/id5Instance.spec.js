@@ -12,7 +12,7 @@ import {CONSTANTS, NO_OP_LOGGER, ApiEvent, ConsentManagement, ConsentData} from 
 import {Id5CommonMetrics} from '@id5io/diagnostics';
 import {UaHints} from '../../lib/uaHints.js';
 import {version} from '../../generated/version.js';
-import {TrueLinkAdapter} from "@id5io/multiplexing/src/trueLink.js";
+import {TrueLinkAdapter} from '@id5io/multiplexing/src/trueLink.js';
 
 function createInstance(config, metrics, multiplexingInstanceStub) {
   return new Id5Instance(config, null, null, metrics, null, NO_OP_LOGGER, multiplexingInstanceStub, null, new TrueLinkAdapter());
@@ -749,7 +749,7 @@ describe('Id5Instance', function () {
     });
 
     [false, true].forEach(_isFromCache => {
-      it(`correctly exposes the user id and extensions (isFromCache: ${_isFromCache}`, function (done) {
+      it(`correctly exposes the user id, eids and extensions when "eids" not present in response (isFromCache: ${_isFromCache})`, function (done) {
         // given
         const TEST_RESPONSE = {
           'universal_uid': 'whateverID',
@@ -766,7 +766,7 @@ describe('Id5Instance', function () {
           // then
           expect(instanceUnderTest.getUserId()).to.eq('whateverID');
           expect(instanceUnderTest.getLinkType()).to.be.equal(0);
-          expect(instanceUnderTest.getUserIdAsEid()).to.eql({
+          const id5IdAsEID = {
             source: CONSTANTS.ID5_EIDS_SOURCE,
             uids: [{
               atype: 1,
@@ -777,7 +777,72 @@ describe('Id5Instance', function () {
                 someOtherExt: 'test123'
               }
             }]
-          });
+          };
+          expect(instanceUnderTest.getUserIdAsEid()).to.eql(id5IdAsEID);
+          expect(instanceUnderTest.getUserIdsAsEids()).to.eql([id5IdAsEID]);
+          expect(instanceUnderTest.isFromCache()).to.eq(_isFromCache);
+          done();
+        });
+
+        // when
+        multiplexingInstanceStub.emit(ApiEvent.USER_ID_READY, {
+          isFromCache: _isFromCache,
+          responseObj: TEST_RESPONSE
+        });
+      });
+
+      it(`correctly exposes the user id, eids and extensions when "eids" present in response (isFromCache: ${_isFromCache})`, function (done) {
+        // given
+        const id5IdEid = {
+          source: 'id5-sync.com',
+          uids: [{
+            atype: 1,
+            id: 'id5id',
+            ext: {
+              abTestingControlGroup: false,
+              linkType: 0,
+              someOtherExt: 'test123'
+            }
+          }
+          ]
+        };
+        const trueLinkIdEid = {
+          source: 'true-link-id5-sync.com',
+          uids: [{
+            atype: 1,
+            id: 'true-link-id'
+          }
+          ]
+        };
+        const EIDs = [
+          id5IdEid,
+          trueLinkIdEid
+        ];
+        const TEST_RESPONSE = {
+          'universal_uid': 'whateverID',
+          'ext': {
+            'linkType': 0,
+            'someOtherExt': 'test123'
+          },
+          ids: {
+            id5id: {
+              eid: id5IdEid
+            },
+            trueLinkId: {
+              eid: trueLinkIdEid
+            }
+          }
+        };
+        const config = new Config({...defaultInitBypassConsent()}, NO_OP_LOGGER);
+        const instanceUnderTest = new Id5Instance(config, null, null, metrics, null, NO_OP_LOGGER, multiplexingInstanceStub, null, new TrueLinkAdapter());
+        instanceUnderTest.bootstrap();
+
+        instanceUnderTest.onAvailable(function () {
+          // then
+          expect(instanceUnderTest.getUserId()).to.eq('whateverID');
+          expect(instanceUnderTest.getLinkType()).to.be.equal(0);
+          expect(instanceUnderTest.getUserIdAsEid()).to.eql(id5IdEid);
+          expect(instanceUnderTest.getUserIdsAsEids()).to.eql(EIDs);
           expect(instanceUnderTest.isFromCache()).to.eq(_isFromCache);
           done();
         });
@@ -813,7 +878,7 @@ describe('Id5Instance', function () {
         isFromCache: false,
         responseObj: TEST_RESPONSE
       });
-    })
+    });
 
     it(`correctly exposes the GPID`, function (done) {
       // given
@@ -838,7 +903,7 @@ describe('Id5Instance', function () {
         isFromCache: false,
         responseObj: TEST_RESPONSE
       });
-    })
+    });
 
   });
 
