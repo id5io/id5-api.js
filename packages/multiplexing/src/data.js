@@ -14,6 +14,32 @@
  * @typedef ABTestingResult
  * @property {string} result
  */
+
+/**
+ * @typedef OpenRtbUID
+ * @property {string} id
+ * @property {number} atype
+ * @property {Ext} ext
+ */
+
+/**
+ * @typedef OpenRtbEID
+ * @property {string} source
+ * @property {array<OpenRtbUID>}
+ */
+
+/**
+ * @typedef Id
+ * @property {OpenRtbEID} eid
+ */
+
+/**
+ * @typedef Ids
+ * @property {Id} id5id
+ * @property {Id} trueLinkId
+ * @property {Id} euid
+ */
+
 /**
  * @typedef FetchResponse
  * @property {string} universal_uid
@@ -25,6 +51,7 @@
  * @property {ResponseCacheControl} [cache_control]
  * @property {boolean|undefined} [cascade_needed]
  * @property {ABTestingResult} [ab_testing]
+ * @property {Ids} ids
  */
 
 /**
