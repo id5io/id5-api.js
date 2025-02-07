@@ -40,6 +40,8 @@ import {TrueLinkAdapter} from '@id5io/multiplexing/src/trueLink.js';
  * @property {string} pd - The ID5 partner data string
  * @property {ABTestingConfig} abTesting - The A/B testing configuration
  * @property {boolean} disableExtensions - Disabled extensions call
+ * @property {boolean} canCookieSync - If cookie syncing with other partners can be performed
+ *
  */
 
 /**
@@ -171,7 +173,7 @@ class Id5PrebidIntegration {
       },
       fetchIdData,
       singletonMode: options?.multiplexing?._disabled === true,
-      canDoCascade: false, // Disable cascading within prebid
+      canDoCascade: prebidConfig.canCookieSync ?? false,
       forceAllowLocalStorageGrant: false,
       storageExpirationDays: options.storageExpirationDays
     });
