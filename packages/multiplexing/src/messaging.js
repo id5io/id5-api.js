@@ -302,7 +302,7 @@ export class CrossInstanceMessenger {
   }
 
   callProxyMethod(dst, target, name, args) {
-    this._log.info('Calling ProxyMethodCall', {target, name, args});
+    this._log.debug('Calling ProxyMethodCall', {target, name, args});
     this.unicastMessage(dst, new ProxyMethodCallMessage(target, name, args), ProxyMethodCallMessage.TYPE);
   }
 

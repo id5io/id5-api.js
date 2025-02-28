@@ -58,7 +58,7 @@ export class GppConsentData {
   // section mapping from https://github.com/InteractiveAdvertisingBureau/Global-Privacy-Platform/blob/main/Sections/Section%20Information.md
   isGranted() {
     if (this.applicableSections.includes(2)) {
-      return this.localStoragePurposeConsent === true &&
+      return this.localStoragePurposeConsent !== false &&
         this.vendorsConsentForId5Granted !== false /*vendorConsentExplicitlyDenied*/;
     } else {
       return true

@@ -472,10 +472,10 @@ export class ActualLeader extends Leader {
     const logger = this._log;
     const isUnique = this._followers.find((follower) => follower.getCacheId() === newFollower.getCacheId()) === undefined;
     this._followers.push(newFollower);
-    logger.info('Added follower', newFollower.getId(), 'cacheId', newFollower.getCacheId());
+    logger.debug('Added follower', newFollower.getId(), 'cacheId', newFollower.getCacheId());
     if (this._window !== newFollower.getWindow()) {
       const followerStorage = newFollower.getStorage();
-      logger.info(`Adding follower's`, newFollower.getId(), 'storage as replica');
+      logger.debug(`Adding follower's`, newFollower.getId(), 'storage as replica');
       this._leaderStorage.addReplica(followerStorage);
     }
     const refreshRequired = this._provisionFromCache(newFollower);

@@ -398,7 +398,7 @@ describe('Consent Data', function () {
     [
       [true, [2, 6], true],
       [false, [2, 6], false],
-      [undefined, [2], false],
+      [undefined, [2], true],
       [true, [0], true],
       [false, [], true],
       [false, [6], true]
