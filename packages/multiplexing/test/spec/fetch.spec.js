@@ -4,7 +4,7 @@ import {Extensions} from '../../src/extensions.js';
 import {
   API_TYPE,
   ConsentData,
-  GppConsentData
+  GppConsentData, GppTcfData
 } from '../../src/consent.js';
 import {NO_OP_LOGGER} from '../../src/logger.js';
 import {Id5CommonMetrics} from '@id5io/diagnostics';
@@ -472,7 +472,7 @@ describe('UidFetcher', function () {
 
     it(`passes GPP consent information to server`, function () {
       const gppAllowed = new ConsentData(API_TYPE.GPP_V1_1);
-      gppAllowed.gppData = new GppConsentData(API_TYPE.GPP_V1_1, true,true, [2, 6], 'GPP_STRING');
+      gppAllowed.gppData = new GppConsentData(API_TYPE.GPP_V1_1, [2, 6], 'GPP_STRING', new GppTcfData(true, true));
 
       // when
       const inputFetchData = [DEFAULT_FETCH_DATA];

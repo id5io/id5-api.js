@@ -1,4 +1,4 @@
-import {API_TYPE, GRANT_TYPE, ConsentData, LocalStorageGrant, GppConsentData} from '../../src/consent.js';
+import {API_TYPE, GRANT_TYPE, ConsentData, LocalStorageGrant, GppConsentData, GppTcfData} from '../../src/consent.js';
 import {ConsentSource} from '../../src/data.js';
 
 describe('Consent Data', function () {
@@ -42,7 +42,7 @@ describe('Consent Data', function () {
       expect(consentData.apiTypes).to.be.eql([API_TYPE.TCF_V2]);
       expect(consentData.localStorageGrant()).to.be.eql(new LocalStorageGrant(true, GRANT_TYPE.CONSENT_API, {
         'TCFv2': true
-      }, createDebugInfo('TCFv2',true,true)));
+      }, createDebugInfo('TCFv2', true, true)));
       expect(consentData.consentString).to.be.eql('ABCD');
     });
 
@@ -59,7 +59,7 @@ describe('Consent Data', function () {
             version: gppVersion,
             localStoragePurposeConsent: true,
             vendorsConsentForId5Granted: true,
-            applicableSections: [6],
+            applicableSections: [2],
             gppString: 'gppString'
           }
         });
@@ -69,8 +69,8 @@ describe('Consent Data', function () {
         const expectedApi = {};
         expectedApi[gppVersion] = true;
         expect(consentData.localStorageGrant()).to.be.eql(new LocalStorageGrant(true, GRANT_TYPE.CONSENT_API, expectedApi,
-          createDebugInfo(gppVersion, true, true)));
-        expect(consentData.gppData).to.be.eql(new GppConsentData(gppVersion, true, true,[6], 'gppString'));
+          createDebugInfo(gppVersion + '-tcfeuv2', true, true)));
+        expect(consentData.gppData).to.be.eql(new GppConsentData(gppVersion, [2], 'gppString', new GppTcfData(true, true)));
       });
     });
 
@@ -115,10 +115,10 @@ describe('Consent Data', function () {
         'TCFv2': true,
         'USPv1': true,
         'GPPv1.0': true
-      }, createDebugInfo('TCFv2', true, true, 'GPPv1.0', true, true)));
+      }, createDebugInfo('TCFv2', true, true, 'GPPv1.0-tcfeuv2', true, true)));
       expect(consentData.consentString).to.be.eql('ABCD');
       expect(consentData.ccpaString).to.be.eql('ccpa');
-      expect(consentData.gppData).to.be.eql(new GppConsentData(API_TYPE.GPP_V1_0, true, true, [6], 'gppString'))
+      expect(consentData.gppData).to.be.eql(new GppConsentData(API_TYPE.GPP_V1_0, [6], 'gppString', new GppTcfData(true, true)));
     });
 
     it('should support API TCFv1', () => {
@@ -133,7 +133,7 @@ describe('Consent Data', function () {
       expect(consentData.apiTypes).to.be.eql([API_TYPE.TCF_V1]);
       expect(consentData.localStorageGrant()).to.be.eql(new LocalStorageGrant(true, GRANT_TYPE.CONSENT_API, {
         'TCFv1': true
-      },createDebugInfo('TCFv1', true, true)));
+      }, createDebugInfo('TCFv1', true, true)));
     });
 
     it('should support API TCFv2', () => {
@@ -189,11 +189,11 @@ describe('Consent Data', function () {
       expect(consentData.apiTypes).to.be.eql([API_TYPE.GPP_V1_0]);
       expect(consentData.localStorageGrant()).to.be.eql(new LocalStorageGrant(true, GRANT_TYPE.CONSENT_API, {
         'GPPv1.0': true
-      },createDebugInfo('GPPv1.0', true, true)));
+      }, createDebugInfo('GPPv1.0-tcfeuv2', true, true)));
       expect(consentData.gppData).to.be.eql(new GppConsentData('GPPv1.0',
-        true, true,
         [6],
-        'gppString'
+        'gppString',
+        new GppTcfData(true, true)
       ));
     });
 
@@ -229,12 +229,10 @@ describe('Consent Data', function () {
       expect(consentData.apiTypes).to.be.eql([API_TYPE.GPP_V1_1]);
       expect(consentData.localStorageGrant()).to.be.eql(new LocalStorageGrant(true, GRANT_TYPE.CONSENT_API, {
         'GPPv1.1': true
-      },createDebugInfo('GPPv1.1', true, true)));
+      }, createDebugInfo('GPPv1.1-tcfeuv2', true, true)));
       expect(consentData.gppData).to.be.eql(new GppConsentData('GPPv1.1',
-        true,
-        true,
-        [6, 7, 8],
-        'gppString'
+        [6,7,8],
+        'gppString', new GppTcfData(true, true)
       ));
     });
   });
@@ -313,7 +311,7 @@ describe('Consent Data', function () {
         expect(consentData.localStorageGrant()).to.be.eql(new LocalStorageGrant(expectedTcfv2Grant, GRANT_TYPE.CONSENT_API, {
           'TCFv2': expectedTcfv2Grant,
           'USPv1': true
-        },createDebugInfo('TCFv2', lspc, true)));
+        }, createDebugInfo('TCFv2', lspc, true)));
         expect(consentData.consentString).to.be.eql('ABCD');
         expect(consentData.ccpaString).to.be.eql('ccpa');
       });
@@ -328,10 +326,12 @@ describe('Consent Data', function () {
           consentString: 'ABCD',
           gppData: {
             version: 'GPPv1.1',
-            localStoragePurposeConsent: true,
-            vendorsConsentForId5Granted: true,
-            applicableSections: [6, 7, 8],
-            gppString: 'gppString'
+            applicableSections: [6,7,8],
+            gppString: 'gppString',
+            euTcfSection: {
+              localStoragePurposeConsent: true,
+              vendorsConsentForId5Granted: true
+            }
           }
         });
 
@@ -340,13 +340,12 @@ describe('Consent Data', function () {
         expect(consentData.localStorageGrant()).to.be.eql(new LocalStorageGrant(expectedTcfv2Grant, GRANT_TYPE.CONSENT_API, {
           'TCFv2': expectedTcfv2Grant,
           'GPPv1.1': true
-        }, createDebugInfo('TCFv2', lspc, true, 'GPPv1.1', true, true)));
+        }, createDebugInfo('TCFv2', lspc, true, 'GPPv1.1-tcfeuv2', true, true)));
         expect(consentData.consentString).to.be.eql('ABCD');
         expect(consentData.gppData).to.be.eql(new GppConsentData('GPPv1.1',
-          true,
-          true,
           [6, 7, 8],
-          'gppString'
+          'gppString',
+          new GppTcfData(true, true)
         ));
       });
     });
@@ -374,8 +373,6 @@ describe('Consent Data', function () {
         apiTypes: [API_TYPE.GPP_V1_0],
         gppData: {
           version: 'GPPv1.0',
-          localStoragePurposeConsent: true,
-          vendorsConsentForId5Granted: true,
           applicableSections: [6],
           gppString: 'gppString'
         }
@@ -385,35 +382,34 @@ describe('Consent Data', function () {
       expect(consentData.apiTypes).to.be.eql([API_TYPE.GPP_V1_0]);
       expect(consentData.localStorageGrant()).to.be.eql(new LocalStorageGrant(true, GRANT_TYPE.CONSENT_API, {
         'GPPv1.0': true
-      }, createDebugInfo( 'GPPv1.0', true, true)));
+      }, createDebugInfo()));
 
-    expect(consentData.gppData).to.be.eql(new GppConsentData('GPPv1.0',
-        true,
-        true,
+      expect(consentData.gppData).to.be.eql(new GppConsentData('GPPv1.0',
         [6],
         'gppString'
       ));
     });
 
     [
-      [true, [2, 6], true],
-      [false, [2, 6], false],
-      [undefined, [2], true],
-      [true, [0], true],
-      [false, [], true],
-      [false, [6], true]
-    ].forEach(([lscp, sections, expectedGrant]) => {
-      it(`should support API GPP v1.1 (localStoragePurposeConsent=${lscp}, applicableSections=${sections})`, () => {
+      [true, true, true],
+      [false, true, false],
+      [undefined, true, true],
+      [true, false, false],
+      [undefined, undefined, true],
+    ].forEach(([lspc, vendorConsent, expectedGrant]) => {
+      it(`should support API GPP v1.1 (lspc=${lspc}, vendorConsent=${vendorConsent})`, () => {
 
         // when
         const consentData = ConsentData.createFrom({
           apiTypes: [API_TYPE.GPP_V1_1],
           gppData: {
             version: 'GPPv1.1',
-            localStoragePurposeConsent: lscp,
-            vendorsConsentForId5Granted: true,
-            applicableSections: sections,
-            gppString: 'gppString'
+            applicableSections: [2],
+            gppString: 'gppString',
+            euTcfSection: {
+              localStoragePurposeConsent: lspc,
+              vendorsConsentForId5Granted: vendorConsent
+            }
           }
         });
 
@@ -421,76 +417,102 @@ describe('Consent Data', function () {
         expect(consentData.apiTypes).to.be.eql([API_TYPE.GPP_V1_1]);
         expect(consentData.localStorageGrant()).to.be.eql(new LocalStorageGrant(expectedGrant, GRANT_TYPE.CONSENT_API, {
           'GPPv1.1': expectedGrant
-        }, createDebugInfo('GPPv1.1', lscp, true)));
+        }, createDebugInfo('GPPv1.1-tcfeuv2', lspc, vendorConsent)));
 
-        expect(consentData.gppData).to.be.eql(new GppConsentData('GPPv1.1',
-          lscp,
-          true,
-          sections,
-          'gppString'
-        ));
+        expect(consentData.gppData).to.be.eql(new GppConsentData('GPPv1.1',[2],'gppString', new GppTcfData(lspc, vendorConsent)));
       });
+    });
 
-      it(`should support API GPP v1.1 (localStoragePurposeConsent=${lscp}, applicableSections=${sections}) and USPv1`, () => {
+    [
+      [true, true, true],
+      [false, true, true],
+      [undefined, true, true],
+      [true, false, true],
+      [undefined, undefined, true],
+    ].forEach(([lspc, vendorConsent, expectedGrant]) => {
+      it(`should support API GPP v1.1 with canadian tcf(lspc=${lspc}, vendorConsent=${vendorConsent})`, () => {
+
         // when
         const consentData = ConsentData.createFrom({
-          apiTypes: [API_TYPE.GPP_V1_1, API_TYPE.USP_V1],
-          ccpaString: 'someString',
+          apiTypes: [API_TYPE.GPP_V1_1],
           gppData: {
             version: 'GPPv1.1',
-            localStoragePurposeConsent: lscp,
-            vendorsConsentForId5Granted: true,
-            applicableSections: sections,
-            gppString: 'gppString'
+            applicableSections: [5],
+            gppString: 'gppString',
+            canadaTcfSection: {
+              localStoragePurposeConsent: lspc,
+              vendorsConsentForId5Granted: vendorConsent
+            }
           }
         });
 
         // then
-        expect(consentData.apiTypes).to.be.eql([API_TYPE.GPP_V1_1, API_TYPE.USP_V1]);
+        expect(consentData.apiTypes).to.be.eql([API_TYPE.GPP_V1_1]);
         expect(consentData.localStorageGrant()).to.be.eql(new LocalStorageGrant(expectedGrant, GRANT_TYPE.CONSENT_API, {
-          'GPPv1.1': expectedGrant,
-          'USPv1': true
-        }, createDebugInfo('GPPv1.1', lscp, true)));
+          'GPPv1.1': expectedGrant
+        }, createDebugInfo('GPPv1.1-tcfcav1', lspc, vendorConsent)));
 
-        expect(consentData.gppData).to.be.eql(new GppConsentData('GPPv1.1',
-          lscp,
-          true,
-          sections,
-          'gppString'
-        ));
-        expect(consentData.ccpaString).to.be.eql('someString');
+        expect(consentData.gppData).to.be.eql(new GppConsentData('GPPv1.1',[5],'gppString', undefined, new GppTcfData(lspc, vendorConsent)));
+      });
+    });
+
+    it(`should support API GPP v1.1 and USPv1`, () => {
+      // when
+      const consentData = ConsentData.createFrom({
+        apiTypes: [API_TYPE.GPP_V1_1, API_TYPE.USP_V1],
+        ccpaString: 'someString',
+        gppData: {
+          version: 'GPPv1.1',
+          applicableSections: [6],
+          gppString: 'gppString'
+        }
       });
 
-      it(`should support API GPP v1.1 (localStoragePurposeConsent=${lscp}, applicableSections=${sections}) and TCFv2`, () => {
+      // then
+      expect(consentData.apiTypes).to.be.eql([API_TYPE.GPP_V1_1, API_TYPE.USP_V1]);
+      expect(consentData.localStorageGrant()).to.be.eql(new LocalStorageGrant(true, GRANT_TYPE.CONSENT_API, {
+        'GPPv1.1': true,
+        'USPv1': true
+      }, createDebugInfo()));
+
+      expect(consentData.gppData).to.be.eql(new GppConsentData('GPPv1.1',[6],  'gppString'));
+      expect(consentData.ccpaString).to.be.eql('someString');
+    });
+
+    [
+      [true, true, true, true, true],
+      [false, true, true, true, false],
+      [true, false, true, true, false],
+      [true, true, false, true, false],
+      [true, true, true, false, false],
+    ].forEach(([gppStorageConsent, gppVendorConsent, tcfStorageConsent, tcfVendorConsent, expectedGrant]) => {
+      it(`should support API GPP v1.1(lspc=${gppStorageConsent}, vendorConsent=${gppVendorConsent} and TCFv2(lspc=${tcfStorageConsent}, vendorConsent=${tcfVendorConsent}`, () => {
         // when
         const consentData = ConsentData.createFrom({
           apiTypes: [API_TYPE.GPP_V1_1, API_TYPE.TCF_V2],
           gdprApplies: true,
           consentString: 'string',
-          localStoragePurposeConsent: true,
-          vendorsConsentForId5Granted: true,
+          localStoragePurposeConsent: tcfStorageConsent,
+          vendorsConsentForId5Granted: tcfVendorConsent,
           gppData: {
             version: 'GPPv1.1',
-            localStoragePurposeConsent: lscp,
-            vendorsConsentForId5Granted: true,
-            applicableSections: sections,
-            gppString: 'gppString'
+            applicableSections: [2],
+            gppString: 'gppString',
+            euTcfSection: {
+              localStoragePurposeConsent: gppStorageConsent,
+              vendorsConsentForId5Granted: gppVendorConsent
+            }
           }
         });
 
         // then
         expect(consentData.apiTypes).to.be.eql([API_TYPE.GPP_V1_1, API_TYPE.TCF_V2]);
         expect(consentData.localStorageGrant()).to.be.eql(new LocalStorageGrant(expectedGrant, GRANT_TYPE.CONSENT_API, {
-          'GPPv1.1': expectedGrant,
-          'TCFv2': true
-        }, createDebugInfo('TCFv2', true, true, 'GPPv1.1', lscp, true)));
+          'GPPv1.1': gppStorageConsent && gppVendorConsent,
+          'TCFv2': tcfStorageConsent && tcfVendorConsent
+        }, createDebugInfo('TCFv2', tcfStorageConsent, tcfVendorConsent, 'GPPv1.1-tcfeuv2', gppStorageConsent, gppVendorConsent)));
 
-        expect(consentData.gppData).to.be.eql(new GppConsentData('GPPv1.1',
-          lscp,
-          true,
-          sections,
-          'gppString'
-        ));
+        expect(consentData.gppData).to.be.eql(new GppConsentData('GPPv1.1', [2], 'gppString', new GppTcfData(gppStorageConsent, gppVendorConsent)));
         expect(consentData.consentString).to.be.eql('string');
       });
     });
@@ -508,20 +530,20 @@ describe('Consent Data', function () {
 
     [
       //gdpr does not apply, so it does not matter if id5 has been given consent
-      [ false, false, true],
-      [ false, true, true],
+      [false, false, true],
+      [false, true, true],
       //gdpr applies, so we check if id5 has been given consent
-      [ true, true, true],
-      [ true, false, false],
+      [true, true, true],
+      [true, false, false],
       // undefined vendorsConsentForId5Granted is considered granted
-      [true, undefined, true],
+      [true, undefined, true]
     ].forEach(([gdprApplies, vendorsConsentForId5Granted, result]) => {
       it(`should check if id5 has been given consent when apiType is TCF_V2 (gdprApplies=${gdprApplies},vendorsConsentForId5Granted=${vendorsConsentForId5Granted})`, () => {
           const consentData = ConsentData.createFrom({
             apiTypes: [API_TYPE.TCF_V2],
             gdprApplies: gdprApplies,
             localStoragePurposeConsent: true,
-            vendorsConsentForId5Granted: vendorsConsentForId5Granted,
+            vendorsConsentForId5Granted: vendorsConsentForId5Granted
           });
 
           // then
@@ -531,14 +553,14 @@ describe('Consent Data', function () {
     });
 
     [
-      [ ['131'], true],
-      [ ['131','130'], true],//id5 and sth else
-      [ ['1'], false]
+      [['131'], true],
+      [['131', '130'], true],//id5 and sth else
+      [['1'], false]
     ].forEach(([allowedVendors, result]) => {
       it(`should check if id5 has been given consent when apiType is ID5 (allowedVendors=${allowedVendors})`, () => {
           const consentData = ConsentData.createFrom({
             apiTypes: [API_TYPE.ID5_ALLOWED_VENDORS],
-            allowedVendors: allowedVendors,
+            allowedVendors: allowedVendors
           });
 
           // then
@@ -548,29 +570,29 @@ describe('Consent Data', function () {
     });
     [
       //sections containing '2' and lscp being true will result to isGranted=true
-      [ [API_TYPE.GPP_V1_0], true,[2], true],
-      [ [API_TYPE.GPP_V1_0], false,[2], false],
-      [ [API_TYPE.GPP_V1_0], undefined,[2], true],
-      [ [API_TYPE.GPP_V1_1], true,[2], true],
-      [ [API_TYPE.GPP_V1_1], false,[2], false],
-      [ [API_TYPE.GPP_V1_1], undefined,[2], true]
-    ].forEach(([apiType,lscp,sections, result]) => {
-    it(`should check if id5 has been given consent when apiType is ${apiType} and lscp=${lscp}, applicableSections=${sections}`, () => {
-        const consentData = ConsentData.createFrom({
-          apiTypes: apiType,
-          gppData: {
-            version: 'GPPv1.1',
-            localStoragePurposeConsent: true,
-            vendorsConsentForId5Granted: lscp,
-            applicableSections: sections,
-            gppString: 'gppString'
-          }
-        });
+      [[API_TYPE.GPP_V1_0], true, [2], true],
+      [[API_TYPE.GPP_V1_0], false, [2], false],
+      [[API_TYPE.GPP_V1_0], undefined, [2], true],
+      [[API_TYPE.GPP_V1_1], true, [2], true],
+      [[API_TYPE.GPP_V1_1], false, [2], false],
+      [[API_TYPE.GPP_V1_1], undefined, [2], true]
+    ].forEach(([apiType, lscp, sections, result]) => {
+      it(`should check if id5 has been given consent when apiType is ${apiType} and lscp=${lscp}, applicableSections=${sections}`, () => {
+          const consentData = ConsentData.createFrom({
+            apiTypes: apiType,
+            gppData: {
+              version: 'GPPv1.1',
+              localStoragePurposeConsent: true,
+              vendorsConsentForId5Granted: lscp,
+              applicableSections: sections,
+              gppString: 'gppString'
+            }
+          });
 
-        // then
-        expect(consentData.localStorageGrant().allowed).to.be.eql(result);
-      }
-    );
+          // then
+          expect(consentData.localStorageGrant().allowed).to.be.eql(result);
+        }
+      );
     });
 
     it(`should check id5 has vendor consent when all api_types check result to true and apiType is GPP_V1_1 and TCF_V2`, () => {
@@ -616,7 +638,7 @@ describe('Consent Data', function () {
   });
 
 
-  function createDebugInfo( ... argTriplet) {
+  function createDebugInfo(...argTriplet) {
     const debugInfo = {};
 
     for (let i = 0; i < argTriplet.length; i += 3) {

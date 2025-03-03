@@ -622,7 +622,7 @@ describe('Consent Data Provider', function () {
           expect(consent.gppData.gppString).is.eq('GPP_STRING');
           expect(consent.gppData.applicableSections).eql([2]);
           expect(consent.gppData.version).is.eq(API_TYPE.GPP_V1_0);
-          expect(consent.gppData.localStoragePurposeConsent).is.true;
+          expect(consent.gppData.euTcfSection.localStoragePurposeConsent).is.true;
         });
     });
 
@@ -639,7 +639,8 @@ describe('Consent Data Provider', function () {
             expect(consent.gppData.gppString).is.eq('GPP_STRING');
             expect(consent.gppData.applicableSections).eql([2]);
             expect(consent.gppData.version).is.eq(API_TYPE.GPP_V1_0);
-            expect(consent.gppData.localStoragePurposeConsent).is.false;
+            expect(consent.gppData.euTcfSection.localStoragePurposeConsent).is.false;
+            expect(consent.gppData.isGranted()).is.false;
           });
       });
     });
@@ -656,7 +657,8 @@ describe('Consent Data Provider', function () {
           expect(consent.gppData.gppString).is.eq('GPP_STRING');
           expect(consent.gppData.applicableSections).eql([6]);
           expect(consent.gppData.version).is.eq(API_TYPE.GPP_V1_0);
-          expect(consent.gppData.localStoragePurposeConsent).is.false;
+          expect(consent.gppData.euTcfSection.localStoragePurposeConsent).is.false;
+          expect(consent.gppData.isGranted()).is.true;
           expect(ConsentData.createFrom(consent).localStorageGrant().allowed).to.be.true;
         });
     });
@@ -728,6 +730,39 @@ describe('Consent Data Provider', function () {
     };
   }
 
+  function createGppV11CanadaFlow() {
+    return {
+      ping: {
+        "gppVersion":"1.1",
+        "cmpStatus":"stub",
+        "signalStatus":"not ready",
+        "supportedAPIs":["5:tcfcav1"],
+        "sectionList":[],
+        "applicableSections":[-1]
+      },
+      firstEvent: {
+        eventName: 'signalStatus',
+        pingData: {
+          signalStatus: 'not ready'
+        }
+      },
+      secondEvent: {
+        eventName: 'signalStatus',
+        pingData: {
+          signalStatus: 'ready',
+          gppString: 'GPP_STRING_V1_1',
+          applicableSections: [5],
+          parsedSections: {
+            tcfcav1: [{
+              "PurposesExpressConsent": Array(9).fill(false).concat(true),
+              "VendorExpressConsent": [131]
+            }]
+          }
+        }
+      }
+    };
+  }
+
   function createGppV11Stub(modify = (flow) => flow, responses = createGppV11Flow()) {
     modify(responses);
     return (command, callback) => {
@@ -766,7 +801,7 @@ describe('Consent Data Provider', function () {
           expect(cmpStub).to.be.callCount(2);
           expect(consent.source).to.eq(ConsentSource.cmp);
           expect(consent.gppData.applicableSections).eql([1, 2]);
-          expect(consent.gppData.localStoragePurposeConsent).is.true;
+          expect(consent.gppData.euTcfSection.localStoragePurposeConsent).is.true;
           expectGppV11(consent);
         });
     });
@@ -777,7 +812,7 @@ describe('Consent Data Provider', function () {
         return consentProvider.refreshConsentData(false, 'iab', undefined)
           .then(consent => {
             expect(consent.gppData.applicableSections).eql([1, 2]);
-            expect(consent.gppData.localStoragePurposeConsent).is.false;
+            expect(consent.gppData.euTcfSection.localStoragePurposeConsent).is.false;
             expectGppV11(consent);
           });
       });
@@ -791,7 +826,9 @@ describe('Consent Data Provider', function () {
       return consentProvider.refreshConsentData(false, 'iab', undefined)
         .then(consent => {
           expect(consent.gppData.applicableSections).eql([6]);
-          expect(consent.gppData.localStoragePurposeConsent).is.false;
+          expect(consent.gppData.euTcfSection).is.undefined;
+          expect(consent.gppData.canadaTcfSection).is.undefined;
+          expect(consent.gppData.isGranted()).is.true;
           expect(ConsentData.createFrom(consent).localStorageGrant().allowed).to.be.true;
         });
     });
@@ -803,7 +840,7 @@ describe('Consent Data Provider', function () {
           expect(cmpStub).to.be.callCount(2);
           expect(consent.source).to.eq(ConsentSource.cmp);
           expect(consent.gppData.applicableSections).eql([1, 2]);
-          expect(consent.gppData.localStoragePurposeConsent).is.true;
+          expect(consent.gppData.euTcfSection.localStoragePurposeConsent).is.true;
           expectGppV11(consent);
         });
     });
@@ -815,8 +852,39 @@ describe('Consent Data Provider', function () {
           expect(cmpStub).to.be.callCount(3);
           expect(consent.source).to.eq(ConsentSource.cmp);
           expect(consent.gppData.applicableSections).eql([-1]);
-          expect(consent.gppData.localStoragePurposeConsent).is.undefined;
+          expect(consent.gppData.isGranted()).is.true;
           expect(consent.apiTypes).to.be.eql([API_TYPE.GPP_V1_1]);
+        });
+    });
+
+    it("handles tcf canada v1 section", async () => {
+      cmpStub.callsFake(createGppV11Stub(responses => responses, createGppV11CanadaFlow()));
+      return consentProvider.refreshConsentData(false, 'iab', undefined)
+        .then(consent => {
+          expect(cmpStub).to.be.callCount(2);
+          expect(consent.source).to.eq(ConsentSource.cmp);
+          expect(consent.gppData.applicableSections).eql([5]);
+          expect(consent.gppData.canadaTcfSection.localStoragePurposeConsent).is.true;
+          expect(consent.gppData.canadaTcfSection.vendorsConsentForId5Granted).is.true;
+          expect(consent.gppData.isGranted()).is.true;
+          expectGppV11(consent);
+        });
+    });
+
+    it("is granted ignores if tcf canada v1 section does not have appropriate consent", async () => {
+      cmpStub.callsFake(createGppV11Stub(responses => {
+        responses.secondEvent.pingData.parsedSections.tcfcav1[0].PurposesExpressConsent = [false];
+        responses.secondEvent.pingData.parsedSections.tcfcav1[0].VendorExpressConsent = [1];
+      }, createGppV11CanadaFlow()));
+      return consentProvider.refreshConsentData(false, 'iab', undefined)
+        .then(consent => {
+          expect(cmpStub).to.be.callCount(2);
+          expect(consent.source).to.eq(ConsentSource.cmp);
+          expect(consent.gppData.applicableSections).eql([5]);
+          expect(consent.gppData.canadaTcfSection.localStoragePurposeConsent).is.false;
+          expect(consent.gppData.canadaTcfSection.vendorsConsentForId5Granted).is.false;
+          expect(consent.gppData.isGranted()).is.true;
+          expectGppV11(consent);
         });
     });
 
@@ -1016,7 +1084,7 @@ describe('Consent Data Provider', function () {
             expect(consentData.gppData.gppString).is.eq('GPP_STRING');
             expect(consentData.gppData.applicableSections).eql([2]);
             expect(consentData.gppData.version).is.eq(API_TYPE.GPP_V1_0);
-            expect(consentData.gppData.localStoragePurposeConsent).is.true;
+            expect(consentData.gppData.euTcfSection.localStoragePurposeConsent).is.true;
             let measurements = metrics.getAllMeasurements();
             expect(measurements.length).is.eq(1);
             expect(measurements.find(m => m.name === 'id5.api.gpp.delay')).is.not.undefined;
@@ -1060,7 +1128,7 @@ describe('Consent Data Provider', function () {
               expect(consentData.gppData.gppString).is.eq('GPP_STRING_V1_1');
               expect(consentData.gppData.applicableSections).eql([1, 2]);
               expect(consentData.gppData.version).is.eq(API_TYPE.GPP_V1_1);
-              expect(consentData.gppData.localStoragePurposeConsent).is.true;
+              expect(consentData.gppData.euTcfSection.localStoragePurposeConsent).is.true;
               let measurements = metrics.getAllMeasurements();
               expect(measurements.length).is.eq(1);
               expect(measurements.find(m => m.name === 'id5.api.gpp.delay')).is.not.undefined;
