@@ -14,17 +14,57 @@ export const API_TYPE = Object.freeze({
   GPP_V1_1: 'GPPv1.1'
 });
 
+// partial section mapping from https://github.com/InteractiveAdvertisingBureau/Global-Privacy-Platform/blob/main/Sections/Section%20Information.md
+export const GPP_SECTIONS = Object.freeze({
+  TCFEUV2: 2,
+  TCFCAV1: 5
+});
+
+export class GppTcfData {
+  /**
+   * Whether user gave consent to use local storage
+   * @type {boolean}
+   */
+  localStoragePurposeConsent;
+
+  /**
+   *  Whether ID5 vendor has consent from user
+   *  @type {boolean}
+   */
+  vendorsConsentForId5Granted;
+
+
+  constructor(localStoragePurposeConsent, vendorsConsentForId5Granted) {
+    this.localStoragePurposeConsent = localStoragePurposeConsent;
+    this.vendorsConsentForId5Granted = vendorsConsentForId5Granted;
+  }
+
+  /**
+   *
+   * @return {boolean}
+   */
+  isGranted() {
+    return this.localStoragePurposeConsent !== false &&
+      this.vendorsConsentForId5Granted !== false
+  }
+
+  getDebugInfo(version, prefix) {
+    const debugInfo= {}
+    if(this.localStoragePurposeConsent !== undefined) {
+      debugInfo[version+'-'+prefix+'-localStoragePurposeConsent'] = this.localStoragePurposeConsent;
+    }
+    if(this.vendorsConsentForId5Granted !== undefined) {
+      debugInfo[version+'-'+prefix+'-vendorsConsentForId5Granted'] = this.vendorsConsentForId5Granted;
+    }
+    return debugInfo;
+  }
+}
+
 export class GppConsentData {
   /** Version of gpp specification, reusing API_TYPE values for consistency
    * @type {string}
    * */
   version;
-
-  /**
-   * Tells whether ID5 has consent from the user to use local storage
-   * @type {boolean}
-   */
-  localStoragePurposeConsent;
 
   /** @type {number[]}   */
   applicableSections;
@@ -32,37 +72,72 @@ export class GppConsentData {
   /** @type {string}   */
   gppString;
 
-  /** @type {boolean} */
-  vendorsConsentForId5Granted;
+  /** @type {GppTcfData} */
+  euTcfSection;
+
+  /** @type {GppTcfData} */
+  canadaTcfSection;
 
 
   /**
    *
    * @param {string} version
-   * @param {boolean} localStoragePurposeConsent
    * @param {number[]} applicableSections
    * @param {string} gppString
+   * @param {GppTcfData} euTcfSection consent from eu tcf (only when in applicable sections)
+   * @param {GppTcfData} canadaTcfSection consent for canada tcf (only when in applicable sections)
    */
   constructor(version = undefined,
-              localStoragePurposeConsent = undefined,
-              vendorsConsentForId5Granted = undefined,
               applicableSections = undefined,
-              gppString = undefined) {
+              gppString = undefined,
+              euTcfSection = undefined,
+              canadaTcfSection = undefined) {
     this.version = version;
-    this.localStoragePurposeConsent = localStoragePurposeConsent;
     this.applicableSections = applicableSections;
     this.gppString = gppString;
-    this.vendorsConsentForId5Granted = vendorsConsentForId5Granted;
+    this.euTcfSection = euTcfSection;
+    this.canadaTcfSection = canadaTcfSection;
   }
 
-  // section mapping from https://github.com/InteractiveAdvertisingBureau/Global-Privacy-Platform/blob/main/Sections/Section%20Information.md
+  /**
+   * @return {undefined|boolean}
+   */
   isGranted() {
-    if (this.applicableSections.includes(2)) {
-      return this.localStoragePurposeConsent === true &&
-        this.vendorsConsentForId5Granted !== false /*vendorConsentExplicitlyDenied*/;
+    if (this.applicableSections.includes(GPP_SECTIONS.TCFEUV2)) {
+      return this.euTcfSection?.isGranted();
+    } else if(this.applicableSections.includes(GPP_SECTIONS.TCFCAV1)) {
+      return true;  //allowed temporarily to first collect information
     } else {
-      return true
+      return true;
     }
+  }
+
+  getDebugInfo() {
+    const debugInfo = {}
+    if(this.euTcfSection !== undefined) {
+      Object.assign(debugInfo, this.euTcfSection.getDebugInfo(this.version, 'tcfeuv2'))
+    }
+    if(this.canadaTcfSection !== undefined) {
+      Object.assign(debugInfo, this.canadaTcfSection.getDebugInfo(this.version, 'tcfcav1'))
+    }
+    return debugInfo;
+  }
+
+  static createFrom(serializedObject) {
+    const gppData = Object.assign(new GppConsentData(), serializedObject);
+    if (isDefined(gppData.euTcfSection)) {
+      gppData.euTcfSection = Object.assign(new GppTcfData(), gppData.euTcfSection);
+    } else if(gppData.localStoragePurposeConsent !== undefined || gppData.vendorsConsentForId5Granted !== undefined) {
+      // fallback for older consent data
+      gppData.euTcfSection = new GppTcfData(serializedObject.localStoragePurposeConsent, serializedObject.vendorsConsentForId5Granted);
+      delete gppData.localStoragePurposeConsent;
+      delete gppData.vendorsConsentForId5Granted;
+    }
+    if (isDefined(gppData.canadaTcfSection)) {
+      gppData.canadaTcfSection = Object.assign(new GppTcfData(), gppData.canadaTcfSection);
+    }
+
+    return gppData;
   }
 }
 
@@ -175,11 +250,11 @@ export class ConsentData {
     }
     if (apiTypes.includes(API_TYPE.GPP_V1_0)) {
       apiGrants[API_TYPE.GPP_V1_0] = this.gppData.isGranted();
-      this._addToDebugInfo(API_TYPE.GPP_V1_0, this.gppData, debugInfo)
+      Object.assign(debugInfo, this.gppData.getDebugInfo())
     }
     if (apiTypes.includes(API_TYPE.GPP_V1_1)) {
       apiGrants[API_TYPE.GPP_V1_1] = this.gppData.isGranted();
-      this._addToDebugInfo(API_TYPE.GPP_V1_1, this.gppData, debugInfo)
+      Object.assign(debugInfo, this.gppData.getDebugInfo())
     }
     const isGranted = Object.keys(apiGrants).map((api) => apiGrants[api]).reduce((prev, current) => prev && current, true);
     return new LocalStorageGrant(isGranted, GRANT_TYPE.CONSENT_API, apiGrants, debugInfo);
@@ -226,7 +301,7 @@ export class ConsentData {
     }
 
     if (isPlainObject(consentData.gppData)) {
-      consentData.gppData = Object.assign(new GppConsentData(), consentData.gppData);
+      consentData.gppData = GppConsentData.createFrom(consentData.gppData);
     }
     return consentData;
   }

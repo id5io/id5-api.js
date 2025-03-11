@@ -7,7 +7,7 @@ import multiplexing, {
   ApiEvent,
   ConsentData,
   ConsentSource,
-  GppConsentData,
+  GppConsentData, GppTcfData,
   WindowStorage
 } from '@id5io/multiplexing';
 import {semanticVersionCompare} from '@id5io/multiplexing/src/utils.js';
@@ -203,12 +203,16 @@ class Id5PrebidIntegration {
       consentData.localStoragePurposeConsent = true;
     }
     if (gppConsentData?.gppString) {
-      let tcfData = GPPClient.getTcfData(gppConsentData.parsedSections);
+      let tcfData = GPPClient.getTcfData(gppConsentData.parsedSections?.tcfeuv2);
       const localStoragePurposeConsent = tcfData ? GPPClient.tcfDataHasLocalStorageGrant(tcfData) : undefined;
+      const vendorConsent = tcfData ? GPPClient.tcfDataHasID5VendorConsented(tcfData) : undefined;
       const gppVersion = this._translateGppVersion(gppConsentData.gppVersion);
       if (gppVersion) {
         consentData.apiTypes.push(gppVersion);
-        consentData.gppData = new GppConsentData(gppVersion, localStoragePurposeConsent, gppConsentData.applicableSections, gppConsentData.gppString);
+        consentData.gppData = new GppConsentData(gppVersion,gppConsentData.applicableSections, gppConsentData.gppString);
+        if(localStoragePurposeConsent !== undefined || vendorConsent !== undefined) {
+          consentData.gppData.euTcfSection = new GppTcfData(localStoragePurposeConsent, vendorConsent);
+        }
       }
     }
     return consentData;
