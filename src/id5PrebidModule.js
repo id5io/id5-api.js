@@ -1,7 +1,7 @@
 import {delve, InvocationLogger, isDefined, isGlobalDebug, isGlobalTrace, setGlobalDebug} from '../lib/utils.js';
 import {version as currentVersion} from '../generated/version.js';
 import {Config} from '../lib/config.js';
-import {createPublisher, startTimeMeasurement} from '@id5io/diagnostics';
+import {createPublisher, MeterRegistryPublisher, startTimeMeasurement} from '@id5io/diagnostics';
 import {Id5CommonMetrics, partnerTag} from '../lib/metrics.js'
 import multiplexing, {
   API_TYPE,
@@ -252,12 +252,12 @@ class Id5PrebidIntegration {
         prebidVersion: prebidVersion
       });
       if (!diagnosticsOptions?.publishingDisabled) {
-        let publisher = createPublisher(diagnosticsOptions.publishingSampleRatio);
+        const publisher = new MeterRegistryPublisher(metrics, createPublisher(diagnosticsOptions.publishingSampleRatio));
         if (diagnosticsOptions?.publishAfterLoadInMsec && diagnosticsOptions.publishAfterLoadInMsec > 0) {
-          metrics.schedulePublishAfterMsec(diagnosticsOptions.publishAfterLoadInMsec, publisher);
+          publisher.schedulePublishAfterMsec(diagnosticsOptions.publishAfterLoadInMsec);
         }
         if (diagnosticsOptions?.publishBeforeWindowUnload) {
-          metrics.schedulePublishBeforeUnload(publisher);
+          publisher.schedulePublishBeforeUnload();
         }
       }
       return metrics;
