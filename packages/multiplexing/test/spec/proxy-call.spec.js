@@ -6,7 +6,7 @@ import {
 } from '../../src/messaging.js';
 import sinon from 'sinon';
 import {Follower, ProxyFollower, ProxyStorage} from '../../src/follower.js';
-import {DiscoveredInstance, Properties} from '../../src/instance.js';
+import {DiscoveredInstance, Properties} from '../../src/instanceCore.js';
 import {Leader, ProxyLeader} from '../../src/leader.js';
 import {StorageApi} from '../../src/localStorage.js';
 

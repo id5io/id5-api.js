@@ -1,8 +1,7 @@
-import {Id5Api} from '../lib/id5-api';
+import {Id5ApiLite} from '../lib/lite/id5-api.js';
 
-const API_ORIGIN = 'api-lite';
-if (!window.ID5) {
-  window.ID5 = new Id5Api(API_ORIGIN);
+if (!window.ID5_LITE) {
+  window.ID5_LITE = new Id5ApiLite();
 }
 
 

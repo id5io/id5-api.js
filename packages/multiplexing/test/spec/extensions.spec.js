@@ -1,7 +1,7 @@
 import sinon from 'sinon';
 import {EXTENSIONS, ID5_BOUNCE_ENDPOINT, ID5_LB_ENDPOINT} from '../../src/extensions.js';
 import {NO_OP_LOGGER} from '../../src/logger.js';
-import {Id5CommonMetrics} from '@id5io/diagnostics';
+import {MeterRegistry} from '@id5io/diagnostics';
 import {Store} from '../../src/store.js';
 
 const BOUNCE_DEFAULT_RESPONSE = {bounce: {setCookie: false}};
@@ -25,7 +25,7 @@ function createFetchStub(lbResponse) {
 describe('Extensions', function () {
 
   const logger = NO_OP_LOGGER; // `= console;` for debug purposes
-  const metrics = new Id5CommonMetrics('api', '1');
+  const metrics = sinon.createStubInstance(MeterRegistry);
   const store = sinon.createStubInstance(Store);
   const extensions = EXTENSIONS.createExtensions(metrics, logger, store);
 

@@ -2,9 +2,10 @@ import {
   isDefined,
   isPlainObject
 } from './utils.js';
-import CONSTANTS from './constants.js';
+import {CONSTANTS} from './constants.js';
 import {LazyValue} from './promise.js';
 import {GRANT_TYPE, LocalStorageGrant, ConsentManager, ConsentData} from './consent.js';
+import {localStorageGrantCounter} from './metrics.js';
 
 export class ConsentManagement extends ConsentManager {
   /** @type {LazyValue<ConsentData>} */
@@ -33,7 +34,7 @@ export class ConsentManagement extends ConsentManager {
    * @param {StorageConfig} storageConfig local storage config
    * @param {boolean} forceAllowLocalStorageGrant
    * @param {Logger} logger
-   * @param {Id5CommonMetrics} metrics
+   * @param {MeterRegistry} metrics
    */
   constructor(localStorage, storageConfig, forceAllowLocalStorageGrant, logger, metrics) {
     super();
@@ -66,7 +67,7 @@ export class ConsentManagement extends ConsentManager {
    */
   localStorageGrant(usageContext = 'unknown') {
     const lsg = this._getLocalStorageGrant();
-    this._metrics?.localStorageGrantCounter({
+    localStorageGrantCounter(this._metrics, {
       allowed: lsg.allowed,
       grantType: lsg.grantType,
       lsgContext: usageContext,

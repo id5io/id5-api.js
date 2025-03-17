@@ -1,5 +1,6 @@
 // eslint-disable-next-line no-unused-vars
 import {Follower} from './follower.js';
+import {cachedUserIdAge} from './metrics.js';
 
 
 export class CachedUserIdProvisioner {
@@ -21,7 +22,7 @@ export class CachedUserIdProvisioner {
   _provisioner;
 
   /**
-   * @type {Id5CommonMetrics}
+   * @type {MeterRegistry}
    * @private
    */
   _meter;
@@ -55,7 +56,7 @@ export class CachedUserIdProvisioner {
       let provisioned = false;
       if (responseFromCache) {
         const responseAge = responseFromCache.getAgeSec();
-        this._meter.cachedUserIdAge({
+        cachedUserIdAge(this._meter, {
           expired: responseFromCache.isExpired(),
           valid: responseFromCache.isValid(),
           provisioner: this._provisioner,

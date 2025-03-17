@@ -2,7 +2,18 @@
   "name": "@id5io/multiplexing",
   "version": "1.0.35",
   "description": "",
-  "main": "index.mjs",
+  "exports": {
+    ".": "./index.mjs",
+    "./lite": "./index-lite.mjs",
+    "./core": "./index-core.mjs",
+    "./trueLink": "./src/trueLink.js",
+    "./utils": "./src/utils.js",
+    "./logger": "./src/logger.js",
+    "./store": "./src/store.js",
+    "./constants": "./src/constants.js",
+    "./consent": "./src/consent.js",
+    "./events": "./src/events.js"
+  },
   "files": [
     "src/*.js",
     "generated/*.js"

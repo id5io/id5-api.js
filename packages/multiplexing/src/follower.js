@@ -1,9 +1,10 @@
-import {ApiEvent} from './apiEvent.js';
+import {ApiEvent} from './events.js';
 import {ProxyMethodCallTarget} from './messaging.js';
 import {NO_OP_LOGGER} from './logger.js';
 import {NoopStorage, StorageApi} from './localStorage.js';
 import {cyrb53Hash} from './utils.js';
-import {ConsentSource} from './data.js';
+import {ConsentSource} from './consent.js';
+import {userIdProvisioningDuplicateTimer} from './metrics.js';
 
 /**
  * @enum {FollowerCallType}
@@ -165,7 +166,7 @@ export class DirectFollower extends Follower {
   _provisionedUids;
 
   /**
-   * @type {Id5CommonMetrics}
+   * @type {MeterRegistry}
    * @private
    */
   _metrics;
@@ -176,7 +177,7 @@ export class DirectFollower extends Follower {
    * @param properties
    * @param dispatcher
    * @param logger
-   * @param {Id5CommonMetrics} metrics
+   * @param {MeterRegistry} metrics
    */
   constructor(window, properties, dispatcher, logger = NO_OP_LOGGER, metrics) {
     super(FollowerCallType.DIRECT_METHOD, window, properties, logger);
@@ -200,7 +201,7 @@ export class DirectFollower extends Follower {
         this._dispatcher.emit(ApiEvent.USER_ID_READY, uid, notificationContext);
       } else {
         const firstProvisionDetails = this._provisionedUids.get(id5Id);
-        this._metrics.userIdProvisioningDuplicateTimer({
+        userIdProvisioningDuplicateTimer(this._metrics, {
           provisioner: notificationContext.provisioner,
           firstProvisioner: firstProvisionDetails.provisioner
         }).record(performance.now() - firstProvisionDetails.time)

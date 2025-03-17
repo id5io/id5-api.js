@@ -7,10 +7,9 @@ export {ConsentManagement} from './src/consentManagement.js';
 export {StorageConfig, StoreItemConfig, Store} from './src/store.js';
 export {LocalStorage, WindowStorage, StorageApi} from './src/localStorage.js';
 export {ClientStore} from './src/clientStore.js';
-export {ApiEventsDispatcher, ApiEvent, MultiplexingEvent} from './src/apiEvent.js';
+export {ApiEventsDispatcher, ApiEvent, MultiplexingEvent} from './src/events.js';
 export * as utils from './src/utils.js';
-export {default as CONSTANTS} from './src/constants.js';
-export {ConsentSource} from './src/data.js';
+export {CONSTANTS} from './src/constants.js';
 
 class MultiplexingRegistry {
   /**

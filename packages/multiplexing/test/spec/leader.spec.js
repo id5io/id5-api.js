@@ -7,10 +7,10 @@ import {API_TYPE, ConsentData, LocalStorageGrant} from '../../src/consent.js';
 import {ConsentManagement} from '../../src/consentManagement.js';
 import {NO_OP_LOGGER} from '../../src/logger.js';
 import {Follower} from '../../src/follower.js';
-import {Properties} from '../../src/instance.js';
-import {Id5CommonMetrics} from '@id5io/diagnostics';
+import {Properties} from '../../src/instanceCore.js';
+import {MeterRegistry} from '@id5io/diagnostics';
 import {ReplicatingStorage, WindowStorage} from '../../src/localStorage.js';
-import {ConsentSource} from '../../src/data.js';
+import {ConsentSource} from '../../src/consent.js';
 
 describe('ProxyLeader', function () {
   /**
@@ -274,7 +274,7 @@ describe('ActualLeader', () => {
     follower3.getCacheId.returns('cacheId3');
     follower3.getSource.returns('api-lite');
     follower3.getSourceVersion.returns('3.3.3')
-    leader = new ActualLeader(leaderWindow, leaderProperties, leaderStorage, store, consentManager, new Id5CommonMetrics('source', '1.2.3', 1), NO_OP_LOGGER, uidFetcher);
+    leader = new ActualLeader(leaderWindow, leaderProperties, leaderStorage, store, consentManager, new MeterRegistry(), NO_OP_LOGGER, uidFetcher);
     localStorageCheckStub = sinon.stub(WindowStorage, 'checkIfAccessible').returns(true);
   });
 

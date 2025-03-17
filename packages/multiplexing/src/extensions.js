@@ -1,5 +1,6 @@
 import {startTimeMeasurement} from '@id5io/diagnostics';
 import {isDefined} from './utils.js';
+import {extensionsCallTimer} from './metrics.js';
 
 export const ID5_LB_ENDPOINT = `https://lb.eu-1-id5-sync.com/lb/v1`;
 export const ID5_BOUNCE_ENDPOINT = `https://id5-sync.com/bounce`;
@@ -10,7 +11,7 @@ export class Extensions {
    */
 
   /**
-   * @type {Id5CommonMetrics}
+   * @type {MeterRegistry}
    */
   _metrics;
 
@@ -27,7 +28,7 @@ export class Extensions {
   _store
 
   /**
-   * @param {Id5CommonMetrics} metrics
+   * @param {MeterRegistry} metrics
    * @param {Logger} logger
    * @param {Store} store
    */
@@ -72,17 +73,17 @@ export class Extensions {
     return fetch(url, fetchOptions)
       .then(response => {
         if (response.ok) {
-          extensionsCallTimeMeasurement.record(this._metrics.extensionsCallTimer(extensionType, true));
+          extensionsCallTimeMeasurement.record(extensionsCallTimer(this._metrics, extensionType, true));
           return response.json();
         } else {
-          extensionsCallTimeMeasurement.record(this._metrics.extensionsCallTimer(extensionType, false));
+          extensionsCallTimeMeasurement.record(extensionsCallTimer(this._metrics, extensionType, false));
           let msg = `The call to get extensions at ${url} was not ok, status: ${response.status}, statusText: ${response.statusText}`;
           this._log.warn(msg);
           return Promise.reject(new Error(msg));
         }
       })
       .catch(error => {
-        extensionsCallTimeMeasurement.record(this._metrics.extensionsCallTimer(extensionType, false));
+        extensionsCallTimeMeasurement.record(extensionsCallTimer(this._metrics, extensionType, false));
         this._log.warn(`Got error from ${url} endpoint`, error);
         return {};
       });
@@ -106,10 +107,10 @@ export class Extensions {
           }
         });
       })).then(chunks => {
-        extensionsCallTimeMeasurement.record(this._metrics.extensionsCallTimer(chunksType.name, true));
+        extensionsCallTimeMeasurement.record(extensionsCallTimer(this._metrics, chunksType.name, true));
         return {[chunksType.name]: chunks, [chunksType.name + 'Version']: `${chunksType.version}`};
       }).catch((error) => {
-        extensionsCallTimeMeasurement.record(this._metrics.extensionsCallTimer(chunksType.name, false));
+        extensionsCallTimeMeasurement.record(extensionsCallTimer(this._metrics, chunksType.name, false));
         this._log.warn(`Got error when getting ${chunksType.name}`, error);
         return {};
       });
@@ -140,7 +141,7 @@ export class Extensions {
           bouncePromise
         ]);
       }).then((results) => {
-        extensionsCallTimeMeasurement.record(this._metrics.extensionsCallTimer('all', true));
+        extensionsCallTimeMeasurement.record(extensionsCallTimer(this._metrics, 'all', true));
         let extensions = Extensions.DEFAULT_RESPONSE;
         results.forEach(result => {
           if (result.value) {
@@ -150,7 +151,7 @@ export class Extensions {
         this._store.storeExtensions(extensions);
         return extensions;
       }).catch((error) => {
-        extensionsCallTimeMeasurement.record(this._metrics.extensionsCallTimer('all', false));
+        extensionsCallTimeMeasurement.record(extensionsCallTimer(this._metrics,'all', false));
         this._log.error(`Got error ${error} when gathering extensions data`);
         return Extensions.DEFAULT_RESPONSE;
       });
@@ -186,7 +187,7 @@ export class Extensions {
 
 export const EXTENSIONS = {
   /**
-   * @param {Id5CommonMetrics} metrics
+   * @param {MeterRegistry} metrics
    * @param {Logger} log
    * @param {Store} store
    * @returns {Extensions}

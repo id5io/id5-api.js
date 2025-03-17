@@ -1,7 +1,8 @@
 import {delve, InvocationLogger, isDefined, isGlobalDebug, isGlobalTrace, setGlobalDebug} from '../lib/utils.js';
 import {version as currentVersion} from '../generated/version.js';
 import {Config} from '../lib/config.js';
-import {createPublisher, Id5CommonMetrics, partnerTag, startTimeMeasurement} from '@id5io/diagnostics';
+import {createPublisher, startTimeMeasurement} from '@id5io/diagnostics';
+import {Id5CommonMetrics, partnerTag} from '../lib/metrics.js'
 import multiplexing, {
   API_TYPE,
   ApiEvent,
@@ -11,10 +12,15 @@ import multiplexing, {
   GppTcfData,
   WindowStorage
 } from '@id5io/multiplexing';
-import {semanticVersionCompare} from '@id5io/multiplexing/src/utils.js';
+import {semanticVersionCompare} from '@id5io/multiplexing/utils';
 import {UaHints} from '../lib/uaHints.js';
 import {GPPClient} from '../lib/consentProvider.js';
-import {TrueLinkAdapter} from '@id5io/multiplexing/src/trueLink.js';
+import {TrueLinkAdapter} from '@id5io/multiplexing/trueLink';
+import {
+  invocationCountSummary, loadDelayTimer,
+  userIdNotificationDeliveryDelayTimer,
+  userIdProvisioningDelayTimer
+} from '../lib/metrics.js';
 
 /**
  * @typedef {Object} IdResponse
@@ -129,8 +135,8 @@ class Id5PrebidIntegration {
     const options = config.getOptions();
     const metrics = this._configureDiagnostics(options.partnerId, options.diagnostics, refererInfo, log, prebidVersion);
     if (metrics) {
-      metrics.loadDelayTimer().recordNow(); // records time elapsed since page visit
-      metrics.invocationCountSummary().record(this.invocationId); // record invocation count
+      loadDelayTimer(metrics).recordNow(); // records time elapsed since page visit
+      invocationCountSummary(metrics).record(this.invocationId); // record invocation count
     }
     const storage = new WindowStorage(window);
     const instance = multiplexing.createInstance(window, log, metrics, storage, new TrueLinkAdapter());
@@ -142,9 +148,9 @@ class Id5PrebidIntegration {
           try {
             const notificationContextTags = notificationContext?.tags ? {...notificationContext.tags} : {};
             if (notificationContext?.timestamp) {
-              metrics.userIdNotificationDeliveryDelayTimer(notificationContextTags).record(Date.now() - notificationContext.timestamp);
+              userIdNotificationDeliveryDelayTimer(metrics, notificationContextTags).record(Date.now() - notificationContext.timestamp);
             }
-            userIdReadyTimer.record(metrics.userIdProvisioningDelayTimer(userIdData.isFromCache, {
+            userIdReadyTimer.record(userIdProvisioningDelayTimer(metrics, userIdData.isFromCache, {
               ...notificationContextTags,
               isUpdate: false
             }));
@@ -232,6 +238,7 @@ class Id5PrebidIntegration {
    * @private
    * @param {number} partnerId
    * @param {Diagnostics} diagnosticsOptions
+   * @param refererInfo
    * @param {Logger} log
    * @param {String} prebidVersion
    * @return {Id5CommonMetrics}

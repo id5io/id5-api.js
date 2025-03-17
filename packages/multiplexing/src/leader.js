@@ -4,7 +4,7 @@ import {
   NO_OP_LOGGER
 } from './logger.js';
 import {ProxyMethodCallTarget} from './messaging.js';
-import {ConsentSource} from './data.js';
+import {ConsentSource} from './consent.js';
 import {API_TYPE} from './consent.js';
 /* eslint-disable no-unused-vars */
 import {ConsentData} from './consent.js';
@@ -12,6 +12,7 @@ import {Store} from './store.js';
 import {WindowStorage} from './localStorage.js';
 import {RefreshedResponse} from './fetch.js';
 import {CachedUserIdProvisioner} from './cachedUserId.js';
+import {consentChangeCounter, consentIgnoreCounter, refreshCallCounter} from './metrics.js';
 
 /* eslint-enable no-unused-vars */
 
@@ -104,7 +105,7 @@ export class ActualLeader extends Leader {
    */
   _lastConsentDataSet;
   /**
-   * @type {Id5CommonMetrics}
+   * @type {MeterRegistry}
    * @private
    */
   _metrics;
@@ -127,7 +128,7 @@ export class ActualLeader extends Leader {
    * @param {ReplicatingStorage} storage
    * @param {Store} store
    * @param {ConsentManagement} consentManager
-   * @param {Id5CommonMetrics} metrics
+   * @param {MeterRegistry} metrics
    * @param {Logger} logger
    * @param {UidFetcher} fetcher
    */
@@ -369,7 +370,7 @@ export class ActualLeader extends Leader {
         }
       }
     }
-    this._metrics.refreshCallCounter('leader', {
+    refreshCallCounter(this._metrics, 'leader', {
       overwrites: this._queuedRefreshArgs === undefined
     }).inc();
     this._callRefresh(options, followerId);
@@ -394,6 +395,7 @@ export class ActualLeader extends Leader {
    */
   updateConsent(newConsentData, followerId) {
     if (!this._consentManager.hasConsentSet()) {
+      // TODO handle ConsentSource.none
       const declaredConsentSources = new Set(this._followers.map(follower => follower.getDeclaredConsentSource()));
       const receivedConsentSource = newConsentData.source || ConsentSource.cmp;
       const onlyPartnerDeclared = declaredConsentSources.size === 1 && declaredConsentSources.has(ConsentSource.partner);
@@ -432,7 +434,7 @@ export class ActualLeader extends Leader {
             tags[apiType] = 'missed';
           }
         });
-        this._metrics.consentChangeCounter(tags).inc();
+        consentChangeCounter(this._metrics, tags).inc();
       }
     } catch (e) {
       this._log.error(e);
@@ -446,7 +448,7 @@ export class ActualLeader extends Leader {
         source: newConsentData.source
       };
       newConsentData.apiTypes.forEach(apiType => tags[apiType] = true);
-      this._metrics.consentIgnoreCounter(tags);
+      consentIgnoreCounter(this._metrics, tags).inc();
     } catch (e) {
       this._log.error(e);
     }

@@ -7,7 +7,7 @@ import {
   GppConsentData, GppTcfData
 } from '../../src/consent.js';
 import {NO_OP_LOGGER} from '../../src/logger.js';
-import {Id5CommonMetrics} from '@id5io/diagnostics';
+import {MeterRegistry} from '@id5io/diagnostics';
 import {CachedResponse} from '../../src/store.js';
 
 const CONSENT_DATA_GDPR_ALLOWED = Object.assign(new ConsentData(), {
@@ -181,7 +181,7 @@ describe('UidFetcher', function () {
   beforeEach(function () {
     let log = _DEBUG ? console : NO_OP_LOGGER;
     extensions = sinon.createStubInstance(Extensions);
-    metrics = new Id5CommonMetrics(origin, originVersion);
+    metrics = new MeterRegistry();
     fetcher = new UidFetcher(metrics, log, extensions);
     extensions.gather.resolves(DEFAULT_EXTENSIONS);
     dateTimeStub = sinon.stub(Date, 'now').returns(CURRENT_TIME);

@@ -14,6 +14,16 @@ export const API_TYPE = Object.freeze({
   GPP_V1_1: 'GPPv1.1'
 });
 
+/**
+ * @enum {ConsentSource}
+ */
+export const ConsentSource = Object.freeze({
+  cmp: 'cmp',
+  partner: 'partner',
+  prebid: 'prebid',
+  none: 'none'
+});
+
 // partial section mapping from https://github.com/InteractiveAdvertisingBureau/Global-Privacy-Platform/blob/main/Sections/Section%20Information.md
 export const GPP_SECTIONS = Object.freeze({
   TCFEUV2: 2,

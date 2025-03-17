@@ -1,7 +1,7 @@
 import sinon from 'sinon';
 import {ConsentDataProvider} from '../../lib/consentProvider.js';
 import {API_TYPE, ID5_GVL_ID, NO_OP_LOGGER, ConsentSource, ConsentData} from '@id5io/multiplexing';
-import {Id5CommonMetrics} from '@id5io/diagnostics';
+import {Id5CommonMetrics} from '../../lib/metrics.js';
 import {TEST_CONSENT_DATA_V2, TEST_CONSENT_DATA_V2_CONSENT_DENIED} from './test_utils.js';
 
 chai.should();

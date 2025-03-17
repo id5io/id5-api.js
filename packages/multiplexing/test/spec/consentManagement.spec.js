@@ -1,16 +1,16 @@
 import sinon, {spy, stub} from 'sinon';
 import {ConsentManagement} from '../../src/consentManagement.js';
-import CONSTANTS from '../../src/constants.js';
+import {CONSTANTS} from '../../src/constants.js';
 import {ConsentData, API_TYPE, GRANT_TYPE, LocalStorageGrant} from '../../src/consent.js';
 import {NO_OP_LOGGER} from '../../src/logger.js';
 import {StorageConfig} from '../../src/store.js';
-import {Id5CommonMetrics} from '@id5io/diagnostics';
+import {MeterRegistry} from '@id5io/diagnostics';
 
 const STORAGE_CONFIG = new StorageConfig();
 const API_TYPE_NONE = {};
 
 function newConsentManagement(localStorageMock, forceGrant = false) {
-  return new ConsentManagement(localStorageMock, STORAGE_CONFIG, forceGrant, NO_OP_LOGGER, sinon.createStubInstance(Id5CommonMetrics));
+  return new ConsentManagement(localStorageMock, STORAGE_CONFIG, forceGrant, NO_OP_LOGGER, sinon.createStubInstance(MeterRegistry));
 }
 
 describe('Consent Management', function () {

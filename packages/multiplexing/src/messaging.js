@@ -1,4 +1,5 @@
 import {NO_OP_LOGGER} from './logger.js';
+import {instanceInvalidMsgCounter} from './metrics.js';
 
 const ANY_MSG_TYPE = '*';
 export const DST_BROADCAST = undefined;
@@ -159,7 +160,7 @@ export class CrossInstanceMessenger {
   _log;
 
   /**
-   * @type {Id5CommonMetrics}
+   * @type {MeterRegistry}
    * @private
    */
   _metrics;
@@ -333,8 +334,8 @@ export class CrossInstanceMessenger {
       return field !== undefined && field !== null
     }
 
-    if(this._metrics?.instanceInvalidMsgCounter !== undefined) {
-      this._metrics.instanceInvalidMsgCounter({
+    if(this._metrics !== undefined) {
+      instanceInvalidMsgCounter(this._metrics,{
         reason: reason,
         hasDestination: isPresent(message.dst),
         hasSource: isPresent(message.src),
