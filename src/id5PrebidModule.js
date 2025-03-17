@@ -7,7 +7,8 @@ import multiplexing, {
   ApiEvent,
   ConsentData,
   ConsentSource,
-  GppConsentData, GppTcfData,
+  GppConsentData,
+  GppTcfData,
   WindowStorage
 } from '@id5io/multiplexing';
 import {semanticVersionCompare} from '@id5io/multiplexing/src/utils.js';
@@ -150,13 +151,8 @@ class Id5PrebidIntegration {
           } catch (e) {
             log.error('Failed to measure provisioning metrics', e);
           }
-          const response = userIdData.responseObj;
           this.userIdReady = true;
-          resolve({
-            universal_uid: response.universal_uid,
-            ext: response.ext,
-            ab_testing: response.ab_testing
-          });
+          resolve(userIdData.responseObj);
         })
         .on(ApiEvent.USER_ID_FETCH_CANCELED, details => {
           log.info('ID5 User ID fetch canceled:', details.reason);
@@ -209,8 +205,8 @@ class Id5PrebidIntegration {
       const gppVersion = this._translateGppVersion(gppConsentData.gppVersion);
       if (gppVersion) {
         consentData.apiTypes.push(gppVersion);
-        consentData.gppData = new GppConsentData(gppVersion,gppConsentData.applicableSections, gppConsentData.gppString);
-        if(localStoragePurposeConsent !== undefined || vendorConsent !== undefined) {
+        consentData.gppData = new GppConsentData(gppVersion, gppConsentData.applicableSections, gppConsentData.gppString);
+        if (localStoragePurposeConsent !== undefined || vendorConsent !== undefined) {
           consentData.gppData.euTcfSection = new GppTcfData(localStoragePurposeConsent, vendorConsent);
         }
       }
@@ -294,7 +290,7 @@ class Id5PrebidIntegration {
       providedRefreshInSeconds: config.getProvidedOptions().refreshInSeconds,
       trace: isGlobalTrace(),
       consentSource: ConsentSource.prebid,
-      trueLink: new TrueLinkAdapter().getTrueLink(),
+      trueLink: new TrueLinkAdapter().getTrueLink()
     };
   }
 }
