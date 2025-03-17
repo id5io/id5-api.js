@@ -3,11 +3,14 @@ import {version} from '../../generated/version.js';
 import {
   MultiplexingStub, MultiplexInstanceStub
 } from './test_utils.js';
+import {ApiEvent} from '../../packages/multiplexing/index.mjs';
 
 describe('ID5 Prebid module', function () {
   const pbjsVersion = '8.0.1';
 
-  let multiplexingStub, instanceStub;
+  let multiplexingStub;
+  /** @type {MultiplexInstanceStub} */
+  let instanceStub;
   beforeEach(function () {
     multiplexingStub = new MultiplexingStub();
     instanceStub = new MultiplexInstanceStub();
@@ -41,5 +44,45 @@ describe('ID5 Prebid module', function () {
     expect(registerObj.fetchIdData.partnerId).to.eq(1234);
     expect(registerObj.fetchIdData.origin).to.eq('pbjs');
     expect(registerObj.fetchIdData.originVersion).to.eq(pbjsVersion);
+  });
+
+  it('should return response to prebid', async () => {
+    const responsePromise = window.id5Prebid.integration.fetchId5Id({}, {
+      partner: 1234
+    }, {});
+
+    await instanceStub.instanceRegistered();
+
+    expect(instanceStub.updateConsent).to.have.been.calledOnce;
+    expect(instanceStub.register).to.have.been.calledOnce;
+
+    /**
+     * @type {FetchResponse}
+     */
+    const responseObj = {
+      gp: 'gp',
+      universal_uid: 'uid',
+      signature: 'signature',
+      ids: {
+        id5id: {},
+        gpid: {}
+      },
+      cascade_needed: true,
+      ab_testing: {
+        result: 'control'
+      },
+      ext: {
+        extId: 'extID'
+      },
+      cache_control: {},
+      publisherTrueLinkId: 'tlID'
+    };
+    instanceStub.emit(ApiEvent.USER_ID_READY, {
+      responseObj: responseObj,
+      isFromCache: false
+    });
+
+    const result = await responsePromise;
+    expect(result).to.be.eql(responseObj);
   });
 });
