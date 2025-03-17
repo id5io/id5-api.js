@@ -1,5 +1,5 @@
 import {API_TYPE, GRANT_TYPE, ConsentData, LocalStorageGrant, GppConsentData, GppTcfData} from '../../src/consent.js';
-import {ConsentSource} from '../../src/data.js';
+import {ConsentSource} from '../../src/consent.js';
 
 describe('Consent Data', function () {
 

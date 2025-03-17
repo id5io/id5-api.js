@@ -1,8 +1,8 @@
-import {createPublisher, MeterRegistry, partnerTag} from '@id5io/diagnostics';
+import {createPublisher, MeterRegistry, ObjectRegistry, MeterRegistryPublisher} from '@id5io/diagnostics';
 import mockttp from 'mockttp';
 import {expect} from 'chai';
 
-const COMMON_TAGS = {source: 'api', version: '1.1.1', ...partnerTag(123)};
+const COMMON_TAGS = {source: 'api', version: '1.1.1', partner: 123};
 
 describe('Diagnostics', function () {
   /**
@@ -10,6 +10,7 @@ describe('Diagnostics', function () {
    */
   let registry;
   let publisher;
+  let registryPublisher;
   let testStartTime;
 
   let server;
@@ -25,7 +26,8 @@ describe('Diagnostics', function () {
 
   beforeEach(async () => {
     publisher = createPublisher(1, server.urlFor('/measurements'));
-    registry = new MeterRegistry(COMMON_TAGS);
+    registry = new MeterRegistry(new ObjectRegistry(), COMMON_TAGS);
+    registryPublisher = new MeterRegistryPublisher(registry, publisher);
     testStartTime = Date.now();
     measurementsEndpointMock = await server.forPost('/measurements').thenReply(202, '');
   });
@@ -56,7 +58,7 @@ describe('Diagnostics', function () {
     summary.record(10);
     summary.record(20);
 
-    await registry.publish(publisher);
+    await registryPublisher.publish();
 
     // then
     let requests = await measurementsEndpointMock.getSeenRequests();
@@ -121,10 +123,10 @@ describe('Diagnostics', function () {
     summaryA.record(10);
     summaryB.record(10);
 
-    await registry.publish(publisher);
+    await registryPublisher.publish();
     summaryA.record(20);
 
-    await registry.publish(publisher);
+    await registryPublisher.publish();
 
     // then
     let requests = await measurementsEndpointMock.getSeenRequests();

@@ -1,15 +1,16 @@
-import * as ID5Integration from '../../src/instance.js';
+import {Instance, electLeader} from '../../src/instance.js';
+import {Properties, Role} from '../../src/instanceCore.js';
 import sinon from 'sinon';
-import {Id5CommonMetrics} from '@id5io/diagnostics';
+import {MeterRegistry} from '@id5io/diagnostics';
 import {NO_OP_LOGGER} from '../../src/logger.js';
 import {version} from '../../generated/version.js';
-import {MultiplexingEvent} from '../../src/apiEvent.js';
+import {MultiplexingEvent} from '../../src/events.js';
 import {StorageApi} from '../../src/localStorage.js';
-import {ElectionState} from '../../src/instance.js';
+import {ElectionState} from '../../src/instanceCore.js';
 import {TrueLinkAdapter} from '../../src/trueLink.js';
 
 /**
- * @param {ID5Integration.Instance} instance
+ * @param {Instance} instance
  * @param {string} event
  */
 function eventPromise(instance, event) {
@@ -38,10 +39,10 @@ describe('Leader election', () => {
 
   it('should elect only instance', function () {
     // given
-    let instance = new ID5Integration.Properties('a', '1.2.3', 'api', '1.0.26', {});
+    let instance = new Properties('a', '1.2.3', 'api', '1.0.26', {});
 
     // when
-    let leader = ID5Integration.electLeader([instance]);
+    let leader = electLeader([instance]);
 
     // then
     expect(leader).is.eq(instance);
@@ -49,12 +50,12 @@ describe('Leader election', () => {
 
   it('should elect newest instance', function () {
     // given
-    let instanceA = new ID5Integration.Properties('a', '1.1.3', 'api', '1.0.26', {});
-    let instanceB = new ID5Integration.Properties('b', '1.3.15', 'api', '1.0.31', {});
-    let instanceC = new ID5Integration.Properties('c', '1.3.3', 'pbjs', '6.10.0', {});
+    let instanceA = new Properties('a', '1.1.3', 'api', '1.0.26', {});
+    let instanceB = new Properties('b', '1.3.15', 'api', '1.0.31', {});
+    let instanceC = new Properties('c', '1.3.3', 'pbjs', '6.10.0', {});
 
     // when
-    let leader = ID5Integration.electLeader([instanceA, instanceB, instanceC]);
+    let leader = electLeader([instanceA, instanceB, instanceC]);
 
     // then
     expect(leader).is.eq(instanceB);
@@ -62,12 +63,12 @@ describe('Leader election', () => {
 
   it('should elect instance from newest source', function () {
     // given
-    let instanceA = new ID5Integration.Properties('a', '1.1.3', 'api', '1.0.26', {});
-    let instanceB = new ID5Integration.Properties('b', '1.1.3', 'api', '1.0.27', {});
-    let instanceC = new ID5Integration.Properties('c', '1.1.3', 'api', '1.0.28', {});
+    let instanceA = new Properties('a', '1.1.3', 'api', '1.0.26', {});
+    let instanceB = new Properties('b', '1.1.3', 'api', '1.0.27', {});
+    let instanceC = new Properties('c', '1.1.3', 'api', '1.0.28', {});
 
     // when
-    let leader = ID5Integration.electLeader([instanceB, instanceC, instanceA]);
+    let leader = electLeader([instanceB, instanceC, instanceA]);
 
     // then
     expect(leader).is.eq(instanceC);
@@ -75,12 +76,12 @@ describe('Leader election', () => {
 
   it('should elect api instance', function () {
     // given
-    let instanceA = new ID5Integration.Properties('a', '1.1.3', 'pbjs', '7.0.29', {});
-    let instanceB = new ID5Integration.Properties('b', '1.1.3', 'api', '1.0.27', {});
-    let instanceC = new ID5Integration.Properties('c', '1.1.3', 'pbjs', '7.0.28', {});
+    let instanceA = new Properties('a', '1.1.3', 'pbjs', '7.0.29', {});
+    let instanceB = new Properties('b', '1.1.3', 'api', '1.0.27', {});
+    let instanceC = new Properties('c', '1.1.3', 'pbjs', '7.0.28', {});
 
     // when
-    let leader = ID5Integration.electLeader([instanceB, instanceC, instanceA]);
+    let leader = electLeader([instanceB, instanceC, instanceA]);
 
     // then
     expect(leader).is.eq(instanceB);
@@ -88,19 +89,19 @@ describe('Leader election', () => {
 
   it('should elect lexicographically first instance if each has the same frame depth', function () {
     // given
-    let instanceA = new ID5Integration.Properties('a', '1.1.3', 'api', '1.0.26', {});
+    let instanceA = new Properties('a', '1.1.3', 'api', '1.0.26', {});
     instanceA.fetchIdData = {
       refererInfo: {
         numIframes: 1
       }
     };
-    let instanceB = new ID5Integration.Properties('b', '1.1.3', 'api', '1.0.26', {});
+    let instanceB = new Properties('b', '1.1.3', 'api', '1.0.26', {});
     instanceB.fetchIdData = {
       refererInfo: {
         numIframes: 1
       }
     };
-    let instanceC = new ID5Integration.Properties('c', '1.1.3', 'api', '1.0.26', {});
+    let instanceC = new Properties('c', '1.1.3', 'api', '1.0.26', {});
     instanceC.fetchIdData = {
       refererInfo: {
         numIframes: 1
@@ -108,7 +109,7 @@ describe('Leader election', () => {
     };
 
     // when
-    let leader = ID5Integration.electLeader([instanceB, instanceC, instanceA]);
+    let leader = electLeader([instanceB, instanceC, instanceA]);
 
     // then
     expect(leader).is.eq(instanceA);
@@ -116,12 +117,12 @@ describe('Leader election', () => {
 
   it('should elect lexicographically first instance if source version not comparable', function () {
     // given
-    let instanceA = new ID5Integration.Properties('a', '1.1.3', 'pbjs', '1.0.26', {});
-    let instanceB = new ID5Integration.Properties('b', '1.1.3', 'pbjs', 'v1.0.26-pre', {});
-    let instanceC = new ID5Integration.Properties('c', '1.1.3', 'pbjs', 'v1.0.26', {});
+    let instanceA = new Properties('a', '1.1.3', 'pbjs', '1.0.26', {});
+    let instanceB = new Properties('b', '1.1.3', 'pbjs', 'v1.0.26-pre', {});
+    let instanceC = new Properties('c', '1.1.3', 'pbjs', 'v1.0.26', {});
 
     // when
-    let leader = ID5Integration.electLeader([instanceB, instanceC, instanceA]);
+    let leader = electLeader([instanceB, instanceC, instanceA]);
 
     // then
     expect(leader).is.eq(instanceA);
@@ -129,15 +130,15 @@ describe('Leader election', () => {
 
   it('should prefer instances with depth info', function () {
     // given
-    let instanceA = new ID5Integration.Properties('a', '1.1.3', 'api', '1.0.26', {});
+    let instanceA = new Properties('a', '1.1.3', 'api', '1.0.26', {});
     instanceA.fetchIdData = {};
-    let instanceB = new ID5Integration.Properties('b', '1.1.3', 'api', '1.0.26', {});
+    let instanceB = new Properties('b', '1.1.3', 'api', '1.0.26', {});
     instanceB.fetchIdData = {
       refererInfo: {
         numIframes: 1
       }
     };
-    let instanceC = new ID5Integration.Properties('c', '1.1.3', 'api', '1.0.26', {});
+    let instanceC = new Properties('c', '1.1.3', 'api', '1.0.26', {});
     instanceC.fetchIdData = {
       refererInfo: {
         numIframes: 1
@@ -145,7 +146,7 @@ describe('Leader election', () => {
     };
 
     // when
-    let leader = ID5Integration.electLeader([instanceB, instanceC, instanceA]);
+    let leader = electLeader([instanceB, instanceC, instanceA]);
 
     // then
     expect(leader).is.eq(instanceB); // b as lexicographically  smallest among these closest to the top
@@ -153,20 +154,20 @@ describe('Leader election', () => {
 
   it('should elect instance which is closest to the top', function () {
     // given
-    let instanceA = new ID5Integration.Properties('a', '1.1.3', 'api', '1.0.26', {});
+    let instanceA = new Properties('a', '1.1.3', 'api', '1.0.26', {});
     instanceA.fetchIdData = {
       refererInfo: {
         numIframes: 2
       }
     };
-    let instanceB = new ID5Integration.Properties('b', '1.1.3', 'api', '1.0.26', {});
+    let instanceB = new Properties('b', '1.1.3', 'api', '1.0.26', {});
     instanceB.fetchIdData = {
       refererInfo: {
         numIframes: 3
       }
     };
 
-    let instanceC = new ID5Integration.Properties('c', '1.1.3', 'api', '1.0.26', {});
+    let instanceC = new Properties('c', '1.1.3', 'api', '1.0.26', {});
     instanceC.fetchIdData = {
       refererInfo: {
         numIframes: 1
@@ -174,7 +175,7 @@ describe('Leader election', () => {
     };
 
     // when
-    let leader = ID5Integration.electLeader([instanceB, instanceC, instanceA]);
+    let leader = electLeader([instanceB, instanceC, instanceA]);
 
     // then
     expect(leader).is.eq(instanceC);
@@ -187,7 +188,7 @@ describe('Leader election', () => {
   ].forEach(instances => {
     it(`should elect none of (${instances})`, () => {
       // when
-      let leader = ID5Integration.electLeader(instances);
+      let leader = electLeader(instances);
 
       // then
       expect(leader).is.eq(undefined);
@@ -205,7 +206,7 @@ describe('ID5 instance', function () {
   let logger = NO_OP_LOGGER; // for debug purposes assign console `let logger = console`
   let performanceNowStub;
   let createInstance = (source, sourceVersion, sourceConfig, fetchIdData, metrics) => {
-    const instance = new ID5Integration.Instance(window, {
+    const instance = new Instance(window, {
       source: source,
       sourceVersion: sourceVersion,
       sourceConfiguration: sourceConfig,
@@ -219,7 +220,7 @@ describe('ID5 instance', function () {
     const now = performance.now();
     performanceNowStub = sinon.stub(performance, 'now').returns(now);
     createdInstances = [];
-    metrics = new Id5CommonMetrics('api', '1');
+    metrics = new MeterRegistry();
   });
   afterEach(function () {
     createdInstances.forEach(instance => instance.unregister());
@@ -242,7 +243,7 @@ describe('ID5 instance', function () {
       href: window.location.href,
       domain: window.location.hostname
     });
-    expect(instance.role).is.eq(ID5Integration.Role.UNKNOWN);
+    expect(instance.role).is.eq(Role.UNKNOWN);
   });
 
   [
@@ -317,7 +318,7 @@ describe('ID5 instance', function () {
 
   it('registered instances should eventually know each other and elect the same leader', function (done) {
     // given
-    let electionDelayMsec = 100;
+    let electionDelayMSec = 100;
 
 
     let unregisteredInstance = createInstance('api', '1', {}, {}, metrics);
@@ -328,7 +329,7 @@ describe('ID5 instance', function () {
     // when
     [instance1, instance2, instance3].forEach(instance => {
       expect(instance._election._state).is.eql(ElectionState.AWAITING_SCHEDULE);
-      instance.init(electionDelayMsec);
+      instance.register({electionDelayMSec: electionDelayMSec});
       expect(instance._election._state).is.eql(ElectionState.SCHEDULED);
     });
 
@@ -336,25 +337,25 @@ describe('ID5 instance', function () {
       // then
       let expectedLeader = instance3.properties;
       expect(instance1._election._state).is.eql(ElectionState.COMPLETED);
-      expect(instance1.role).is.eq(ID5Integration.Role.FOLLOWER);
+      expect(instance1.role).is.eq(Role.FOLLOWER);
       expect(instance1._leader.getProperties()).is.eql(expectedLeader);
       expect(knownInstances(instance1)).to.eql([instance2.properties, instance3.properties]);
 
       expect(instance2._election._state).is.eql(ElectionState.COMPLETED);
-      expect(instance2.role).is.eq(ID5Integration.Role.FOLLOWER);
+      expect(instance2.role).is.eq(Role.FOLLOWER);
       expect(instance2._leader.getProperties()).is.eql(expectedLeader);
       expect(knownInstances(instance2)).to.eql([instance1.properties, instance3.properties]);
 
       expect(instance3._election._state).is.eql(ElectionState.COMPLETED);
-      expect(instance3.role).is.eq(ID5Integration.Role.LEADER); // newest source version
+      expect(instance3.role).is.eq(Role.LEADER); // newest source version
       expect(instance3._leader.getProperties()).is.eql(expectedLeader);
       expect(knownInstances(instance3)).to.eql([instance1.properties, instance2.properties]);
 
-      expect(unregisteredInstance.role).is.eq(ID5Integration.Role.UNKNOWN);
+      expect(unregisteredInstance.role).is.eq(Role.UNKNOWN);
       expect(unregisteredInstance._leader.getProperties()).is.eq(undefined);
       expect(unregisteredInstance._knownInstances).to.have.length(0);
       done();
-    }, electionDelayMsec + 50);
+    }, electionDelayMSec + 50);
   });
 
   it('late joiner should join to party and follow earlier elected leader', async () => {
@@ -371,45 +372,45 @@ describe('ID5 instance', function () {
     let instance2Election = eventPromise(instance2, MultiplexingEvent.ID5_LEADER_ELECTED);
     let lateJoinerElection = eventPromise(lateJoiner, MultiplexingEvent.ID5_LEADER_ELECTED);
     // when
-    instance1.init(electionDelayMsec);
-    instance2.init(electionDelayMsec);
+    instance1.register({electionDelayMSec: electionDelayMsec});
+    instance2.register({electionDelayMSec:electionDelayMsec});
 
     return Promise.all([instance1Election, instance2Election])
       .then(() => {
         expect(instance1._election._state).is.eql(ElectionState.COMPLETED);
-        expect(instance1.role).is.eq(ID5Integration.Role.FOLLOWER);
+        expect(instance1.role).is.eq(Role.FOLLOWER);
         expect(instance1._leader.getProperties()).is.eql(expectedLeaderProperties);
         expect(knownInstances(instance1)).to.eql([instance2.properties]);
 
         expect(instance2._election._state).is.eql(ElectionState.COMPLETED);
-        expect(instance2.role).is.eq(ID5Integration.Role.LEADER);
+        expect(instance2.role).is.eq(Role.LEADER);
         expect(instance2._leader.getProperties()).is.eql(expectedLeaderProperties);
         expect(knownInstances(instance2)).to.eql([instance1.properties]);
 
         expect(lateJoiner._election._state).is.eql(ElectionState.AWAITING_SCHEDULE);
-        expect(lateJoiner.role).is.eq(ID5Integration.Role.UNKNOWN);
+        expect(lateJoiner.role).is.eq(Role.UNKNOWN);
         expect(lateJoiner._leader.getProperties()).is.undefined;
         expect(knownInstances(lateJoiner)).to.eql([]);
         // when
         let allKnowsEachOther = Promise.all([instancesKnowEachOtherPromise(instance1, lateJoiner), instancesKnowEachOtherPromise(instance2, lateJoiner)]);
 
         const addFollowerSpy = sinon.spy(instance2._leader, 'addFollower');
-        lateJoiner.init(electionDelayMsec);
+        lateJoiner.register({electionDelayMSec: electionDelayMsec});
         expect(lateJoiner._election._state).is.eql(ElectionState.SCHEDULED);
         return Promise.all([lateJoinerElection, allKnowsEachOther])
           .then(() => {
-            expect(instance1.role).is.eq(ID5Integration.Role.FOLLOWER);
+            expect(instance1.role).is.eq(Role.FOLLOWER);
             expect(instance1._leader.getProperties()).is.eql(expectedLeaderProperties);
             expect(knownInstances(instance1)).to.eql([instance2.properties, lateJoiner.properties]);
             expect(addFollowerSpy).has.been.called;
             expect(addFollowerSpy.firstCall.args[0]._instanceProperties).is.eql(lateJoiner.properties);
 
-            expect(instance2.role).is.eq(ID5Integration.Role.LEADER);
+            expect(instance2.role).is.eq(Role.LEADER);
             expect(instance2._leader.getProperties()).is.eql(expectedLeaderProperties);
             expect(knownInstances(instance2)).to.eql([instance1.properties, lateJoiner.properties]);
 
             expect(lateJoiner._election._state).is.eql(ElectionState.CANCELED);
-            expect(lateJoiner.role).is.eq(ID5Integration.Role.FOLLOWER);
+            expect(lateJoiner.role).is.eq(Role.FOLLOWER);
             expect(lateJoiner._leader.getProperties()).is.eql(expectedLeaderProperties);
             expect(knownInstances(lateJoiner)).to.eql([instance1.properties, instance2.properties]);
           });
@@ -431,8 +432,8 @@ describe('ID5 instance', function () {
     instance1.on(MultiplexingEvent.ID5_INSTANCE_JOINED, thirdCallback);
 
     // when
-    instance1.init(100);
-    instance2.init(100);
+    instance1.register({electionDelayMSec: 100});
+    instance2.register({electionDelayMSec: 100});
 
     setTimeout(() => {
       // then
@@ -463,8 +464,8 @@ describe('ID5 instance', function () {
     instance1.on(MultiplexingEvent.ID5_MESSAGE_RECEIVED, thirdCallback);
 
     // when
-    instance1.init(100);
-    instance2.init(100);
+    instance1.register({electionDelayMSec: 100});
+    instance2.register({electionDelayMSec: 100});
 
 
     setTimeout(() => {
@@ -500,8 +501,8 @@ describe('ID5 instance', function () {
     instance2.on(MultiplexingEvent.ID5_LEADER_ELECTED, instance2Callback);
 
     // when
-    instance1.init(100);
-    instance2.init(100);
+    instance1.register({electionDelayMSec: 100});
+    instance2.register({electionDelayMSec: 100});
 
 
     setTimeout(() => {
@@ -513,10 +514,10 @@ describe('ID5 instance', function () {
         expect(callback.firstCall.args[1]).to.be.eql(expectedLeader);
       };
 
-      verifyCallback(firstCallback, ID5Integration.Role.FOLLOWER);
-      verifyCallback(failingCallback, ID5Integration.Role.FOLLOWER);
-      verifyCallback(thirdCallback, ID5Integration.Role.FOLLOWER);
-      verifyCallback(instance2Callback, ID5Integration.Role.LEADER);
+      verifyCallback(firstCallback, Role.FOLLOWER);
+      verifyCallback(failingCallback, Role.FOLLOWER);
+      verifyCallback(thirdCallback, Role.FOLLOWER);
+      verifyCallback(instance2Callback, Role.LEADER);
 
       done();
     }, 150);

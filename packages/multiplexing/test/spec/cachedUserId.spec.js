@@ -3,7 +3,7 @@ import {CachedResponse, Store} from '../../src/store.js';
 import {Follower} from '../../src/follower.js';
 import {CachedUserIdProvisioner} from '../../src/cachedUserId.js';
 import {NO_OP_LOGGER} from '../../src/logger.js';
-import {Id5CommonMetrics, Summary} from '@id5io/diagnostics';
+import {MeterRegistry, Summary} from '@id5io/diagnostics';
 
 describe('CachedUserIdProvisioner', function () {
 
@@ -25,8 +25,8 @@ describe('CachedUserIdProvisioner', function () {
     follower.getCacheId.returns(cacheId);
     store = sinon.createStubInstance(Store);
     ageMetric = sinon.createStubInstance(Summary);
-    const meter = sinon.createStubInstance(Id5CommonMetrics);
-    meter.cachedUserIdAge.returns(ageMetric);
+    const meter = sinon.createStubInstance(MeterRegistry);
+    meter.summary.withArgs('userid.cached.age', sinon.match.any).returns(ageMetric);
     provisioner = new CachedUserIdProvisioner(provisionerName, store, NO_OP_LOGGER, meter);
     nowStub = sinon.stub(Date, 'now').returns(NOW);
   });

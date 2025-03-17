@@ -5,9 +5,30 @@ import Tags from './tags.js';
  * @typedef {Object} MeasurementValue
  * @property {number} timestamp
  * @property {number} value
+ * @interface
  */
+export class Registry {
+  // eslint-disable-next-line no-unused-vars
+  has(key) {
+    return false;
+  }
 
-class Registry {
+  // eslint-disable-next-line no-unused-vars
+  set(key, value) {
+    return this;
+  }
+
+  // eslint-disable-next-line no-unused-vars
+  get(key) {
+    return undefined;
+  }
+
+  values() {
+    return [];
+  }
+}
+
+export class ObjectRegistry extends Registry {
   has(key) {
     return this[key] !== undefined;
   }
@@ -45,18 +66,19 @@ export class MeterRegistry {
   commonTags;
 
   /**
-   * @type {boolean}
+   *
    * @private
    */
-  _scheduled;
+  _onUnregisterCallback;
 
   /**
    *
+   * @param {Registry} [registry] - registry to store metrics
    * @param {Object} [commonTags] - common tags, default unknown
    * @param {string} [commonPrefix] - common prefix added to each meter name in this registry
    */
-  constructor(commonTags = undefined, commonPrefix = undefined) {
-    this._registry = new Registry();
+  constructor(registry = new Registry(), commonTags = undefined, commonPrefix = undefined) {
+    this._registry = registry;
     this.commonTags = Tags.from(commonTags);
     this.commonPrefix = commonPrefix;
   }
@@ -72,7 +94,9 @@ export class MeterRegistry {
     let prefixedName = this.commonPrefix ? (this.commonPrefix + '.' + name) : name;
     const key = `${prefixedName}[${Tags.toString(mergedTags)}]`;
     if (!this._registry.has(key)) {
-      this._registry.set(key, createFn(prefixedName, mergedTags));
+      const value = createFn(prefixedName, mergedTags);
+      this._registry.set(key, value);
+      return value;
     }
     return this._registry.get(key);
   }
@@ -135,62 +159,14 @@ export class MeterRegistry {
     return this.getOrCreate(name, tags, (n, t) => new Summary(n, t));
   }
 
-  /**
-   * @return {Promise}
-   * @param {function(Array<Measurement>) : Promise|any} publisher - publisher function, default noop
-   * @param {Object} metadata - optional data to pass to publisher, default undefined
-   */
-  publish(publisher = m => m, metadata = undefined) {
-    return Promise.resolve(this.getAllMeasurements())
-      .then(m => publisher(m, metadata))
-      .then(() => this.reset());
-  }
-
-  /**
-   * @param {function(Array<Measurement>) : Promise|any} publisher - publisher function, default noop
-   * @param msec
-   * @return {MeterRegistry}
-   */
-  schedulePublishAfterMsec(msec, publisher) {
-    if (!this._scheduled) {
-      let registry = this;
-      setTimeout(() => {
-        registry._scheduled = false;
-        return registry.publish(publisher, {
-          trigger: 'fixed-time',
-          fixed_time_msec: msec
-        });
-      }, msec);
-      this._scheduled = true;
-    }
-    return this;
-  }
-
-  /**
-   * @param {function(Array<Measurement>) : Promise|any} publisher - publisher function, default noop
-   * @return {MeterRegistry}
-   */
-  schedulePublishBeforeUnload(publisher) {
-    const registry = this;
-    const abortController = typeof AbortController !== 'undefined' ? new AbortController() : undefined;
-    if (abortController) {
-      abortController.publisher = publisher;
-      addEventListener('beforeunload', () => registry.publish(publisher, {trigger: 'beforeunload'}),
-        {
-          capture: false,
-          signal: abortController.signal
-        }
-      );
-      this._onUnloadPublishAbortController = abortController;
-    }
-    return this;
-  }
-
   unregister() {
-    const abortController = this._onUnloadPublishAbortController;
-    if (abortController) {
-      abortController.abort();
-      return this.publish(abortController.publisher, {trigger: 'unregister'});
+    if (this._onUnregisterCallback !== undefined) {
+      this._onUnregisterCallback(this);
     }
+  }
+
+  onUnregister(callback) {
+    this._onUnregisterCallback = callback;
   }
 }
+

@@ -2,7 +2,7 @@ import sinon from 'sinon';
 import {CachedResponse, StorageConfig, Store, StoreItemConfig} from '../../src/store.js';
 import {ClientStore} from '../../src/clientStore.js';
 import {API_TYPE, ConsentData} from '../../src/consent.js';
-import CONSTANTS from '../../src/constants.js';
+import {CONSTANTS} from '../../src/constants.js';
 import {RefreshedResponse} from '../../src/fetch.js';
 import {TrueLinkAdapter} from '../../src/trueLink.js';
 

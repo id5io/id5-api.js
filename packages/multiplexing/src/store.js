@@ -1,5 +1,5 @@
 import {isNumber, isPlainObject, isStr} from './utils.js';
-import CONSTANTS from './constants.js';
+import {CONSTANTS} from './constants.js';
 
 const MAX_RESPONSE_AGE_SEC = 14 * 24 * 3600; // 14 days
 const SECONDS_IN_DAY = 24 * 60 * 60;

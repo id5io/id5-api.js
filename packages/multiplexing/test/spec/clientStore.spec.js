@@ -4,7 +4,7 @@ import {ClientStore} from '../../src/clientStore.js';
 import {LocalStorage} from '../../src/localStorage.js';
 import {StorageConfig, StoreItemConfig} from '../../src/store.js';
 import {NO_OP_LOGGER} from '../../src/logger.js';
-import Constants from '../../src/constants.js';
+import {CONSTANTS} from '../../src/constants.js';
 
 const TEST_RESPONSE_ID5_CONSENT = {
   universal_uid: 'testresponseid5id',
@@ -311,7 +311,7 @@ describe('ClientStore', function () {
         let grantChecker;
         /** @type {ClientStore} */
         let clientStore;
-        let extensionsConfig = new StoreItemConfig(Constants.STORAGE_CONFIG.EXTENSIONS.name, Constants.STORAGE_CONFIG.EXTENSIONS.expiresDays)
+        let extensionsConfig = new StoreItemConfig(CONSTANTS.STORAGE_CONFIG.EXTENSIONS.name, CONSTANTS.STORAGE_CONFIG.EXTENSIONS.expiresDays)
         beforeEach(function () {
           grantChecker = () => new LocalStorageGrant(true, GRANT_TYPE.CONSENT_API, API_TYPE.TCF_V2);
           clientStore = new ClientStore(grantChecker, localStorage, DEFAULT_STORAGE_CONFIG, log);

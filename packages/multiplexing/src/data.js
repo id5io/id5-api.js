@@ -101,15 +101,6 @@
  */
 
 /**
- * @enum {ConsentSource}
- */
-export const ConsentSource = Object.freeze({
-  cmp: 'cmp',
-  partner: 'partner',
-  prebid: 'prebid'
-});
-
-/**
  * FetchIdData data provided by instance when registering to multiplexing
  * @typedef {Object} FetchIdData
  * @property {string} origin

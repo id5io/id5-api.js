@@ -1,4 +1,4 @@
-export default Object.freeze({
+export const CONSTANTS = Object.freeze({
   STORAGE_CONFIG: {
     ID5: {
       name: 'id5id',

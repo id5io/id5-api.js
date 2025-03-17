@@ -9,6 +9,7 @@ import {ConsentData, LocalStorageGrant} from './consent.js';
 import {StorageConfig, StoreItemConfig} from './store.js';
 import {LocalStorage} from './localStorage.js';
 import {Logger} from './logger.js';
+import {storageAllKeysCounter, storageExpiredKeysCounter} from './metrics.js';
 
 /* eslint-enable no-unused-vars */
 
@@ -103,7 +104,7 @@ export class ClientStore {
 
   /**
    *
-   * @param metrics {Id5CommonMetrics}
+   * @param metrics {MeterRegistry}
    */
   scheduleGC(metrics) {
     const localStorageGrant = this.localStorageGrant();
@@ -112,8 +113,8 @@ export class ClientStore {
     setTimeout(function () {
       if (localStorageGrant.isDefinitivelyAllowed()) {
         const stats = localStorage.removeExpiredObjectWithPrefix(prefix);
-        metrics.storageAllKeysCounter().record(stats?.all || 0);
-        metrics.storageExpiredKeysCounter().record(stats?.expired || 0);
+        storageAllKeysCounter(metrics).record(stats?.all || 0);
+        storageExpiredKeysCounter(metrics).record(stats?.expired || 0);
       }
     }, 0);
   }

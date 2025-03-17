@@ -8,11 +8,13 @@ import {
 import {Id5Instance, PageLevelInfo, ID5_REGISTRY} from '../../lib/id5Instance.js';
 import {Config, GCReclaimAllowed} from '../../lib/config.js';
 import {ConsentDataProvider} from '../../lib/consentProvider.js';
-import {CONSTANTS, NO_OP_LOGGER, ApiEvent, ConsentManagement, ConsentData} from '@id5io/multiplexing';
-import {Id5CommonMetrics} from '@id5io/diagnostics';
+import {CONSTANTS} from '@id5io/multiplexing/constants';
+import {NO_OP_LOGGER} from '@id5io/multiplexing/logger';
+import {ApiEvent, ConsentManagement, ConsentData} from '@id5io/multiplexing';
+import {Id5CommonMetrics} from '../../lib/metrics.js';
 import {UaHints} from '../../lib/uaHints.js';
 import {version} from '../../generated/version.js';
-import {TrueLinkAdapter} from '@id5io/multiplexing/src/trueLink.js';
+import {TrueLinkAdapter} from '@id5io/multiplexing/trueLink';
 
 function createInstance(config, metrics, multiplexingInstanceStub) {
   return new Id5Instance(config, null, null, metrics, null, NO_OP_LOGGER, multiplexingInstanceStub, null, new TrueLinkAdapter());
@@ -255,7 +257,7 @@ describe('Id5Instance', function () {
       const consentManagement = sinon.createStubInstance(ConsentManagement);
       const instanceUnderTest = new Id5Instance(config, null, consentManagement, metrics, null, NO_OP_LOGGER, multiplexingInstanceStub, MOCK_PAGE_LEVEL_INFO, new TrueLinkAdapter());
       instanceUnderTest.bootstrap();
-      await instanceUnderTest.firstFetch();
+      await instanceUnderTest.init();
 
       expect(multiplexingInstanceStub.register).to.have.been.calledOnce;
       const registerObj = multiplexingInstanceStub.register.firstCall.firstArg;
@@ -290,7 +292,7 @@ describe('Id5Instance', function () {
       consentDataProvider.refreshConsentData.resolves(MOCK_CONSENT_DATA);
       const instanceUnderTest = new Id5Instance(config, null, consentManagement, metrics, consentDataProvider, NO_OP_LOGGER, multiplexingInstanceStub, MOCK_PAGE_LEVEL_INFO, new TrueLinkAdapter());
 
-      await instanceUnderTest.firstFetch();
+      await instanceUnderTest.init();
 
       expect(consentManagement.setConsentData).to.have.been.calledWith(MOCK_CONSENT_DATA);
       expect(multiplexingInstanceStub.updateConsent).to.have.been.calledWith(MOCK_CONSENT_DATA);
@@ -345,7 +347,7 @@ describe('Id5Instance', function () {
         const instanceUnderTest = new Id5Instance(config, null, consentManagement, metrics, consentDataProvider, NO_OP_LOGGER, multiplexingInstanceStub, MOCK_PAGE_LEVEL_INFO, new TrueLinkAdapter());
         instanceUnderTest.bootstrap();
 
-        await instanceUnderTest.firstFetch();
+        await instanceUnderTest.init();
 
         expect(multiplexingInstanceStub.register).to.have.been.calledOnce;
         const registerObj = multiplexingInstanceStub.register.firstCall.firstArg;
@@ -426,7 +428,7 @@ describe('Id5Instance', function () {
       consentDataProvider.refreshConsentData.rejects('Some error');
       const instanceUnderTest = new Id5Instance(config, null, consentManagement, null, consentDataProvider, NO_OP_LOGGER, multiplexingInstanceStub, MOCK_PAGE_LEVEL_INFO, new TrueLinkAdapter());
 
-      await instanceUnderTest.firstFetch();
+      await instanceUnderTest.init();
 
       expect(consentManagement.setConsentData).to.not.have.been.called;
       expect(multiplexingInstanceStub.register).to.have.been.calledOnce;
@@ -973,7 +975,7 @@ describe('Id5Instance', function () {
 
       // then
       expect(unregisterTargetsSpy).have.been.calledWith('api-call');
-      expect(metrics.instanceSurvivalTime).have.been.calledWith({unregisterTrigger: 'api-call'});
+      expect(metrics.timer).have.been.calledWith('instance.survival.time', {unregisterTrigger: 'api-call'});
       expect(metrics.unregister).have.been.called;
       expect(multiplexingInstanceStub.unregister).have.been.called;
       expect(unregisterSpy).have.been.calledWith(instanceUnderTest);

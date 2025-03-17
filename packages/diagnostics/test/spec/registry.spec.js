@@ -1,8 +1,9 @@
-import {MeterRegistry} from '../../src/registry.js';
+import {MeterRegistry, ObjectRegistry} from '../../src/registry.js';
 import sinon from 'sinon';
 import chai, {expect} from 'chai';
 import sinonChai from 'sinon-chai';
 import {Counter, Summary, Timer} from '../../src/meters.js';
+import {MeterRegistryPublisher} from '../../src/publisher.js';
 
 chai.should();
 chai.use(sinonChai);
@@ -14,10 +15,10 @@ const TAGS = {
   tagB: 'valueB'
 };
 
-describe('Registry', function () {
+describe('MeterRegistry', function () {
   it('should create Timer', function () {
     // given
-    let meterRegistry = new MeterRegistry();
+    let meterRegistry = new MeterRegistry(new ObjectRegistry());
 
     // when
     let timer = meterRegistry.timer(NAME_A, TAGS);
@@ -28,7 +29,7 @@ describe('Registry', function () {
 
   it('should create new Timer when different name', function () {
     // given
-    let meterRegistry = new MeterRegistry();
+    let meterRegistry = new MeterRegistry(new ObjectRegistry());
 
     // when
     let timer1 = meterRegistry.timer(NAME_A, TAGS);
@@ -40,7 +41,7 @@ describe('Registry', function () {
 
   it('should create new Timer when different tags', function () {
     // given
-    let meterRegistry = new MeterRegistry();
+    let meterRegistry = new MeterRegistry(new ObjectRegistry());
 
     // when
     let timer1 = meterRegistry.timer(NAME_A, {a: 'a'});
@@ -52,7 +53,7 @@ describe('Registry', function () {
 
   it('should return Timer when already registered', function () {
     // given
-    let meterRegistry = new MeterRegistry();
+    let meterRegistry = new MeterRegistry(new ObjectRegistry());
 
     // when
     let timer1 = meterRegistry.timer(NAME_A, {
@@ -70,7 +71,7 @@ describe('Registry', function () {
 
   it('should return Timer with common tags', function () {
     // given
-    let meterRegistry = new MeterRegistry({common: 'TAG'});
+    let meterRegistry = new MeterRegistry(new ObjectRegistry(), {common: 'TAG'});
 
     // when
     let timer = meterRegistry.timer(NAME_A, TAGS);
@@ -84,7 +85,7 @@ describe('Registry', function () {
 
   it('should return Timer with common tags only', function () {
     // given
-    let meterRegistry = new MeterRegistry({common: 'TAG'});
+    let meterRegistry = new MeterRegistry(new ObjectRegistry(), {common: 'TAG'});
 
     // when
     let timer = meterRegistry.timer(NAME_A);
@@ -97,7 +98,7 @@ describe('Registry', function () {
 
   it('should create Timer with common tags and prefix', function () {
     // given
-    let meterRegistry = new MeterRegistry({common: 'TAG'}, 'some.prefix');
+    let meterRegistry = new MeterRegistry(new ObjectRegistry(), {common: 'TAG'}, 'some.prefix');
 
     // when
     let summary = meterRegistry.timer(NAME_A);
@@ -110,7 +111,7 @@ describe('Registry', function () {
 
   it('should create Counter', function () {
     // given
-    let meterRegistry = new MeterRegistry();
+    let meterRegistry = new MeterRegistry(new ObjectRegistry());
 
     // when
     let counter = meterRegistry.counter(NAME_A, TAGS);
@@ -121,7 +122,7 @@ describe('Registry', function () {
 
   it('should create new Counter when different name', function () {
     // given
-    let meterRegistry = new MeterRegistry();
+    let meterRegistry = new MeterRegistry(new ObjectRegistry());
 
     // when
     let counter1 = meterRegistry.counter(NAME_A, TAGS);
@@ -133,7 +134,7 @@ describe('Registry', function () {
 
   it('should create new Counter when different tags', function () {
     // given
-    let meterRegistry = new MeterRegistry();
+    let meterRegistry = new MeterRegistry(new ObjectRegistry());
 
     // when
     let counter1 = meterRegistry.counter(NAME_A, {a: 'a'});
@@ -145,7 +146,7 @@ describe('Registry', function () {
 
   it('should return Counter when already registered', function () {
     // given
-    let meterRegistry = new MeterRegistry();
+    let meterRegistry = new MeterRegistry(new ObjectRegistry());
 
     // when
     let counter1 = meterRegistry.counter(NAME_A, TAGS);
@@ -157,7 +158,7 @@ describe('Registry', function () {
 
   it('should return Counter with common tags', function () {
     // given
-    let meterRegistry = new MeterRegistry({common: 'TAG'});
+    let meterRegistry = new MeterRegistry(new ObjectRegistry(), {common: 'TAG'});
 
     // when
     let counter = meterRegistry.counter(NAME_A, TAGS);
@@ -171,7 +172,7 @@ describe('Registry', function () {
 
   it('should return Counter with common tags only', function () {
     // given
-    let meterRegistry = new MeterRegistry({common: 'TAG'});
+    let meterRegistry = new MeterRegistry(new ObjectRegistry(), {common: 'TAG'});
 
     // when
     let counter = meterRegistry.counter(NAME_A);
@@ -184,7 +185,7 @@ describe('Registry', function () {
 
   it('should create Counter with common tags and prefix', function () {
     // given
-    let meterRegistry = new MeterRegistry({common: 'TAG'}, 'some.prefix');
+    let meterRegistry = new MeterRegistry(new ObjectRegistry(), {common: 'TAG'}, 'some.prefix');
 
     // when
     let summary = meterRegistry.counter(NAME_A);
@@ -198,7 +199,7 @@ describe('Registry', function () {
 
   it('should create Summary', function () {
     // given
-    let meterRegistry = new MeterRegistry();
+    let meterRegistry = new MeterRegistry(new ObjectRegistry());
 
     // when
     let summary = meterRegistry.summary(NAME_A, TAGS);
@@ -209,7 +210,7 @@ describe('Registry', function () {
 
   it('should create new Summary when different tags', function () {
     // given
-    let meterRegistry = new MeterRegistry();
+    let meterRegistry = new MeterRegistry(new ObjectRegistry());
 
     // when
     let summary1 = meterRegistry.summary(NAME_A, {a: 'a'});
@@ -221,7 +222,7 @@ describe('Registry', function () {
 
   it('should create new Summary when different names', function () {
     // given
-    let meterRegistry = new MeterRegistry();
+    let meterRegistry = new MeterRegistry(new ObjectRegistry());
 
     // when
     let summary1 = meterRegistry.summary(NAME_A, TAGS);
@@ -233,7 +234,7 @@ describe('Registry', function () {
 
   it('should return Summary when already registered', function () {
     // given
-    let meterRegistry = new MeterRegistry();
+    let meterRegistry = new MeterRegistry(new ObjectRegistry());
 
     // when
     let summary1 = meterRegistry.summary(NAME_A, TAGS);
@@ -245,7 +246,7 @@ describe('Registry', function () {
 
   it('should return Summary with common tags', function () {
     // given
-    let meterRegistry = new MeterRegistry({common: 'TAG'});
+    let meterRegistry = new MeterRegistry(new ObjectRegistry(), {common: 'TAG'});
 
     // when
     let summary = meterRegistry.summary(NAME_A, TAGS);
@@ -259,7 +260,7 @@ describe('Registry', function () {
 
   it('should return Summary with common tags only', function () {
     // given
-    let meterRegistry = new MeterRegistry({common: 'TAG'});
+    let meterRegistry = new MeterRegistry(new ObjectRegistry(), {common: 'TAG'});
 
     // when
     let summary = meterRegistry.summary(NAME_A);
@@ -272,7 +273,7 @@ describe('Registry', function () {
 
   it('should create Summary with common tags and prefix', function () {
     // given
-    let meterRegistry = new MeterRegistry({common: 'TAG'}, 'some.prefix');
+    let meterRegistry = new MeterRegistry(new ObjectRegistry(), {common: 'TAG'}, 'some.prefix');
 
     // when
     let summary = meterRegistry.summary(NAME_A);
@@ -285,7 +286,7 @@ describe('Registry', function () {
 
   it('should reset meters', function () {
     // given
-    let meterRegistry = new MeterRegistry();
+    let meterRegistry = new MeterRegistry(new ObjectRegistry());
     let timer = meterRegistry.timer('a', TAGS);
     let counter = meterRegistry.counter('b', TAGS);
     let summary = meterRegistry.summary('c', TAGS);
@@ -311,47 +312,75 @@ describe('Registry', function () {
     // then count them from the beginning
     expect(meterRegistry.getAllMeasurements().length).is.eq(2);
   });
+  describe('MeterRegistryPublisher', () => {
+    it('should publish then reset', async () => {
+      // given
+      let publisher = sinon.stub();
+      let meterRegistry = new MeterRegistry(new ObjectRegistry(), {});
+      let registryPublisher = new MeterRegistryPublisher(meterRegistry, publisher);
 
-  it('should publish then reset', async () => {
-    // given
-    let publisher = sinon.stub();
-    let meterRegistry = new MeterRegistry({});
+      meterRegistry.timer('1', {}).record(1);
 
-    meterRegistry.timer('1', {}).record(1);
+      let allMeasurements = meterRegistry.getAllMeasurements();
 
-    let allMeasurements = meterRegistry.getAllMeasurements();
+      // when
+      await registryPublisher.publish();
 
-    // when
-    await meterRegistry.publish(publisher);
+      // then
+      expect(allMeasurements.length).is.eq(1);
+      publisher.should.have.been.calledWith(allMeasurements);
+      expect(meterRegistry.getAllMeasurements().length).is.eq(0);
+    });
 
-    // then
-    expect(allMeasurements.length).is.eq(1);
-    publisher.should.have.been.calledWith(allMeasurements);
-    expect(meterRegistry.getAllMeasurements().length).is.eq(0);
-  });
+    it('should publish with metadata', async () => {
+      // given
+      let publisher = sinon.stub();
+      let meterRegistry = new MeterRegistry(new ObjectRegistry(), {});
+      let registryPublisher = new MeterRegistryPublisher(meterRegistry, publisher);
 
-  it('should publish with metadata', async () => {
-    // given
-    let publisher = sinon.stub();
-    let meterRegistry = new MeterRegistry({});
+      meterRegistry.timer('1', {}).record(1);
 
-    meterRegistry.timer('1', {}).record(1);
+      let allMeasurements = meterRegistry.getAllMeasurements();
 
-    let allMeasurements = meterRegistry.getAllMeasurements();
+      let md = {x: 1};
+      // when
+      await registryPublisher.publish(md);
 
-    let md = {x: 1};
-    // when
-    await meterRegistry.publish(publisher, md);
+      // then
+      expect(allMeasurements.length).is.eq(1);
+      publisher.should.have.been.calledWith(allMeasurements, md);
+      expect(meterRegistry.getAllMeasurements().length).is.eq(0);
+    });
 
-    // then
-    expect(allMeasurements.length).is.eq(1);
-    publisher.should.have.been.calledWith(allMeasurements, md);
-    expect(meterRegistry.getAllMeasurements().length).is.eq(0);
+    it('should schedule publish only if not yet scheduled', function () {
+
+      // given
+      let meterRegistry = new MeterRegistry(new ObjectRegistry());
+      let setTimeoutStub = sinon.stub(globalThis, 'setTimeout');
+      let registryPublisher = new MeterRegistryPublisher(meterRegistry, sinon.stub());
+
+      try {
+        // when
+        registryPublisher.schedulePublishAfterMsec(1000);
+
+        // then
+        setTimeoutStub.should.have.been.called;
+
+        // when
+        setTimeoutStub.reset();
+        registryPublisher.schedulePublishAfterMsec(1000);
+
+        // then
+        setTimeoutStub.should.have.not.been.called;
+      } finally {
+        setTimeoutStub.restore();
+      }
+    });
   });
 
   it('should return all non empty measurements', function () {
     // given
-    let meterRegistry = new MeterRegistry();
+    let meterRegistry = new MeterRegistry(new ObjectRegistry());
     let timer = meterRegistry.timer('a1', {a: 'A'});
     let timerEmpty = meterRegistry.timer('a2', {a: 'AA'});
     let counter = meterRegistry.counter('b', {b: 'B'});
@@ -411,7 +440,7 @@ describe('Registry', function () {
 
   it('should add common tags', function () {
     // given
-    let meterRegistry = new MeterRegistry({common: 'a'});
+    let meterRegistry = new MeterRegistry(new ObjectRegistry(), {common: 'a'});
 
     // when
     meterRegistry.addCommonTags({another_common: 'b'});
@@ -423,27 +452,4 @@ describe('Registry', function () {
     });
   });
 
-  it('should schedule publish only if not yet scheduled', function () {
-
-    // given
-    let meterRegistry = new MeterRegistry();
-    let setTimeoutStub = sinon.stub(globalThis, 'setTimeout');
-
-    try {
-      // when
-      meterRegistry.schedulePublishAfterMsec(1000);
-
-      // then
-      setTimeoutStub.should.have.been.called;
-
-      // when
-      setTimeoutStub.reset();
-      meterRegistry.schedulePublishAfterMsec(1000);
-
-      // then
-      setTimeoutStub.should.have.not.been.called;
-    } finally {
-      setTimeoutStub.restore();
-    }
-  });
 });

@@ -1,5 +1,5 @@
 import sinon from 'sinon';
-import {ApiEvent, ApiEventsDispatcher, MultiplexingEvent} from '../../src/apiEvent.js';
+import {ApiEvent, ApiEventsDispatcher, MultiplexingEvent} from '../../src/events.js';
 import {NO_OP_LOGGER} from '../../src/logger.js';
 
 const _DEBUG = false;

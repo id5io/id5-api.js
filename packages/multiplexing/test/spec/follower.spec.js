@@ -1,10 +1,10 @@
 import sinon from 'sinon';
 import {CrossInstanceMessenger, ProxyMethodCallTarget} from '../../src/messaging.js';
 import {DirectFollower, Follower, FollowerCallType, ProxyFollower} from '../../src/follower.js';
-import {DiscoveredInstance, Properties} from '../../src/instance.js';
-import {ApiEvent, ApiEventsDispatcher} from '../../src/apiEvent.js';
+import {DiscoveredInstance, Properties} from '../../src/instanceCore.js';
+import {ApiEvent, ApiEventsDispatcher} from '../../src/events.js';
 import {NO_OP_LOGGER} from '../../src/logger.js';
-import {Id5CommonMetrics, Timer} from '@id5io/diagnostics';
+import {MeterRegistry, Timer} from '@id5io/diagnostics';
 
 const properties = new Properties('id', 'verison', 'source', 'sourceVersion', {}, window.location);
 describe('ProxyFollower', function () {
@@ -295,15 +295,12 @@ describe('Follower', function () {
 describe('DirectFollower', () => {
   let follower;
   let dispatcher;
-  /** @type {Id5CommonMetrics}*/
+  /** @type {MeterRegistry}*/
   let metrics;
-  let duplicateTimer;
   let nowStub;
   beforeEach(() => {
     dispatcher = new ApiEventsDispatcher();
-    metrics = sinon.createStubInstance(Id5CommonMetrics);
-    duplicateTimer = sinon.createStubInstance(Timer);
-    metrics.userIdProvisioningDuplicateTimer.returns(duplicateTimer);
+    metrics = sinon.createStubInstance(MeterRegistry);
     follower = new DirectFollower(window, properties, dispatcher, NO_OP_LOGGER, metrics);
     nowStub = sinon.stub(performance, 'now');
   });
@@ -336,6 +333,11 @@ describe('DirectFollower', () => {
 
   it('should deduplicate provisioned uids ', function () {
     // given
+    const duplicateTimer = sinon.createStubInstance(Timer);
+    metrics.timer.withArgs('userid.provisioning.duplicate', {
+      firstProvisioner: 'self',
+      provisioner: 'leader'
+    }).returns(duplicateTimer);
     const uidReadyCallBack = sinon.stub();
     /** @type {Id5UserId} */
     const uid = {
@@ -364,10 +366,6 @@ describe('DirectFollower', () => {
 
     //then
     expect(uidReadyCallBack).to.be.calledOnce;
-    expect(metrics.userIdProvisioningDuplicateTimer).to.be.calledWith({
-      firstProvisioner: 'self',
-      provisioner: 'leader'
-    });
     expect(duplicateTimer.record).to.be.calledWith(9);
   });
 

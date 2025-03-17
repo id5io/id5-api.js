@@ -4,6 +4,7 @@ import {startTimeMeasurement} from '@id5io/diagnostics';
 /* eslint-disable no-unused-vars */
 import {CachedResponse} from './store.js';
 import {Logger} from './logger.js';
+import {fetchFailureCallTimer, fetchSuccessfulCallTimer} from './metrics.js';
 /* eslint-enable no-unused-vars */
 
 const HOST = 'https://id5-sync.com';
@@ -77,7 +78,7 @@ export class UidFetcher {
    */
   _extensionsProvider;
   /**
-   * @type {Id5CommonMetrics}
+   * @type {MeterRegistry}
    */
   _metrics;
   /**
@@ -118,7 +119,7 @@ export class UidFetcher {
           ajax(url, {
             success: function (jsonResponse) {
               log.info('Success at fetch call:', jsonResponse);
-              fetchTimeMeasurement.record(metrics?.fetchSuccessfulCallTimer());
+              fetchTimeMeasurement.record(fetchSuccessfulCallTimer(metrics));
               try {
                 resolve(new RefreshedResponse(refresher._validateResponse(jsonResponse)));
               } catch (e) {
@@ -126,7 +127,7 @@ export class UidFetcher {
               }
             },
             error: function (error) {
-              fetchTimeMeasurement.record(metrics?.fetchFailureCallTimer());
+              fetchTimeMeasurement.record(fetchFailureCallTimer(metrics));
               reject(error);
             }
           }, JSON.stringify({requests: requests}), {method: 'POST', withCredentials: true}, log);
