@@ -248,7 +248,7 @@ class Id5PrebidIntegration {
       let metrics = new Id5CommonMetrics(SOURCE, this._version);
       metrics.addCommonTags({
         ...partnerTag(partnerId),
-        tml: refererInfo.topmostLocation,
+        tml: refererInfo?.topmostLocation,
         prebidVersion: prebidVersion
       });
       if (!diagnosticsOptions?.publishingDisabled) {
