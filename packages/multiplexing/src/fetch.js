@@ -181,7 +181,7 @@ export class UidFetcher {
       'tml': fetchIdData.refererInfo?.topmostLocation,
       'ref': fetchIdData.refererInfo?.ref,
       'cu': fetchIdData.refererInfo?.canonicalUrl,
-      'u': fetchIdData.refererInfo?.stack[0] || window.location.href,
+      'u': fetchIdData.refererInfo?.stack?.[0] || window.location?.href,
       'top': fetchIdData.refererInfo?.reachedTop ? 1 : 0,
       'localStorage': isLocalStorageAvaliable === true ? 1 : 0,
       'nbPage': nbValue,

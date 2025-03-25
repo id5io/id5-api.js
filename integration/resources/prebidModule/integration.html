@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>ID5 API Prebid Module Integration</title>
+    <link rel="canonical" href="https://www.id5.io"/>
+</head>
+<body>
+
+    <script type="text/javascript" src="https://cdn.id5-sync.com/api/integration/id5PrebidModule.js"></script>
+    <script>
+        window.pbjs = {
+          version: '9.0.0' // just for test purpose
+        }
+        window.responseForPrebid = window.id5Prebid.integration.fetchId5Id(undefined, {
+            partner: 99
+        },
+          {
+            topmostLocation: "https://www.id5.io",
+            numIframes: 0
+          });
+    </script>
+
+</body>
+</html>
