@@ -1,17 +1,27 @@
 import {ApiEvent} from './events.js';
-import {ProxyMethodCallTarget} from './messaging.js';
 import {NO_OP_LOGGER} from './logger.js';
-import {NoopStorage, StorageApi} from './localStorage.js';
+import {NoopStorage} from './localStorage.js';
 import {cyrb53Hash} from './utils.js';
 import {ConsentSource} from './consent.js';
 import {userIdProvisioningDuplicateTimer} from './metrics.js';
 
 /**
- * @enum {FollowerCallType}
+ * @typedef {FollowerCallType}
+ * @enum
  */
 export const FollowerCallType = Object.freeze({
   DIRECT_METHOD: 'direct_method',
   POST_MESSAGE: 'post_message'
+});
+
+
+/**
+ * @typedef {FollowerType}
+ * @enum
+ */
+export const FollowerType = Object.freeze({
+  STANDARD: 'follower',
+  PASSIVE: 'follower-passive' // aka lite
 });
 
 /**
@@ -41,17 +51,24 @@ export class Follower {
   _instanceWindow;
 
   /**
+   * @type {FollowerType}
+   * type;
+   */
+
+  /**
    *
    * @param {FollowerCallType} callType
    * @param {Window} window
    * @param {Properties} properties
    * @param {Logger} logger
+   * @param {FollowerType} type
    */
-  constructor(callType, window, properties, logger = NO_OP_LOGGER) {
+  constructor(callType, window, properties, logger = NO_OP_LOGGER, type = FollowerType.STANDARD) {
     this._instanceWindow = window;
     this._instanceProperties = properties;
     this._log = logger;
     this.callType = callType;
+    this.type = type;
   }
 
   getId() {
@@ -95,12 +112,13 @@ export class Follower {
   }
 
   getSourceVersion() {
-    return this._instanceProperties.sourceVersion
+    return this._instanceProperties.sourceVersion;
   }
 
   getSource() {
-    return this._instanceProperties.source
+    return this._instanceProperties.source;
   }
+
   /**
    *
    * @param {Id5UserId} uid
@@ -180,7 +198,7 @@ export class DirectFollower extends Follower {
    * @param {MeterRegistry} metrics
    */
   constructor(window, properties, dispatcher, logger = NO_OP_LOGGER, metrics) {
-    super(FollowerCallType.DIRECT_METHOD, window, properties, logger);
+    super(FollowerCallType.DIRECT_METHOD, window, properties, logger, FollowerType.STANDARD);
     this._dispatcher = dispatcher;
     this._metrics = metrics;
     this._provisionedUids = new Map();
@@ -192,19 +210,19 @@ export class DirectFollower extends Follower {
    */
   notifyUidReady(uid, notificationContext) {
     const id5Id = uid?.responseObj?.universal_uid;
-    if(id5Id) {
-      if(!this._provisionedUids.has(id5Id)) {
+    if (id5Id) {
+      if (!this._provisionedUids.has(id5Id)) {
         this._provisionedUids.set(id5Id, {
           provisioner: notificationContext.provisioner,
           time: performance.now()
-        })
+        });
         this._dispatcher.emit(ApiEvent.USER_ID_READY, uid, notificationContext);
       } else {
         const firstProvisionDetails = this._provisionedUids.get(id5Id);
         userIdProvisioningDuplicateTimer(this._metrics, {
           provisioner: notificationContext.provisioner,
           firstProvisioner: firstProvisionDetails.provisioner
-        }).record(performance.now() - firstProvisionDetails.time)
+        }).record(performance.now() - firstProvisionDetails.time);
       }
     }
   }
@@ -215,83 +233,5 @@ export class DirectFollower extends Follower {
 
   notifyCascadeNeeded(cascadeData) {
     this._dispatcher.emit(ApiEvent.CASCADE_NEEDED, cascadeData);
-  }
-}
-
-export class ProxyStorage extends StorageApi {
-  /**
-   * @type {CrossInstanceMessenger}
-   * @private
-   */
-  _messenger;
-
-  /**
-   * @type {string}
-   * @private
-   */
-  _destinationId;
-
-  constructor(messenger, destinationId) {
-    super();
-    this._messanger = messenger;
-    this._destinationId = destinationId;
-  }
-
-  getItem() {
-    // proxy storage calls are only to trigger writing
-    return undefined;
-  }
-
-  removeItem(key) {
-    this._remoteCall('removeItem', [key]);
-  }
-
-  setItem(key, value) {
-    this._remoteCall('setItem', [key, value]);
-  }
-
-  _remoteCall(name, args) {
-    this._messanger.callProxyMethod(this._destinationId, ProxyMethodCallTarget.STORAGE, name, args);
-  }
-}
-
-export class ProxyFollower extends Follower {
-  /**
-   * @type {CrossInstanceMessenger}
-   * @private
-   */
-  _messenger;
-
-  /**
-   * @param {DiscoveredInstance} knownInstance - leader instance properties
-   * @param {CrossInstanceMessenger} messenger
-   * @param {Logger} logger
-   */
-  constructor(knownInstance, messenger, logger = NO_OP_LOGGER) {
-    super(FollowerCallType.POST_MESSAGE, knownInstance.getWindow(), knownInstance.properties, logger);
-    this._messenger = messenger;
-  }
-
-  /**
-   * @private
-   */
-  _callProxy(methodName, args) {
-    this._messenger.callProxyMethod(this.getId(), ProxyMethodCallTarget.FOLLOWER, methodName, args);
-  }
-
-  notifyUidReady(uid, notificationContext) {
-    this._callProxy('notifyUidReady', [uid, notificationContext]);
-  }
-
-  notifyFetchUidCanceled(cancelInfo) {
-    this._callProxy('notifyFetchUidCanceled', [cancelInfo]);
-  }
-
-  notifyCascadeNeeded(cascadeData) {
-    this._callProxy('notifyCascadeNeeded', [cascadeData]);
-  }
-
-  getStorage() {
-    return new ProxyStorage(this._messenger, this.getId());
   }
 }

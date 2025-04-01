@@ -4,6 +4,7 @@ import {version} from '../generated/version.js';
 import {Logger, NO_OP_LOGGER} from './logger.js';
 import {ApiEventsDispatcher, MultiplexingEvent} from './events.js';
 import {instanceMsgDeliveryTimer} from './metrics.js';
+import {DirectFollower} from './follower.js';
 
 /**
  * @typedef {string} MultiplexingRole
@@ -162,6 +163,16 @@ export class DiscoveredInstance {
     return operatingMode === OperatingMode.MULTIPLEXING || operatingMode === OperatingMode.MULTIPLEXING_PASSIVE;
   }
 
+  isLeaderCapable() {
+    const operatingMode = this.knownState?.operatingMode;
+    return operatingMode === OperatingMode.MULTIPLEXING;
+  }
+
+  isPassive() {
+    const operatingMode = this.knownState?.operatingMode;
+    return operatingMode === OperatingMode.MULTIPLEXING_PASSIVE;
+  }
+
   getInstanceMultiplexingLeader() {
     if (this.knownState?.operatingMode !== OperatingMode.MULTIPLEXING) {
       return undefined;
@@ -236,6 +247,7 @@ export class MultiplexingInstance {
     this._logger = new MultiplexingLogger(logger, this);
     this._window = wnd;
     this._dispatcher = new ApiEventsDispatcher(this._logger);
+    this._followerRole = new DirectFollower(this._window, this.properties, this._dispatcher, this._logger, this._metrics);
   }
 
   /**

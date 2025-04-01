@@ -293,7 +293,7 @@ export class ActualLeader extends Leader {
             integrationId: followerId,
             requestCount: requestCount,
             refresh: refreshRequired,
-            role: leaderId === follower.getId() ? 'leader' : 'follower',
+            role: leaderId === follower.getId() ? 'leader' : (follower.type || 'follower'),
             cacheId: cacheId,
             cacheData: cacheData.get(cacheId),
             sourceVersion: follower.getSourceVersion(),
@@ -395,8 +395,9 @@ export class ActualLeader extends Leader {
    */
   updateConsent(newConsentData, followerId) {
     if (!this._consentManager.hasConsentSet()) {
-      // TODO handle ConsentSource.none
-      const declaredConsentSources = new Set(this._followers.map(follower => follower.getDeclaredConsentSource()));
+      const declaredConsentSources = new Set(this._followers.map(follower => follower.getDeclaredConsentSource())
+       .filter(consentSource => consentSource !== ConsentSource.none) // ignore none
+      );
       const receivedConsentSource = newConsentData.source || ConsentSource.cmp;
       const onlyPartnerDeclared = declaredConsentSources.size === 1 && declaredConsentSources.has(ConsentSource.partner);
       if (this._awaitedConsentFrom) { // follower called refresh and requested consent reset

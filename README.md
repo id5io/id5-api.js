@@ -214,7 +214,7 @@ There are three main parts to using the ID5 API:
 1. Initialize the API with the partner ID you received from ID5, as well as any other configuration options you’d like to set
 2. Access the ID5 ID
 
-### Load the API javascript file
+### Load the API javascript file  
 
 The ID5 API script should be placed as high in the page as possible, but should be *after* your CMP is loaded & initialized (if applicable). By placing this script early in the page, all subsequent scripts on page (including Prebid.js, ad tags, attribution or segment pixels, etc.) can leverage the ID5 ID. You should load the script *synchronously* to ensure that the API is loaded before attempting to call it.
 
@@ -266,7 +266,7 @@ There are a few cases in which `getUserId()` may not be ready or have a value ye
 | storageExpirationDays                 | Optional                                     | number  | `90`                                     | Number of days that the ID5 ID and associated metadata will be stored in local storage before expiring                                                                                                                   |
 | segments                              | Optional                                     | array   |                                          | Used with platforms that don't support ingesting ID5 IDs in their client-side segment pixels. See below for details                                                                                                      |
 | att                                   | Optional                                     | number  | `0`                                      | Indication of whether the event came from an Apple ATT event (value of 1 is yes)                                                                                                                                         |
-| applyCreativeRestrictions (alias acr) | Optional                                     | boolean | false                                    | Applies some restrictions for the case where the API is dropped alongside a creative.                                                                                                                               |
+| applyCreativeRestrictions (alias acr) | Optional                                     | boolean | false                                    | Applies some restrictions for the case where the API is dropped alongside a creative.                                                                                                                                    |
 
 #### consentData Object
 This object can contain one of the following properties:

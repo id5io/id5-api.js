@@ -1,4 +1,4 @@
-import ID5 from '../lib/id5-api';
+import ID5 from '../lib/id5-api.js';
 import { logError, isPlainObject, ajax } from '../lib/utils.js';
 
 const gt = window.googletag = window.googletag || {};

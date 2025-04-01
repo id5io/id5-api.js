@@ -1,6 +1,7 @@
 import sinon from 'sinon';
 import {CrossInstanceMessenger, ProxyMethodCallTarget} from '../../src/messaging.js';
-import {DirectFollower, Follower, FollowerCallType, ProxyFollower} from '../../src/follower.js';
+import {DirectFollower, Follower, FollowerCallType, FollowerType} from '../../src/follower.js';
+import {ProxyFollower} from '../../src/followerProxy.js';
 import {DiscoveredInstance, Properties} from '../../src/instanceCore.js';
 import {ApiEvent, ApiEventsDispatcher} from '../../src/events.js';
 import {NO_OP_LOGGER} from '../../src/logger.js';
@@ -53,6 +54,18 @@ describe('ProxyFollower', function () {
 
     // then
     expect(messenger.callProxyMethod).to.have.been.calledWith(properties.id, ProxyMethodCallTarget.FOLLOWER, 'notifyCascadeNeeded', [cascade]);
+  });
+
+  [
+    [undefined, FollowerType.STANDARD],
+    [FollowerType.STANDARD, FollowerType.STANDARD],
+    [FollowerType.PASSIVE, FollowerType.PASSIVE]
+  ].forEach(([configuredType, expectedType]) => {
+    it(`should return follower type set=${configuredType} expected=${expectedType}`, function () {
+      const follower = new ProxyFollower(new DiscoveredInstance(properties, window), messenger, NO_OP_LOGGER, configuredType);
+      expect(follower.type).to.be.not.undefined;
+      expect(follower.type).to.be.eq(expectedType);
+    });
   });
 });
 
@@ -393,5 +406,9 @@ describe('DirectFollower', () => {
 
     // when
     follower.notifyCascadeNeeded(cascade);
+  });
+
+  it('should return type', function () {
+    expect(follower.type).to.be.eq(FollowerType.STANDARD);
   });
 });

@@ -27,6 +27,7 @@ const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const RESOURCES_DIR = path.join(SCRIPT_DIR, 'resources');
 const TARGET_DIR = _DEBUG ? 'dev' : 'dist';
 const ID5_API_JS_FILE = path.join(SCRIPT_DIR, '..', 'build', TARGET_DIR, 'id5-api.js');
+const ID5_API_JS_LITE_FILE = path.join(SCRIPT_DIR, '..', 'build', TARGET_DIR, 'id5-api-lite.js');
 const ID5_ESP_JS_FILE = path.join(SCRIPT_DIR, '..', 'build', TARGET_DIR, 'esp.js');
 
 const DAYS_TO_MILLISECONDS = (60 * 60 * 24 * 1000);
@@ -87,6 +88,9 @@ describe('The ID5 API', function () {
     // The API under test
     await server.forGet('https://cdn.id5-sync.com/api/integration/id5-api.js')
       .thenFromFile(200, ID5_API_JS_FILE);
+
+    await server.forGet('https://cdn.id5-sync.com/api/integration/id5-api-lite.js')
+      .thenFromFile(200, ID5_API_JS_LITE_FILE);
 
     await server.forGet('https://cdn.id5-sync.com/api/integration/esp.js')
       .thenFromFile(200, ID5_ESP_JS_FILE);
@@ -326,6 +330,93 @@ describe('The ID5 API', function () {
 
       const id5idRawFromMainFrame = await mainFrame.evaluate(() => localStorage.getItem('id5id'));
       expect(id5idRawFromMainFrame).to.equal(null);
+    });
+  });
+
+  describe('id5-api-lite.js', function () {
+    let mockId5;
+    beforeEach(async () => {
+      await server.forGet('https://lb.eu-1-id5-sync.com/lb/v1')
+        .thenJson(200, MOCK_LB_RESPONSE, MOCK_CORS_HEADERS);
+      await mockBounceEndpoint();
+      await server.forGet('https://dummyimage.com/600x200')
+        .thenReply(200, '');
+      mockId5 = await server.forPost(FETCH_ENDPOINT)
+        .thenCallback(multiFetchResponseWithCorsAllowed(MOCK_FETCH_RESPONSE));
+
+    });
+
+    afterEach(async () => {
+      await server.reset();
+    });
+
+    [
+      'integration-lite.html',
+      'integration-lite-first.html' // api lite loaded first
+    ].forEach((testcase) => {
+      it(`should get id provisioned by standard instance page=${testcase}`, async () => {
+
+        const TEST_PAGE_PATH = path.join(RESOURCES_DIR, testcase);
+        await server.forGet('https://my-publisher-website.net')
+          .thenFromFile(200, TEST_PAGE_PATH);
+
+        const page = await browser.newPage();
+        await page.goto('https://my-publisher-website.net');
+
+        // check onAvailable results
+        await page.waitForSelector('p#done');
+        expect(await page.$eval('p#done', element => element.getAttribute('userId'))).to.be.eql(MOCK_ID);
+        await page.waitForSelector('p#done-lite');
+        expect(await page.$eval('p#done-lite', element => element.getAttribute('userId'))).to.be.eql(MOCK_ID);
+
+        // check onUpdate results
+        expect(await page.evaluate(() => window.id5Update)).to.eq(MOCK_ID);
+        expect(await page.evaluate(() => window.id5UpdateLite)).to.eql(MOCK_ID);
+
+        const id5FetchRequests = await mockId5.getSeenRequests();
+        expect(id5FetchRequests).to.have.lengthOf(1);
+        const requestBody = (await id5FetchRequests[0].body.getJson());
+        expect(requestBody.requests).to.have.lengthOf(2);
+        const requestBodyStandard = (await id5FetchRequests[0].body.getJson()).requests.filter(r => r.partner === 99)[0];
+        expect(requestBodyStandard.partner).to.equal(99); // standard api
+        expect(requestBodyStandard.role).to.equal('leader');
+        expect(requestBodyStandard.o).to.equal('api');
+        expect(requestBodyStandard.v).to.equal(version);
+        expect(requestBodyStandard.source).to.equal('api');
+        expect(requestBodyStandard.sourceVersion).to.equal(version);
+        expect(requestBodyStandard.id5cdn).to.equal(true);
+        expect(requestBodyStandard.top).to.equal(1);
+        expect(requestBodyStandard.localStorage).to.equal(1);
+        expect(requestBodyStandard.u).to.equal('https://my-publisher-website.net/');
+        expect(requestBodyStandard.tml).to.equal('https://my-publisher-website.net/');
+        expect(requestBodyStandard.cu).to.equal('https://www.id5.io/');
+        expect(requestBodyStandard.ua).to.be.a('string');
+        expect(requestBodyStandard.extensions.lb).to.equal('LB_DATA'); // from MOCK_LB_RESPONSE
+        expect(requestBodyStandard.extensions.lbCDN).to.equal('%%LB_CDN%%'); // lbCDN substitution macro
+        expect(requestBodyStandard.gdpr_consent).to.equal(
+          'CPBZjR9PBZjR9AKAZAENBMCsAP_AAH_AAAqIHWtf_X_fb39j-_59_9t0eY1f9_7_v-0zjhfds-8Nyf_X_L8X42M7vF36pq4KuR4Eu3LBIQFlHOHUTUmw6okVrTPsak2Mr7NKJ7LEinMbe2dYGHtfn9VTuZKYr97s___z__-__v__79f_r-3_3_vp9X---_e_V3dgdYASYal8BFmJY4Ek0aVQogQhXEh0AoAKKEYWiawgJXBTsrgI9QQMAEBqAjAiBBiCjFgEAAAAASURASAHggEQBEAgABACpAQgAIkAQWAFgYBAAKAaFgBFAEIEhBkcFRymBARItFBPJWAJRd7GGEIZRYAUCj-iowEAAAAA.cAAAAAAAAAAA');
+        expect(requestBodyStandard.segments).to.be.undefined;
+
+        const requestBodyLite = (await id5FetchRequests[0].body.getJson()).requests.filter(r => r.partner === 199)[0];
+        expect(requestBodyLite.partner).to.equal(199); // lite api
+        expect(requestBodyLite.role).to.equal('follower-passive');
+        expect(requestBodyLite.o).to.equal('api-lite');
+        expect(requestBodyLite.v).to.equal(version);
+        expect(requestBodyLite.source).to.equal('api-lite');
+        expect(requestBodyLite.sourceVersion).to.equal(version);
+        expect(requestBodyLite.id5cdn).to.equal(true);
+        expect(requestBodyLite.top).to.equal(1);
+        expect(requestBodyLite.localStorage).to.equal(1);
+        expect(requestBodyLite.u).to.equal('https://my-publisher-website.net/');
+        expect(requestBodyLite.tml).to.equal('https://my-publisher-website.net/');
+        expect(requestBodyLite.cu).to.equal('https://www.id5.io/');
+        expect(requestBodyLite.ua).to.be.a('string');
+        expect(requestBodyLite.extensions.lb).to.equal('LB_DATA'); // from MOCK_LB_RESPONSE
+        expect(requestBodyLite.extensions.lbCDN).to.equal('%%LB_CDN%%'); // lbCDN substitution macro
+        expect(requestBodyLite.gdpr_consent).to.equal( // provisioned by standard instance
+          'CPBZjR9PBZjR9AKAZAENBMCsAP_AAH_AAAqIHWtf_X_fb39j-_59_9t0eY1f9_7_v-0zjhfds-8Nyf_X_L8X42M7vF36pq4KuR4Eu3LBIQFlHOHUTUmw6okVrTPsak2Mr7NKJ7LEinMbe2dYGHtfn9VTuZKYr97s___z__-__v__79f_r-3_3_vp9X---_e_V3dgdYASYal8BFmJY4Ek0aVQogQhXEh0AoAKKEYWiawgJXBTsrgI9QQMAEBqAjAiBBiCjFgEAAAAASURASAHggEQBEAgABACpAQgAIkAQWAFgYBAAKAaFgBFAEIEhBkcFRymBARItFBPJWAJRd7GGEIZRYAUCj-iowEAAAAA.cAAAAAAAAAAA');
+        expect(requestBodyLite.segments).to.be.eql([{destination: '123', ids: ['A', 'B', 'C']}]);
+      });
     });
   });
 
