@@ -242,14 +242,14 @@ export class ConsentData {
   _getLocalStorageGrantFromApi() {
     const apiTypes = this.apiTypes;
     const apiGrants = {};
-    const debugInfo = {}
+    const debugInfo = {};
     if (apiTypes.includes(API_TYPE.TCF_V1)) {
       apiGrants[API_TYPE.TCF_V1] = this._isGranted();
-      this._addToDebugInfo(API_TYPE.TCF_V1, this, debugInfo)
+      this._addToDebugInfo(API_TYPE.TCF_V1, this, debugInfo);
     }
     if (apiTypes.includes(API_TYPE.TCF_V2)) {
       apiGrants[API_TYPE.TCF_V2] = this._isGranted();
-      this._addToDebugInfo(API_TYPE.TCF_V2, this, debugInfo)
+      this._addToDebugInfo(API_TYPE.TCF_V2, this, debugInfo);
     }
     if (apiTypes.includes(API_TYPE.ID5_ALLOWED_VENDORS)) {
       apiGrants[API_TYPE.ID5_ALLOWED_VENDORS] = this.allowedVendors.includes(ID5_GVL_ID);
@@ -260,11 +260,11 @@ export class ConsentData {
     }
     if (apiTypes.includes(API_TYPE.GPP_V1_0)) {
       apiGrants[API_TYPE.GPP_V1_0] = this.gppData.isGranted();
-      Object.assign(debugInfo, this.gppData.getDebugInfo())
+      Object.assign(debugInfo, this.gppData.getDebugInfo());
     }
     if (apiTypes.includes(API_TYPE.GPP_V1_1)) {
       apiGrants[API_TYPE.GPP_V1_1] = this.gppData.isGranted();
-      Object.assign(debugInfo, this.gppData.getDebugInfo())
+      Object.assign(debugInfo, this.gppData.getDebugInfo());
     }
     const isGranted = Object.keys(apiGrants).map((api) => apiGrants[api]).reduce((prev, current) => prev && current, true);
     return new LocalStorageGrant(isGranted, GRANT_TYPE.CONSENT_API, apiGrants, debugInfo);
@@ -277,13 +277,14 @@ export class ConsentData {
     if (dataSource.vendorsConsentForId5Granted !== undefined) {
       debugInfo[apiType + '-vendorsConsentForId5Granted'] = dataSource.vendorsConsentForId5Granted;
     }
-    return debugInfo
+    return debugInfo;
   }
 
   _isGranted() {
     return this.gdprApplies === false || (this.localStoragePurposeConsent === true &&
       this.vendorsConsentForId5Granted !== false /*vendorConsentExplicitlyDenied*/);
   }
+
   /**
    * Note this is not a generic hash code but rather a hash code
    * used to check whether or not consent has changed across invocations
@@ -338,6 +339,34 @@ export class ConsentData {
     }
     return undefined;
   }
+
+  /**
+   *
+   * @returns {Consents}
+   */
+  toConsents() {
+    /** @type {Consents} */
+    let consents = {};
+
+    if (isDefined(this.gdprApplies)) {
+      consents.gdpr = this.gdprApplies;
+    }
+
+    if (isDefined(this.consentString)) {
+      consents.gdpr_consent = this.consentString;
+    }
+
+    if (isDefined(this.ccpaString)) {
+      consents.us_privacy = this.ccpaString;
+    }
+
+    if (isDefined(this.gppData)) {
+      consents.gpp = this.gppData.gppString;
+      consents.gpp_sid = this.gppData.applicableSections.join(',');
+    }
+    return consents;
+
+  }
 }
 
 /**
@@ -386,7 +415,7 @@ export class LocalStorageGrant {
    */
   _debugInfo = {};
 
-  constructor(allowed, grantType, api = {}, _debugInfo={}) {
+  constructor(allowed, grantType, api = {}, _debugInfo = {}) {
     this.allowed = allowed;
     this.grantType = grantType;
     this.api = api;

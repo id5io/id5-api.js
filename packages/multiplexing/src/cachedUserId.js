@@ -75,6 +75,7 @@ export class CachedUserIdProvisioner {
           timestamp: responseFromCache.timestamp,
           responseObj: responseFromCache.response,
           isFromCache: true,
+          consents: responseFromCache.consents,
           willBeRefreshed: !!refreshRequired
         }, {
           timestamp: Date.now(),

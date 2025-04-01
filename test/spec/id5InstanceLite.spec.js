@@ -347,6 +347,36 @@ describe('Id5InstanceLite', function () {
         done();
       }, 200);
     });
+
+    it(`should expose consents`, function (done) {
+      // given
+      const TEST_RESPONSE = {
+        'universal_uid': 'whateverID',
+      };
+      const consents = {
+        gdpr: true,
+        gdpr_consent: 'tcfString'
+
+      }
+      const config = new Config({...defaultInitBypassConsent()}, NO_OP_LOGGER);
+      const instanceUnderTest = new Id5InstanceLite(config, metrics, NO_OP_LOGGER, multiplexingInstanceStub, null);
+      instanceUnderTest.bootstrap();
+
+      instanceUnderTest.onAvailable(function () {
+        // then
+        expect(instanceUnderTest.getUserId()).to.eq('whateverID');
+        expect(instanceUnderTest.getConsents()).to.eql(consents);
+        done();
+      });
+
+      // when
+      multiplexingInstanceStub.emit(ApiEvent.USER_ID_READY, {
+        isFromCache: false,
+        responseObj: TEST_RESPONSE,
+        consents: consents
+      });
+    });
+
   });
 
   describe('cleanup', function () {

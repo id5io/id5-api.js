@@ -55,11 +55,20 @@
  */
 
 /**
+ * @typedef Consents
+ * @property {boolean} gdpr
+ * @property {string} gdpr_consent
+ * @property {string} gpp
+ * @property {string} gpp_sid
+ * @property {string} us_privacy
+ */
+/**
  * @typedef Id5UserId
  * @property {Date} timestamp
  * @property {FetchResponse} responseObj
  * @property {boolean} isFromCache
  * @property {boolean} [willBeRefreshed]
+ * @property {Consents} consents
  */
 
 /**

@@ -200,6 +200,9 @@ describe('ClientStore', function () {
             }
           };
           const responseTime = 123;
+          const consents = {
+            gpp: 'gppString'
+          };
 
           localStorage.updateObjectWithExpiration.callsFake((key, updFn) => {
             return updFn({
@@ -210,7 +213,7 @@ describe('ClientStore', function () {
             });
           });
           // when
-          const result = clientStore.storeResponseV2('abcd', response, responseTime);
+          const result = clientStore.storeResponseV2('abcd', response, responseTime, consents);
 
           // then
           expect(localStorage.updateObjectWithExpiration).to.be.called;
@@ -220,7 +223,8 @@ describe('ClientStore', function () {
           expect(result).to.be.eql({
               response: response,
               responseTimestamp: responseTime,
-              nb: 100
+              nb: 100,
+              consents: consents
             }
           );
 
@@ -229,7 +233,8 @@ describe('ClientStore', function () {
           // then
           expect(updatedResponseEmpty).to.be.eql({
               response: response,
-              responseTimestamp: responseTime
+              responseTimestamp: responseTime,
+              consents: consents
             }
           );
         });
@@ -311,7 +316,7 @@ describe('ClientStore', function () {
         let grantChecker;
         /** @type {ClientStore} */
         let clientStore;
-        let extensionsConfig = new StoreItemConfig(CONSTANTS.STORAGE_CONFIG.EXTENSIONS.name, CONSTANTS.STORAGE_CONFIG.EXTENSIONS.expiresDays)
+        let extensionsConfig = new StoreItemConfig(CONSTANTS.STORAGE_CONFIG.EXTENSIONS.name, CONSTANTS.STORAGE_CONFIG.EXTENSIONS.expiresDays);
         beforeEach(function () {
           grantChecker = () => new LocalStorageGrant(true, GRANT_TYPE.CONSENT_API, API_TYPE.TCF_V2);
           clientStore = new ClientStore(grantChecker, localStorage, DEFAULT_STORAGE_CONFIG, log);

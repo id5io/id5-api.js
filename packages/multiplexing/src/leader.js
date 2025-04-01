@@ -99,11 +99,7 @@ export class ActualLeader extends Leader {
    * @private
    */
   _queuedRefreshArgs;
-  /**
-   * @type {ConsentData}
-   * @private
-   */
-  _lastConsentDataSet;
+
   /**
    * @type {MeterRegistry}
    * @private
@@ -166,7 +162,7 @@ export class ActualLeader extends Leader {
       if (localStorageGrant.isDefinitivelyAllowed()) {
         log.info('Storing ID and request hashes in cache');
         store.updateNbs(cachedData);
-        store.storeResponse(requestData, refreshedResponse);
+        store.storeResponse(requestData, refreshedResponse, consentData?.toConsents());
       } else {
         log.info('Cannot use local storage to cache ID', localStorageGrant);
         store.clearAll(requestData);
@@ -186,7 +182,8 @@ export class ActualLeader extends Leader {
           this._notifyUidReady(follower, {
             timestamp: refreshedResponse.timestamp,
             responseObj: responseForFollower,
-            isFromCache: false
+            isFromCache: false,
+            consents: consentData?.toConsents()
           });
           if (responseForFollower.cascade_needed === true) {
             cascadeRequested.push(follower.getId());

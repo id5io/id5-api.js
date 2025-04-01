@@ -156,8 +156,16 @@ describe('Store', function () {
     refreshedResponse.getResponseFor.withArgs(FETCH_ID_DATA[0].integrationId).returns(response1);
     refreshedResponse.getResponseFor.withArgs(FETCH_ID_DATA[1].integrationId).returns(response2);
 
+    const consents = {
+      gdpr: true,
+      gdpr_consent: 'tcf_string',
+      gpp: 'gpp',
+      gpp_sid: 'gpp_sid',
+      us_privacy: 'ccpa'
+    };
+
     // when
-    store.storeResponse(FETCH_ID_DATA, refreshedResponse);
+    store.storeResponse(FETCH_ID_DATA, refreshedResponse, consents);
 
     // then
     // store V1
@@ -166,8 +174,8 @@ describe('Store', function () {
 
     // store V2
     expect(clientStore.storeResponseV2).to.be.calledTwice;
-    expect(clientStore.storeResponseV2.firstCall).to.be.calledWith(FETCH_ID_DATA[0].cacheId, response1);
-    expect(clientStore.storeResponseV2.secondCall).to.be.calledWith(FETCH_ID_DATA[1].cacheId, response2);
+    expect(clientStore.storeResponseV2.firstCall).to.be.calledWith(FETCH_ID_DATA[0].cacheId, response1, responseTime, consents);
+    expect(clientStore.storeResponseV2.secondCall).to.be.calledWith(FETCH_ID_DATA[1].cacheId, response2, responseTime, consents);
     expect(trueLinkAdapter.setPrivacy).to.be.calledWith(genericResponse.privacy);
   });
 
@@ -253,32 +261,60 @@ describe('Store', function () {
     expect(result).to.be.eql(new CachedResponse(FETCH_RESPONSE_OBJ, STORE_TIME, 9));
   });
 
+  it('should return stored response with consents', () => {
+    // given
+    clientStore.getStoredResponseV2.withArgs('cacheId').returns({
+      response: FETCH_RESPONSE_OBJ,
+      responseTimestamp: STORE_TIME,
+      nb: 9,
+      consents: {
+        gdpr: true,
+        gdpr_consent: 'tcf_string',
+        gpp: 'gpp',
+        gpp_sid: 'gpp_sid',
+        us_privacy: 'ccpa'
+      }
+    });
+
+    // when
+    const result = store.getCachedResponse('cacheId');
+
+    // then
+    expect(result).to.be.eql(new CachedResponse(FETCH_RESPONSE_OBJ, STORE_TIME, 9, {
+      gdpr: true,
+      gdpr_consent: 'tcf_string',
+      gpp: 'gpp',
+      gpp_sid: 'gpp_sid',
+      us_privacy: 'ccpa'
+    }));
+  });
+
   it('should inc nb', () => {
     // when
     store.incNb('c1');
     store.incNb('c2', 10);
 
     // then
-    expect(clientStore.incNbV2).to.be.calledWith('c1',1);
-    expect(clientStore.incNbV2).to.be.calledWith('c2',10);
+    expect(clientStore.incNbV2).to.be.calledWith('c1', 1);
+    expect(clientStore.incNbV2).to.be.calledWith('c2', 10);
   });
 
   it('should take into account the extension ttl', () => {
     // when
-    const extensions = {extA: "A", ttl: 60 * 60};
+    const extensions = {extA: 'A', ttl: 60 * 60};
     store.storeExtensions(extensions);
 
     // then
-    expect(clientStore.storeExtensions).to.be.calledWith(extensions, new StoreItemConfig(CONSTANTS.STORAGE_CONFIG.EXTENSIONS.name, 1/24) );
+    expect(clientStore.storeExtensions).to.be.calledWith(extensions, new StoreItemConfig(CONSTANTS.STORAGE_CONFIG.EXTENSIONS.name, 1 / 24));
   });
 
   it('should use a default extension ttl if not provided', () => {
     // when
-    const extensions = {extA: "A"};
+    const extensions = {extA: 'A'};
     store.storeExtensions(extensions);
 
     // then
-    expect(clientStore.storeExtensions).to.be.calledWith(extensions, new StorageConfig().EXTENSIONS );
+    expect(clientStore.storeExtensions).to.be.calledWith(extensions, new StorageConfig().EXTENSIONS);
   });
 });
 

@@ -364,6 +364,10 @@ describe('Consent Data', function () {
         'USPv1': true
       }));
       expect(consentData.ccpaString).to.be.eql('ABCD');
+      expect(consentData.toConsents()).to.be.eql({
+        gdpr: false,
+        us_privacy: 'ABCD'
+      });
     });
 
     it('should support API GPP v1.0', () => {
@@ -388,6 +392,11 @@ describe('Consent Data', function () {
         [6],
         'gppString'
       ));
+      expect(consentData.toConsents()).to.be.eql({
+        gpp: 'gppString',
+        gpp_sid: '6',
+        gdpr: false
+      });
     });
 
     [
@@ -453,6 +462,11 @@ describe('Consent Data', function () {
         }, createDebugInfo('GPPv1.1-tcfcav1', lspc, vendorConsent)));
 
         expect(consentData.gppData).to.be.eql(new GppConsentData('GPPv1.1',[5],'gppString', undefined, new GppTcfData(lspc, vendorConsent)));
+        expect(consentData.toConsents()).to.be.eql({
+          gpp: 'gppString',
+          gpp_sid: '5',
+          gdpr: false
+        });
       });
     });
 
@@ -475,9 +489,17 @@ describe('Consent Data', function () {
         'USPv1': true
       }, createDebugInfo()));
 
-      expect(consentData.gppData).to.be.eql(new GppConsentData('GPPv1.1',[6],  'gppString'));
-      expect(consentData.ccpaString).to.be.eql('someString');
-    });
+      expect(consentData.gppData).to.be.eql(new GppConsentData('GPPv1.1',[6],
+          'gppString'
+        ));
+        expect(consentData.ccpaString).to.be.eql('someString');
+        expect(consentData.toConsents()).to.be.eql({
+          us_privacy: 'someString',
+          gpp: 'gppString',
+          gpp_sid: '6',
+          gdpr: false
+        });
+      });
 
     [
       [true, true, true, true, true],
@@ -514,6 +536,12 @@ describe('Consent Data', function () {
 
         expect(consentData.gppData).to.be.eql(new GppConsentData('GPPv1.1', [2], 'gppString', new GppTcfData(gppStorageConsent, gppVendorConsent)));
         expect(consentData.consentString).to.be.eql('string');
+        expect(consentData.toConsents()).to.be.eql({
+          gdpr: true,
+          gdpr_consent: 'string',
+          gpp: 'gppString',
+          gpp_sid: '2'
+        });
       });
     });
 
@@ -526,6 +554,9 @@ describe('Consent Data', function () {
 
       expect(consentData.apiTypes).to.be.eql([]);
       expect(consentData.localStorageGrant()).to.be.eql(new LocalStorageGrant(true, GRANT_TYPE.FORCE_ALLOWED_BY_CONFIG));
+      expect(consentData.toConsents()).to.be.eql({
+        gdpr: false
+      });
     });
 
     [

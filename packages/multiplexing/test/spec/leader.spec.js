@@ -259,14 +259,14 @@ describe('ActualLeader', () => {
     follower1.getWindow.returns(leaderWindow);
     follower1.getCacheId.returns('cacheId1');
     follower1.getSource.returns('api');
-    follower1.getSourceVersion.returns('1.1.1')
+    follower1.getSourceVersion.returns('1.1.1');
     follower2 = sinon.createStubInstance(Follower);
     follower2.getId.returns(follower2Id);
     follower2.getFetchIdData.returns(follower2FetchIdData);
     follower2.getWindow.returns(leaderWindow);
     follower2.getCacheId.returns('cacheId2');
     follower2.getSource.returns('api');
-    follower2.getSourceVersion.returns('2.2.2')
+    follower2.getSourceVersion.returns('2.2.2');
     follower3 = sinon.createStubInstance(Follower);
     follower3.getId.returns(follower3Id);
     follower3.getFetchIdData.returns(follower3FetchIdData);
@@ -274,7 +274,7 @@ describe('ActualLeader', () => {
     follower3.getCacheId.returns('cacheId3');
     follower3.getSource.returns('api-lite');
     follower3.type = FollowerType.STANDARD;
-    follower3.getSourceVersion.returns('3.3.3')
+    follower3.getSourceVersion.returns('3.3.3');
 
     followerPassive = sinon.createStubInstance(Follower);
     followerPassive.getId.returns(follower3Id);
@@ -282,7 +282,7 @@ describe('ActualLeader', () => {
     followerPassive.getWindow.returns(leaderWindow);
     followerPassive.getCacheId.returns('cacheId3');
     followerPassive.getSource.returns('api-lite');
-    followerPassive.getSourceVersion.returns('3.3.3')
+    followerPassive.getSourceVersion.returns('3.3.3');
     followerPassive.type = FollowerType.PASSIVE;
     leader = new ActualLeader(leaderWindow, leaderProperties, leaderStorage, store, consentManager, new MeterRegistry(), NO_OP_LOGGER, uidFetcher);
     localStorageCheckStub = sinon.stub(WindowStorage, 'checkIfAccessible').returns(true);
@@ -389,20 +389,23 @@ describe('ActualLeader', () => {
       expect(follower1.notifyUidReady).to.be.calledWith({
         responseObj: {universal_uid: 'id-1'},
         timestamp: 345,
-        isFromCache: false
+        isFromCache: false,
+        consents: CONSENT_DATA_GDPR_ALLOWED.toConsents()
       });
       expect(follower2.notifyUidReady).to.be.calledWith({
         responseObj: {universal_uid: 'id-2'},
         timestamp: 345,
-        isFromCache: false
+        isFromCache: false,
+        consents: CONSENT_DATA_GDPR_ALLOWED.toConsents()
       });
       expect(followerPassive.notifyUidReady).to.be.calledWith({
         responseObj: {universal_uid: 'passive'},
         timestamp: 345,
-        isFromCache: false
+        isFromCache: false,
+        consents: CONSENT_DATA_GDPR_ALLOWED.toConsents()
       });
       expect(consentManager.setStoredPrivacy).to.have.been.calledWith({jurisdiction: 'gdpr', id5_consent: true});
-      expect(store.storeResponse).to.have.been.calledWith(requestData, refreshedResponse);
+      expect(store.storeResponse).to.have.been.calledWith(requestData, refreshedResponse, CONSENT_DATA_GDPR_ALLOWED.toConsents());
       expect(store.updateNbs).to.have.been.calledWith(new Map());
       expect(store.clearAll).to.have.not.been.called;
     });
@@ -455,15 +458,17 @@ describe('ActualLeader', () => {
       expect(follower1.notifyUidReady).to.be.calledWith({
         responseObj: {universal_uid: 'id-1'},
         timestamp: 345,
-        isFromCache: false
+        isFromCache: false,
+        consents: CONSENT_DATA_GDPR_ALLOWED.toConsents()
       });
       expect(follower2.notifyUidReady).to.be.calledWith({
         responseObj: {universal_uid: 'id-2'},
         timestamp: 345,
-        isFromCache: false
+        isFromCache: false,
+        consents: CONSENT_DATA_GDPR_ALLOWED.toConsents()
       });
       expect(consentManager.setStoredPrivacy).to.have.been.calledWith({jurisdiction: 'gdpr', id5_consent: false});
-      expect(store.storeResponse).to.have.not.been.calledWith(requestData, refreshedResponse);
+      expect(store.storeResponse).to.have.not.been.calledWith(requestData, refreshedResponse, CONSENT_DATA_GDPR_ALLOWED.toConsents());
       expect(store.updateNbs).to.have.not.been.calledWith(new Map());
       expect(store.clearAll).to.have.been.called;
     });
@@ -514,15 +519,17 @@ describe('ActualLeader', () => {
       expect(follower1.notifyUidReady).to.be.calledWith({
         responseObj: {universal_uid: 'id-1'},
         timestamp: 345,
-        isFromCache: false
+        isFromCache: false,
+        consents: CONSENT_DATA_GDPR_ALLOWED.toConsents()
       });
       expect(follower2.notifyUidReady).to.be.calledWith({
         responseObj: {universal_uid: 'id-2'},
         timestamp: 345,
-        isFromCache: false
+        isFromCache: false,
+        consents: CONSENT_DATA_GDPR_ALLOWED.toConsents()
       });
       expect(consentManager.setStoredPrivacy).to.have.been.calledWith({jurisdiction: 'gdpr', id5_consent: true});
-      expect(store.storeResponse).to.have.not.been.calledWith(requestData, refreshedResponse);
+      expect(store.storeResponse).to.have.not.been.calledWith(requestData, refreshedResponse, CONSENT_DATA_GDPR_ALLOWED.toConsents());
       expect(store.updateNbs).to.have.not.been.called;
     });
 
@@ -530,26 +537,34 @@ describe('ActualLeader', () => {
 
       // given
       localStorageGrant.isDefinitivelyAllowed.returns(true);
+      const consents1 = {
+        gdpr_consent: 'aaa1'
+      };
+      const consents2 = {
+        gdpr_consent: 'aaa1'
+      };
       const cachedResponse1 = sinon.stub(new CachedResponse({
         universal_uid: crypto.randomUUID()
-      }, Date.now(), 1));
+      }, Date.now(), 1, consents1));
       cachedResponse1.isValid.returns(true);
       const uidFromCache1 = {
         responseObj: cachedResponse1.response,
         timestamp: cachedResponse1.timestamp,
         isFromCache: true,
-        willBeRefreshed: false
+        willBeRefreshed: false,
+        consents: consents1
       };
 
       const cachedResponse2 = sinon.stub(new CachedResponse({
         universal_uid: crypto.randomUUID()
-      }, Date.now(), 10));
+      }, Date.now(), 10, consents2));
       cachedResponse2.isValid.returns(true);
       const uidFromCache2 = {
         responseObj: cachedResponse2.response,
         timestamp: cachedResponse2.timestamp,
         isFromCache: true,
-        willBeRefreshed: false
+        willBeRefreshed: false,
+        consents: consents2
       };
 
       store.getCachedResponse.withArgs(follower1.getCacheId()).returns(cachedResponse1);
@@ -597,12 +612,14 @@ describe('ActualLeader', () => {
       expect(follower1.notifyUidReady).to.be.calledWith({
         responseObj: {universal_uid: 'id-1'},
         timestamp: 345,
-        isFromCache: false
+        isFromCache: false,
+        consents: CONSENT_DATA_GDPR_ALLOWED.toConsents()
       });
       expect(follower2.notifyUidReady).to.be.calledWith({
         responseObj: {universal_uid: 'id-2'},
         timestamp: 345,
-        isFromCache: false
+        isFromCache: false,
+        consents: CONSENT_DATA_GDPR_ALLOWED.toConsents()
       });
       const expectedCacheData = new Map();
       expectedCacheData.set(follower1.getCacheId(), cachedResponse1);
@@ -613,16 +630,21 @@ describe('ActualLeader', () => {
     it('should notify followers when uid ready from cache when registered and then NOT refresh on start when consent has not changed', async () => {
 
       // given
+      const consents = {
+        gdpr: true,
+        gdpr_consent: 'a'
+      };
       const cachedResponse = sinon.stub(new CachedResponse({
         universal_uid: crypto.randomUUID()
-      }, Date.now(), 1));
+      }, Date.now(), 1, consents));
       cachedResponse.isValid.returns(true);
       store.getCachedResponse.returns(cachedResponse);
       const uidFromCache = {
         responseObj: cachedResponse.response,
         timestamp: cachedResponse.timestamp,
         isFromCache: true,
-        willBeRefreshed: false
+        willBeRefreshed: false,
+        consents: consents
       };
 
       const fetchResult = sinon.promise();
@@ -666,7 +688,8 @@ describe('ActualLeader', () => {
           responseObj: cachedResponse.response,
           timestamp: cachedResponse.timestamp,
           isFromCache: true,
-          willBeRefreshed: isExpired
+          willBeRefreshed: isExpired,
+          consents: undefined
         };
 
         const fetchResult = Promise.resolve(new RefreshedResponse({}));
@@ -735,6 +758,9 @@ describe('ActualLeader', () => {
     describe('when uid already fetched', () => {
 
       let cachedResponse;
+      let consents = {
+        gpp: 'gpp'
+      };
       beforeEach(async function () {
         // make sure leader astred and after first fetch
         const fetchResult = sinon.promise();
@@ -752,7 +778,7 @@ describe('ActualLeader', () => {
         await resolved(fetchResult);
         uidFetcher.fetchId.reset();
 
-        cachedResponse = sinon.stub(new CachedResponse({universal_uid: crypto.randomUUID()}, Date.now(), 1));
+        cachedResponse = sinon.stub(new CachedResponse({universal_uid: crypto.randomUUID()}, Date.now(), 1, consents));
       });
 
       it('late joiner should be notified with cached  response if available valid and not expired', function () {
@@ -771,7 +797,8 @@ describe('ActualLeader', () => {
           responseObj: cachedResponse.response,
           timestamp: cachedResponse.timestamp,
           isFromCache: true,
-          willBeRefreshed: false
+          willBeRefreshed: false,
+          consents: consents
         });
         expect(store.incNb).have.been.calledWith(lateJoiner.getCacheId());
         expect(uidFetcher.fetchId).have.not.been.called;
@@ -794,7 +821,8 @@ describe('ActualLeader', () => {
           responseObj: cachedResponse.response,
           timestamp: cachedResponse.timestamp,
           isFromCache: true,
-          willBeRefreshed: true
+          willBeRefreshed: true,
+          consents: consents
         });
         expect(store.incNb).have.been.calledWith(follower2.getCacheId());
 
@@ -825,7 +853,8 @@ describe('ActualLeader', () => {
           responseObj: cachedResponse.response,
           timestamp: cachedResponse.timestamp,
           isFromCache: true,
-          willBeRefreshed: true
+          willBeRefreshed: true,
+          consents: consents
         });
         expect(store.incNb).have.been.calledWith(follower2.getCacheId());
 
@@ -972,7 +1001,8 @@ describe('ActualLeader', () => {
         expect(follower1.notifyUidReady).have.been.calledWith({
           responseObj: {response: 'aa'},
           timestamp: refreshedResponse.timestamp,
-          isFromCache: false
+          isFromCache: false,
+          consents: CONSENT_DATA_GDPR_ALLOWED.toConsents()
         });
         expect(refreshedResponse.getResponseFor.withArgs(follower2.getCacheId())).have.not.been.called;
         expect(follower2.notifyUidReady).have.not.been.called;
@@ -1118,11 +1148,15 @@ describe('ActualLeader', () => {
         store.hasConsentChanged.returns(true);
 
         const timestamp = Date.now();
+        const consents = {
+          gpp_sid: '1,2',
+          gpp: 'a'
+        };
         const cachedResponse = sinon.stub(new CachedResponse({
           universal_uid: 'id5-uid',
           signature: '12243',
           cascade_needed: true
-        }, timestamp, 1));
+        }, timestamp, 1, consents));
         cachedResponse.isExpired.returns(false);
         cachedResponse.isValid.returns(true);
         store.getCachedResponse.withArgs(follower1.getCacheId()).returns(cachedResponse);
@@ -1143,7 +1177,8 @@ describe('ActualLeader', () => {
             cascade_needed: true
           },
           isFromCache: true,
-          willBeRefreshed: false
+          willBeRefreshed: false,
+          consents: consents
         });
         expect(consentManager.resetConsentData).to.not.be.called;
         await resolved(consentPromise);
@@ -1156,12 +1191,16 @@ describe('ActualLeader', () => {
       it('should refresh uid with without force fetch and provide cached response if valid but expired', async () => {
         // given
         store.getCachedResponse.reset();
+        const consents = {
+          gpp_sid: '1,2',
+          gpp: 'a'
+        };
         const timestamp = Date.now();
         const cachedResponse = sinon.stub(new CachedResponse({
           universal_uid: 'id5-uid',
           signature: '12243',
           cascade_needed: true
-        }, timestamp, 1));
+        }, timestamp, 1, consents));
         cachedResponse.isExpired.returns(true);
         cachedResponse.isValid.returns(true);
         store.getCachedResponse.withArgs(follower1.getCacheId()).returns(cachedResponse);
@@ -1182,7 +1221,8 @@ describe('ActualLeader', () => {
             cascade_needed: true
           },
           isFromCache: true,
-          willBeRefreshed: true
+          willBeRefreshed: true,
+          consents
         });
         expect(consentManager.resetConsentData).to.not.be.called;
         await resolved(consentPromise);
@@ -1402,14 +1442,14 @@ describe('ActualLeader', () => {
     it('should NOT notify about cascade if response is from cache', function () {
       // given
       localStorageGrant.isDefinitivelyAllowed.returns(true);
-      const consentData = new ConsentData();
-      consentData.gdprApplies = true;
-      consentData.consentString = 'gdprConsentString';
+      const consents = {
+        gdpr_consent: 'aaa'
+      };
       const cachedResponse = new CachedResponse({
         universal_uid: 'id5-uid',
         signature: '12243',
         cascade_needed: true
-      }, Date.now(), 1);
+      }, Date.now(), 1, consents);
       store.getCachedResponse.withArgs(follower1.getCacheId()).returns(cachedResponse);
 
       // when
@@ -1420,7 +1460,8 @@ describe('ActualLeader', () => {
         responseObj: cachedResponse.response,
         timestamp: cachedResponse.timestamp,
         isFromCache: true,
-        willBeRefreshed: true
+        willBeRefreshed: true,
+        consents
       });
       expect(follower1.canDoCascade).to.have.not.been.called;
       expect(follower1.notifyCascadeNeeded).to.have.not.been.called;
@@ -1429,9 +1470,6 @@ describe('ActualLeader', () => {
     it('should NOT notify about cascade if not requested in response', async () => {
       // given
       localStorageGrant.isDefinitivelyAllowed.returns(true);
-      const consentData = new ConsentData();
-      consentData.gdprApplies = true;
-      consentData.consentString = 'gdprConsentString';
 
       leader.addFollower(follower1);
       const refreshedResponse = sinon.createStubInstance(RefreshedResponse);
@@ -1454,7 +1492,8 @@ describe('ActualLeader', () => {
           universal_uid: 'id5-uid'
         },
         timestamp: 1,
-        isFromCache: false
+        isFromCache: false,
+        consents: CONSENT_DATA_GDPR_ALLOWED.toConsents()
       });
       expect(follower1.canDoCascade).to.have.not.been.called;
       expect(follower1.notifyCascadeNeeded).to.have.not.been.called;
