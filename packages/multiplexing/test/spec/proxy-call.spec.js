@@ -5,7 +5,8 @@ import {
   ProxyMethodCallTarget
 } from '../../src/messaging.js';
 import sinon from 'sinon';
-import {Follower, ProxyFollower, ProxyStorage} from '../../src/follower.js';
+import {Follower} from '../../src/follower.js';
+import {ProxyFollower, ProxyStorage} from '../../src/followerProxy.js';
 import {DiscoveredInstance, Properties} from '../../src/instanceCore.js';
 import {Leader, ProxyLeader} from '../../src/leader.js';
 import {StorageApi} from '../../src/localStorage.js';

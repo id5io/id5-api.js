@@ -6,7 +6,7 @@ import {CachedResponse, Store} from '../../src/store.js';
 import {API_TYPE, ConsentData, LocalStorageGrant} from '../../src/consent.js';
 import {ConsentManagement} from '../../src/consentManagement.js';
 import {NO_OP_LOGGER} from '../../src/logger.js';
-import {Follower} from '../../src/follower.js';
+import {Follower, FollowerType} from '../../src/follower.js';
 import {Properties} from '../../src/instanceCore.js';
 import {MeterRegistry} from '@id5io/diagnostics';
 import {ReplicatingStorage, WindowStorage} from '../../src/localStorage.js';
@@ -211,7 +211,7 @@ describe('ActualLeader', () => {
   /**
    * @type {Follower}
    */
-  let follower1, follower2, follower3;
+  let follower1, follower2, follower3, followerPassive;
   /**
    * @type {FetchIdData}
    */
@@ -273,7 +273,17 @@ describe('ActualLeader', () => {
     follower3.getWindow.returns(leaderWindow);
     follower3.getCacheId.returns('cacheId3');
     follower3.getSource.returns('api-lite');
+    follower3.type = FollowerType.STANDARD;
     follower3.getSourceVersion.returns('3.3.3')
+
+    followerPassive = sinon.createStubInstance(Follower);
+    followerPassive.getId.returns(follower3Id);
+    followerPassive.getFetchIdData.returns(follower3FetchIdData);
+    followerPassive.getWindow.returns(leaderWindow);
+    followerPassive.getCacheId.returns('cacheId3');
+    followerPassive.getSource.returns('api-lite');
+    followerPassive.getSourceVersion.returns('3.3.3')
+    followerPassive.type = FollowerType.PASSIVE;
     leader = new ActualLeader(leaderWindow, leaderProperties, leaderStorage, store, consentManager, new MeterRegistry(), NO_OP_LOGGER, uidFetcher);
     localStorageCheckStub = sinon.stub(WindowStorage, 'checkIfAccessible').returns(true);
   });
@@ -302,6 +312,10 @@ describe('ActualLeader', () => {
 
   function expectedFollowerData(follower, requestCount = 1, refresh = false, cacheData = undefined) {
     return expectedRequestData(follower, 'follower', requestCount, refresh, cacheData);
+  }
+
+  function expectedFollowerPassiveData(follower, requestCount = 1, refresh = false, cacheData = undefined) {
+    return expectedRequestData(follower, 'follower-passive', requestCount, refresh, cacheData);
   }
 
   describe('when consent data available - given', function () {
@@ -335,10 +349,12 @@ describe('ActualLeader', () => {
       // when
       let add1Result = leader.addFollower(follower1);
       let add2Result = leader.addFollower(follower2);
+      let add3Result = leader.addFollower(followerPassive);
 
       // then
       expect(add1Result).to.be.eql(new AddFollowerResult());
       expect(add2Result).to.be.eql(new AddFollowerResult());
+      expect(add3Result).to.be.eql(new AddFollowerResult());
 
       // when
       leader.start();
@@ -348,6 +364,7 @@ describe('ActualLeader', () => {
       const refreshedResponse = sinon.createStubInstance(RefreshedResponse);
       refreshedResponse.getResponseFor.withArgs(follower1.getId()).returns({universal_uid: 'id-1'});
       refreshedResponse.getResponseFor.withArgs(follower2.getId()).returns({universal_uid: 'id-2'});
+      refreshedResponse.getResponseFor.withArgs(followerPassive.getId()).returns({universal_uid: 'passive'});
       refreshedResponse.timestamp = 345;
       refreshedResponse.getGenericResponse.returns({
         privacy: {jurisdiction: 'gdpr', id5_consent: true}
@@ -358,7 +375,8 @@ describe('ActualLeader', () => {
       expect(store.storeConsent).to.have.been.calledWith(CONSENT_DATA_GDPR_ALLOWED);
       const requestData = [
         expectedLeaderData(follower1, 1, true),
-        expectedFollowerData(follower2, 1, true)
+        expectedFollowerData(follower2, 1, true),
+        expectedFollowerPassiveData(followerPassive, 1, true)
       ];
       expect(uidFetcher.fetchId).to.be.calledWith(requestData,
         CONSENT_DATA_GDPR_ALLOWED,
@@ -375,6 +393,11 @@ describe('ActualLeader', () => {
       });
       expect(follower2.notifyUidReady).to.be.calledWith({
         responseObj: {universal_uid: 'id-2'},
+        timestamp: 345,
+        isFromCache: false
+      });
+      expect(followerPassive.notifyUidReady).to.be.calledWith({
+        responseObj: {universal_uid: 'passive'},
         timestamp: 345,
         isFromCache: false
       });
@@ -1551,11 +1574,16 @@ describe('ActualLeader', () => {
     [
       [ConsentSource.cmp, ConsentSource.cmp, ConsentSource.prebid, ConsentSource.partner],
       [ConsentSource.cmp, ConsentSource.cmp, ConsentSource.partner, ConsentSource.partner],
+      [ConsentSource.cmp, ConsentSource.cmp, ConsentSource.partner, ConsentSource.none],
       [undefined, undefined, ConsentSource.cmp, ConsentSource.cmp], // undefined assumed as cmp
+      [undefined, undefined, ConsentSource.none, ConsentSource.cmp],
       [ConsentSource.cmp, ConsentSource.cmp, ConsentSource.cmp, ConsentSource.cmp],
+      [ConsentSource.cmp, ConsentSource.none, ConsentSource.cmp, ConsentSource.cmp],
       [ConsentSource.prebid, ConsentSource.prebid, ConsentSource.partner, ConsentSource.partner],
       [ConsentSource.prebid, ConsentSource.prebid, ConsentSource.cmp, ConsentSource.cmp],
-      [ConsentSource.partner, ConsentSource.partner, ConsentSource.partner, ConsentSource.partner]
+      [ConsentSource.prebid, ConsentSource.prebid, ConsentSource.none, ConsentSource.cmp],
+      [ConsentSource.partner, ConsentSource.partner, ConsentSource.partner, ConsentSource.partner],
+      [ConsentSource.partner, ConsentSource.none, ConsentSource.partner, ConsentSource.partner]
     ].forEach(([provisionedSource, declaredSource1, declaredSource2, declaredSource3]) => {
       it(`should accept consent from ${provisionedSource} when declared ${[declaredSource1, declaredSource2, declaredSource3]}`, function () {
         // given

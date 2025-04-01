@@ -1,4 +1,4 @@
-import {MultiplexingInstance} from './src/instanceCore.js';
+import {PassiveMultiplexingInstance} from './src/instancePassive.js';
 
 class MultiplexingRegistry {
 
@@ -10,10 +10,9 @@ class MultiplexingRegistry {
    * @return {MultiplexingInstance}
    */
   createPassiveInstance(wnd, logger, metrics) {
-    return new MultiplexingInstance(wnd, {}, metrics, logger);
+    return new PassiveMultiplexingInstance(wnd, {}, metrics, logger);
   }
 }
 
 const multiplexing = new MultiplexingRegistry();
-
 export default multiplexing;

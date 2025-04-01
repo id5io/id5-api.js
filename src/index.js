@@ -1,6 +1,10 @@
-import {Id5Api} from '../lib/id5-api';
+import {ApiStandard} from '../lib/id5-api.js';
+import {Id5Api} from '../lib/core/id5Api.js';
 
-const API_ORIGIN = 'api';
-if (!window.ID5 || window.ID5.origin !== API_ORIGIN) {
-  window.ID5 = new Id5Api(API_ORIGIN);
+if (!window.ID5) {
+  window.ID5 = new Id5Api();
+}
+
+if (!window.ID5.ApiStandardLoaded) {
+  new ApiStandard(window.ID5); // assign standard api
 }

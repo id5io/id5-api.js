@@ -9,7 +9,8 @@ import {
 } from './logger.js';
 import {ActualLeader, AwaitedLeader, Leader, ProxyLeader} from './leader.js';
 import {MultiplexingEvent} from './events.js';
-import {DirectFollower, ProxyFollower} from './follower.js';
+import {FollowerType} from './follower.js';
+import {ProxyFollower} from './followerProxy.js';
 import {
   LocalStorage, ReplicatingStorage,
   /* eslint-disable no-unused-vars */
@@ -224,7 +225,6 @@ export class Instance extends CoreInstance {
     super(wnd, configuration, metrics, logger);
     this._leader = new AwaitedLeader(); // AwaitedLeader buffers self requests to leader in case some events happened before leader is elected (i.e. consent update)
     this._remoteCallsToLeaderHandler = new AwaitedLeader(); // AwaitedLeader buffers remoted requests to leader received by this instace in case some events happened before leader is elected (i.e. consent update)
-    this._followerRole = new DirectFollower(this._window, this.properties, this._dispatcher, this._logger, this._metrics);
     this._instanceCounters = new InstancesCounters(metrics, this.properties);
     this._storage = storage;
     this._trueLinkAdapter = trueLinkAdapter;
@@ -240,7 +240,7 @@ export class Instance extends CoreInstance {
     collectPartySizeMetrics(instance);
     instance._messenger
       .onProxyMethodCall(
-        new ProxyMethodCallHandler(this._logger)
+        new ProxyMethodCallHandler(instance._logger)
           // register now to receive leader calls before actual leader is assigned
           // it may happen that some followers will elect this instance as the leader before elected instance knows it acts as the leader
           // this way all calls will be buffered and executed when actual leader is elected
@@ -352,7 +352,7 @@ export class Instance extends CoreInstance {
       Array.from(this._knownInstances.values())
         .filter(instance => instance.isMultiplexingPartyAllowed())
         // TODO handle passive followers
-        .map(instance => leader.addFollower(new ProxyFollower(instance, this._messenger, logger)));
+        .map(instance => leader.addFollower(new ProxyFollower(instance, this._messenger, logger, instance.isPassive() ? FollowerType.PASSIVE : FollowerType.STANDARD)));
     }
     // all prepared let's start
     leader.start();
@@ -387,7 +387,7 @@ export class Instance extends CoreInstance {
     const election = this._election;
     const knownInstances = this._knownInstances;
     let electionCandidates = Array.from(knownInstances.values())
-      .filter(knownInstance => knownInstance.isMultiplexingPartyAllowed())
+      .filter(knownInstance => knownInstance.isMultiplexingPartyAllowed() && knownInstance.isLeaderCapable())
       .map(knownInstance => knownInstance.properties);
     electionCandidates.push(this.properties);
     this._onLeaderElected(electLeader(electionCandidates));

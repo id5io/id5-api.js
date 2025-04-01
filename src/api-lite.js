@@ -1,7 +1,10 @@
-import {Id5ApiLite} from '../lib/lite/id5-api.js';
+import {ApiLite} from '../lib/lite/apiLite.js';
+import {Id5Api} from '../lib/core/id5Api.js';
 
-if (!window.ID5_LITE) {
-  window.ID5_LITE = new Id5ApiLite();
+if (!window.ID5) {
+  window.ID5 = new Id5Api();
 }
 
-
+if (!window.ID5.ApiLiteLoaded) {
+  new ApiLite(window.ID5);
+}
