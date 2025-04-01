@@ -18,6 +18,7 @@ import {storageAllKeysCounter, storageExpiredKeysCounter} from './metrics.js';
  * @property {FetchResponse} response
  * @property {number} responseTimestamp
  * @property {number} nb
+ * @property {Consents} consents
  */
 
 export class ClientStore {
@@ -232,14 +233,16 @@ export class ClientStore {
    * @param {string} cacheId
    * @param {FetchResponse} response
    * @param {number} responseTimestamp
+   * @param {Consents} consents
    * @return {StoredResponseV2}
    */
-  storeResponseV2(cacheId, response, responseTimestamp = Date.now()) {
+  storeResponseV2(cacheId, response, responseTimestamp = Date.now(), consents) {
     return this._updateObject(this.storageConfig.ID5_V2.withNameSuffixed(cacheId), previousData => {
       return {
         ...previousData,
         response: response,
-        responseTimestamp: responseTimestamp
+        responseTimestamp: responseTimestamp,
+        consents: consents
       };
     });
   }

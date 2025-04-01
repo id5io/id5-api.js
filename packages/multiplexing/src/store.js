@@ -103,8 +103,9 @@ export class Store {
   /**
    * @param {array<FetchIdRequestData>} requestInputData
    * @param {RefreshedResponse} refreshedResponse
+   * @param {Consents} consents
    */
-  storeResponse(requestInputData, refreshedResponse) {
+  storeResponse(requestInputData, refreshedResponse, consents) {
     // V1 for non-multiplexed integration on the page (to exchange signature)
     this._clientStore.putResponseV1(refreshedResponse.getGenericResponse());
     this._clientStore.setResponseDateTimeV1(new Date(refreshedResponse.timestamp).toUTCString());
@@ -117,12 +118,12 @@ export class Store {
       if (!updatedCache.has(cacheId)) {
         const responseFor = refreshedResponse.getResponseFor(data.integrationId);
         if (responseFor) {
-          this._clientStore.storeResponseV2(cacheId, responseFor, refreshedResponse.timestamp);
+          this._clientStore.storeResponseV2(cacheId, responseFor, refreshedResponse.timestamp, consents);
           updatedCache.add(cacheId);
         }
       }
     });
-    this._trueLinkAdapter.setPrivacy(refreshedResponse.getGenericResponse()?.privacy)
+    this._trueLinkAdapter.setPrivacy(refreshedResponse.getGenericResponse()?.privacy);
   }
 
   clearAll(fetchIdData) {
@@ -144,7 +145,7 @@ export class Store {
   getCachedResponse(cacheId) {
     const storedResponseV2 = this._clientStore.getStoredResponseV2(cacheId);
     if (storedResponseV2) {
-      return new CachedResponse(storedResponseV2.response, storedResponseV2.responseTimestamp, storedResponseV2.nb);
+      return new CachedResponse(storedResponseV2.response, storedResponseV2.responseTimestamp, storedResponseV2.nb, storedResponseV2.consents);
     }
     return undefined;
   }
@@ -160,8 +161,8 @@ export class Store {
    * @param {ExtensionsData} extensions
    */
   storeExtensions(extensions) {
-    let expiresDays = isNumber(extensions.ttl) ? extensions.ttl / SECONDS_IN_DAY  : StorageConfig.DEFAULT.EXTENSIONS.expiresDays
-    let config = new StoreItemConfig(StorageConfig.DEFAULT.EXTENSIONS.name, expiresDays)
+    let expiresDays = isNumber(extensions.ttl) ? extensions.ttl / SECONDS_IN_DAY : StorageConfig.DEFAULT.EXTENSIONS.expiresDays;
+    let config = new StoreItemConfig(StorageConfig.DEFAULT.EXTENSIONS.name, expiresDays);
     return this._clientStore.storeExtensions(extensions, config);
   }
 
@@ -174,11 +175,16 @@ export class CachedResponse {
   timestamp;
   /** @type {number} */
   nb;
+  /**
+   * @type {Consents}
+   */
+  consents;
 
-  constructor(response, timestamp, nb = 0) {
+  constructor(response, timestamp, nb = 0, consents = undefined) {
     this.response = response;
     this.timestamp = timestamp;
     this.nb = nb;
+    this.consents = consents;
   }
 
   isExpired() {
@@ -212,6 +218,6 @@ export class CachedResponse {
    * @return {number} cached response age in msec
    */
   getAgeSec() {
-    return ((Date.now() - this.timestamp)/1000) | 0;
+    return ((Date.now() - this.timestamp) / 1000) | 0;
   }
 }

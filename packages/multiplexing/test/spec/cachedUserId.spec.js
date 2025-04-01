@@ -53,7 +53,8 @@ describe('CachedUserIdProvisioner', function () {
         responseObj: cachedResponse.response,
         timestamp: cachedResponse.timestamp,
         isFromCache: true,
-        willBeRefreshed: isExpired
+        willBeRefreshed: isExpired,
+        consents: undefined
       }, {
         timestamp: NOW,
         provisioner: provisionerName,
@@ -70,6 +71,48 @@ describe('CachedUserIdProvisioner', function () {
       expect(ageMetric.record).to.be.calledWith(12); // 12000 msec -> 12 sec
     });
   });
+
+
+  it(`should provision cached response with consents if available`, async () => {
+
+    // given
+    const consents = {
+      gdpr: true,
+      gdpr_consent: 'abc',
+      gpp: 'gpp'
+    };
+    const cachedResponse = sinon.stub(new CachedResponse({universal_uid: crypto.randomUUID()}, 123456, 1, consents));
+    cachedResponse.isValid.returns(true);
+    cachedResponse.isExpired.returns(false);
+    cachedResponse.getAgeSec.returns(12);
+    store.getCachedResponse.withArgs(cacheId).returns(cachedResponse);
+
+    // when
+    let result = provisioner.provisionFromCache(follower);
+
+    // then
+    expect(follower.notifyUidReady).to.be.calledWith({
+      responseObj: cachedResponse.response,
+      timestamp: cachedResponse.timestamp,
+      isFromCache: true,
+      willBeRefreshed: false,
+      consents: consents
+    }, {
+      timestamp: NOW,
+      provisioner: provisionerName,
+      tags: {
+        callType: follower.callType
+      }
+    });
+    expect(result).to.be.eql({
+      cacheId: 'cache-id-1',
+      provisioned: true,
+      refreshRequired: false,
+      responseFromCache: cachedResponse
+    });
+    expect(ageMetric.record).to.be.calledWith(12); // 12000 msec -> 12 sec
+  });
+
 
   it(`should notify with additional tags`, async () => {
 
@@ -88,7 +131,8 @@ describe('CachedUserIdProvisioner', function () {
       responseObj: cachedResponse.response,
       timestamp: cachedResponse.timestamp,
       isFromCache: true,
-      willBeRefreshed: false
+      willBeRefreshed: false,
+      consents: undefined
     }, {
       timestamp: NOW,
       provisioner: provisionerName,
