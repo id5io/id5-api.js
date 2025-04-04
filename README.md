@@ -624,7 +624,7 @@ pbjs.setConfig({
         userIds: [{
             name: "id5Id",
             params: {
-                partner: 173                                                               // same value as in the API config
+                partner: 173,                                                               // same value as in the API config
                 externalModuleUrl: 'https://cdn.id5-sync.com/api/1.0/id5PrebidModule.js',  // highly recommended to enable the external module
             },
             storage: {
