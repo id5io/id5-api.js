@@ -15,6 +15,7 @@
     "./events": "./src/events.js"
   },
   "files": [
+    "index*.mjs",
     "src/*.js",
     "generated/*.js"
   ],
