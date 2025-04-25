@@ -1,12 +1,12 @@
 import sinon from 'sinon';
-import {EXTENSIONS, ID5_BOUNCE_ENDPOINT, ID5_LB_ENDPOINT} from '../../src/extensions.js';
+import {EXTENSIONS, ID5_BOUNCE_ENDPOINT, ID5_LB_ENDPOINT, ID5_LBS_ENDPOINT} from '../../src/extensions.js';
 import {NO_OP_LOGGER} from '../../src/logger.js';
 import {MeterRegistry} from '@id5io/diagnostics';
 import {Store} from '../../src/store.js';
 
 const BOUNCE_DEFAULT_RESPONSE = {bounce: {setCookie: false}};
 
-function createFetchStub(lbResponse) {
+function createFetchStub(lbResponse, lbsResponse = undefined) {
   return sinon.stub(window, 'fetch').callsFake(function (url, init) {
     if (url.includes('eu-3-id5-sync.com')) {
       return Promise.resolve(new window.Response('1', {status: 200}));
@@ -14,8 +14,10 @@ function createFetchStub(lbResponse) {
       return Promise.resolve(new window.Response('2', {status: 200}));
     } else if (url.includes(ID5_LB_ENDPOINT)) {
       return Promise.resolve(new window.Response(JSON.stringify(lbResponse), {status: 200}));
-    } else if (url.includes(ID5_BOUNCE_ENDPOINT) && init.credentials == 'include') {
+    } else if (url.includes(ID5_BOUNCE_ENDPOINT) && init.credentials === 'include') {
       return Promise.resolve(new window.Response(JSON.stringify(BOUNCE_DEFAULT_RESPONSE), {status: 200}));
+    } else if (url.includes(ID5_LBS_ENDPOINT) && lbsResponse !== undefined) {
+      return Promise.resolve(new window.Response(JSON.stringify(lbsResponse), {status: 200}));
     } else {
       return Promise.reject('Error');
     }
@@ -44,7 +46,27 @@ describe('Extensions', function () {
 
   it('should return all extensions gathered and a default response', function () {
     let extensionsResponse = lbExtensionsWithChunksFlag(true);
-    fetchStub = createFetchStub(extensionsResponse);
+    fetchStub = createFetchStub(extensionsResponse, {lbs: 'lbsValue'});
+
+    return extensions.gather([{}])
+      .then(response => {
+        expect(fetchStub).to.be.calledWith(ID5_BOUNCE_ENDPOINT);
+        expect(response).to.be.deep.equal({
+          ...extensionsResponse,
+          lbCDN: '%%LB_CDN%%',
+          devChunks: Array.from({length: 8}, () => '1'),
+          devChunksVersion: '4',
+          groupChunks: Array.from({length: 8}, () => '2'),
+          groupChunksVersion: '4',
+          ...BOUNCE_DEFAULT_RESPONSE,
+          lbs: 'lbsValue'
+        });
+      });
+  });
+
+  it('should ignore failed lbs extension calle', function () {
+    let extensionsResponse = lbExtensionsWithChunksFlag(true);
+    fetchStub = createFetchStub(extensionsResponse, undefined);
 
     return extensions.gather([{}])
       .then(response => {
@@ -140,7 +162,7 @@ describe('Extensions', function () {
   });
 
   it('should not call any extensions when there are cached extensions', function () {
-    const cachedExtensions = {ext: "ext"};
+    const cachedExtensions = {ext: 'ext'};
     store.getCachedExtensions.returns(cachedExtensions);
     fetchStub = createFetchStub();
 

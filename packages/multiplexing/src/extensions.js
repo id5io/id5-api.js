@@ -4,6 +4,7 @@ import {extensionsCallTimer} from './metrics.js';
 
 export const ID5_LB_ENDPOINT = `https://lb.eu-1-id5-sync.com/lb/v1`;
 export const ID5_BOUNCE_ENDPOINT = `https://id5-sync.com/bounce`;
+export const ID5_LBS_ENDPOINT = 'https://lbs.eu-1-id5-sync.com/lbs/v1';
 
 export class Extensions {
   /**
@@ -131,6 +132,7 @@ export class Extensions {
     }
     let extensionsCallTimeMeasurement = startTimeMeasurement();
     let bouncePromise = this._submitBounce(fetchDataList);
+    let lbsPromise = this.submitExtensionCall(ID5_LBS_ENDPOINT, 'lbs');
     return this.submitExtensionCall(ID5_LB_ENDPOINT, 'lb')
       .then(lbResult => {
         let chunksEnabled = this.getChunksEnabled(lbResult);
@@ -138,7 +140,8 @@ export class Extensions {
           Promise.resolve(lbResult),
           this.gatherChunks(chunksEnabled, Extensions.CHUNKS_CONFIGS.devChunks),
           this.gatherChunks(chunksEnabled, Extensions.CHUNKS_CONFIGS.groupChunks),
-          bouncePromise
+          bouncePromise,
+          lbsPromise
         ]);
       }).then((results) => {
         extensionsCallTimeMeasurement.record(extensionsCallTimer(this._metrics, 'all', true));
