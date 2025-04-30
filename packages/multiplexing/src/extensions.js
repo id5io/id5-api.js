@@ -26,7 +26,7 @@ export class Extensions {
    * @type {Store}
    * @private
    */
-  _store
+  _store;
 
   /**
    * @param {MeterRegistry} metrics
@@ -132,7 +132,7 @@ export class Extensions {
     }
     let extensionsCallTimeMeasurement = startTimeMeasurement();
     let bouncePromise = this._submitBounce(fetchDataList);
-    let lbsPromise = this.submitExtensionCall(ID5_LBS_ENDPOINT, 'lbs');
+    let lbsPromise = this._submitLbs();
     return this.submitExtensionCall(ID5_LB_ENDPOINT, 'lb')
       .then(lbResult => {
         let chunksEnabled = this.getChunksEnabled(lbResult);
@@ -154,10 +154,21 @@ export class Extensions {
         this._store.storeExtensions(extensions);
         return extensions;
       }).catch((error) => {
-        extensionsCallTimeMeasurement.record(extensionsCallTimer(this._metrics,'all', false));
+        extensionsCallTimeMeasurement.record(extensionsCallTimer(this._metrics, 'all', false));
         this._log.error(`Got error ${error} when gathering extensions data`);
         return Extensions.DEFAULT_RESPONSE;
       });
+  }
+
+  _submitLbs() {
+    const controller = new AbortController();
+    const lbsTimeout = setTimeout(() => controller.abort(), 3000);
+    let lbsPromise = this.submitExtensionCall(ID5_LBS_ENDPOINT, 'lbs', {
+      signal: controller.signal
+    });
+    return lbsPromise.finally(() => {
+      clearTimeout(lbsTimeout);
+    });
   }
 
   /**

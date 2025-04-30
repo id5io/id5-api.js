@@ -64,7 +64,7 @@ describe('Extensions', function () {
       });
   });
 
-  it('should ignore failed lbs extension calle', function () {
+  it('should ignore failed lbs extension call', function () {
     let extensionsResponse = lbExtensionsWithChunksFlag(true);
     fetchStub = createFetchStub(extensionsResponse, undefined);
 
