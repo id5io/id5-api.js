@@ -35,6 +35,8 @@
         const id5Paragraph = document.getElementById("id5id");
         id5Paragraph.innerText = id5Status.getUserId();
         window.testResults = {id5id: id5Status.getUserId()}
+    }, 5000).onRefresh(() => {
+        window.testResults.updated = true;
     }, 5000)
 </script>
 <!-- /ID5 API -->
