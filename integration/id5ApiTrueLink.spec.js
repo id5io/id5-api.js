@@ -76,6 +76,7 @@ describe('The ID5 API true link integration', function () {
     expect(requestBody.true_link.redirected).to.equal(false);
     expect(requestBody.true_link.id).to.equal(undefined)
     await openPageAndWaitForId5Id(page, trueLinkMockServer, TEST_DOMAIN);
+    await page.waitForFunction(() => window.testResults?.updated);
     const newId5FetchRequests = await mockId5.getSeenRequests();
     expect(newId5FetchRequests).to.have.lengthOf(2);
     const newRequestBody = (await newId5FetchRequests[1].body.getJson()).requests[0];
