@@ -20,6 +20,7 @@ export async function buildBrowser(cert, port, debug = false) {
     `--user-data-dir=${profileDir.path}`,
     '--no-first-run',
     '--disable-features=site-per-process',
+    '--disable-site-isolation-trials',
     '--disable-component-update'
   ];
 
