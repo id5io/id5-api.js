@@ -935,6 +935,30 @@ describe('Id5Instance', function () {
         consents: consents
       });
     });
+
+    it('should expose signature via getter', function (done) {
+      const config = new Config({
+        ...defaultInitBypassConsent(),
+        maxCascades: 4
+      }, NO_OP_LOGGER);
+
+      const instanceUnderTest = new Id5Instance(config, null, null, metrics, null, NO_OP_LOGGER, multiplexingInstanceStub, null, new TrueLinkAdapter());
+      instanceUnderTest.bootstrap();
+
+      instanceUnderTest.onUpdate(function () {
+        done(new Error('this callback should not be called'));
+      });
+
+      instanceUnderTest.onUpdate(function () {
+        done();
+      });
+
+      multiplexingInstanceStub.emit(ApiEvent.USER_ID_READY, {
+        isFromCache: false,
+        responseObj: {universal_uid: 'ID5*the_ID', 'signature': 'ID5*the_sig'}
+      });
+      expect(instanceUnderTest.getSignature() ).to.eq('ID5*the_sig');
+    });
   });
 
   describe('cleanup', function () {
