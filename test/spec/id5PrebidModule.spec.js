@@ -85,4 +85,39 @@ describe('ID5 Prebid module', function () {
     const result = await responsePromise;
     expect(result).to.be.eql(responseObj);
   });
+
+
+});
+
+describe('getPrebidVersion', function() {
+  beforeEach(function() {
+    delete window.pbjs;
+    delete window._pbjsGlobals;
+  });
+
+  it('should return version from window.pbjs.version when available', function() {
+    window.pbjs = { version: '8.0.1' };
+    expect(window.id5Prebid.integration.getPrebidVersion()).to.equal('8.0.1');
+  });
+
+  it('should return version from first global in window._pbjsGlobals when pbjs is not available', function() {
+    window._pbjsGlobals = ['customPbjsGlobal'];
+    window.customPbjsGlobal = { version: '7.0.0' };
+    expect(window.id5Prebid.integration.getPrebidVersion()).to.equal('7.0.0');
+  });
+
+  it('should return "unknown" when no version is available', function() {
+    expect(window.id5Prebid.integration.getPrebidVersion()).to.equal('unknown');
+  });
+
+  it('should return "unknown" when _pbjsGlobals exists but first global has no version', function() {
+    window._pbjsGlobals = ['emptyGlobal'];
+    window.emptyGlobal = {};
+    expect(window.id5Prebid.integration.getPrebidVersion()).to.equal('unknown');
+  });
+
+  it('should return "unknown" when _pbjsGlobals is empty', function() {
+    window._pbjsGlobals = [];
+    expect(window.id5Prebid.integration.getPrebidVersion()).to.equal('unknown');
+  });
 });
