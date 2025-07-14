@@ -1,4 +1,12 @@
-import {delve, InvocationLogger, isDefined, isGlobalDebug, isGlobalTrace, setGlobalDebug} from '../lib/utils.js';
+import {
+  delve,
+  InvocationLogger,
+  isArray,
+  isDefined,
+  isGlobalDebug,
+  isGlobalTrace,
+  setGlobalDebug
+} from '../lib/utils.js';
 import {version as currentVersion} from '../generated/version.js';
 import {Config} from '../lib/config.js';
 import {createPublisher, MeterRegistryPublisher, startTimeMeasurement} from '@id5io/diagnostics';
@@ -119,7 +127,7 @@ class Id5PrebidIntegration {
    */
   async fetchId5Id(dynamicConfig, prebidConfig, refererInfo, gdprConsentData, uspConsentData, gppConsentData) {
     this.invocationId += 1;
-    const prebidVersion = isDefined(window.pbjs) ? window.pbjs.version : 'unknown';
+    const prebidVersion = this.getPrebidVersion();
     const log = new InvocationLogger(SOURCE, this.invocationId);
     log.info(`ID5 API Prebid  external module version ${this._version}. Invoking fetchId5Id()`, dynamicConfig, prebidConfig);
     const config = new Config({
@@ -181,6 +189,18 @@ class Id5PrebidIntegration {
     });
 
     return instancePromise;
+  }
+
+  getPrebidVersion() {
+    if(isDefined(window.pbjs?.version)) {
+      return window.pbjs.version;
+    } else if(isArray(window._pbjsGlobals) && window._pbjsGlobals.length > 0) {
+      const version = window[window._pbjsGlobals[0]]?.version;
+      if(isDefined(version)) {
+        return version;
+      }
+    }
+    return 'unknown';
   }
 
   /**
