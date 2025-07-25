@@ -168,14 +168,10 @@ describe('Store', function () {
     store.storeResponse(FETCH_ID_DATA, refreshedResponse, consents);
 
     // then
-    // store V1
-    expect(clientStore.putResponseV1).to.have.been.calledWith(genericResponse);
-    expect(clientStore.setResponseDateTimeV1).to.have.been.calledWith(new Date(responseTime).toUTCString());
-
-    // store V2
     expect(clientStore.storeResponseV2).to.be.calledTwice;
     expect(clientStore.storeResponseV2.firstCall).to.be.calledWith(FETCH_ID_DATA[0].cacheId, response1, responseTime, consents);
     expect(clientStore.storeResponseV2.secondCall).to.be.calledWith(FETCH_ID_DATA[1].cacheId, response2, responseTime, consents);
+    expect(clientStore.storeSignature).to.be.calledWith(genericResponse.signature);
     expect(trueLinkAdapter.setPrivacy).to.be.calledWith(genericResponse.privacy);
   });
 
@@ -228,6 +224,7 @@ describe('Store', function () {
     expect(clientStore.storeResponseV2).to.be.calledTwice;
     expect(clientStore.storeResponseV2.firstCall).to.be.calledWith('c1', response1);
     expect(clientStore.storeResponseV2.secondCall).to.be.calledWith('c2', response2);
+    expect(clientStore.storeSignature).to.be.calledWith(genericResponse.signature);
   });
 
   it('should clear all', () => {
@@ -236,13 +233,14 @@ describe('Store', function () {
     store.clearAll(FETCH_ID_DATA);
 
     // then
-    expect(clientStore.clearResponse).to.have.been.calledOnce;
+    expect(clientStore.clearResponseV1).to.have.been.calledOnce;
     expect(clientStore.clearDateTime).to.have.been.calledOnce;
     expect(clientStore.clearResponseV2).to.have.been.calledTwice;
     expect(clientStore.clearResponseV2.firstCall.args).to.be.eql([FETCH_ID_DATA[0].cacheId]);
     expect(clientStore.clearResponseV2.secondCall.args).to.be.eql([FETCH_ID_DATA[1].cacheId]);
     expect(clientStore.clearHashedConsentData).to.have.been.calledOnce;
     expect(clientStore.clearExtensions).to.have.been.calledOnce;
+    expect(clientStore.clearSignature).to.have.been.calledOnce;
     expect(trueLinkAdapter.clearPrivacy).to.have.been.calledOnce;
   });
 
@@ -316,6 +314,46 @@ describe('Store', function () {
     // then
     expect(clientStore.storeExtensions).to.be.calledWith(extensions, new StorageConfig().EXTENSIONS);
   });
+
+  it('should get cached signature', () => {
+    // given
+    const storedSignature = {
+      signature: 'test-signature'
+    };
+    clientStore.getStoredSignature.returns(storedSignature);
+
+    // when
+    const result = store.getCachedSignature();
+
+    // then
+    expect(clientStore.getStoredSignature).to.have.been.calledOnce;
+    expect(result).to.be.eql('test-signature');
+  });
+
+  it('should return undefined when no cached signature', () => {
+    // given
+    clientStore.getStoredSignature.returns(undefined);
+
+    // when
+    const result = store.getCachedSignature();
+
+    // then
+    expect(clientStore.getStoredSignature).to.have.been.calledOnce;
+    expect(result).to.be.undefined;
+  });
+
+  it('should get cached extensions', () => {
+    // given
+    const extensions = {extA: 'A', extB: 'B'};
+    clientStore.getExtensions.returns(extensions);
+
+    // when
+    const result = store.getCachedExtensions();
+
+    // then
+    expect(clientStore.getExtensions).to.have.been.calledOnce;
+    expect(result).to.be.eql(extensions);
+  });
 });
 
 describe('Storage config', function () {
@@ -332,6 +370,8 @@ describe('Storage config', function () {
     verifyConfig(storageConfig.LAST, STORAGE_CONFIG.LAST);
     verifyConfig(storageConfig.PRIVACY, STORAGE_CONFIG.PRIVACY);
     verifyConfig(storageConfig.CONSENT_DATA, STORAGE_CONFIG.CONSENT_DATA);
+    expect(storageConfig.ID5_SIGNATURE.name).is.eq(STORAGE_CONFIG.ID5_V2.name + '_signature');
+    expect(storageConfig.ID5_SIGNATURE.expiresDays).is.eq(STORAGE_CONFIG.ID5_V2.expiresDays);
   });
 
   it('should return configured expiration', function () {
@@ -347,6 +387,8 @@ describe('Storage config', function () {
     verifyConfig(storageConfig.LAST, STORAGE_CONFIG.LAST);
     verifyConfig(storageConfig.PRIVACY, STORAGE_CONFIG.PRIVACY);
     verifyConfig(storageConfig.CONSENT_DATA, STORAGE_CONFIG.CONSENT_DATA);
+    expect(storageConfig.ID5_SIGNATURE.name).is.eq(STORAGE_CONFIG.ID5_V2.name + '_signature');
+    expect(storageConfig.ID5_SIGNATURE.expiresDays).is.eq(storageExpirationDays);
   });
 
   it('should apply minimum expiration', function () {
@@ -362,6 +404,8 @@ describe('Storage config', function () {
     verifyConfig(storageConfig.LAST, STORAGE_CONFIG.LAST);
     verifyConfig(storageConfig.PRIVACY, STORAGE_CONFIG.PRIVACY);
     verifyConfig(storageConfig.CONSENT_DATA, STORAGE_CONFIG.CONSENT_DATA);
+    expect(storageConfig.ID5_SIGNATURE.name).is.eq(STORAGE_CONFIG.ID5_V2.name + '_signature');
+    expect(storageConfig.ID5_SIGNATURE.expiresDays).is.eq(1);
   });
 });
 

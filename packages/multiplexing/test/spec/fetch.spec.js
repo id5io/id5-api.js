@@ -414,13 +414,14 @@ describe('UidFetcher', function () {
 
       // when
       const inputRequestData = [firstInstanceData, secondInstanceData, thirdInstanceData, fourthInstanceData, fifthInstanceData];
-      const fetchIdResult = fetcher.fetchId(inputRequestData, CONSENT_DATA_GDPR_ALLOWED, true);
+      const fetchIdResult = fetcher.fetchId(inputRequestData, CONSENT_DATA_GDPR_ALLOWED, true, "common-signature");
 
       // then
       return fetchIdResult.then(refreshedResponse => {
         const expectedResponse = createResponse(FETCH_RESPONSE_OBJ, inputRequestData);
 
         expectHttpPOST(server.requests[0], `https://id5-sync.com/gm/v3`, {
+          signature: "common-signature",
           requests: [
             expectedRequestFor(firstInstanceData, CONSENT_DATA_GDPR_ALLOWED, DEFAULT_EXTENSIONS, {
               nbPage: 1,
@@ -456,7 +457,7 @@ describe('UidFetcher', function () {
 
         // when
         const inputFetchData = [DEFAULT_FETCH_DATA];
-        const fetchIdResult = fetcher.fetchId(inputFetchData, CONSENT_DATA_GDPR_ALLOWED, accessibilityResult);
+        const fetchIdResult = fetcher.fetchId(inputFetchData, CONSENT_DATA_GDPR_ALLOWED, accessibilityResult, undefined);
 
         // then
         return fetchIdResult.then(() => {

@@ -94,6 +94,29 @@ export class LocalStorage {
   }
 
   /**
+   *
+   * @param name
+   * @returns {{found: boolean, removed: boolean, expiredAt: (undefined|Date)}}
+   */
+  removeExpiredItem({name}) {
+    const storedValueExpirationValue = this.getItem(name + EXP_SUFFIX);
+    const storedItem = this.getItem(name)
+    const storedItemExpired = storedValueExpirationValue && isExpired(storedValueExpirationValue)
+    const storedItemExpirationUnknown = !storedValueExpirationValue
+    if (storedItem && (storedItemExpired || storedItemExpirationUnknown)) {
+      this.removeItem(name);
+      return {
+        found: true,
+        removed: true,
+        expiredAt: storedItemExpirationUnknown ? undefined : new Date(storedValueExpirationValue)};
+    }
+    return {
+      found: !!storedItem,
+      removed: false,
+      expiredAt: undefined
+    };
+  }
+  /**
    * Gets a stored item from local storage dealing with expiration policy.
    * @param {Object} config The item configuration
    * @param {string} config.name The item name

@@ -169,27 +169,20 @@ describe('The ID5 API', function () {
         'CPBZjR9PBZjR9AKAZAENBMCsAP_AAH_AAAqIHWtf_X_fb39j-_59_9t0eY1f9_7_v-0zjhfds-8Nyf_X_L8X42M7vF36pq4KuR4Eu3LBIQFlHOHUTUmw6okVrTPsak2Mr7NKJ7LEinMbe2dYGHtfn9VTuZKYr97s___z__-__v__79f_r-3_3_vp9X---_e_V3dgdYASYal8BFmJY4Ek0aVQogQhXEh0AoAKKEYWiawgJXBTsrgI9QQMAEBqAjAiBBiCjFgEAAAAASURASAHggEQBEAgABACpAQgAIkAQWAFgYBAAKAaFgBFAEIEhBkcFRymBARItFBPJWAJRd7GGEIZRYAUCj-iowEAAAAA.cAAAAAAAAAAA');
 
       // Check local storage items with some puppeteer magic
-      const id5idRaw = await page.evaluate(() => localStorage.getItem('id5id'));
-      const id5idJson = JSON.parse(decodeURIComponent(id5idRaw));
+      const id5idObject = JSON.parse(await page.evaluate(() => localStorage.getItem('id5id_v2_7883115445944195'))); // key depends on config params, id5id_v2_<cacheId> (see Follower#getCacheId)
+      const id5idJson = id5idObject?.data?.response;
       expect(id5idJson).to.eql(MOCK_FETCH_RESPONSE);
+      const signature = JSON.parse(await page.evaluate(() => localStorage.getItem('id5id_v2_signature')));
+      expect(signature?.data?.signature).to.eql(MOCK_FETCH_RESPONSE.signature);
 
       const NOW = Date.now();
 
       // For comparing timestamps we use an interval of 30s of uncertainty
-      const id5idExpRaw = await page.evaluate(() => localStorage.getItem('id5id_exp'));
-      const ID5_EXPIRE_DAYS = 90;
+      const id5idExpRaw = id5idObject.expireAt;
+      const ID5_EXPIRE_DAYS = 15;
       expect(new Date(id5idExpRaw)).to.be.withinTime(
         new Date(NOW - 30000 + ID5_EXPIRE_DAYS * DAYS_TO_MILLISECONDS),
         new Date(NOW + ID5_EXPIRE_DAYS * DAYS_TO_MILLISECONDS));
-
-      const lastRaw = await page.evaluate(() => localStorage.getItem('id5id_last'));
-      expect(new Date(lastRaw)).to.be.closeToTime(new Date(NOW), 30);
-
-      const lastExpRaw = await page.evaluate(() => localStorage.getItem('id5id_last_exp'));
-      const LAST_EXPIRE_DAYS = 90;
-      expect(new Date(lastExpRaw)).to.be.withinTime(
-        new Date(NOW - 30000 + LAST_EXPIRE_DAYS * DAYS_TO_MILLISECONDS),
-        new Date(NOW + LAST_EXPIRE_DAYS * DAYS_TO_MILLISECONDS));
 
       const dummyImageRequests = await mockDummyImage.getSeenRequests();
       expect(dummyImageRequests).to.have.lengthOf(1);
@@ -325,11 +318,15 @@ describe('The ID5 API', function () {
       expect(requestBody.tml).to.equal('https://my-iframe-website.net/');
 
       // Check there is id5 stuff in the iframe local storage but not in mainFrame's storage
-      const id5idRawFromIFrame = await frame.evaluate(() => localStorage.getItem('id5id'));
-      expect(id5idRawFromIFrame).to.equal(encodeURIComponent(JSON.stringify(MOCK_FETCH_RESPONSE)));
+      const id5idObjectFromIFrame = JSON.parse(await frame.evaluate(() => localStorage.getItem('id5id_v2_4167500408366467'))) // key depends on config params, id5id_v2_<cacheId> (see Follower#getCacheId)
+      expect(id5idObjectFromIFrame.data.response).to.deep.eq(MOCK_FETCH_RESPONSE);
+      const signature = JSON.parse(await frame.evaluate(() => localStorage.getItem('id5id_v2_signature')));
+      expect(signature?.data?.signature).to.eql(MOCK_FETCH_RESPONSE.signature);
 
-      const id5idRawFromMainFrame = await mainFrame.evaluate(() => localStorage.getItem('id5id'));
-      expect(id5idRawFromMainFrame).to.equal(null);
+      const id5idObjectFromMainFrame = await mainFrame.evaluate(() => localStorage.getItem('id5id_v2_4167500408366467')) // key depends on config params, id5id_v2_<cacheId> (see Follower#getCacheId)
+      expect(id5idObjectFromMainFrame).to.equal(null);
+      const signatureFromMainFrame = await mainFrame.evaluate(() => localStorage.getItem('id5id_v2_signature'))
+      expect(signatureFromMainFrame).to.equal(null);
     });
   });
 

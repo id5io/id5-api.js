@@ -2,7 +2,7 @@
  * Module for managing storage of information in browser Local Storage and/or cookies
  */
 
-import {isStr, isNumber} from './utils.js';
+import {isNumber} from './utils.js';
 
 /* eslint-disable no-unused-vars */
 import {ConsentData, LocalStorageGrant} from './consent.js';
@@ -111,11 +111,22 @@ export class ClientStore {
     const localStorageGrant = this.localStorageGrant();
     const localStorage = this.localStorage;
     const prefix = this.storageConfig.ID5_V2.name;
+    const legacyId5Id = this.storageConfig.ID5;
     setTimeout(function () {
       if (localStorageGrant.isDefinitivelyAllowed()) {
         const stats = localStorage.removeExpiredObjectWithPrefix(prefix);
         storageAllKeysCounter(metrics).record(stats?.all || 0);
-        storageExpiredKeysCounter(metrics).record(stats?.expired || 0);
+        storageExpiredKeysCounter(metrics, {
+            legacy: false,
+            expiredDaysAgo: -1
+          }
+        ).record(stats?.expired || 0);
+        const legacyRemovalResult = localStorage.removeExpiredItem(legacyId5Id);
+        const expiredDaysAgo = legacyRemovalResult.expiredAt ? (legacyRemovalResult.expiredAt.getTime() - Date.now()) / 24 * 3600 * 1000 : 0;
+        storageExpiredKeysCounter(metrics, {
+          legacy: true,
+          expiredDaysAgo: expiredDaysAgo
+        }).record(1);
       }
     }, 0);
   }
@@ -182,25 +193,12 @@ export class ClientStore {
     return this.localStorageGrantChecker();
   }
 
-  getResponse() {
-    let storedValue = this.get(this.storageConfig.ID5);
-    if (storedValue) {
-      return JSON.parse(decodeURIComponent(storedValue));
-    } else {
-      return storedValue;
-    }
-  }
-
-  clearResponse() {
+  clearResponseV1() {
     this.clear(this.storageConfig.ID5);
   }
 
   clearResponseV2(cacheId) {
     this._clearObject(this.storageConfig.ID5_V2.withNameSuffixed(cacheId));
-  }
-
-  putResponseV1(response) {
-    this._put(this.storageConfig.ID5, encodeURIComponent(isStr(response) ? response : JSON.stringify(response)));
   }
 
   getHashedConsentData() {
@@ -223,10 +221,6 @@ export class ClientStore {
 
   clearDateTime() {
     this.clear(this.storageConfig.LAST);
-  }
-
-  setResponseDateTimeV1(timestamp) {
-    this._put(this.storageConfig.LAST, timestamp);
   }
 
   /**
@@ -254,6 +248,30 @@ export class ClientStore {
    */
   getStoredResponseV2(cacheId) {
     return this._getObject(this.storageConfig.ID5_V2.withNameSuffixed(cacheId));
+  }
+
+  /**
+   * @param {string} signature
+   * @return {{signature: string}|undefined}
+   */
+  storeSignature(signature) {
+    return this._updateObject(this.storageConfig.ID5_SIGNATURE, () => {
+      return {
+        signature: signature
+      };
+    });
+  }
+
+  /**
+   *
+   * @return {{signature: string}|undefined}
+   */
+  getStoredSignature() {
+    return this._getObject(this.storageConfig.ID5_SIGNATURE);
+  }
+
+  clearSignature() {
+    return this._clearObject(this.storageConfig.ID5_SIGNATURE);
   }
 
   /**
