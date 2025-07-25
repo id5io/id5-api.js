@@ -29,6 +29,7 @@ export class StorageConfig {
 
     this.ID5 = createConfig(defaultStorageConfig.ID5);
     this.ID5_V2 = createConfig(defaultStorageConfig.ID5_V2);
+    this.ID5_SIGNATURE = createConfig(defaultStorageConfig.ID5_V2).withNameSuffixed('signature');
     this.LAST = createConfig(defaultStorageConfig.LAST);
     this.CONSENT_DATA = createConfig(defaultStorageConfig.CONSENT_DATA);
     this.PRIVACY = createConfig(defaultStorageConfig.PRIVACY);
@@ -106,10 +107,9 @@ export class Store {
    * @param {Consents} consents
    */
   storeResponse(requestInputData, refreshedResponse, consents) {
-    // V1 for non-multiplexed integration on the page (to exchange signature)
-    this._clientStore.putResponseV1(refreshedResponse.getGenericResponse());
-    this._clientStore.setResponseDateTimeV1(new Date(refreshedResponse.timestamp).toUTCString());
-    // V2
+    if (refreshedResponse.getGenericResponse()?.signature) {
+      this._clientStore.storeSignature(refreshedResponse.getGenericResponse()?.signature);
+    }
     const updatedCache = new Set();
     requestInputData.forEach(data => {
       const cacheId = data.cacheId;
@@ -127,7 +127,7 @@ export class Store {
   }
 
   clearAll(fetchIdData) {
-    this._clientStore.clearResponse();
+    this._clientStore.clearResponseV1();
     this._clientStore.clearDateTime();
     fetchIdData.forEach(data => {
       const cacheId = data.cacheId;
@@ -136,6 +136,7 @@ export class Store {
     this._clientStore.clearHashedConsentData();
     this._trueLinkAdapter.clearPrivacy();
     this._clientStore.clearExtensions();
+    this._clientStore.clearSignature();
   }
 
   /**
@@ -148,6 +149,13 @@ export class Store {
       return new CachedResponse(storedResponseV2.response, storedResponseV2.responseTimestamp, storedResponseV2.nb, storedResponseV2.consents);
     }
     return undefined;
+  }
+
+  /**
+   * @return {string|undefined}
+   */
+  getCachedSignature() {
+    return this._clientStore.getStoredSignature()?.signature;
   }
 
   /**

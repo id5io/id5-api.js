@@ -268,6 +268,7 @@ export class ActualLeader extends Leader {
 
         // with given consent we can check if it is accessible
         const isLocalStorageAvailable = WindowStorage.checkIfAccessible();
+        const signature = this._store.getCachedSignature();
 
         /** @type {Map<string, CachedResponse>} */
         const cacheData = new Map();
@@ -309,7 +310,7 @@ export class ActualLeader extends Leader {
           log.info(`Fetching ID5 ID (forceFetch:${forceRefresh})`);
           this._inProgressFetch = true;
           this._firstFetchTriggered = true; // after first any new follower will be recognized as late joiner
-          this._fetcher.fetchId(fetchRequestData, consentData, isLocalStorageAvailable)
+          this._fetcher.fetchId(fetchRequestData, consentData, isLocalStorageAvailable, signature)
             .then(refreshResult => {
               this._handleRefreshResult(fetchRequestData, cacheData, consentData, refreshResult);
               this._handleFetchCompleted();

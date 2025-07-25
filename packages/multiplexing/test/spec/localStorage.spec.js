@@ -217,6 +217,82 @@ describe('LocalStorage', function () {
       expect(storageMock.removeItem).to.not.be.called;
     });
 
+    describe('removeExpiredItem', () => {
+      it('removes item when it exists and is expired', () => {
+        // given
+        const testStorage = new LocalStorage(storageMock);
+        const name = 'test';
+        const expiredDate = new Date(currentTimeMs - 1000).toUTCString(); // Date in the past
+
+        storageMock.getItem.withArgs(name).returns('some value');
+        storageMock.getItem.withArgs(name + '_exp').returns(expiredDate);
+
+        // when
+        const result = testStorage.removeExpiredItem({name});
+
+        // then
+        expect(result.found).to.be.true;
+        expect(result.removed).to.be.true;
+        expect(result.expiredAt).to.be.an.instanceOf(Date);
+        expect(result.expiredAt.toUTCString()).to.equal(expiredDate);
+        expect(storageMock.removeItem).to.be.calledWith(name);
+      });
+
+      it('does not remove item when it exists and is not expired', () => {
+        // given
+        const testStorage = new LocalStorage(storageMock);
+        const name = 'test';
+        const futureDate = new Date(currentTimeMs + 1000).toUTCString(); // Date in the future
+
+        storageMock.getItem.withArgs(name).returns('some value');
+        storageMock.getItem.withArgs(name + '_exp').returns(futureDate);
+
+        // when
+        const result = testStorage.removeExpiredItem({name});
+
+        // then
+        expect(result.found).to.be.true;
+        expect(result.removed).to.be.false;
+        expect(result.expiredAt).to.be.undefined;
+        expect(storageMock.removeItem).to.not.be.called;
+      });
+
+      it('removes item when it exists but has unknown expiration', () => {
+        // given
+        const testStorage = new LocalStorage(storageMock);
+        const name = 'test';
+
+        storageMock.getItem.withArgs(name).returns('some value');
+        storageMock.getItem.withArgs(name + '_exp').returns(null); // No expiration date
+
+        // when
+        const result = testStorage.removeExpiredItem({name});
+
+        // then
+        expect(result.found).to.be.true;
+        expect(result.removed).to.be.true;
+        expect(result.expiredAt).to.be.undefined;
+        expect(storageMock.removeItem).to.be.calledWith(name);
+      });
+
+      it('returns not found when item does not exist', () => {
+        // given
+        const testStorage = new LocalStorage(storageMock);
+        const name = 'test';
+
+        storageMock.getItem.withArgs(name).returns(null); // Item doesn't exist
+
+        // when
+        const result = testStorage.removeExpiredItem({name});
+
+        // then
+        expect(result.found).to.be.false;
+        expect(result.removed).to.be.false;
+        expect(result.expiredAt).to.be.undefined;
+        expect(storageMock.removeItem).to.not.be.called;
+      });
+    });
+
     it('handles exceptions when reading objects', () => {
       // given
       const testStorage = new LocalStorage(storageMock);

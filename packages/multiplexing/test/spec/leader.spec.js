@@ -345,6 +345,8 @@ describe('ActualLeader', () => {
       const fetchIdPromise = sinon.promise();
       uidFetcher.fetchId.returns(fetchIdPromise);
       localStorageGrant.isDefinitivelyAllowed.returns(true);
+      const testSignature = 'test-signature';
+      store.getCachedSignature = sinon.stub().returns(testSignature);
 
       // when
       let add1Result = leader.addFollower(follower1);
@@ -380,7 +382,8 @@ describe('ActualLeader', () => {
       ];
       expect(uidFetcher.fetchId).to.be.calledWith(requestData,
         CONSENT_DATA_GDPR_ALLOWED,
-        true
+        true,
+        testSignature
       );
 
       await resolved(fetchIdPromise);
@@ -416,6 +419,8 @@ describe('ActualLeader', () => {
       const fetchIdPromise = sinon.promise();
       uidFetcher.fetchId.returns(fetchIdPromise);
       localStorageGrant.isDefinitivelyAllowed.returns(true);
+      const testSignature = 'test-signature';
+      store.getCachedSignature = sinon.stub().returns(testSignature);
 
       // when
       let add1Result = leader.addFollower(follower1);
@@ -449,7 +454,8 @@ describe('ActualLeader', () => {
       ];
       expect(uidFetcher.fetchId).to.be.calledWith(requestData,
         CONSENT_DATA_GDPR_ALLOWED,
-        true
+        true,
+        testSignature
       );
 
       await resolved(fetchIdPromise);
@@ -479,6 +485,8 @@ describe('ActualLeader', () => {
       const fetchIdPromise = sinon.promise();
       uidFetcher.fetchId.returns(fetchIdPromise);
       localStorageGrant.isDefinitivelyAllowed.returns(false);
+      const testSignature = 'test-signature';
+      store.getCachedSignature = sinon.stub().returns(testSignature);
 
       // when
       let add1Result = leader.addFollower(follower1);
@@ -510,7 +518,8 @@ describe('ActualLeader', () => {
       ];
       expect(uidFetcher.fetchId).to.be.calledWith(requestData,
         CONSENT_DATA_GDPR_ALLOWED,
-        true
+        true,
+        testSignature
       );
 
       await resolved(fetchIdPromise);

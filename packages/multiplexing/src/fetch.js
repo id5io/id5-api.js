@@ -97,17 +97,18 @@ export class UidFetcher {
    * @param {array<FetchIdRequestData>} fetchRequestIdData
    * @param {ConsentData} consentData
    * @param {boolean} isLocalStorageAvailable
+   * @param {string} signature
    * @return {Promise<RefreshedResponse>}
    */
-  fetchId(fetchRequestIdData, consentData, isLocalStorageAvailable) {
+  fetchId(fetchRequestIdData, consentData, isLocalStorageAvailable, signature) {
     return this._extensionsProvider.gather(fetchRequestIdData)
       .then(extensions => {
         const requests = fetchRequestIdData.map(fetchIdData => {
           const cachedRequest = fetchIdData.cacheData;
-          const signature = cachedRequest?.response?.signature;
+          const requestSignature = cachedRequest?.response?.signature;
           const nbValue = cachedRequest?.nb;
           const cacheMaxAge = cachedRequest?.getMaxAge();
-          return this._createRequest(consentData, fetchIdData, signature, nbValue, cacheMaxAge, extensions, isLocalStorageAvailable);
+          return this._createRequest(consentData, fetchIdData, requestSignature, nbValue, cacheMaxAge, extensions, isLocalStorageAvailable);
         });
         const log = this._log;
         const metrics = this._metrics;
@@ -130,7 +131,7 @@ export class UidFetcher {
               fetchTimeMeasurement.record(fetchFailureCallTimer(metrics));
               reject(error);
             }
-          }, JSON.stringify({requests: requests}), {method: 'POST', withCredentials: true}, log);
+          }, JSON.stringify({requests: requests, signature: signature}), {method: 'POST', withCredentials: true}, log);
         });
       });
   }
