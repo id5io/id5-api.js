@@ -56,6 +56,7 @@ import enableEventsTracking from '../lib/prebid/eventsTracker.js';
  * @property {ABTestingConfig} abTesting - The A/B testing configuration
  * @property {boolean} disableExtensions - Disabled extensions call
  * @property {boolean} canCookieSync - If cookie syncing with other partners can be performed
+ * @property {string} gamTargetingPrefix - When set, the GAM targeting tags will be set and use the specified prefix, for example 'id5'.
  *
  */
 
@@ -138,6 +139,7 @@ class Id5PrebidIntegration {
       diagnostics: prebidConfig.diagnostics,
       segments: prebidConfig.segments,
       disableUaHints: prebidConfig.disableUaHints,
+      gamTargetingPrefix: prebidConfig.gamTargetingPrefix,
       dynamicConfig
     }, log);
     const options = config.getOptions();
