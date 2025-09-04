@@ -417,47 +417,70 @@ describe('The ID5 API', function () {
     });
   });
 
-  describe('esp.js', function () {
+  describe('Google Secure Signal Providers', function () {
     afterEach(async () => {
       await server.reset();
     });
 
-    it('can integrate succesfully with google ESP', async () => {
-      const TEST_PAGE_PATH = path.join(RESOURCES_DIR, 'esp.html');
+    it('should register secure signal provider when enabled ', async () => {
+      const TEST_PAGE_PATH = path.join(RESOURCES_DIR, 'gss.html');
       await server.forGet('https://my-publisher-website.net')
         .thenFromFile(200, TEST_PAGE_PATH);
       const mockId5 = await server.forPost(FETCH_ENDPOINT)
         .thenCallback(multiFetchResponseWithCorsAllowed(MOCK_FETCH_RESPONSE));
       const page = await browser.newPage();
       await page.goto('https://my-publisher-website.net');
+      const signalId = await page.evaluate(() =>
+        window.googletag.secureSignalProviders[0].id);
 
-      const espSignal = await page.evaluate(async () =>
-        window.googletag.encryptedSignalProviders[0].collectorFunction());
-      expect(espSignal).to.equal(MOCK_FETCH_RESPONSE.universal_uid);
+      expect(signalId).eql('id5-sync.com');
+      const provisionedSignal = await page.evaluate(async () =>
+        window.googletag.secureSignalProviders[0].collectorFunction());
+      expect(provisionedSignal).to.equal(MOCK_FETCH_RESPONSE.universal_uid);
 
       const id5FetchRequests = await mockId5.getSeenRequests();
       expect(id5FetchRequests).to.have.lengthOf(1);
     });
 
-    it('calls the API endpoint to increment metrics if no config detected', async () => {
-      const TEST_PAGE_PATH = path.join(RESOURCES_DIR, 'esp_no_config.html');
-      await server.forGet('https://my-publisher-website.net')
-        .thenFromFile(200, TEST_PAGE_PATH);
-      const mockId5 = await server.forGet('https://id5-sync.com/api/esp/increment')
-        .thenReply(204, undefined, MOCK_CORS_HEADERS);
-      const page = await browser.newPage();
-      await page.goto('https://my-publisher-website.net');
+    describe('esp.js', function () {
 
-      await page.evaluate(async () => {
-        try {
-          await window.googletag.encryptedSignalProviders[0].collectorFunction();
-        } catch (ignore) {
-          // Continue ignoring the error
-        }
+      it('can integrate succesfully with google ESP', async () => {
+        const TEST_PAGE_PATH = path.join(RESOURCES_DIR, 'esp.html');
+        await server.forGet('https://my-publisher-website.net')
+          .thenFromFile(200, TEST_PAGE_PATH);
+        const mockId5 = await server.forPost(FETCH_ENDPOINT)
+          .thenCallback(multiFetchResponseWithCorsAllowed(MOCK_FETCH_RESPONSE));
+        const page = await browser.newPage();
+        await page.goto('https://my-publisher-website.net');
+
+        const espSignal = await page.evaluate(async () =>
+          window.googletag.encryptedSignalProviders[0].collectorFunction());
+        expect(espSignal).to.equal(MOCK_FETCH_RESPONSE.universal_uid);
+
+        const id5FetchRequests = await mockId5.getSeenRequests();
+        expect(id5FetchRequests).to.have.lengthOf(1);
       });
-      const id5Requests = await mockId5.getSeenRequests();
-      expect(id5Requests).to.have.lengthOf(1);
-      expect(id5Requests[0].url).to.equal('https://id5-sync.com/api/esp/increment?counter=no-config');
+
+      it('calls the API endpoint to increment metrics if no config detected', async () => {
+        const TEST_PAGE_PATH = path.join(RESOURCES_DIR, 'esp_no_config.html');
+        await server.forGet('https://my-publisher-website.net')
+          .thenFromFile(200, TEST_PAGE_PATH);
+        const mockId5 = await server.forGet('https://id5-sync.com/api/esp/increment')
+          .thenReply(204, undefined, MOCK_CORS_HEADERS);
+        const page = await browser.newPage();
+        await page.goto('https://my-publisher-website.net');
+
+        await page.evaluate(async () => {
+          try {
+            await window.googletag.encryptedSignalProviders[0].collectorFunction();
+          } catch (ignore) {
+            // Continue ignoring the error
+          }
+        });
+        const id5Requests = await mockId5.getSeenRequests();
+        expect(id5Requests).to.have.lengthOf(1);
+        expect(id5Requests[0].url).to.equal('https://id5-sync.com/api/esp/increment?counter=no-config');
+      });
     });
   });
 

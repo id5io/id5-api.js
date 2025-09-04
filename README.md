@@ -34,6 +34,7 @@ The ID5 API is designed to make accessing the ID5 ID simple for publishers, adve
       - [PD Example](#pd-example)
       - [A/B Testing](#ab-testing)
       - [Segments](#segments)
+      - [Google Secure Signals - Publisher deploy](#google-secure-signals---publisher-deploy)
     - [Available Methods and Variables](#available-methods-and-variables)
       - [EIDs Object Output](#eids-object-output)
       - [Consents Object](#consents-object)
@@ -268,6 +269,7 @@ There are a few cases in which `getUserId()` may not be ready or have a value ye
 | segments                              | Optional                                     | array   |                                          | Used with platforms that don't support ingesting ID5 IDs in their client-side segment pixels. See below for details                                                                                                      |
 | att                                   | Optional                                     | number  | `0`                                      | Indication of whether the event came from an Apple ATT event (value of 1 is yes)                                                                                                                                         |
 | applyCreativeRestrictions (alias acr) | Optional                                     | boolean | false                                    | Applies some restrictions for the case where the API is dropped alongside a creative.                                                                                                                                    |
+| gssProvider                           | Optional                                     | object  | `{ enabled: false }`                     | Enables [ID5 ID sharing via Google Secure Signals](https://wiki.id5.io/docs/google-secure-signals). More [here](#google-secure-signals---publisher-deploy)                                                                                                     | 
 
 #### consentData Object
 This object can contain one of the following properties:
@@ -365,6 +367,19 @@ var id5Instance = ID5.init({
     ids: [ '12345', '67890' ]
   }]
 });
+```
+
+#### Google Secure Signals - Publisher Deploy
+
+To enable sharing the [ID5 ID via Google Secure Signals (GSS)](https://wiki.id5.io/docs/google-secure-signals), add `gssProvider: { enabled: true }` to your ID5 config along with any other configuration properties.
+This will automatically register a provider that supplies an encrypted ID5 ID when it is available.
+
+```javascript
+  var id5Instance = ID5.init({
+    partnerId: 173, // replace with your own partnerId
+    gssProvider: { enabled: true }
+    // other properties, signals
+  });
 ```
 
 ### Available Methods and Variables
