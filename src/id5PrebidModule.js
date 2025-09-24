@@ -29,6 +29,7 @@ import {
   userIdNotificationDeliveryDelayTimer,
   userIdProvisioningDelayTimer
 } from '../lib/metrics.js';
+import enableEventsTracking from '../lib/prebid/eventsTracker.js';
 
 /**
  * @typedef {Object} IdResponse
@@ -187,16 +188,16 @@ class Id5PrebidIntegration {
       forceAllowLocalStorageGrant: false,
       storageExpirationDays: options.storageExpirationDays
     });
-
+    setTimeout(() => enableEventsTracking(prebidConfig.partner, log), 0);
     return instancePromise;
   }
 
   getPrebidVersion() {
-    if(isDefined(window.pbjs?.version)) {
+    if (isDefined(window.pbjs?.version)) {
       return window.pbjs.version;
-    } else if(isArray(window._pbjsGlobals) && window._pbjsGlobals.length > 0) {
+    } else if (isArray(window._pbjsGlobals) && window._pbjsGlobals.length > 0) {
       const version = window[window._pbjsGlobals[0]]?.version;
-      if(isDefined(version)) {
+      if (isDefined(version)) {
         return version;
       }
     }
