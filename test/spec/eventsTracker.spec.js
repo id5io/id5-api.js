@@ -220,8 +220,10 @@ describe('registerEventsTracker', function () {
     };
 
     const partnerId = 321;
-    const reason = await registerEventsTracker(prebidGlobal, partnerId).catch((e) => String(e));
-    expect(reason).to.include('id5AnalyticsAdapter');
+    const result = await registerEventsTracker(prebidGlobal, partnerId);
+    expect(result).to.be.an('object');
+    expect(result.success).to.equal(false);
+    expect(result.reason).to.include('id5AnalyticsAdapter');
 
     expect(fetchStub).to.not.have.been.called;
     expect(prebidGlobal.onEvent).to.not.have.been.called;
@@ -334,6 +336,16 @@ describe('EventsTracker', function () {
       bidderRequests: [{
         bidderCode: 'bidderA',
         extraBRQ: 'x',
+        ortb2: {
+          user: {
+            ext: {
+              eids: [
+                {source: 'id5-sync.com', uids: [{ext: {linkType: 9, pba: 'brq', abTestingControlGroup: false}}]},
+                {source: 'other-source.com', uids: [{id: 'shouldNotBeIncluded'}]}
+              ]
+            }
+          }
+        },
         bids: [{
           adUnitCode: 'au-1',
           bidId: 'b-1',
@@ -347,6 +359,20 @@ describe('EventsTracker', function () {
               uid: "u2"
             }
           },
+          ortb2: {
+            user: {
+              ext: {
+                eids: [
+                  {source: 'id5-sync.com', uids: [{ext: {linkType: 7, pba: 'bid', abTestingControlGroup: true}}]},
+                  {source: 'another.com', uids: [{id: 'nope'}]}
+                ]
+              }
+            }
+          },
+          userIdAsEids: [
+            {source: 'id5-sync.com', uids: [{ext: {linkType: 5, pba: 'eids'}}]},
+            {source: 'third.com', uids: [{id: 'blocked'}]}
+          ],
           extraB: 'x'
         }]
       }],
@@ -382,6 +408,16 @@ describe('EventsTracker', function () {
       noBids: [{bidId: 'nb-1'}],
       bidderRequests: [{
         bidderCode: 'bidderA',
+        ortb2: {
+          user: {
+            ext: {
+              eids: [
+                {source: 'id5-sync.com', uids: [{ext: {linkType: 9, pba: 'brq', abTestingControlGroup: false}}]},
+                {source: 'other-source.com'}
+              ]
+            }
+          }
+        },
         bids: [{
           adUnitCode: 'au-1',
           bidId: 'b-1',
@@ -389,7 +425,21 @@ describe('EventsTracker', function () {
             id5id: {ext: {linkType: 1, pba: 'abc', abTestingControlGroup: true}},
             u1: 1,
             u2: 1
-          }
+          },
+          ortb2: {
+            user: {
+              ext: {
+                eids: [
+                  {source: 'id5-sync.com', uids: [{ext: {linkType: 7, pba: 'bid', abTestingControlGroup: true}}]},
+                  {source: 'another.com'}
+                ]
+              }
+            }
+          },
+          userIdAsEids: [
+            {source: 'id5-sync.com', uids: [{ext: {linkType: 5, pba: 'eids'}}]},
+            {source: 'third.com'}
+          ]
         }]
       }]
     });
