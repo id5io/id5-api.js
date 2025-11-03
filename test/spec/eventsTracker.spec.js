@@ -20,13 +20,13 @@ describe('registerEventsTracker', function () {
     return sinon.stub(window, 'fetch');
   }
 
-  function expectEventPostFetchCall(fetchStub, ingestUrl) {
+  async function expectEventPostFetchCall(fetchStub, ingestUrl) {
     // First call: config fetch, Second+ calls: event posts
     expect(fetchStub.callCount).to.be.greaterThan(1);
     const [url, opts] = fetchStub.getCall(1).args;
     expect(url).to.equal(ingestUrl);
     expect(opts && opts.method).to.equal('POST');
-    const posted = JSON.parse(opts.body);
+    const posted = await parseRequestBody(opts);
     expect(posted).to.have.property('event');
     expect(posted).to.have.property('payload');
     return posted;
@@ -69,7 +69,7 @@ describe('registerEventsTracker', function () {
     expect(firstCallUrl).to.include(`/analytics/${partnerId}/id5-api-js`);
 
     // Verify a replayed event was posted to ingest URL
-    const posted = expectEventPostFetchCall(fetchStub, ingestUrl);
+    const posted = await expectEventPostFetchCall(fetchStub, ingestUrl);
     expect(posted.event).to.equal('auctionEnd');
     expect(posted.payload.auctionId).to.equal(123);
     expect(posted.partnerId).to.equal(partnerId);
@@ -199,7 +199,7 @@ describe('registerEventsTracker', function () {
     await registerEventsTracker(prebidGlobal, partnerId);
 
     // Expect second call to be a POST to ingest (replayed event)
-    const posted = expectEventPostFetchCall(fetchStub, ingestUrl);
+    const posted = await expectEventPostFetchCall(fetchStub, ingestUrl);
     expect(posted.event).to.equal('auctionEnd');
     expect(posted.payload).to.eql({auctionId: "1234"});
 
@@ -244,8 +244,7 @@ describe('EventsTracker', function () {
 
   function lastFetchBody() {
     expect(fetchStub).to.have.been.called;
-    const body = fetchStub.lastCall.args[1].body;
-    return JSON.parse(body);
+    return parseRequestBody(fetchStub.lastCall.args[1]);
   }
 
   it('tracks bidWon events and filters payload to allowed fields (all allowed included, extras dropped)', function () {
@@ -305,7 +304,7 @@ describe('EventsTracker', function () {
     });
   });
 
-  it('tracks auctionEnd and filters payload: includes all allowed fields and drops extras', function () {
+  it('tracks auctionEnd and filters payload: includes all allowed fields and drops extras', async function () {
     const tracker = new EventsTracker(42, 5, 'https://ingest/ae', '9.0.0');
 
     const payload = {
@@ -377,9 +376,9 @@ describe('EventsTracker', function () {
       extraTop: true
     };
 
-    tracker.track('auctionEnd', payload);
+    await tracker.track('auctionEnd', payload);
 
-    const posted = lastFetchBody();
+    const posted = await lastFetchBody();
     expect(posted.event).to.equal('auctionEnd');
     // top-level allowed
     expect(posted.payload).to.eql({
@@ -443,7 +442,7 @@ describe('EventsTracker', function () {
     });
   });
 
-  it('sends analyticsError when makeEvent throws', function () {
+  it('sends analyticsError when makeEvent throws', async function () {
     const tracker = new EventsTracker(1, 1, 'https://ingest', 'x');
     const error = new Error('boom');
 
@@ -458,14 +457,14 @@ describe('EventsTracker', function () {
     };
 
     try {
-      tracker.track('auctionEnd', {auctionId: "1"});
+      await tracker.track('auctionEnd', {auctionId: "1"});
     } finally {
       // restore to avoid affecting other tests (even though new instance each time)
       tracker.makeEvent = orig;
     }
 
     expect(fetchStub).to.have.been.calledOnce;
-    const posted = lastFetchBody();
+    const posted = await lastFetchBody();
     expect(posted.event).to.equal('analyticsError');
     expect(posted.payload.message).to.equal('boom');
     expect(posted.payload.stack).to.be.a('string');
@@ -519,3 +518,13 @@ describe('initEventsTracker', function () {
     expect(window.id5_pbjs_et[2]).to.equal(true);
   });
 });
+
+async function parseRequestBody(opts) {
+  if (opts.headers && opts.headers['Content-Encoding'] === 'gzip') {
+    const decompressedStream = opts.body.stream().pipeThrough(new DecompressionStream('gzip'));
+    const decompressedBlob = await new Response(decompressedStream).blob();
+    const text = await decompressedBlob.text();
+    return JSON.parse(text);
+  }
+  return JSON.parse(opts.body);
+}
