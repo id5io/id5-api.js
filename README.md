@@ -407,30 +407,146 @@ The ID5 API provides several methods and variables for you to use. See below for
 | id5Instance.collectEvent(eventType, metadata)        | method    | void                                                                                                                            | Sends an event to the ID5 server alongside with the specified `eventType` (string), `metadata` (string-to-string key-value map passed as a json object) as well as the fetched ID5 ID and Partner ID passed at `init()` time. The metadata should be a flat map and must not contain nested properties. For example like { "id":"123", "test":"off" } but not like {"id":{"nested":"3"}}. All the values must be strings. The collection of the event is, if necessary, deferred to the point in time where the ID5 ID is provisioned to the page. The event is sent only once per `collectEvent()` invocation. The method can be used for example inside a `onRefresh()` callback to record events with the most fresh ID5 ID if desired. |
 
 #### EIDs Object Output
-When passing the ID5 ID in a bid request, the common practice is to include it in the `user.ext.eids[]` array. To make it easy to retrieve the ID5 ID in a format that can be added to the `eids` array the `id5Instance.getUserIdsAsEids()` method can be used. Output looks like: 
+
+When passing the ID5 ID in a bid request, the common practice is to include it in the `user.ext.eids[]` array. To make it easy to retrieve the ID5 ID in a format that can be added to the `eids` array, the `id5Instance.getUserIdsAsEids()` method can be used.
+
+The output format varies depending on the configuration. Here are the main scenarios:
+
+##### 1. Standard ID5 ID Response
+
+Basic ID5 ID output:
 
 ```javascript
-[{
-  "source": "id5-sync.com",
-  "uids": [
+[
     {
-      "id": "ID5-ABCDEFG12345",
-      "ext": {
-        "linkType": 2,
-        "abTestingControlGroup": false
-      }
+        "source": "id5-sync.com",
+        "uids": [
+            {
+                "id": "ID5*XYZXYZXYZ...",
+                "atype": 1,
+                "ext": {
+                    "linkType": 1,
+                    "pba": "n0q34dQuQjASlWaNNmS4anEDUzGuIpcuNlr1Acxe94fq2tQTuHwlRpXwOEjqG1RkbQ9jEa1DiSPCGBhXbf2o9w=="
+                }
+            }
+        ]
     }
-  ]
-  }, {
-    "source": "true-link-id5-sync.com",
-    "uids": [{
-      atype: 1,
-      "id": "true-link-id"
-    }
-    ]
-  }
 ]
 ```
+
+##### 2. ID5 ID with A/B Testing
+
+When A/B testing is enabled, the response format changes based on the user's test group assignment:
+
+###### Control Group Response
+Users in the control group receive a placeholder ID with specific markers:
+
+```javascript
+[
+    {
+        "source": "id5-sync.com",
+        "uids": [
+            {
+                "id": "0", // ID5 ID not present for control group
+                "atype": 1,
+                "ext": {
+                    "linkType": 0,
+                    "pba": "izK5L4018hFFoR6I46xMXXDlVYRiLWjpgp8L0e0tS9zhimNZHK++ONgD1FdPQRsy11WIQOOjyzJKJAxtoUxmqw==",
+                    "abTestingControlGroup": true // indicates control group assignment
+                }
+            }
+        ]
+    }
+]
+```
+
+###### Normal Group Response
+Users in the normal group receive the actual ID5 ID:
+
+```javascript
+[
+    {
+        "source": "id5-sync.com",
+        "uids": [
+            {
+                "id": "ID5*XYZXYZ....", // actual ID5 ID present
+                "atype": 1,
+                "ext": {
+                    "linkType": 2,
+                    "pba": "jWwv+i8NPwIdFgNttMoBowL7FnqLUbZSwc1EvzrT7/wCJBYNvD78Sxz9GoyvewaBGx+hugSuO0coONPe7skZAg==",
+                    "abTestingControlGroup": false // indicates normal group assignment
+                }
+            }
+        ]
+    }
+]
+```
+
+##### 3. ID5 ID with GPID (Guarded Publisher ID)
+
+When both ID5 ID and GPID are available, both identifiers are included in the response:
+
+```javascript
+[
+    {
+        "source": "id5-sync.com",
+        "uids": [
+            {
+                "id": "ID5*XYZXYZXYZ...",
+                "atype": 1,
+                "ext": {
+                    "linkType": 1,
+                    "pba": "n0q34dQuQjASlWaNNmS4anEDUzGuIpcuNlr1Acxe94fq2tQTuHwlRpXwOEjqG1RkbQ9jEa1DiSPCGBhXbf2o9w=="
+                }
+            }
+        ]
+    },
+    {
+        "source": "gpid.id5-sync.com",
+        "uids": [
+            {
+                "id": "a8kIX3-ZYXZYX.....",
+                "atype": 1
+            }
+        ]
+    }
+]
+```
+
+##### 4. ID5 ID with Third-Party IDs
+
+When ID5 ID is combined with other third-party identifiers from SSPs or other sources.
+
+```javascript
+[
+    {
+        "source": "id5-sync.com",
+        "uids": [
+            {
+                "id": "ID5*XYZXYZXYZ...",
+                "atype": 1,
+                "ext": {
+                    "linkType": 1,
+                    "pba": "n0q34dQuQjASlWaNNmS4anEDUzGuIpcuNlr1Acxe94fq2tQTuHwlRpXwOEjqG1RkbQ9jEa1DiSPCGBhXbf2o9w=="
+                }
+            }
+        ]
+    },
+    {
+        "source": "ssp-domain.com",
+        "matcher": "id5-sync.com",
+        "mm": 5,
+        "inserter": "publisher-domain.com",
+        "uids": [
+            {
+                "id": "some-random-id-value",
+                "atype": 1
+            }
+        ]
+    }
+]
+```
+
 #### Consents Object
 | Property name | Type                | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 |---------------|---------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
