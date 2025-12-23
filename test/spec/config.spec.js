@@ -282,4 +282,13 @@ describe('config API', function () {
       });
     });
   });
+
+  it('sets and gets idLookupMode', function () {
+    const config = new Config({partnerId: 44, idLookupMode: true});
+    expect(config.getOptions().idLookupMode).to.be.true;
+    expect(config.getProvidedOptions().idLookupMode).to.be.true;
+
+    const configDefault = new Config({partnerId: 44});
+    expect(configDefault.getOptions().idLookupMode).to.be.false;
+  });
 });

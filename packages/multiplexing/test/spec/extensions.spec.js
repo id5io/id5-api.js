@@ -42,6 +42,7 @@ describe('Extensions', function () {
 
   afterEach(function () {
     fetchStub.restore();
+    store.getCachedExtensions.reset();
   });
 
   it('should return all extensions gathered and a default response', function () {
@@ -174,4 +175,18 @@ describe('Extensions', function () {
   });
 
 
+  it('should not call bounce and chunks when idLookupMode is enabled', function () {
+    let lbExtensions = lbExtensionsWithChunksFlag(true);
+    fetchStub = createFetchStub(lbExtensions, {lbs: 'lbsValue'});
+
+    return extensions.gather([{idLookupMode: true}])
+      .then(response => {
+        expect(fetchStub).to.not.be.calledWith(ID5_BOUNCE_ENDPOINT);
+        expect(response).to.be.deep.equal({
+          ...lbExtensions,
+          lbCDN: '%%LB_CDN%%',
+          lbs: 'lbsValue'
+        });
+      });
+  });
 });

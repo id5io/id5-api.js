@@ -63,13 +63,12 @@ export class Extensions {
   }
 
   /**
-   *
    * @param {String} url - url of extensions service
    * @param {String} extensionType - type of extension used in metrics
    * @param {RequestInit} fetchOptions - optional `fetch` call options
    * @returns {Promise}
    */
-  submitExtensionCall(url, extensionType, fetchOptions = undefined) {
+  #submitExtensionCall(url, extensionType, fetchOptions = undefined) {
     let extensionsCallTimeMeasurement = startTimeMeasurement();
     return fetch(url, fetchOptions)
       .then(response => {
@@ -95,7 +94,7 @@ export class Extensions {
    * @param {{name: string, urlVersion: number, length:number, version: number}} chunksType a type of chunks gathered, should be supported by server
    * @returns {Promise} a promise that if successful contains an object containing an array of chunks
    */
-  gatherChunks(enabled, chunksType) {
+  #gatherChunks(enabled, chunksType) {
     if (enabled) {
       let extensionsCallTimeMeasurement = startTimeMeasurement();
       return Promise.all(Array.from({length: chunksType.length}, (_, i) => {
@@ -131,15 +130,15 @@ export class Extensions {
       return Promise.resolve(cachedExtensions);
     }
     let extensionsCallTimeMeasurement = startTimeMeasurement();
-    let bouncePromise = this._submitBounce(fetchDataList);
-    let lbsPromise = this._submitLbs();
-    return this.submitExtensionCall(ID5_LB_ENDPOINT, 'lb')
+    let bouncePromise = this.#submitBounce(fetchDataList);
+    let lbsPromise = this.#submitLbs();
+    return this.#submitExtensionCall(ID5_LB_ENDPOINT, 'lb')
       .then(lbResult => {
-        let chunksEnabled = this.getChunksEnabled(lbResult);
+        let chunksEnabled = this.#getChunksEnabled(lbResult, this.#lookupModeEnabledOnAnyRequest(fetchDataList));
         return Promise.allSettled([
           Promise.resolve(lbResult),
-          this.gatherChunks(chunksEnabled, Extensions.CHUNKS_CONFIGS.devChunks),
-          this.gatherChunks(chunksEnabled, Extensions.CHUNKS_CONFIGS.groupChunks),
+          this.#gatherChunks(chunksEnabled, Extensions.CHUNKS_CONFIGS.devChunks),
+          this.#gatherChunks(chunksEnabled, Extensions.CHUNKS_CONFIGS.groupChunks),
           bouncePromise,
           lbsPromise
         ]);
@@ -160,10 +159,10 @@ export class Extensions {
       });
   }
 
-  _submitLbs() {
+  #submitLbs() {
     const controller = new AbortController();
     const lbsTimeout = setTimeout(() => controller.abort(), 3000);
-    let lbsPromise = this.submitExtensionCall(ID5_LBS_ENDPOINT, 'lbs', {
+    let lbsPromise = this.#submitExtensionCall(ID5_LBS_ENDPOINT, 'lbs', {
       signal: controller.signal
     });
     return lbsPromise.finally(() => {
@@ -172,30 +171,40 @@ export class Extensions {
   }
 
   /**
-   *
    * @param {array<FetchIdRequestData>} fetchRequestDataList - the fetch requests data which can be used here to configure extension calls
    * @return {Promise<Object>}
    * @private
    */
-  _submitBounce(fetchRequestDataList) {
+  #submitBounce(fetchRequestDataList) {
     const hasSignature = fetchRequestDataList.some(fetchRequest => isDefined(fetchRequest.cacheData?.signature));
-    if (hasSignature) {
+    if (hasSignature || this.#lookupModeEnabledOnAnyRequest(fetchRequestDataList)) {
       return Promise.resolve({});
     }
-    return this.submitExtensionCall(ID5_BOUNCE_ENDPOINT, 'bounce', {credentials: 'include'});
+    return this.#submitExtensionCall(ID5_BOUNCE_ENDPOINT, 'bounce', {credentials: 'include'});
   }
 
   /**
    * @param {{chunks: integer | undefined}|undefined} lbResponse
+   * @param {boolean} lookupModeEnabled
    * @returns {boolean}
+   * @private
    */
-  getChunksEnabled(lbResponse) {
+  #getChunksEnabled(lbResponse, lookupModeEnabled) {
     let lbEnabled = lbResponse?.chunks;
-    if (lbEnabled === 0) {
+    if (lbEnabled === 0 || lookupModeEnabled) {
       return false;
     } else {
       return lbEnabled;
     }
+  }
+
+  /**
+   * @param {array<FetchIdRequestData>} fetchRequests - the fetch requests data which can be used here to configure extension calls
+   * @return {boolean}
+   * @private
+   */
+  #lookupModeEnabledOnAnyRequest(fetchRequests) {
+    return fetchRequests.some(fetchRequest => fetchRequest.idLookupMode === true);
   }
 }
 

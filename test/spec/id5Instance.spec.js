@@ -16,13 +16,15 @@ import {UaHints} from '../../lib/uaHints.js';
 import {version} from '../../generated/version.js';
 import {TrueLinkAdapter} from '@id5io/multiplexing/trueLink';
 
-function createInstance(config, metrics, multiplexingInstanceStub) {
-  return new Id5Instance(config, null, null, metrics, null, NO_OP_LOGGER, multiplexingInstanceStub, null, new TrueLinkAdapter());
-}
+
 
 describe('Id5Instance', function () {
   const MOCK_PAGE_LEVEL_INFO = new PageLevelInfo(null, '0.0', true);
   const MOCK_CONSENT_DATA = new ConsentData();
+
+  function createInstance(config, metrics, multiplexingInstanceStub) {
+    return new Id5Instance(config, null, null, metrics, null, NO_OP_LOGGER, multiplexingInstanceStub, MOCK_PAGE_LEVEL_INFO, new TrueLinkAdapter());
+  }
 
   let multiplexingInstanceStub;
   let metrics;
@@ -149,7 +151,7 @@ describe('Id5Instance', function () {
     it('should set exposeUserId to true without any A/B testing', function (done) {
       // given
       const config = new Config({...defaultInitBypassConsent()}, NO_OP_LOGGER);
-      const instanceUnderTest = new Id5Instance(config, null, null, metrics, null, NO_OP_LOGGER, multiplexingInstanceStub, null, new TrueLinkAdapter());
+      const instanceUnderTest = createInstance(config, metrics, multiplexingInstanceStub);
       instanceUnderTest.bootstrap();
 
       instanceUnderTest.onAvailable(function () {
@@ -389,6 +391,7 @@ describe('Id5Instance', function () {
           att: 1,
           gamTargetingPrefix: undefined,
           exposeTargeting: false,
+          idLookupMode: false,
           ...additionalConfig
         });
         expect(registerObj.fetchIdData).to.deep.eq({
@@ -414,6 +417,7 @@ describe('Id5Instance', function () {
           consentSource: 'cmp',
           allowedVendors: undefined,
           trueLink: {booted: false},
+          idLookupMode: false,
           ...additionalExpectedRegistration
         });
         expect(registerObj.singletonMode).to.be.false;
@@ -435,6 +439,25 @@ describe('Id5Instance', function () {
       expect(consentManagement.setConsentData).to.not.have.been.called;
       expect(multiplexingInstanceStub.register).to.have.been.calledOnce;
     });
+
+    it('should force singletonMode and pass idLookupMode in fetchIdData when idLookupMode is enabled', async () => {
+      // given
+      const config = new Config({
+        ...defaultInit(),
+        idLookupMode: true
+      }, NO_OP_LOGGER);
+      const instanceUnderTest = createInstance(config, metrics, multiplexingInstanceStub);
+
+      // when
+      await instanceUnderTest.init();
+
+      // then
+      expect(multiplexingInstanceStub.register).to.have.been.calledOnce;
+      const args = multiplexingInstanceStub.register.firstCall.args[0];
+      expect(args.singletonMode).to.be.true;
+      expect(args.canDoCascade).to.be.false;
+      expect(args.fetchIdData.idLookupMode).to.be.true;
+    })
   });
 
   describe('upon refresh', function () {

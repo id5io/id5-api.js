@@ -138,6 +138,7 @@
  * @property {Array<string>} [allowedVendors]
  * @property {ConsentSource} [consentSource] - cmp/partner/prebid
  * @property {TrueLink} [trueLink]
+ * @property {boolean} [idLookupMode] - When true, the API will work in ID lookup mode (no new ID will be generated).
  */
 
 /**

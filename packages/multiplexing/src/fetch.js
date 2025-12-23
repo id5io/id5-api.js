@@ -248,6 +248,10 @@ export class UidFetcher {
       data._invalid_segments = invalidSegmentsCount;
     }
 
+    if (fetchIdData.idLookupMode === true) {
+      data.idLookupMode = true;
+    }
+
     if (fetchIdData.trace) {
       data._trace = true;
     }

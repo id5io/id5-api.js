@@ -629,6 +629,49 @@ describe('The ID5 API', function () {
         });
     });
   });
+  describe('idLookupMode', function () {
+    afterEach(async () => {
+      await server.reset();
+    });
+    it('should respect idLookupMode configuration', async () => {
+      const TEST_PAGE_PATH = path.join(RESOURCES_DIR, 'idLookupMode.html');
+      await server.forGet('https://my-publisher-website.net')
+        .thenFromFile(200, TEST_PAGE_PATH);
+      await server.forGet('https://lb.eu-1-id5-sync.com/lb/v1')
+        .thenJson(200, { ...MOCK_LB_RESPONSE, chunks: 1 }, MOCK_CORS_HEADERS); // Set chunks: 1 to see if it's ignored
+      const mockId5 = await server.forPost(FETCH_ENDPOINT)
+        .thenCallback(multiFetchResponseWithCorsAllowed(MOCK_FETCH_RESPONSE));
+      const diagnosticsEndpoint = await server.forPost('https://diagnostics.id5-sync.com/measurements')
+        .thenJson(202, '', MOCK_CORS_ALLOW_ALL_HEADERS);
+      const bounceEndpoint = await server.forGet('https://id5-sync.com/bounce')
+        .thenJson(200, {bounce: {setCookie: false}}, MOCK_CORS_HEADERS);
+      const chunkEndpoint = await server.forGet(/https:\/\/d\d+\.eu-.*/)
+        .thenReply(200, '');
+      await server.forGet('https://dummyimage.com/600x200')
+        .thenReply(200, '');
+      const page = await browser.newPage();
+      await page.goto('https://my-publisher-website.net');
+      // Verify fetch request
+      const id5Requests = await expectRequestAt(mockId5);
+      expect(id5Requests).has.lengthOf(1);
+      const fetchBody = await id5Requests[0].body.getJson();
+      expect(fetchBody.requests[0].idLookupMode).to.equal(true);
+      // Verify diagnostics
+      const diagRequests = await expectRequestAt(diagnosticsEndpoint);
+      expect(diagRequests).has.lengthOf(1);
+      const diagBody = await diagRequests[0].body.getJson();
+      const expectedTags = {
+        idLookupMode: 'true'
+      };
+      verifyContainsMeasurementWithTags(diagBody.measurements, 'id5.api.instance.load.delay', 'TIMER', expectedTags);
+      // Verify no bounce call
+      const bounceRequests = await bounceEndpoint.getSeenRequests();
+      expect(bounceRequests).to.have.lengthOf(0);
+      // Verify no chunks call
+      const chunkRequests = await chunkEndpoint.getSeenRequests();
+      expect(chunkRequests).to.have.lengthOf(0);
+    });
+  });
 
   describe('with multiplexing enabled', function () {
     let electionNotifyEndpoint;
@@ -983,7 +1026,8 @@ describe('The ID5 API', function () {
     let measurementsByName = verifyContainsMeasurement(measurements, name, type);
     let tags = measurementsByName.map(measurement => measurement.tags);
     expect(tags).to.deep.contain({
-      version: version, partner: '99', source: 'api', tml: 'https://my-publisher-website.net/', ...expectedTags
+      version: version, partner: '99', source: 'api', tml: 'https://my-publisher-website.net/',
+      provider: 'default', idLookupMode: 'false', ...expectedTags
     });
 
     for (const measurement of measurementsByName) {

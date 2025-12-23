@@ -59,6 +59,7 @@ import enableEventsTracking from '../lib/prebid/eventsTracker.js';
  * @property {boolean} canCookieSync - If cookie syncing with other partners can be performed
  * @property {string} gamTargetingPrefix - When set, the GAM targeting tags will be set and use the specified prefix, for example 'id5'.
  * @property {boolean} exposeTargeting - When set, the ID5 targeting consumer mechanism will be enabled.
+ * @property {boolean} idLookupMode - When true, the API will work in ID lookup mode
  *
  */
 
@@ -143,10 +144,11 @@ class Id5PrebidIntegration {
       disableUaHints: prebidConfig.disableUaHints,
       gamTargetingPrefix: prebidConfig.gamTargetingPrefix,
       exposeTargeting: prebidConfig.exposeTargeting === true,
+      idLookupMode: prebidConfig.idLookupMode,
       dynamicConfig
     }, log);
     const options = config.getOptions();
-    const metrics = this._configureDiagnostics(options.partnerId, options.diagnostics, refererInfo, log, prebidVersion);
+    const metrics = this._configureDiagnostics(options.partnerId, options.diagnostics, refererInfo, log, prebidVersion, options.idLookupMode);
     if (metrics) {
       loadDelayTimer(metrics).recordNow(); // records time elapsed since page visit
       invocationCountSummary(metrics).record(this.invocationId); // record invocation count
@@ -188,8 +190,8 @@ class Id5PrebidIntegration {
         options: config.getOptions()
       },
       fetchIdData,
-      singletonMode: options?.multiplexing?._disabled === true,
-      canDoCascade: prebidConfig.canCookieSync ?? false,
+      singletonMode: options.multiplexing?._disabled === true || options.idLookupMode === true,
+      canDoCascade: (prebidConfig.canCookieSync ?? false) && options.idLookupMode !== true,
       forceAllowLocalStorageGrant: false,
       storageExpirationDays: options.storageExpirationDays
     });
@@ -259,15 +261,17 @@ class Id5PrebidIntegration {
    * @param refererInfo
    * @param {Logger} log
    * @param {String} prebidVersion
+   * @param {boolean} idLookupMode
    * @return {Id5CommonMetrics}
    */
-  _configureDiagnostics(partnerId, diagnosticsOptions, refererInfo, log, prebidVersion) {
+  _configureDiagnostics(partnerId, diagnosticsOptions, refererInfo, log, prebidVersion, idLookupMode) {
     try {
       let metrics = new Id5CommonMetrics(SOURCE, this._version);
       metrics.addCommonTags({
         ...partnerTag(partnerId),
         tml: refererInfo?.topmostLocation,
-        prebidVersion: prebidVersion
+        prebidVersion: prebidVersion,
+        idLookupMode: idLookupMode ? 'true' : 'false'
       });
       if (!diagnosticsOptions?.publishingDisabled) {
         const publisher = new MeterRegistryPublisher(metrics, createPublisher(diagnosticsOptions.publishingSampleRatio));
@@ -315,7 +319,8 @@ class Id5PrebidIntegration {
       providedRefreshInSeconds: config.getProvidedOptions().refreshInSeconds,
       trace: isGlobalTrace(),
       consentSource: ConsentSource.prebid,
-      trueLink: new TrueLinkAdapter().getTrueLink()
+      trueLink: new TrueLinkAdapter().getTrueLink(),
+      idLookupMode: options.idLookupMode
     };
   }
 }
