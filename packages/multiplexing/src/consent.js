@@ -91,7 +91,7 @@ export class GppConsentData {
 
   /**
    *
-   * @param {string} version
+   * @param {string|API_TYPE} version
    * @param {number[]} applicableSections
    * @param {string} gppString
    * @param {GppTcfData} euTcfSection consent from eu tcf (only when in applicable sections)
