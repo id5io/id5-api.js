@@ -1,12 +1,11 @@
 import {
   delve,
   InvocationLogger,
-  isArray,
-  isDefined,
   isGlobalDebug,
   isGlobalTrace,
   setGlobalDebug
 } from '../lib/utils.js';
+import {getPbjsGlobal} from '../lib/prebid/pbjsUtils.js';
 import {version as currentVersion} from '../generated/version.js';
 import {Config} from '../lib/config.js';
 import {createPublisher, MeterRegistryPublisher, startTimeMeasurement} from '@id5io/diagnostics';
@@ -193,15 +192,7 @@ class Id5PrebidIntegration {
   }
 
   getPrebidVersion() {
-    if (isDefined(window.pbjs?.version)) {
-      return window.pbjs.version;
-    } else if (isArray(window._pbjsGlobals) && window._pbjsGlobals.length > 0) {
-      const version = window[window._pbjsGlobals[0]]?.version;
-      if (isDefined(version)) {
-        return version;
-      }
-    }
-    return 'unknown';
+    return getPbjsGlobal(window)?.version ?? 'unknown';
   }
 
   /**
