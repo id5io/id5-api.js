@@ -38,6 +38,7 @@ The ID5 API is designed to make accessing the ID5 ID simple for publishers, adve
     - [Available Methods and Variables](#available-methods-and-variables)
       - [EIDs Object Output](#eids-object-output)
       - [Consents Object](#consents-object)
+    - [Caching](#caching)
     - [Examples](#examples)
       - [Enabling Debug Output](#enabling-debug-output)
     - [Test locally](#test-locally)
@@ -555,6 +556,30 @@ When ID5 ID is combined with other third-party identifiers from SSPs or other so
 | gpp           | string (Optional)   | A valid [IAB Global Privacy Platform](https://dev.iabtechlab.com/global-privacy-platform/) consent string. If the string is missing, misconstructed, or otherwise invalid, we will treat the request as if it has no consent string and process accordingly.                                                                                                                                                                                                                                                                  |
 | gpp_sid       | string (Optional)   | The GPP section ID(s) (integers) in force for the current transaction. In most cases, this field should have a single section ID. In rare occasions where such a single section ID can not be determined, the field may contain up to 2 values, separated by a comma. More information in [GPP documentation](https://github.com/InteractiveAdvertisingBureau/Global-Privacy-Platform/blob/main/Core/Consent%20String%20Specification.md#how-does-a-url-based-service-process-the-gpp-string-when-it-cant-execute-javascript) |
 | us_privacy    | string (Optional)   | A valid [IAB US Privacy](https://github.com/InteractiveAdvertisingBureau/USPrivacy/blob/master/CCPA/US%20Privacy%20String.md) string. If the string is missing, misconstructed, or otherwise invalid, we will treat the request as if it has no US Privacy string and process accordingly.                                                                                                                                                                                                                                    |
+
+### Caching
+
+The id5-api.js library automatically caches the ID5 ID in the browser's local storage to improve performance and reduce unnecessary network requests. When a user returns to your site and an ID5 ID is found in cache, **it will be made available to your callbacks (`onUpdate` or `onAvailable`) immediately** - there is no delay or waiting for network requests.
+You can determine whether the ID was retrieved from cache or from a fresh server response by using the `id5Instance.isFromCache()` method, which returns `true` if the ID came from cache and `false` if it came from a server response.
+
+> [!WARNING]
+> Directly accessing or relying on local storage entries created by id5-api.js is strongly discouraged and should never be used in production code. The local storage keys, values, and data format are for internal use only and are subject to change at any time without notice. Additionally, all cached data has an expiration time, so reading directly from local storage does not guarantee that the data is fresh or valid.
+
+**Recommended Approach:**
+
+Always use the provided API callbacks (`onUpdate` and `onAvailable`) to access the ID5 ID. **When an ID is found in cache, it will be made available to your callbacks immediately** - there is no delay or waiting for network requests. This ensures you always receive the ID in the correct format through the supported API interface as quickly as possible.
+
+```javascript
+var id5Instance = ID5.init({partnerId: 173});
+
+id5Instance.onUpdate(function(instance) {
+    var id5Id = instance.getUserId();
+    var isFromCache = instance.isFromCache();
+
+    console.log('ID5 ID:', id5Id);
+    console.log('From cache:', isFromCache);
+});
+```
 
 ### Examples
 
