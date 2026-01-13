@@ -31,6 +31,7 @@ It is intended solely for scenarios where ID retrieval is required without the n
     - [Available Configuration Options](#available-configuration-options)
       - [A/B Testing](#ab-testing)
       - [Segments](#segments)
+      - [Google Secure Signals - Publisher deploy](#google-secure-signals---publisher-deploy)
     - [Available Methods and Variables](#available-methods-and-variables) 
       - [Consents Object](#consents-object)
     - [Enabling Debug Output](#enabling-debug-output)
@@ -118,6 +119,7 @@ There are a few cases in which `getUserId()` may not be ready or have a value ye
 | abTesting                             | Optional                                     | object  | `{ enabled: false, controlGroupPct: 0 }` | Enables A/B testing of the ID5 ID. See [A/B Testing](#ab-testing) below for more details                                                                                                                                 |
 | provider                              | Optional                                     | string  | `pubmatic-identity-hub`                  | An identifier provided by ID5 to technology partners who manage API deployments on behalf of their clients. Reach out to [ID5](mailto:support@id5.io) if you have questions about this parameter                         |
 | segments                              | Optional                                     | array   |                                          | Used with platforms that don't support ingesting ID5 IDs in their client-side segment pixels. See below for details                                                                                                      |
+| gssProvider                           | Optional                                     | object  | `{ enabled: false }`                     | Enables [ID5 ID sharing via Google Secure Signals](https://wiki.id5.io/docs/google-secure-signals). More [here](#google-secure-signals---publisher-deploy)                                                                                                     |
 
 #### A/B Testing
 
@@ -153,6 +155,19 @@ var id5Instance = ID5.initLite({
     ids: [ '12345', '67890' ]
   }]
 });
+```
+
+#### Google Secure Signals - Publisher Deploy
+
+To enable sharing the [ID5 ID via Google Secure Signals (GSS)](https://wiki.id5.io/docs/google-secure-signals), add `gssProvider: { enabled: true }` to your ID5 config along with any other configuration properties.
+This will automatically register a provider that supplies an encrypted ID5 ID when it is available.
+
+```javascript
+  var id5Instance = ID5.initLite({
+    partnerId: 173, // replace with your own partnerId
+    gssProvider: { enabled: true }
+    // other properties, signals
+  });
 ```
 
 ### Available Methods and Variables
