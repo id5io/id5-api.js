@@ -23,6 +23,7 @@ import {semanticVersionCompare} from '@id5io/multiplexing/utils';
 import {UaHints} from '../lib/uaHints.js';
 import {GPPClient} from '../lib/consentProvider.js';
 import {TrueLinkAdapter} from '@id5io/multiplexing/trueLink';
+import {TargetingTags} from '../lib/targetingTags.js';
 import {
   invocationCountSummary, loadDelayTimer,
   userIdNotificationDeliveryDelayTimer,
@@ -56,6 +57,8 @@ import enableEventsTracking from '../lib/prebid/eventsTracker.js';
  * @property {ABTestingConfig} abTesting - The A/B testing configuration
  * @property {boolean} disableExtensions - Disabled extensions call
  * @property {boolean} canCookieSync - If cookie syncing with other partners can be performed
+ * @property {string} gamTargetingPrefix - When set, the GAM targeting tags will be set and use the specified prefix, for example 'id5'.
+ * @property {boolean} exposeTargeting - When set, the ID5 targeting consumer mechanism will be enabled.
  *
  */
 
@@ -138,6 +141,8 @@ class Id5PrebidIntegration {
       diagnostics: prebidConfig.diagnostics,
       segments: prebidConfig.segments,
       disableUaHints: prebidConfig.disableUaHints,
+      gamTargetingPrefix: prebidConfig.gamTargetingPrefix,
+      exposeTargeting: prebidConfig.exposeTargeting === true,
       dynamicConfig
     }, log);
     const options = config.getOptions();
@@ -166,6 +171,7 @@ class Id5PrebidIntegration {
             log.error('Failed to measure provisioning metrics', e);
           }
           this.userIdReady = true;
+          TargetingTags.updateTargeting(userIdData, options.gamTargetingPrefix, options.exposeTargeting);
           resolve(userIdData.responseObj);
         })
         .on(ApiEvent.USER_ID_FETCH_CANCELED, details => {

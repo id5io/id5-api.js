@@ -16,6 +16,12 @@
  */
 
 /**
+ * @typedef EnrichmentInfo
+ * @property {boolean} enrichment_selected
+ * @property {boolean} enriched
+ */
+
+/**
  * @typedef OpenRtbUID
  * @property {string} id
  * @property {number} atype
@@ -52,6 +58,7 @@
  * @property {boolean|undefined} [cascade_needed]
  * @property {ABTestingResult} [ab_testing]
  * @property {Ids} ids
+ * @property {EnrichmentInfo} [enrichment]
  */
 
 /**

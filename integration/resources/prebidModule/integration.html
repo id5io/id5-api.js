@@ -8,11 +8,18 @@
 
     <script type="text/javascript" src="https://cdn.id5-sync.com/api/integration/id5PrebidModule.js"></script>
     <script>
+        window.id5tags = {
+            cmd: [function(tags) {
+                window.tagCallbackResults = window.tagCallbackResults || [];
+                window.tagCallbackResults.push(tags);
+            }]
+        };
         window.pbjs = {
           version: '9.0.0' // just for test purpose
         }
         window.responseForPrebid = window.id5Prebid.integration.fetchId5Id(undefined, {
-            partner: 99
+            partner: 99,
+            exposeTargeting: true
         },
           {
             topmostLocation: "https://www.id5.io",

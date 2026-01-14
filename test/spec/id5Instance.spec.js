@@ -387,6 +387,8 @@ describe('Id5Instance', function () {
           provider: 'unit-test',
           storageExpirationDays: 13,
           att: 1,
+          gamTargetingPrefix: undefined,
+          exposeTargeting: false,
           ...additionalConfig
         });
         expect(registerObj.fetchIdData).to.deep.eq({

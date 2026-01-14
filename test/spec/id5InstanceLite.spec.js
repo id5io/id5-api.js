@@ -202,7 +202,9 @@ describe('Id5InstanceLite', function () {
         pd: 'some_pd_string',
         provider: 'unit-test',
         storageExpirationDays: 13,
-        att: 1
+        att: 1,
+        gamTargetingPrefix: undefined,
+        exposeTargeting: false
       });
       expect(registerObj.fetchIdData).to.deep.eq({
         partnerId: TEST_ID5_PARTNER_ID,

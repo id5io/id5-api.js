@@ -24,6 +24,7 @@ const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const RESOURCES_DIR = path.join(SCRIPT_DIR, 'resources');
 const TARGET_DIR = _DEBUG ? 'dev' : 'dist';
 const ID5_PBMODULE_JS_FILE = path.join(SCRIPT_DIR, '..', 'build', TARGET_DIR, 'id5PrebidModule.js');
+const TEST_PAGE_PATH = path.join(RESOURCES_DIR, 'prebidModule/integration.html');
 
 
 const MOCK_CORS_HEADERS = {
@@ -57,6 +58,10 @@ describe('The Prebid External Module', function () {
     await server.forGet('/favicon.ico').thenReply(204);
 
     browser = await buildBrowser(https.cert, server.port, _DEBUG);
+    await server.forGet('https://lb.eu-1-id5-sync.com/lb/v1')
+      .thenJson(200, MOCK_LB_RESPONSE, MOCK_CORS_HEADERS);
+    await server.forGet('https://my-publisher-website.net')
+      .thenFromFile(200, TEST_PAGE_PATH);
   });
 
   afterEach(async () => {
@@ -64,21 +69,7 @@ describe('The Prebid External Module', function () {
     await server.stop();
   });
 
-
-  beforeEach(async () => {
-    await server.forGet('https://lb.eu-1-id5-sync.com/lb/v1')
-      .thenJson(200, MOCK_LB_RESPONSE, MOCK_CORS_HEADERS);
-  });
-
-  afterEach(async () => {
-    await server.reset();
-  });
-
   it('should call multiplexing request and return response when ready', async () => {
-    const TEST_PAGE_PATH = path.join(RESOURCES_DIR, 'prebidModule/integration.html');
-    await server.forGet('https://my-publisher-website.net')
-      .thenFromFile(200, TEST_PAGE_PATH);
-
     const mockId5 = await server.forPost(FETCH_ENDPOINT)
       .thenCallback(multiFetchResponseWithCorsAllowed(MOCK_FETCH_RESPONSE));
 
@@ -95,5 +86,34 @@ describe('The Prebid External Module', function () {
     expect(requestBody.requests[0].sourceVersion).to.be.eq(version);
     expect(requestBody.requests[0].o).to.be.eql('pbjs');
     expect(requestBody.requests[0].v).to.be.eql('9.0.0');
+  });
+
+  it('should trigger id5tags callbacks when exposeTargeting is enabled', async () => {
+    const tags = {
+      'id': 'y',
+      'ab': 'n'
+    };
+    const responseWithTags = {
+      ...MOCK_FETCH_RESPONSE,
+      tags: tags
+    };
+
+    await server.forPost(FETCH_ENDPOINT)
+      .thenCallback(multiFetchResponseWithCorsAllowed(responseWithTags));
+
+    const page = await browser.newPage();
+    await page.goto('https://my-publisher-website.net');
+
+    // Wait for the response and callbacks to be executed
+    await page.evaluate(async () => window.responseForPrebid);
+
+    // Check if the pre-registered callback was called
+    // Need to wait a bit because it's called via setTimeout(() => ..., 0)
+    const callbackResults = await page.evaluate(async () => {
+      await new Promise(resolve => setTimeout(resolve, 100));
+      return window.tagCallbackResults;
+    });
+    expect(callbackResults).to.have.lengthOf(1);
+    expect(callbackResults[0]).to.eql(tags);
   });
 });
