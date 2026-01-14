@@ -35,6 +35,7 @@ The ID5 API is designed to make accessing the ID5 ID simple for publishers, adve
       - [A/B Testing](#ab-testing)
       - [Segments](#segments)
       - [Google Secure Signals - Publisher deploy](#google-secure-signals---publisher-deploy)
+      - [Tags exposed via window.id5tags](#tags-exposed-via-windowid5tags)
     - [Available Methods and Variables](#available-methods-and-variables)
       - [EIDs Object Output](#eids-object-output)
       - [Consents Object](#consents-object)
@@ -388,11 +389,23 @@ This will automatically register a provider that supplies an encrypted ID5 ID wh
 ### Tags exposed via window.id5tags
 The ID5 UserId module can expose targeting tags through a global window.id5tags object, if enabled by setting `exposeTargeting: true`.
 If `exposeTargeting` is set to true and an ID5 module has initialized, the ID5 module will expose tags through a command queue pattern
+The `tags` object is in key-value pair format like this: 
+```json
+{
+    "tagKey": "tagValue"
+}
+```
+and the meaning of specific key-value pairs is described in https://wiki.id5.io/docs/real-time-bid-enrichment-for-publishers#exposeTargeting
+
 Publishers can queue callback functions to access tags:
 ```javascript
 window.id5tags = window.id5tags || { cmd: [] };
 window.id5tags.cmd.push((tags) => {
-// Use for custom analytics, targeting, etc.
+    // Use for custom analytics, targeting, etc. 
+    // eg pass to custom tagging system with something like:
+    for (const tag in tags) {
+        customPartnerTagging.set(customPartnerPrefix + '_' + tag, tags[tag]);
+    }
 });
 ```
 
