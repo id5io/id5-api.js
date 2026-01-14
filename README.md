@@ -272,6 +272,7 @@ There are a few cases in which `getUserId()` may not be ready or have a value ye
 | applyCreativeRestrictions (alias acr) | Optional                                     | boolean | false                                    | Applies some restrictions for the case where the API is dropped alongside a creative.                                                                                                                                    |
 | gssProvider                           | Optional                                     | object  | `{ enabled: false }`                     | Enables [ID5 ID sharing via Google Secure Signals](https://wiki.id5.io/docs/google-secure-signals). More [here](#google-secure-signals---publisher-deploy)                                                                                                     | 
 | gamTargetingPrefix                    | Optional                                     | string  |                                          | When set, the GAM targeting tags will be set and use the specified prefix, for example 'id5'                                                                                                                             |
+| exposeTargeting                       | Optional                                     | string  |                                          | When set, the ID5 targeting consumer mechanism will be enabled.                                                                                                                            |
 
 #### consentData Object
 This object can contain one of the following properties:
@@ -382,6 +383,17 @@ This will automatically register a provider that supplies an encrypted ID5 ID wh
     gssProvider: { enabled: true }
     // other properties, signals
   });
+```
+
+### Tags exposed via window.id5tags
+The ID5 UserId module can expose targeting tags through a global window.id5tags object, if enabled by setting `exposeTargeting: true`.
+If `exposeTargeting` is set to true and an ID5 module has initialized, the ID5 module will expose tags through a command queue pattern
+Publishers can queue callback functions to access tags:
+```javascript
+window.id5tags = window.id5tags || { cmd: [] };
+window.id5tags.cmd.push((tags) => {
+// Use for custom analytics, targeting, etc.
+});
 ```
 
 ### Available Methods and Variables

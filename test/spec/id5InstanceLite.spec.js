@@ -203,7 +203,8 @@ describe('Id5InstanceLite', function () {
         provider: 'unit-test',
         storageExpirationDays: 13,
         att: 1,
-        gamTargetingPrefix: undefined
+        gamTargetingPrefix: undefined,
+        exposeTargeting: false
       });
       expect(registerObj.fetchIdData).to.deep.eq({
         partnerId: TEST_ID5_PARTNER_ID,

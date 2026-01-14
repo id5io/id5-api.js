@@ -388,6 +388,7 @@ describe('Id5Instance', function () {
           storageExpirationDays: 13,
           att: 1,
           gamTargetingPrefix: undefined,
+          exposeTargeting: false,
           ...additionalConfig
         });
         expect(registerObj.fetchIdData).to.deep.eq({
