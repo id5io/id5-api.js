@@ -12,6 +12,15 @@ It is intended solely for scenarios where ID retrieval is required without the n
 > [!WARNING]
 >If no other qualifying ID5 integration has been executed on the page, ID5 JS API Lite will not be able to retrieve an ID5 ID.
 
+> ### NOTICE: TERMS OF SERVICE & BINDING AGREEMENT
+> ID5 provides this software and the ID5 ID Service free of charge, subject to strict data usage and privacy rules.
+>
+> By copying, installing, or initializing the ID5 API (or any ID5 Code Snippet), you and the legal entity you represent AGREE TO BE BOUND by the ID5 ID Agreement.
+>
+> - If you do not agree to the ID5 ID Agreement, you are NOT AUTHORIZED to use this code or the ID5 Service.
+> - Commercial Use: If you are a Platform, Intermediary, or intend to use ID5 Data for commercial purposes beyond the standard publisher integration, you must contact contact@id5.io to execute a commercial license.
+
+
 **Requirements for integrating via ID5 JS API Lite:**
 - You require minimal integration footprint, for example, when deploying from within a creative.
 - You are unable or prefer not to manage user consent due to technical or legal constraints and need to access an existing encrypted ID5 ID on the page.
