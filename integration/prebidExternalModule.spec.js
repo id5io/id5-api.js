@@ -116,4 +116,27 @@ describe('The Prebid External Module', function () {
     expect(callbackResults).to.have.lengthOf(1);
     expect(callbackResults[0]).to.eql(tags);
   });
+
+  it('should call multiplexing request with idLookupMode when lookup mode is enabled', async () => {
+    const mockId5 = await server.forPost(FETCH_ENDPOINT)
+      .thenCallback(multiFetchResponseWithCorsAllowed(MOCK_FETCH_RESPONSE));
+
+    const pageUrl = 'https://lookup-mode-website.net';
+    const bounceEndpoint = await server.forGet('https://id5-sync.com/bounce')
+      .thenJson(200, {bounce: {setCookie: false}}, MOCK_CORS_HEADERS);
+    await server.forGet(pageUrl)
+      .thenFromFile(200, path.join(RESOURCES_DIR, 'prebidModule/lookupModeIntegration.html'));
+    const page = await browser.newPage();
+    await page.goto(pageUrl);
+
+    const prebidResponse = await page.evaluate(async () => window.responseForPrebid);
+    expect(prebidResponse).to.eql(MOCK_FETCH_RESPONSE);
+
+    const id5FetchRequests = await mockId5.getSeenRequests();
+    expect(id5FetchRequests).to.have.lengthOf(1);
+    const requestBody = await id5FetchRequests[0].body.getJson();
+    expect(requestBody.requests[0].idLookupMode).to.be.eql(true);
+    const bounceRequests = await bounceEndpoint.getSeenRequests();
+    expect(bounceRequests).to.have.lengthOf(0);
+  });
 });

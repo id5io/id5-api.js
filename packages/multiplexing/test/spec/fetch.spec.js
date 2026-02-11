@@ -250,7 +250,8 @@ describe('UidFetcher', function () {
       ['with trace', {trace: true}, {_trace: true}],
       ['with true link id',
         {trueLink: {booted: true, redirected: true, id: "tlid"} },
-        {true_link: {booted: true, redirected: true, id: "tlid"} }]
+        {true_link: {booted: true, redirected: true, id: "tlid"} }],
+      ['with idLookupMode', {idLookupMode: true}, {idLookupMode: true}]
     ].forEach(([description, data, expectedInRequest]) => {
       it(`should call multi-fetch and correctly use parameters to create the fetch request body (${description})`, async () => {
         // given
@@ -596,6 +597,7 @@ function expectedRequestFor(fetchIdData, consentData, extensions, other = undefi
     u: fetchIdData.refererInfo.stack[0],
     ua: window.navigator.userAgent,
     true_link: fetchIdData.trueLink,
+    ...(fetchIdData.idLookupMode === true ? {idLookupMode: true} : {}),
     ...other
   };
 }
