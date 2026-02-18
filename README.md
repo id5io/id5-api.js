@@ -717,8 +717,8 @@ in a custom directory and point CHROME_BIN environment variable to allow for tes
 ```bash
 $ export CHROME_BIN="/your/custom location/to chrome 102"
 ```
-# Npm version
-We use npm version 18 in testing. There is .nvmrc so you can enforce npm version with:
+#### Npm version
+We use node version 18 in testing. There is .nvmrc so if you use different node version, you can enforce npm version with:
 
 ```bash
 $nvm use
