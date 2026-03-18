@@ -1,5 +1,6 @@
 import './spec/utils.spec.js';
 import './spec/config.spec.js';
+import './spec/partnerDataConfig.spec.js';
 import './spec/refererDetection.spec.js';
 import './spec/tcfUtils.spec.js';
 import './spec/consentProvider.spec.js';

@@ -194,6 +194,32 @@ describe('The ID5 API', function () {
       expect(await page.evaluate(() => window.id5Eids)).to.eql(EIDS);
     });
 
+    it('can send partnerData as an object map', async () => {
+      const mockId5 = await server.forPost(FETCH_ENDPOINT)
+        .thenCallback(multiFetchResponseWithCorsAllowed(MOCK_FETCH_RESPONSE));
+
+      const TEST_PAGE_PATH = path.join(RESOURCES_DIR, 'partnerData.html');
+      await server.forGet('https://my-publisher-website.net')
+        .thenFromFile(200, TEST_PAGE_PATH);
+
+      const page = await browser.newPage();
+      await page.goto('https://my-publisher-website.net');
+      await page.waitForSelector('p#done');
+
+      const id5FetchRequests = await mockId5.getSeenRequests();
+      expect(id5FetchRequests).to.have.lengthOf(1);
+
+      const requestBody = (await id5FetchRequests[0].body.getJson()).requests[0];
+      expect(requestBody.partner).to.equal(99);
+      expect(requestBody.pd).to.be.a('string');
+
+      // Decode and verify the partnerData was converted properly
+      const decoded = atob(requestBody.pd);
+      expect(decoded).to.include('1=b4c9a289323b21a01c3e940f150eb9b8c542587f1abfd8f0e1cc1ffc5e475514'); // hem (hashed email)
+      expect(decoded).to.include('5=test-user-123'); // puid
+      expect(decoded).to.include('12=Mozilla'); // ua
+    });
+
     it('can successfully refresh an ID, store in browser and fire callbacks', async () => {
       const mockId5 = await server.forPost(FETCH_ENDPOINT)
         .thenCallback(multiFetchResponseSequence([

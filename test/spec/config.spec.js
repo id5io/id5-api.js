@@ -147,7 +147,6 @@ describe('config API', function () {
       expect(() => {
         const config = new Config({partnerId: 44, debugBypassConsent: true});
         config.updOptions({partnerId: 55});
-
       }).to.throw;
     });
 
@@ -290,5 +289,61 @@ describe('config API', function () {
 
     const configDefault = new Config({partnerId: 44});
     expect(configDefault.getOptions().idLookupMode).to.be.false;
+  });
+
+  describe('partnerData integration', function () {
+    it('should accept partnerData option', function () {
+      const config = new Config({
+        partnerId: 44,
+        debugBypassConsent: true,
+        partnerData: {
+          ua: 'Mozilla/5.0'
+        }
+      });
+
+      expect(config.getOptions().partnerData).to.deep.equal({ua: 'Mozilla/5.0'});
+      expect(config.getProvidedOptions().partnerData).to.deep.equal({ua: 'Mozilla/5.0'});
+    });
+
+    it('should convert partnerData to pd', function () {
+      const config = new Config({
+        partnerId: 44,
+        debugBypassConsent: true,
+        partnerData: {
+          ua: 'Mozilla/5.0',
+          ipv4: '192.168.1.1'
+        }
+      });
+
+      // partnerData should be stored (conversion happens later in _gatherFetchIdData)
+      expect(config.getOptions().partnerData).to.deep.equal({
+        ua: 'Mozilla/5.0',
+        ipv4: '192.168.1.1'
+      });
+    });
+
+    it('should prefer partnerData over pd when both provided', function () {
+      const config = new Config({
+        partnerId: 44,
+        debugBypassConsent: true,
+        pd: 'ignoredPd',
+        partnerData: {ua: 'used'}
+      });
+
+      expect(config.getProvidedOptions().partnerData).to.deep.equal({ua: 'used'});
+      // partnerData takes precedence and is stored for later conversion
+      expect(config.getOptions().partnerData).to.deep.equal({ua: 'used'});
+    });
+
+    it('should allow pd when partnerData not provided', function () {
+      const config = new Config({
+        partnerId: 44,
+        debugBypassConsent: true,
+        pd: 'customPdValue'
+      });
+
+      expect(config.getOptions().pd).to.equal('customPdValue');
+      expect(config.getProvidedOptions().partnerData).to.be.undefined;
+    });
   });
 });
