@@ -327,9 +327,10 @@ var id5Instance = ID5.init({
 ```
 
 #### PD Example
-To maximise addressability and produce the highest quality ID5 ID, publishers and advertisers must send additional signals such as Hashed Email, First Party user IDs in the Partner Data (pd) parameter when available. 
+To maximise addressability and produce the highest quality ID5 ID, publishers and advertisers must send additional signals such as Hashed Email, First Party user IDs in the Partner Data parameter when available.
 To ensure this information is shared in a secure way, please review the guidance [here](https://wiki.id5.io/en/identitycloud/retrieve-id5-ids/passing-partner-data-to-id5).
-Here's how your configuration could look when initializing the API:
+
+##### Using the legacy `pd` parameter (base64-encoded string):
 
 ```javascript
 var id5Instance = ID5.init({
@@ -337,6 +338,73 @@ var id5Instance = ID5.init({
   pd: "MT1iNTBjYTA4MjcxNzk1YThlN2U0MDEyODEzZjIzZDUwNTE5M2Q3NWMwZjJlMmJiOTliYWE2M2FhODIyZjY2ZWQzJjU9bSVDMyVCNmxsZXIlMjZmcmFuJUMzJUE3b2lz"
 });
 ```
+
+##### Using the new `partnerData` object (recommended):
+
+The `partnerData` object provides a simpler, more maintainable way to pass partner data with semantic keys:
+
+**Example 1: Using string keys with auto-hashing**
+```javascript
+var id5Instance = ID5.init({
+  partnerId: 173, // modify with your own partnerId
+  partnerData: {
+    hem: 'user@example.com',        // Email (auto-hashed and normalized)
+    phone: '+1234567890',            // Phone (auto-hashed)
+    puid: 'publisher-user-id-123',   // Publisher User ID
+    ua: navigator.userAgent,         // User Agent
+    ipv4: '192.168.1.1'             // IPv4 address
+  }
+});
+```
+
+**Example 2: Using pre-hashed values**
+```javascript
+var id5Instance = ID5.init({
+  partnerId: 173,
+  partnerData: {
+    // Pre-hashed email (SHA256)
+    hem: 'f660ab912ec121d1b1e928a0bb4bc61b15f5ad44d5efdc4e1c92a25e99b8e44a',
+    // Pre-hashed phone (SHA256)
+    phone: 'a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2',
+    puid: 'publisher-user-id-123'
+  }
+});
+```
+
+**Example 3: Using PARTNER_DATA_KEYS constants for IDE autocompletion**
+```javascript
+import ID5, { PARTNER_DATA_KEYS } from '@id5io/id5-api.js';
+
+var id5Instance = ID5.init({
+  partnerId: 173,
+  partnerData: {
+    [PARTNER_DATA_KEYS.HEM]: 'user@example.com',     // Hashed Email
+    [PARTNER_DATA_KEYS.PHONE]: '+1234567890',        // Hashed Phone
+    [PARTNER_DATA_KEYS.PUID]: 'publisher-user-id',   // Publisher User ID
+    [PARTNER_DATA_KEYS.UA]: navigator.userAgent,     // User Agent
+    [PARTNER_DATA_KEYS.IDFA]: 'EA7583CD-A667-48BC-B806-42ECB2B48606'  // Apple IDFA
+  }
+});
+```
+
+**Supported `partnerData` keys:**
+- `hem` - Hashed Email (auto-normalized and auto-hashed if not already SHA256)
+- `phone` - Hashed Phone (trimmed and auto-hashed if not already SHA256)
+- `puid` - Publisher User ID
+- `xpuid` - Cross-Publisher User ID
+- `xpuidSource` - Cross-Publisher User ID Source
+- `idfa` - Apple IDFA (auto-lowercased)
+- `gaid` - Google Advertising ID (auto-lowercased)
+- `idfv` - Apple IDFV (auto-lowercased)
+- `ua` - User Agent
+- `ipv4` - IPv4 Address
+- `ipv6` - IPv6 Address
+- `url` - URL
+- `domain` - Domain
+- `iabToken` - IAB Token
+- `other` - Other data
+
+> **Note:** Emails are automatically normalized (e.g., Gmail dot removal, plus addressing) and hashed if not already SHA256. Mobile advertising IDs (IDFA, GAID, IDFV) are automatically lowercased for consistency.
 
 #### A/B Testing
 

@@ -440,6 +440,23 @@ describe('Id5Instance', function () {
       expect(multiplexingInstanceStub.register).to.have.been.calledOnce;
     });
 
+    it('should keep pd from options when partnerData conversion returns undefined', async function () {
+      // given - partnerData with only unrecognized keys causes convertPartnerDataToPd to return undefined
+      const config = new Config({
+        ...defaultInit(),
+        pd: 'original_pd',
+        partnerData: {unknownKey: 'somevalue'}
+      }, NO_OP_LOGGER);
+      const instanceUnderTest = createInstance(config, metrics, multiplexingInstanceStub);
+
+      // when
+      await instanceUnderTest.init();
+
+      // then
+      const fetchIdData = multiplexingInstanceStub.register.firstCall.firstArg.fetchIdData;
+      expect(fetchIdData.pd).to.eq('original_pd');
+    });
+
     it('should force singletonMode and pass idLookupMode in fetchIdData when idLookupMode is enabled', async () => {
       // given
       const config = new Config({
