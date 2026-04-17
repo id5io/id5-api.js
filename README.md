@@ -2,6 +2,14 @@
 
 The ID5 ID is a next-generation universal identifier that publishers, advertisers and ad tech platforms can use to recognise users and deliver campaign objectives across different types of devices without relying on traditional identification methods (e.g. third-party cookies and MAIDs). By leveraging a variety of signals such as hashed email addresses, page URL, IP addresses, timestamps etc., as well as a machine learning algorithm, the ID5 ID improves addressability without compromising privacy and data protection. The ID5 ID is built on top of privacy-by-design and encryption mechanisms, ensuring that users' privacy preferences are respected and enforced in the advertising value chain.
 
+> ### NOTICE: TERMS OF SERVICE & BINDING AGREEMENT
+> ID5 provides this software and the ID5 ID Service free of charge, subject to strict data usage and privacy rules.
+> 
+> By copying, installing, or initializing the ID5 API (or any ID5 Code Snippet), you and the legal entity you represent AGREE TO BE BOUND by the ID5 ID Agreement.
+> 
+> - If you do not agree to the ID5 ID Agreement, you are NOT AUTHORIZED to use this code or the ID5 Service.
+> - Commercial Use: If you are a Platform, Intermediary, or intend to use ID5 Data for commercial purposes beyond the standard publisher integration, you must contact contact@id5.io to execute a commercial license.
+
 # ID5 API Overview
 
 The ID5 API is designed to make accessing the ID5 ID simple for publishers, advertisers, and their ad tech partners. The lightweight source code handles retrieving users’ consent preferences, retrieving, caching, and storing the ID locally, and making it available to other code on the page. A flow diagram of how the ID5 API interacts with your CMP and other vendor tags can be [found below](#api-process-flow).
@@ -56,6 +64,16 @@ The ID5 API is designed to make accessing the ID5 ID simple for publishers, adve
 ## ID5 Partner Creation
 
 The first step to work with the ID5 API and ID5 ID is to apply for an ID5 Partner account. If you are not already integrated with ID5, simply go to [our website](https://id5.io/solutions) and register for an account.
+
+
+> ### NOTICE: TERMS OF SERVICE & BINDING AGREEMENT
+> ID5 provides this software and the ID5 ID Service free of charge, subject to strict data usage and privacy rules.
+>
+> By copying, installing, or initializing the ID5 API (or any ID5 Code Snippet), you and the legal entity you represent AGREE TO BE BOUND by the ID5 ID Agreement.
+>
+> - If you do not agree to the ID5 ID Agreement, you are NOT AUTHORIZED to use this code or the ID5 Service.
+> - Commercial Use: If you are a Platform, Intermediary, or intend to use ID5 Data for commercial purposes beyond the standard publisher integration, you must contact contact@id5.io to execute a commercial license.
+
 
 ## Quick Start
 
