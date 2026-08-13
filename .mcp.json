@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "id5-graphify-local": {
+      "command": "graphify-mcp",
+      "type": "stdio"
+    }
+  }
+}

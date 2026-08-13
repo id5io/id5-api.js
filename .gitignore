@@ -10,3 +10,11 @@ generated/
 .idea_modules/
 
 .DS_Store
+
+# graphify — commit the shared graph (graph.json, graph.html, GRAPH_REPORT.md,
+# manifest.json, wiki/) but not local/machine-specific artifacts that leak
+# absolute paths or bloat the repo.
+graphify-out/cost.json
+graphify-out/cache/
+graphify-out/.graphify_*
+graphify-out/[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]/
