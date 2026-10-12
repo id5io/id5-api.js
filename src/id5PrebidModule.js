@@ -148,7 +148,7 @@ class Id5PrebidIntegration {
       dynamicConfig
     }, log);
     const options = config.getOptions();
-    const metrics = this._configureDiagnostics(options.partnerId, options.diagnostics, refererInfo, log, prebidVersion, options.idLookupMode);
+    const metrics = this._configureDiagnostics(options.partnerId, options.diagnostics, refererInfo, log, prebidVersion, options.idLookupMode, config.getEndpoints());
     if (metrics) {
       loadDelayTimer(metrics).recordNow(); // records time elapsed since page visit
       invocationCountSummary(metrics).record(this.invocationId); // record invocation count
@@ -262,9 +262,10 @@ class Id5PrebidIntegration {
    * @param {Logger} log
    * @param {String} prebidVersion
    * @param {boolean} idLookupMode
+   * @param {Id5Endpoints} endpoints
    * @return {Id5CommonMetrics}
    */
-  _configureDiagnostics(partnerId, diagnosticsOptions, refererInfo, log, prebidVersion, idLookupMode) {
+  _configureDiagnostics(partnerId, diagnosticsOptions, refererInfo, log, prebidVersion, idLookupMode, endpoints) {
     try {
       let metrics = new Id5CommonMetrics(SOURCE, this._version);
       metrics.addCommonTags({
@@ -274,7 +275,8 @@ class Id5PrebidIntegration {
         idLookupMode: idLookupMode ? 'true' : 'false'
       });
       if (!diagnosticsOptions?.publishingDisabled) {
-        const publisher = new MeterRegistryPublisher(metrics, createPublisher(diagnosticsOptions.publishingSampleRatio));
+        const diagnosticsUrl = endpoints.diagnostics;
+        const publisher = new MeterRegistryPublisher(metrics, createPublisher(diagnosticsOptions.publishingSampleRatio, diagnosticsUrl));
         if (diagnosticsOptions?.publishAfterLoadInMsec && diagnosticsOptions.publishAfterLoadInMsec > 0) {
           publisher.schedulePublishAfterMsec(diagnosticsOptions.publishAfterLoadInMsec);
         }
@@ -320,7 +322,8 @@ class Id5PrebidIntegration {
       trace: isGlobalTrace(),
       consentSource: ConsentSource.prebid,
       trueLink: new TrueLinkAdapter().getTrueLink(),
-      idLookupMode: options.idLookupMode
+      idLookupMode: options.idLookupMode,
+      apiBaseUrl: options.apiBaseUrl
     };
   }
 }

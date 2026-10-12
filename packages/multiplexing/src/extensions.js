@@ -1,9 +1,9 @@
 import {startTimeMeasurement} from '@id5io/diagnostics';
 import {isDefined} from './utils.js';
+import {DEFAULT_ENDPOINTS} from './endpoints.js';
 import {extensionsCallTimer} from './metrics.js';
 
 export const ID5_LB_ENDPOINT = `https://lb.eu-1-id5-sync.com/lb/v1`;
-export const ID5_BOUNCE_ENDPOINT = `https://id5-sync.com/bounce`;
 export const ID5_LBS_ENDPOINT = 'https://lbs.eu-1-id5-sync.com/lbs/v1';
 
 export class Extensions {
@@ -32,11 +32,13 @@ export class Extensions {
    * @param {MeterRegistry} metrics
    * @param {Logger} logger
    * @param {Store} store
+   * @param {Id5Endpoints} [endpoints]
    */
-  constructor(metrics, logger, store) {
+  constructor(metrics, logger, store, endpoints = DEFAULT_ENDPOINTS) {
     this._metrics = metrics;
     this._log = logger;
     this._store = store;
+    this._endpoints = endpoints;
   }
 
   static CHUNKS_CONFIGS = Object.freeze({
@@ -180,7 +182,7 @@ export class Extensions {
     if (hasSignature || this.#lookupModeEnabledOnAnyRequest(fetchRequestDataList)) {
       return Promise.resolve({});
     }
-    return this.#submitExtensionCall(ID5_BOUNCE_ENDPOINT, 'bounce', {credentials: 'include'});
+    return this.#submitExtensionCall(this._endpoints.bounce, 'bounce', {credentials: 'include'});
   }
 
   /**
@@ -213,9 +215,10 @@ export const EXTENSIONS = {
    * @param {MeterRegistry} metrics
    * @param {Logger} log
    * @param {Store} store
+   * @param {Id5Endpoints} [endpoints]
    * @returns {Extensions}
    */
-  createExtensions: function (metrics, log, store) {
-    return new Extensions(metrics, log, store);
+  createExtensions: function (metrics, log, store, endpoints) {
+    return new Extensions(metrics, log, store, endpoints);
   }
 };

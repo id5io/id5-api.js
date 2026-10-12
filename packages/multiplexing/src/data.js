@@ -139,6 +139,7 @@
  * @property {ConsentSource} [consentSource] - cmp/partner/prebid
  * @property {TrueLink} [trueLink]
  * @property {boolean} [idLookupMode] - When true, the API will work in ID lookup mode (no new ID will be generated).
+ * @property {string} [apiBaseUrl] - Instance-level base URL for ID5 endpoints, configured at init. When empty, endpoints use their default absolute hosts.
  */
 
 /**

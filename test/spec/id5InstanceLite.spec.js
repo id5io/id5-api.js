@@ -205,7 +205,8 @@ describe('Id5InstanceLite', function () {
         att: 1,
         gamTargetingPrefix: undefined,
         exposeTargeting: false,
-        idLookupMode: false
+        idLookupMode: false,
+        apiBaseUrl: ''
       });
       expect(registerObj.fetchIdData).to.deep.eq({
         partnerId: TEST_ID5_PARTNER_ID,
@@ -226,7 +227,8 @@ describe('Id5InstanceLite', function () {
           {destination: '22', ids: ['a', 'b', 'c']}
         ],
         invalidSegmentsCount: 0,
-        idLookupMode: false
+        idLookupMode: false,
+        apiBaseUrl: ''
       });
       expect(registerObj.singletonMode).to.be.false;
       expect(registerObj.canDoCascade).to.be.false;

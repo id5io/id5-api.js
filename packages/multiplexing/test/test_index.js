@@ -1,6 +1,7 @@
 import './spec/clientStore.spec.js';
 import './spec/consent.spec.js';
 import './spec/consentManagement.spec.js';
+import './spec/endpoints.spec.js';
 import './spec/events.spec.js';
 import './spec/extensions.spec.js';
 import './spec/fetch.spec.js';

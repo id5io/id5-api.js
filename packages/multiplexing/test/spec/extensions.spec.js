@@ -1,5 +1,6 @@
 import sinon from 'sinon';
-import {EXTENSIONS, ID5_BOUNCE_ENDPOINT, ID5_LB_ENDPOINT, ID5_LBS_ENDPOINT} from '../../src/extensions.js';
+import {EXTENSIONS, ID5_LB_ENDPOINT, ID5_LBS_ENDPOINT} from '../../src/extensions.js';
+import {DEFAULT_ENDPOINTS} from '../../src/endpoints.js';
 import {NO_OP_LOGGER} from '../../src/logger.js';
 import {MeterRegistry} from '@id5io/diagnostics';
 import {Store} from '../../src/store.js';
@@ -14,7 +15,7 @@ function createFetchStub(lbResponse, lbsResponse = undefined) {
       return Promise.resolve(new window.Response('2', {status: 200}));
     } else if (url.includes(ID5_LB_ENDPOINT)) {
       return Promise.resolve(new window.Response(JSON.stringify(lbResponse), {status: 200}));
-    } else if (url.includes(ID5_BOUNCE_ENDPOINT) && init.credentials === 'include') {
+    } else if (url.includes(DEFAULT_ENDPOINTS.bounce) && init.credentials === 'include') {
       return Promise.resolve(new window.Response(JSON.stringify(BOUNCE_DEFAULT_RESPONSE), {status: 200}));
     } else if (url.includes(ID5_LBS_ENDPOINT) && lbsResponse !== undefined) {
       return Promise.resolve(new window.Response(JSON.stringify(lbsResponse), {status: 200}));
@@ -51,7 +52,7 @@ describe('Extensions', function () {
 
     return extensions.gather([{}])
       .then(response => {
-        expect(fetchStub).to.be.calledWith(ID5_BOUNCE_ENDPOINT);
+        expect(fetchStub).to.be.calledWith(DEFAULT_ENDPOINTS.bounce);
         expect(response).to.be.deep.equal({
           ...extensionsResponse,
           lbCDN: '%%LB_CDN%%',
@@ -71,7 +72,7 @@ describe('Extensions', function () {
 
     return extensions.gather([{}])
       .then(response => {
-        expect(fetchStub).to.be.calledWith(ID5_BOUNCE_ENDPOINT);
+        expect(fetchStub).to.be.calledWith(DEFAULT_ENDPOINTS.bounce);
         expect(response).to.be.deep.equal({
           ...extensionsResponse,
           lbCDN: '%%LB_CDN%%',
@@ -91,7 +92,7 @@ describe('Extensions', function () {
 
     return extensions.gather([{}, {cacheData: {signature: 'some-signature'}}])
       .then(response => {
-        expect(fetchStub).to.not.be.calledWith(ID5_BOUNCE_ENDPOINT);
+        expect(fetchStub).to.not.be.calledWith(DEFAULT_ENDPOINTS.bounce);
         expect(response).to.be.deep.equal({
           ...extensionsResponse,
           lbCDN: '%%LB_CDN%%',
@@ -181,7 +182,7 @@ describe('Extensions', function () {
 
     return extensions.gather([{idLookupMode: true}])
       .then(response => {
-        expect(fetchStub).to.not.be.calledWith(ID5_BOUNCE_ENDPOINT);
+        expect(fetchStub).to.not.be.calledWith(DEFAULT_ENDPOINTS.bounce);
         expect(response).to.be.deep.equal({
           ...lbExtensions,
           lbCDN: '%%LB_CDN%%',
