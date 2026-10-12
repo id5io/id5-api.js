@@ -392,6 +392,7 @@ describe('Id5Instance', function () {
           gamTargetingPrefix: undefined,
           exposeTargeting: false,
           idLookupMode: false,
+          apiBaseUrl: '',
           ...additionalConfig
         });
         expect(registerObj.fetchIdData).to.deep.eq({
@@ -418,6 +419,7 @@ describe('Id5Instance', function () {
           allowedVendors: undefined,
           trueLink: {booted: false},
           idLookupMode: false,
+          apiBaseUrl: '',
           ...additionalExpectedRegistration
         });
         expect(registerObj.singletonMode).to.be.false;

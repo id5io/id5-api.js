@@ -12,7 +12,8 @@
     "./store": "./src/store.js",
     "./constants": "./src/constants.js",
     "./consent": "./src/consent.js",
-    "./events": "./src/events.js"
+    "./events": "./src/events.js",
+    "./endpoints": "./src/endpoints.js"
   },
   "files": [
     "index*.mjs",

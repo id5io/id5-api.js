@@ -251,6 +251,54 @@ describe('The ID5 API', function () {
     });
   });
 
+  describe('when apiBaseUrl is configured', function () {
+    const CUSTOM_API_BASE = 'https://my-publisher-website.net/a7q3';
+    let customFetch, defaultFetch, customBounce, customDiag;
+
+    beforeEach(async () => {
+      await server.forGet('https://lb.eu-1-id5-sync.com/lb/v1')
+        .thenJson(200, MOCK_LB_RESPONSE, MOCK_CORS_HEADERS);
+      // fetch, bounce and diagnostics must be served from the configured base...
+      customFetch = await server.forPost(`${CUSTOM_API_BASE}/gm/v3`)
+        .thenCallback(multiFetchResponseWithCorsAllowed(MOCK_FETCH_RESPONSE));
+      customBounce = await server.forGet(`${CUSTOM_API_BASE}/bounce`)
+        .thenJson(200, {bounce: {setCookie: false}}, MOCK_CORS_HEADERS);
+      customDiag = await server.forPost(`${CUSTOM_API_BASE}/diag/measurements`)
+        .thenJson(202, '', MOCK_CORS_ALLOW_ALL_HEADERS);
+      // ...and the default hosts must not be called.
+      defaultFetch = await server.forPost(FETCH_ENDPOINT)
+        .thenCallback(multiFetchResponseWithCorsAllowed(MOCK_FETCH_RESPONSE));
+      await mockBounceEndpoint();
+      await server.forGet('https://dummyimage.com/600x200').thenReply(200, '');
+    });
+
+    afterEach(async () => {
+      await server.reset();
+    });
+
+    it('routes fetch, bounce and diagnostics to the configured base', async () => {
+      const TEST_PAGE_PATH = path.join(RESOURCES_DIR, 'integration-custom-base.html');
+      await server.forGet('https://my-publisher-website.net')
+        .thenFromFile(200, TEST_PAGE_PATH);
+
+      const page = await browser.newPage();
+      await page.goto('https://my-publisher-website.net');
+      await page.waitForSelector('p#done');
+
+      // fetch resolved via the configured base, not the default host
+      expect(await customFetch.getSeenRequests()).to.have.lengthOf(1);
+      expect(await defaultFetch.getSeenRequests()).to.have.lengthOf(0);
+      expect(await page.evaluate(() => window.id5Update)).to.eq(MOCK_ID);
+
+      // bounce on the configured base
+      expect(await customBounce.getSeenRequests()).to.have.lengthOf(1);
+
+      // diagnostics published to the configured base
+      const diagRequests = await expectRequestAt(customDiag);
+      expect(diagRequests).to.have.lengthOf(1);
+    });
+  });
+
   describe('with creative restrictions', function () {
     beforeEach(async () => {
       const TEST_PAGE_PATH = path.join(RESOURCES_DIR, 'creativeRestrictions.html');

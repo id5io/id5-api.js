@@ -1,4 +1,5 @@
 import {ajax, isDefined, isPlainObject, isStr} from './utils.js';
+import {DEFAULT_ENDPOINTS} from './endpoints.js';
 import {startTimeMeasurement} from '@id5io/diagnostics';
 
 /* eslint-disable no-unused-vars */
@@ -7,8 +8,6 @@ import {Logger} from './logger.js';
 import {fetchFailureCallTimer, fetchSuccessfulCallTimer} from './metrics.js';
 /* eslint-enable no-unused-vars */
 
-const HOST = 'https://id5-sync.com';
-const MULTI_FETCH_ENDPOINT_V3 = `/gm/v3`;
 
 /**
  * FetchIdData data enriched with mutiplexing insights. Used when called multiplexed fetch request
@@ -86,11 +85,17 @@ export class UidFetcher {
    * @private
    */
   _log;
+  /**
+   * @type {Id5Endpoints}
+   * @private
+   */
+  _endpoints;
 
-  constructor(metrics, log, extensions) {
+  constructor(metrics, log, extensions, endpoints = DEFAULT_ENDPOINTS) {
     this._extensionsProvider = extensions;
     this._metrics = metrics;
     this._log = log;
+    this._endpoints = endpoints;
   }
 
   /**
@@ -115,7 +120,7 @@ export class UidFetcher {
         const refresher = this;
         return new Promise((resolve, reject) => {
           const fetchTimeMeasurement = startTimeMeasurement();
-          const url = `${HOST}${MULTI_FETCH_ENDPOINT_V3}`;
+          const url = this._endpoints.fetch;
           log.info('Fetching ID5 ID from:', url, requests);
           ajax(url, {
             success: function (jsonResponse) {

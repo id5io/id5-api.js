@@ -20,6 +20,7 @@ import {
 import {StorageConfig, Store} from './store.js';
 import {ConsentManagement} from './consentManagement.js';
 import {UidFetcher} from './fetch.js';
+import {Id5Endpoints} from './endpoints.js';
 import {ClientStore} from './clientStore.js';
 import {EXTENSIONS} from './extensions.js';
 import {CachedUserIdProvisioner} from './cachedUserId.js';
@@ -342,7 +343,12 @@ export class Instance extends CoreInstance {
     const consentManagement = new ConsentManagement(localStorage, storageConfig, properties.forceAllowLocalStorageGrant, logger, metrics);
     const grantChecker = () => consentManagement.localStorageGrant('client-store');
     const store = new Store(new ClientStore(grantChecker, localStorage, storageConfig, logger), this._trueLinkAdapter);
-    const fetcher = new UidFetcher(metrics, logger, EXTENSIONS.createExtensions(metrics, logger, store));
+    // The leader runs the fetch, so it uses its own endpoints (from its own apiBaseUrl).
+    // TODO (future): consider building the leader's endpoints differently, or selecting them
+    // per leader-specific preferences driven by configuration; leader election could also
+    // prefer an instance that has a custom endpoint configured.
+    const endpoints = Id5Endpoints.from(properties.fetchIdData?.apiBaseUrl);
+    const fetcher = new UidFetcher(metrics, logger, EXTENSIONS.createExtensions(metrics, logger, store, endpoints), endpoints);
 
     const leader = new ActualLeader(this._window, properties, replicatingStorage, store, consentManagement, metrics, logger, fetcher);
     leader.addFollower(this._followerRole); // add itself to be directly called
