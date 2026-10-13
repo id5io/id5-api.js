@@ -60,6 +60,7 @@ import enableEventsTracking from '../lib/prebid/eventsTracker.js';
  * @property {string} gamTargetingPrefix - When set, the GAM targeting tags will be set and use the specified prefix, for example 'id5'.
  * @property {boolean} exposeTargeting - When set, the ID5 targeting consumer mechanism will be enabled.
  * @property {boolean} idLookupMode - When true, the API will work in ID lookup mode
+ * @property {string} id5ApiBaseUrl - Base URL prepended to every ID5 endpoint, so calls are served first-party
  *
  */
 
@@ -145,6 +146,7 @@ class Id5PrebidIntegration {
       gamTargetingPrefix: prebidConfig.gamTargetingPrefix,
       exposeTargeting: prebidConfig.exposeTargeting === true,
       idLookupMode: prebidConfig.idLookupMode,
+      apiBaseUrl: prebidConfig.id5ApiBaseUrl,
       dynamicConfig
     }, log);
     const options = config.getOptions();
