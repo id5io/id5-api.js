@@ -204,7 +204,6 @@ describe('partnerDataConfig', function () {
         puid: 'puid-value',
         idfa: 'IDFA-VALUE',
         gaid: 'GAID-VALUE',
-        url: 'https://example.com',
         domain: 'example.com',
         ipv4: '192.168.1.1',
         ipv6: '2001:db8::1',
@@ -225,7 +224,6 @@ describe('partnerDataConfig', function () {
       expect(decoded).to.include('5=puid-value'); // puid
       expect(decoded).to.include('6=idfa-value'); // idfa (lowercased)
       expect(decoded).to.include('7=gaid-value'); // gaid (lowercased)
-      expect(decoded).to.include('8=https'); // url
       expect(decoded).to.include('9=example.com'); // domain
       expect(decoded).to.include('10=192.168.1.1'); // ipv4
       expect(decoded).to.include('11=2001'); // ipv6

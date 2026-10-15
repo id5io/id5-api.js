@@ -1,6 +1,6 @@
 # ID5 ID
 
-The ID5 ID is a next-generation universal identifier that publishers, advertisers and ad tech platforms can use to recognise users and deliver campaign objectives across different types of devices without relying on traditional identification methods (e.g. third-party cookies and MAIDs). By leveraging a variety of signals such as hashed email addresses, page URL, IP addresses, timestamps etc., as well as a machine learning algorithm, the ID5 ID improves addressability without compromising privacy and data protection. The ID5 ID is built on top of privacy-by-design and encryption mechanisms, ensuring that users' privacy preferences are respected and enforced in the advertising value chain.
+The ID5 ID is a next-generation universal identifier that publishers, advertisers and ad tech platforms can use to recognise users and deliver campaign objectives across different types of devices without relying on traditional identification methods (e.g. third-party cookies and MAIDs). By leveraging a variety of signals such as hashed email addresses, page domain URL, IP addresses, timestamps etc., as well as a machine learning algorithm, the ID5 ID improves addressability without compromising privacy and data protection. The ID5 ID is built on top of privacy-by-design and encryption mechanisms, ensuring that users' privacy preferences are respected and enforced in the advertising value chain.
 
 > ### NOTICE: TERMS OF SERVICE & BINDING AGREEMENT
 > ID5 provides this software and the ID5 ID Service free of charge, subject to strict data usage and privacy rules.
@@ -417,7 +417,6 @@ var id5Instance = ID5.init({
 - `ua` - User Agent
 - `ipv4` - IPv4 Address
 - `ipv6` - IPv6 Address
-- `url` - URL
 - `domain` - Domain
 - `iabToken` - IAB Token
 - `other` - Other data
