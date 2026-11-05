@@ -61,6 +61,7 @@ import enableEventsTracking from '../lib/prebid/eventsTracker.js';
  * @property {boolean} exposeTargeting - When set, the ID5 targeting consumer mechanism will be enabled.
  * @property {boolean} idLookupMode - When true, the API will work in ID lookup mode
  * @property {string} id5ApiBaseUrl - Base URL prepended to every ID5 endpoint, so calls are served first-party
+ * @property {string} provider - Who deploys the module on behalf of the partner (e.g. a wrapper vendor), sent to ID5 as `provider`
  *
  */
 
@@ -146,6 +147,7 @@ class Id5PrebidIntegration {
       gamTargetingPrefix: prebidConfig.gamTargetingPrefix,
       exposeTargeting: prebidConfig.exposeTargeting === true,
       idLookupMode: prebidConfig.idLookupMode,
+      provider: prebidConfig.provider,
       apiBaseUrl: prebidConfig.id5ApiBaseUrl,
       dynamicConfig
     }, log);
