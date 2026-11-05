@@ -903,6 +903,7 @@ pbjs.setConfig({
             params: {
                 partner: 173,                                                               // same value as in the API config
                 externalModuleUrl: 'https://cdn.id5-sync.com/api/1.0/id5PrebidModule.js',  // highly recommended to enable the external module
+                provider: 'yourProviderName',                                               // optional, only for technology partners who manage Prebid on behalf of publishers; value provided by ID5
             },
             storage: {
                 type: "html5",

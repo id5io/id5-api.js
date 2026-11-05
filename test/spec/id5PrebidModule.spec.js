@@ -46,6 +46,43 @@ describe('ID5 Prebid module', function () {
     expect(registerObj.fetchIdData.originVersion).to.eq(pbjsVersion);
   });
 
+  it('should pass provider from prebid config to fetch data', async () => {
+    window.id5Prebid.integration.fetchId5Id({}, {
+      partner: 1234,
+      provider: 'unit-test',
+      externalModuleUrl: 'https://cdn.id5-sync.com/api/1.0/id5PrebidModule.js'
+    }, {});
+
+    await instanceStub.instanceRegistered();
+
+    const registerObj = instanceStub.register.firstCall.firstArg;
+    expect(registerObj.fetchIdData.provider).to.eq('unit-test');
+    expect(registerObj.sourceConfiguration.options.provider).to.eq('unit-test');
+  });
+
+  it('should not set provider when prebid config has none', async () => {
+    window.id5Prebid.integration.fetchId5Id({}, {
+      partner: 1234
+    }, {});
+
+    await instanceStub.instanceRegistered();
+
+    const registerObj = instanceStub.register.firstCall.firstArg;
+    expect(registerObj.fetchIdData.provider).to.be.undefined;
+  });
+
+  it('should ignore provider that is not a string', async () => {
+    window.id5Prebid.integration.fetchId5Id({}, {
+      partner: 1234,
+      provider: 1016
+    }, {});
+
+    await instanceStub.instanceRegistered();
+
+    const registerObj = instanceStub.register.firstCall.firstArg;
+    expect(registerObj.fetchIdData.provider).to.be.undefined;
+  });
+
   it('should return response to prebid', async () => {
     const responsePromise = window.id5Prebid.integration.fetchId5Id({}, {
       partner: 1234
