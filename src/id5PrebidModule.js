@@ -114,12 +114,9 @@ class Id5PrebidIntegration {
   userIdReady = false;
 
   constructor() {
-    this._isUsingCdn = !!(
-      document &&
-      document.currentScript &&
-      document.currentScript.src &&
-      document.currentScript.src.indexOf('https://cdn.id5-sync.com') === 0
-    );
+    // URL the script was loaded from; available only while the script is executing synchronously
+    this._scriptSrc = (document && document.currentScript && document.currentScript.src) || undefined;
+    this._isUsingCdn = !!(this._scriptSrc && this._scriptSrc.indexOf('https://cdn.id5-sync.com') === 0);
   }
 
   /**
@@ -312,6 +309,7 @@ class Id5PrebidIntegration {
       origin: 'pbjs',
       originVersion: prebidVersion,
       isUsingCdn: this._isUsingCdn,
+      scriptSrc: this._scriptSrc,
       att: options.att,
       uaHints: uaHints,
       abTesting: options.abTesting,

@@ -124,6 +124,7 @@
  * @property {number} partnerId
  * @property {RefererInfo} refererInfo
  * @property {boolean} isUsingCdn
+ * @property {string} [scriptSrc] - URL the ID5 script was loaded from (document.currentScript.src)
  * @property {number} att - Indication of whether the event came from an Apple ATT event (value of 1 is yes)
  * @property {Object} [uaHints] - user agent high entropy values
  * @property {AbTestConfig} [abTesting]

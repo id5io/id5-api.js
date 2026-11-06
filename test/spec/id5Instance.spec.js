@@ -19,7 +19,7 @@ import {TrueLinkAdapter} from '@id5io/multiplexing/trueLink';
 
 
 describe('Id5Instance', function () {
-  const MOCK_PAGE_LEVEL_INFO = new PageLevelInfo(null, '0.0', true);
+  const MOCK_PAGE_LEVEL_INFO = new PageLevelInfo(null, '0.0', true, 'https://cdn.id5-sync.com/api/1.0.0/id5-api.js');
   const MOCK_CONSENT_DATA = new ConsentData();
 
   function createInstance(config, metrics, multiplexingInstanceStub) {
@@ -401,6 +401,7 @@ describe('Id5Instance', function () {
           origin: 'api',
           originVersion: '0.0',
           isUsingCdn: true,
+          scriptSrc: 'https://cdn.id5-sync.com/api/1.0.0/id5-api.js',
           att: 1,
           uaHints: MOCK_UA_HINTS,
           abTesting: {

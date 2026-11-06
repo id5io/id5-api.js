@@ -70,6 +70,7 @@ const DEFAULT_FETCH_DATA = {
     canonicalUrl: 'https://id5.io'
   },
   isUsingCdn: true,
+  scriptSrc: 'https://cdn.id5-sync.com/api/1.0.0/id5-api.js',
   att: 0,
   uaHints: undefined,
   abTesting: undefined,
@@ -321,6 +322,7 @@ describe('UidFetcher', function () {
             canonicalUrl: 'https://id5.io'
           },
           isUsingCdn: false,
+          scriptSrc: 'https://example.com/id5-api-lite.js',
           att: 10,
           refreshInSeconds: 3600,
           role: 'follower',
@@ -583,6 +585,7 @@ function expectedRequestFor(fetchIdData, consentData, extensions, other = undefi
     gdpr: consentData.gdprApplies ? 1 : 0,
     gdpr_consent: consentData.consentString,
     id5cdn: fetchIdData.isUsingCdn,
+    scriptSrc: fetchIdData.scriptSrc,
     localStorage: 1,
     o: fetchIdData.origin,
     v: fetchIdData.originVersion,

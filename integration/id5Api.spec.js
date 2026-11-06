@@ -152,6 +152,7 @@ describe('The ID5 API', function () {
       expect(requestBody.partner).to.equal(99); // from integration.html
       expect(requestBody.v).to.equal(version);
       expect(requestBody.id5cdn).to.equal(true);
+      expect(requestBody.scriptSrc).to.equal('https://cdn.id5-sync.com/api/integration/id5-api.js');
       expect(requestBody.top).to.equal(1);
       expect(requestBody.localStorage).to.equal(1);
       expect(requestBody.o).to.equal('api');
