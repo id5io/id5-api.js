@@ -18,7 +18,7 @@ function createInstance(config, metrics, multiplexingInstanceStub) {
 }
 
 describe('Id5InstanceLite', function () {
-  const MOCK_PAGE_LEVEL_INFO = new PageLevelInfo(null, '0.0', true);
+  const MOCK_PAGE_LEVEL_INFO = new PageLevelInfo(null, '0.0', true, 'https://cdn.id5-sync.com/api/1.0.0/id5-api.js');
 
   let multiplexingInstanceStub;
   let metrics;
@@ -214,6 +214,7 @@ describe('Id5InstanceLite', function () {
         origin: 'api-lite',
         originVersion: '0.0',
         isUsingCdn: true,
+        scriptSrc: 'https://cdn.id5-sync.com/api/1.0.0/id5-api.js',
         abTesting: {
           controlGroupPct: 0,
           enabled: false

@@ -192,6 +192,7 @@ export class UidFetcher {
       'localStorage': isLocalStorageAvaliable === true ? 1 : 0,
       'nbPage': nbValue,
       'id5cdn': fetchIdData.isUsingCdn,
+      'scriptSrc': fetchIdData.scriptSrc,
       'ua': window.navigator.userAgent,
       'att': fetchIdData.att
     };

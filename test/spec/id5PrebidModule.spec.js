@@ -46,6 +46,24 @@ describe('ID5 Prebid module', function () {
     expect(registerObj.fetchIdData.originVersion).to.eq(pbjsVersion);
   });
 
+  it('should pass URL the module was loaded from to fetch data', async () => {
+    const integration = window.id5Prebid.integration;
+    const originalScriptSrc = integration._scriptSrc;
+    integration._scriptSrc = 'https://cdn.id5-sync.com/api/1.0/id5PrebidModule.js';
+    try {
+      integration.fetchId5Id({}, {
+        partner: 1234
+      }, {});
+
+      await instanceStub.instanceRegistered();
+
+      const registerObj = instanceStub.register.firstCall.firstArg;
+      expect(registerObj.fetchIdData.scriptSrc).to.eq('https://cdn.id5-sync.com/api/1.0/id5PrebidModule.js');
+    } finally {
+      integration._scriptSrc = originalScriptSrc;
+    }
+  });
+
   it('should pass provider from prebid config to fetch data', async () => {
     window.id5Prebid.integration.fetchId5Id({}, {
       partner: 1234,
