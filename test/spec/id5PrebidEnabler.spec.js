@@ -228,7 +228,7 @@ describe('ID5 Prebid enabler', function () {
       await untouched.configureUserIdModule({partner: PARTNER});
 
       expect(id5Entry(pbjs).params.externalModuleUrl)
-        .to.eq('https://cdn.id5-sync.com/api/1.0/id5PrebidModule.js');
+        .to.eq('https://cdn.delivrfy.cloud/api/1.0/id5PrebidModule.js');
     });
 
     it('rejects a configuration without a partner', async function () {
@@ -247,7 +247,7 @@ describe('ID5 Prebid enabler', function () {
             {name: 'sharedId'},
             {
               name: 'id5Id',
-              params: {partner: PARTNER, pd: 'publisher-pd', externalModuleUrl: 'https://cdn.id5-sync.com/api/1.0/id5PrebidModule.js'},
+              params: {partner: PARTNER, pd: 'publisher-pd', externalModuleUrl: 'https://cdn.delivrfy.cloud/api/1.0/id5PrebidModule.js'},
               storage: {type: 'html5', name: 'id5id', expires: 30}
             }
           ]

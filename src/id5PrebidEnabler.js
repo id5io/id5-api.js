@@ -17,7 +17,7 @@ const SOURCE = 'id5-prebid-enabler';
 const GLOBAL_NAME = 'id5Prebid';
 const ENABLER_KEY = 'enabler';
 const SUBMODULE_NAME = 'id5Id';
-const MODULE_URL = 'https://cdn.id5-sync.com/api/1.0/id5PrebidModule.js';
+const MODULE_URL = 'https://cdn.delivrfy.cloud/api/1.0/id5PrebidModule.js';
 const CONFIG_URL = 'https://prebid.id5-tech.io/v1/config';
 
 const DEFAULT_SETTINGS = Object.freeze({
