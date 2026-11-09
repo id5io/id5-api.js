@@ -930,13 +930,13 @@ Note that both the User ID module and ID5 submodule must still be included in th
 Load it after your CMP. It may be loaded before Prebid.js, as it waits for Prebid through `pbjs.que`.
 
 ```html
-<script src="https://cdn.id5-sync.com/api/1.0/id5-prebid-enabler.js"></script>
+<script src="https://cdn.delivrfy.cloud/api/1.0/id5-prebid-enabler.js"></script>
 <script>
   id5Prebid.enabler.configureUserIdModule({ partner: 173 });
 </script>
 ```
 
-That single call produces a configuration equivalent to the one above: `externalModuleUrl` is set to `https://cdn.id5-sync.com/api/1.0/id5PrebidModule.js`, `configUrl` to `https://prebid.id5-tech.io/v1/config`, and the storage to type `html5`, name `id5id`, 90 days. An endpoint the page sets itself is kept — `configureUserIdModule()` only fills in what is missing. It returns a `Promise<boolean>` telling whether a configuration was pushed to Prebid, and `partner` is required.
+That single call produces a configuration equivalent to the one above: `externalModuleUrl` is set to `https://cdn.delivrfy.cloud/api/1.0/id5PrebidModule.js`, `configUrl` to `https://prebid.id5-tech.io/v1/config`, and the storage to type `html5`, name `id5id`, 90 days. An endpoint the page sets itself is kept — `configureUserIdModule()` only fills in what is missing. It returns a `Promise<boolean>` telling whether a configuration was pushed to Prebid, and `partner` is required.
 
 The submodule parameters go on the configuration object, either flat or under `params`, alongside the entry level keys `storage`, `bidders`, `value`, `auctionDelay` and `syncDelay`:
 
@@ -961,7 +961,7 @@ Commands pushed on `que` run as soon as the enabler is on the page, so the same 
   window.id5Prebid.enabler = window.id5Prebid.enabler || { que: [] };
   window.id5Prebid.enabler.que.push(enabler => enabler.configureUserIdModule({ partner: 173 }));
 </script>
-<script async src="https://cdn.id5-sync.com/api/1.0/id5-prebid-enabler.js"></script>
+<script async src="https://cdn.delivrfy.cloud/api/1.0/id5-prebid-enabler.js"></script>
 ```
 
 #### Pages that already configure the ID5 submodule
@@ -991,7 +991,7 @@ id5Prebid.enabler.setup({ useExternalModule: false }).configureUserIdModule({ pa
 
 | Setting | Description |
 |---|---|
-| `externalModuleUrl` | where the ID5 external module is loaded from; defaults to `https://cdn.id5-sync.com/api/1.0/id5PrebidModule.js` |
+| `externalModuleUrl` | where the ID5 external module is loaded from; defaults to `https://cdn.delivrfy.cloud/api/1.0/id5PrebidModule.js` |
 | `configUrl` | the ID5 config endpoint the submodule calls; defaults to `https://prebid.id5-tech.io/v1/config` |
 | `useExternalModule` | `true` by default; `false` leaves the submodule on its own implementation and takes `externalModuleUrl` out of the configuration |
 | `refreshOnReconfigure` | refresh the submodule right after `reconfigureUserIdModule()`; `false` by default |
