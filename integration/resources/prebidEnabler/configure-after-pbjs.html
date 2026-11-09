@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>ID5 Prebid Enabler — configure after Prebid</title>
+    <link rel="canonical" href="https://www.id5.io"/>
+</head>
+<body>
+
+<script src="https://cdn.id5-sync.com/test/pbjsStub.js"></script>
+<script>
+    window.pbjsStub.init();
+    pbjs.setConfig({
+        userSync: {
+            syncsPerBidder: 7,
+            userIds: [{name: 'sharedId', storage: {type: 'cookie', name: '_pubcid', expires: 30}}]
+        }
+    });
+</script>
+
+<script src="https://cdn.id5-sync.com/api/integration/id5-prebid-enabler.js"></script>
+<script>
+    window.configured = window.id5Prebid.enabler.configureUserIdModule({
+        partner: 99,
+        pd: 'publisher-pd',
+        bidders: ['appnexus']
+    });
+</script>
+
+</body>
+</html>

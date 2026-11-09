@@ -9,6 +9,9 @@
   "files": [
     "generated",
     "lib",
+    "build/dist/id5-api.js",
+    "build/dist/id5PrebidModule.js",
+    "build/dist/id5-prebid-enabler.js",
     "universal-id-flow.png"
   ],
   "scripts": {

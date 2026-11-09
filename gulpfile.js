@@ -76,6 +76,7 @@ const bundles = [
   { entry: 'src/api-lite.js', output: 'id5-api-lite.js' },
   { entry: 'src/esp.js', output: 'esp.js' },
   { entry: 'src/id5PrebidModule.js', output: 'id5PrebidModule.js' },
+  { entry: 'src/id5PrebidEnabler.js', output: 'id5-prebid-enabler.js' },
 ];
 
 

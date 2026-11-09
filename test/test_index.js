@@ -10,6 +10,7 @@ import './spec/api_counters.spec.js';
 import './spec/api_async_responses.spec.js'
 import './spec/api.spec.js';
 import './spec/id5PrebidModule.spec.js';
+import './spec/id5PrebidEnabler.spec.js';
 import './spec/eventsTracker.spec.js'
 import './spec/pbjsUtils.spec.js'
 import './spec/targetingTags.spec.js';
