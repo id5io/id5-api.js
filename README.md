@@ -901,25 +901,30 @@ When deploying the ID5 API alongside Prebid on a webpage, ensure that the follow
 Within the [Prebid.js configuration for the ID5 ID](http://prebid.org/dev-docs/modules/userId.html#id5-id-configuration), ensure the Prebid storage name (set in `storage.name`) is `id5id`, the storage type (set in `storage.type`) is `html5`, and the two codebases will work together seamlessly.
 
 ```javascript
-pbjs.setConfig({
-    usersync: {
-        userIds: [{
-            name: "id5Id",
-            params: {
-                partner: 173,                                                               // same value as in the API config
-                externalModuleUrl: 'https://cdn.id5-sync.com/api/1.0/id5PrebidModule.js',  // highly recommended to enable the external module
-                provider: 'yourProviderName',                                               // optional, only for technology partners who manage Prebid on behalf of publishers; value provided by ID5
-            },
-            storage: {
-                type: "html5",
-                name: "id5id",
-                expires: 90,
-                refreshInSeconds: 2*3600
-            }
-        }]
-    }
+pbjs.que.push(function () {
+    pbjs.setConfig({
+        userSync: {
+            userIds: [{
+                name: "id5Id",
+                params: {
+                    partner: 173,                                                                // same value as in the API config
+                    externalModuleUrl: 'https://cdn.delivrfy.cloud/api/1.0/id5PrebidModule.js',  // highly recommended to enable the external module
+                    configUrl: 'https://prebid.id5-tech.io/v1/config',                           // the ID5 config endpoint the submodule calls
+                    provider: 'yourProviderName',                                                // optional, only for technology partners who manage Prebid on behalf of publishers; value provided by ID5
+                },
+                storage: {
+                    type: "html5",
+                    name: "id5id",
+                    expires: 90,
+                    refreshInSeconds: 2*3600
+                }
+            }]
+        }
+    });
 });
 ```
+
+`setConfig` replaces the whole `userSync` topic, so a page that configures other ID providers lists them in the same `userIds` array.
 
 Note that both the User ID module and ID5 submodule must still be included in the Prebid build, even when using the ID5 API to manage the ID5 ID. For more detailed instructions on how to use the ID5 ID in Prebid, refer to [our documentation](https://console.id5.io/docs/public/prebid).
 
