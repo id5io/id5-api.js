@@ -56,6 +56,7 @@ const ENTRY_KEYS = ['params', 'storage', 'bidders', 'value', 'auctionDelay', 'sy
  * @property {Array<Object>} [segments] - segments to push to partners, external module only
  * @property {boolean} [disableUaHints] - stops the lookup of high entropy user agent hints
  * @property {boolean} [idLookupMode] - runs the API in ID lookup mode
+ * @property {string} [enablerVersion] - the enabler release that configured the submodule, set by the enabler
  */
 
 /**
@@ -133,6 +134,7 @@ export class Id5PrebidEnabler {
       return false;
     }
     applyTargets(entry.params, this._configuredTargets(this._settings), false);
+    applyEnablerVersion(entry.params);
     await this._applyEntry(entry, config);
     this._log.info('configured the ID5 submodule', entry);
     return true;
@@ -155,6 +157,7 @@ export class Id5PrebidEnabler {
     // so the params it already holds are replaced rather than modified.
     const entry = {...existing, params: {...existing.params, ...paramsOf(config)}};
     applyTargets(entry.params, this._configuredTargets(this._settings), true);
+    applyEnablerVersion(entry.params);
     if (!this._settings.useExternalModule) {
       delete entry.params.externalModuleUrl;
     }
@@ -350,6 +353,16 @@ function applyTargets(params, targets, override) {
       params[key] = value;
     }
   });
+}
+
+/**
+ * Reports which enabler release configured the submodule. The release doing the configuring is
+ * the one reported, so a value found on the page is replaced.
+ *
+ * @param {Id5SubmoduleParams} params - modified in place
+ */
+function applyEnablerVersion(params) {
+  params.enablerVersion = currentVersion;
 }
 
 /**

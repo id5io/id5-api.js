@@ -232,6 +232,7 @@ export class UidFetcher {
       pd: 'pd',
       partnerUserId: 'puid',
       provider: 'provider',
+      enablerVersion: 'enablerVersion',
       segments: 'segments',
       trueLink: 'true_link'
     }).forEach(([optKey, dataKey]) => {

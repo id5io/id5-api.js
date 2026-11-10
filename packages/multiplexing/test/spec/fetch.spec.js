@@ -211,6 +211,7 @@ describe('UidFetcher', function () {
       ['with pd', {pd: 'PD_DATA'}, {pd: 'PD_DATA'}],
       ['with partnerUserId', {partnerUserId: '1234567'}, {puid: '1234567'}],
       ['with provider', {provider: 'some_provider'}, {provider: 'some_provider'}],
+      ['with enablerVersion', {enablerVersion: '1.2.3'}, {enablerVersion: '1.2.3'}],
       ['with ua hints', {uaHints: buildTestUaHints()}, {ua_hints: buildTestUaHints()}],
       ['with abTesting', {abTesting: {enabled: true, controlGroupPct: 0.5}}, {
         ab_testing: {

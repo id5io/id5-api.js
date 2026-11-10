@@ -393,6 +393,7 @@ describe('Id5Instance', function () {
           exposeTargeting: false,
           idLookupMode: false,
           apiBaseUrl: '',
+          enablerVersion: undefined,
           ...additionalConfig
         });
         expect(registerObj.fetchIdData).to.deep.eq({

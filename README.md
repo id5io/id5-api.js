@@ -925,7 +925,7 @@ Note that both the User ID module and ID5 submodule must still be included in th
 
 ### Using the ID5 Prebid enabler
 
-`id5-prebid-enabler.js` configures the ID5 submodule for you, so the page only supplies its partner ID. The enabler fills in the rest — `externalModuleUrl` and `configUrl` — and is always fetched in its latest version, so ID5 can change those defaults without a change to your page.
+`id5-prebid-enabler.js` configures the ID5 submodule for you, so the page only supplies its partner ID. The enabler fills in the rest — `externalModuleUrl`, `configUrl` and the `enablerVersion` it reports itself under — and is always fetched in its latest version, so ID5 can change those defaults without a change to your page.
 
 Load it after your CMP. It may be loaded before Prebid.js, as it waits for Prebid through `pbjs.que`.
 
@@ -936,7 +936,7 @@ Load it after your CMP. It may be loaded before Prebid.js, as it waits for Prebi
 </script>
 ```
 
-That single call produces a configuration equivalent to the one above: `externalModuleUrl` is set to `https://cdn.delivrfy.cloud/api/1.0/id5PrebidModule.js`, `configUrl` to `https://prebid.id5-tech.io/v1/config`, and the storage to type `html5`, name `id5id`, 90 days. An endpoint the page sets itself is kept — `configureUserIdModule()` only fills in what is missing. It returns a `Promise<boolean>` telling whether a configuration was pushed to Prebid, and `partner` is required.
+That single call produces a configuration equivalent to the one above: `externalModuleUrl` is set to `https://cdn.delivrfy.cloud/api/1.0/id5PrebidModule.js`, `configUrl` to `https://prebid.id5-tech.io/v1/config`, `enablerVersion` to the enabler release in use, and the storage to type `html5`, name `id5id`, 90 days. An endpoint the page sets itself is kept — `configureUserIdModule()` only fills in what is missing, `enablerVersion` aside, which the enabler always reports itself. It returns a `Promise<boolean>` telling whether a configuration was pushed to Prebid, and `partner` is required.
 
 The submodule parameters go on the configuration object, either flat or under `params`, alongside the entry level keys `storage`, `bidders`, `value`, `auctionDelay` and `syncDelay`:
 

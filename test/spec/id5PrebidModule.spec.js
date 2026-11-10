@@ -101,6 +101,42 @@ describe('ID5 Prebid module', function () {
     expect(registerObj.fetchIdData.provider).to.be.undefined;
   });
 
+  it('should pass enablerVersion from prebid config to fetch data', async () => {
+    window.id5Prebid.integration.fetchId5Id({}, {
+      partner: 1234,
+      enablerVersion: '1.0.101'
+    }, {});
+
+    await instanceStub.instanceRegistered();
+
+    const registerObj = instanceStub.register.firstCall.firstArg;
+    expect(registerObj.fetchIdData.enablerVersion).to.eq('1.0.101');
+    expect(registerObj.sourceConfiguration.options.enablerVersion).to.eq('1.0.101');
+  });
+
+  it('should not set enablerVersion when prebid config has none', async () => {
+    window.id5Prebid.integration.fetchId5Id({}, {
+      partner: 1234
+    }, {});
+
+    await instanceStub.instanceRegistered();
+
+    const registerObj = instanceStub.register.firstCall.firstArg;
+    expect(registerObj.fetchIdData.enablerVersion).to.be.undefined;
+  });
+
+  it('should ignore enablerVersion that is not a string', async () => {
+    window.id5Prebid.integration.fetchId5Id({}, {
+      partner: 1234,
+      enablerVersion: 101
+    }, {});
+
+    await instanceStub.instanceRegistered();
+
+    const registerObj = instanceStub.register.firstCall.firstArg;
+    expect(registerObj.fetchIdData.enablerVersion).to.be.undefined;
+  });
+
   it('should return response to prebid', async () => {
     const responsePromise = window.id5Prebid.integration.fetchId5Id({}, {
       partner: 1234

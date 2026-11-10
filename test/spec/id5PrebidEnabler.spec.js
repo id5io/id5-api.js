@@ -231,6 +231,18 @@ describe('ID5 Prebid enabler', function () {
         .to.eq('https://cdn.delivrfy.cloud/api/1.0/id5PrebidModule.js');
     });
 
+    it('reports the enabler version it was configured by', async function () {
+      await enabler.configureUserIdModule({partner: PARTNER});
+
+      expect(id5Entry(pbjs).params.enablerVersion).to.eq(version);
+    });
+
+    it('replaces an enabler version the publisher set', async function () {
+      await enabler.configureUserIdModule({partner: PARTNER, enablerVersion: '0.0.1'});
+
+      expect(id5Entry(pbjs).params.enablerVersion).to.eq(version);
+    });
+
     it('rejects a configuration without a partner', async function () {
       expect(await enabler.configureUserIdModule({pd: 'some-pd'})).to.be.false;
       expect(pbjs.setConfig).to.not.have.been.called;
@@ -343,6 +355,23 @@ describe('ID5 Prebid enabler', function () {
       expect(params.externalModuleUrl).to.eq(PRIMARY_MODULE_URL);
       expect(params.configUrl).to.eq('https://id.example.com/config/prebid');
       expect(params.pd).to.eq('publisher-pd');
+    });
+
+    it('reports the enabler version on a configuration the page built', async function () {
+      await enabler.reconfigureUserIdModule();
+
+      expect(id5Entry(pbjs).params.enablerVersion).to.eq(version);
+    });
+
+    it('replaces the enabler version left by an earlier release', async function () {
+      pbjs.setConfig({
+        userSync: {userIds: [{name: 'id5Id', params: {partner: PARTNER, enablerVersion: '0.0.1'}}]}
+      });
+      pbjs.setConfig.resetHistory();
+
+      await enabler.reconfigureUserIdModule();
+
+      expect(id5Entry(pbjs).params.enablerVersion).to.eq(version);
     });
 
     it('refreshes the submodule only when asked to', async function () {
