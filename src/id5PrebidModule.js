@@ -30,6 +30,7 @@ import {
   userIdProvisioningDelayTimer
 } from '../lib/metrics.js';
 import enableEventsTracking from '../lib/prebid/eventsTracker.js';
+import {DEFAULT_ENDPOINTS} from '@id5io/multiplexing/endpoints';
 
 /**
  * @typedef {Object} IdResponse
@@ -60,7 +61,7 @@ import enableEventsTracking from '../lib/prebid/eventsTracker.js';
  * @property {string} gamTargetingPrefix - When set, the GAM targeting tags will be set and use the specified prefix, for example 'id5'.
  * @property {boolean} exposeTargeting - When set, the ID5 targeting consumer mechanism will be enabled.
  * @property {boolean} idLookupMode - When true, the API will work in ID lookup mode
- * @property {string} id5ApiBaseUrl - Base URL prepended to every ID5 endpoint, so calls are served first-party
+ * @property {string} id5ApiBaseUrl - Base URL the ID5 identity fetch switches to when id5-sync.com does not answer, so calls are served first-party
  * @property {string} provider - Who deploys the module on behalf of the partner (e.g. a wrapper vendor), sent to ID5 as `provider`
  *
  */
@@ -149,7 +150,7 @@ class Id5PrebidIntegration {
       dynamicConfig
     }, log);
     const options = config.getOptions();
-    const metrics = this._configureDiagnostics(options.partnerId, options.diagnostics, refererInfo, log, prebidVersion, options.idLookupMode, config.getEndpoints());
+    const metrics = this._configureDiagnostics(options.partnerId, options.diagnostics, refererInfo, log, prebidVersion, options.idLookupMode);
     if (metrics) {
       loadDelayTimer(metrics).recordNow(); // records time elapsed since page visit
       invocationCountSummary(metrics).record(this.invocationId); // record invocation count
@@ -263,10 +264,9 @@ class Id5PrebidIntegration {
    * @param {Logger} log
    * @param {String} prebidVersion
    * @param {boolean} idLookupMode
-   * @param {Id5Endpoints} endpoints
    * @return {Id5CommonMetrics}
    */
-  _configureDiagnostics(partnerId, diagnosticsOptions, refererInfo, log, prebidVersion, idLookupMode, endpoints) {
+  _configureDiagnostics(partnerId, diagnosticsOptions, refererInfo, log, prebidVersion, idLookupMode) {
     try {
       let metrics = new Id5CommonMetrics(SOURCE, this._version);
       metrics.addCommonTags({
@@ -276,7 +276,7 @@ class Id5PrebidIntegration {
         idLookupMode: idLookupMode ? 'true' : 'false'
       });
       if (!diagnosticsOptions?.publishingDisabled) {
-        const diagnosticsUrl = endpoints.diagnostics;
+        const diagnosticsUrl = DEFAULT_ENDPOINTS.diagnostics;
         const publisher = new MeterRegistryPublisher(metrics, createPublisher(diagnosticsOptions.publishingSampleRatio, diagnosticsUrl));
         if (diagnosticsOptions?.publishAfterLoadInMsec && diagnosticsOptions.publishAfterLoadInMsec > 0) {
           publisher.schedulePublishAfterMsec(diagnosticsOptions.publishAfterLoadInMsec);

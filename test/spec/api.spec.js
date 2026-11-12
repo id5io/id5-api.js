@@ -23,6 +23,7 @@ import {
 } from './test_utils.js';
 import {ApiEvent, Extensions, EXTENSIONS} from '@id5io/multiplexing';
 import {isGlobalDebug, setGlobalDebug} from '../../lib/utils.js';
+import {DEFAULT_ENDPOINTS} from '@id5io/multiplexing/endpoints';
 
 /**
  * @type {Id5Api}
@@ -35,7 +36,7 @@ describe('ID5 API', function () {
 
     beforeEach(function () {
       extensionsStub = sinon.createStubInstance(Extensions);
-      extensionsStub.gather.resolves(DEFAULT_EXTENSIONS);
+      extensionsStub.gather.resolves({extensions: DEFAULT_EXTENSIONS, endpoints: DEFAULT_ENDPOINTS});
       extensionsCreatorStub = sinon.stub(EXTENSIONS, 'createExtensions').returns(extensionsStub);
     });
 
