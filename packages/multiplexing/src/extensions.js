@@ -1,6 +1,5 @@
 import {startTimeMeasurement} from '@id5io/diagnostics';
-import {isDefined} from './utils.js';
-import {DEFAULT_ENDPOINTS} from './endpoints.js';
+import {DEFAULT_ENDPOINTS, FallbackEndpointsProvider, sameEndpoints} from './endpoints.js';
 import {extensionsCallTimer} from './metrics.js';
 
 export const ID5_LB_ENDPOINT = `https://lb.eu-1-id5-sync.com/lb/v1`;
@@ -9,6 +8,14 @@ export const ID5_LBS_ENDPOINT = 'https://lbs.eu-1-id5-sync.com/lbs/v1';
 export class Extensions {
   /**
    * @typedef {Object} ExtensionsData
+   */
+
+  /**
+   * @typedef {Object} GatherResult
+   * @property {ExtensionsData} extensions - extensions data to attach to the fetch request
+   * @property {Id5Endpoints} endpoints - endpoints the fetch should use
+   * @property {boolean} apiBaseStored - false when the endpoints are a fallback api base that is not stored yet;
+   * it is stored only after a fetch on it succeeds
    */
 
   /**
@@ -32,13 +39,51 @@ export class Extensions {
    * @param {MeterRegistry} metrics
    * @param {Logger} logger
    * @param {Store} store
-   * @param {Id5Endpoints} [endpoints]
+   * @param {FallbackEndpointsProvider} [fallbackEndpoints] - endpoints to use when the default host does not answer
    */
-  constructor(metrics, logger, store, endpoints = DEFAULT_ENDPOINTS) {
+  constructor(metrics, logger, store, fallbackEndpoints = new FallbackEndpointsProvider()) {
     this._metrics = metrics;
     this._log = logger;
     this._store = store;
-    this._endpoints = endpoints;
+    this._fallbackEndpoints = fallbackEndpoints;
+  }
+
+  /**
+   * Endpoints to retry the fetch on when it got no HTTP response.
+   * @param {Id5Endpoints} usedEndpoints - endpoints the failed fetch used
+   * @returns {Id5Endpoints|undefined} undefined when there is no fallback api base to try
+   * @package used by UidFetcher
+   */
+  retryEndpoints(usedEndpoints) {
+    return this._fallbackEndpoints.retryFor(usedEndpoints);
+  }
+
+  /**
+   * Updates the stored api base after a fetch succeeded:
+   * - a fallback api base is stored when it is not stored yet (picked after a failed bounce, or reached by a retry),
+   * - when the default endpoints answered after a fallback api base failed, the cached extensions are cleared,
+   * so the next gather checks the default endpoints again.
+   * @param {Id5Endpoints} usedEndpoints - endpoints the successful fetch used
+   * @param {GatherResult} gathered - the result of gather the fetch started with
+   * @package used by UidFetcher
+   */
+  confirmApiBase(usedEndpoints, gathered) {
+    if (usedEndpoints.isFallback) {
+      if (!sameEndpoints(usedEndpoints, gathered.endpoints) || !gathered.apiBaseStored) {
+        this.#rememberApiBase(usedEndpoints, gathered.extensions);
+      }
+    } else if (gathered.endpoints.isFallback) {
+      this._store.clearExtensions();
+    }
+  }
+
+  /**
+   * Stores the extensions together with the api base the fetch used, so the next gather goes straight to it.
+   * @param {Id5Endpoints} endpoints - endpoints the fetch used
+   * @param {ExtensionsData} extensions
+   */
+  #rememberApiBase(endpoints, extensions) {
+    this._store.storeExtensions({...extensions, usedApiBase: endpoints.apiBase});
   }
 
   static CHUNKS_CONFIGS = Object.freeze({
@@ -124,15 +169,40 @@ export class Extensions {
   /**
    * Gathers extensions data
    * @param {array<FetchIdRequestData>} fetchDataList - the fetch requests data which can be used here to configure extension calls
-   * @returns {Promise<ExtensionsData>} - extensions data
+   * @returns {Promise<GatherResult>} - extensions data
    */
   gather(fetchDataList) {
-    let cachedExtensions = this._store.getCachedExtensions();
+    const cachedExtensions = this._store.getCachedExtensions();
     if (cachedExtensions !== undefined) {
-      return Promise.resolve(cachedExtensions);
+      const {usedApiBase, ...extensions} = cachedExtensions;
+      const endpoints = this._fallbackEndpoints.endpointsForApiBase(usedApiBase);
+      if (endpoints) {
+        return Promise.resolve({extensions, endpoints, apiBaseStored: true});
+      }
     }
+    // Handlers are attached right away, so a failed bounce is never an unhandled rejection
+    const bounce = this.#submitBounce(fetchDataList)
+      .then(data => ({data, reachable: true}), () => ({data: {}, reachable: false}));
+    return Promise.all([this.#gatherExtensions(fetchDataList, bounce.then(({data}) => data)), bounce])
+      .then(([extensions, {reachable}]) => {
+        const endpoints = reachable ? DEFAULT_ENDPOINTS : (this._fallbackEndpoints.getEndpoints() || DEFAULT_ENDPOINTS);
+        if (!endpoints.isFallback) {
+          this.#rememberApiBase(endpoints, extensions);
+          return {extensions, endpoints, apiBaseStored: true};
+        }
+        // Not stored yet: the fallback api base is stored only after a fetch on it succeeds
+        this._log.warn(`Using ${endpoints.fetch}`);
+        return {extensions, endpoints, apiBaseStored: false};
+      });
+  }
+
+  /**
+   * @param {array<FetchIdRequestData>} fetchDataList
+   * @param {Promise<Object>} bouncePromise - bounce data to merge into the extensions
+   * @returns {Promise<ExtensionsData>}
+   */
+  #gatherExtensions(fetchDataList, bouncePromise) {
     let extensionsCallTimeMeasurement = startTimeMeasurement();
-    let bouncePromise = this.#submitBounce(fetchDataList);
     let lbsPromise = this.#submitLbs();
     return this.#submitExtensionCall(ID5_LB_ENDPOINT, 'lb')
       .then(lbResult => {
@@ -152,7 +222,6 @@ export class Extensions {
             extensions = {...extensions, ...result.value};
           }
         });
-        this._store.storeExtensions(extensions);
         return extensions;
       }).catch((error) => {
         extensionsCallTimeMeasurement.record(extensionsCallTimer(this._metrics, 'all', false));
@@ -174,15 +243,24 @@ export class Extensions {
 
   /**
    * @param {array<FetchIdRequestData>} fetchRequestDataList - the fetch requests data which can be used here to configure extension calls
-   * @return {Promise<Object>}
+   * @return {Promise<Object>} bounce data (empty on http error or in lookup mode); rejected when the call fails
+   * at network level
    * @private
    */
   #submitBounce(fetchRequestDataList) {
-    const hasSignature = fetchRequestDataList.some(fetchRequest => isDefined(fetchRequest.cacheData?.signature));
-    if (hasSignature || this.#lookupModeEnabledOnAnyRequest(fetchRequestDataList)) {
-      return Promise.resolve({});
-    }
-    return this.#submitExtensionCall(this._endpoints.bounce, 'bounce', {credentials: 'include'});
+    // Lookup mode must not send or store the id5 cookie
+    const lookupMode = this.#lookupModeEnabledOnAnyRequest(fetchRequestDataList);
+    const url = DEFAULT_ENDPOINTS.bounce;
+    let timeMeasurement = startTimeMeasurement();
+    return fetch(url, {credentials: lookupMode ? 'omit' : 'include'})
+      .then(response => {
+        timeMeasurement.record(extensionsCallTimer(this._metrics, 'bounce', response.ok));
+        return response.ok && !lookupMode ? response.json().catch(() => ({})) : {};
+      }, error => {
+        timeMeasurement.record(extensionsCallTimer(this._metrics, 'bounce', false));
+        this._log.warn(`Got error from ${url} endpoint`, error);
+        return Promise.reject(error);
+      });
   }
 
   /**
@@ -215,10 +293,10 @@ export const EXTENSIONS = {
    * @param {MeterRegistry} metrics
    * @param {Logger} log
    * @param {Store} store
-   * @param {Id5Endpoints} [endpoints]
+   * @param {FallbackEndpointsProvider} [fallbackEndpoints]
    * @returns {Extensions}
    */
-  createExtensions: function (metrics, log, store, endpoints) {
-    return new Extensions(metrics, log, store, endpoints);
+  createExtensions: function (metrics, log, store, fallbackEndpoints) {
+    return new Extensions(metrics, log, store, fallbackEndpoints);
   }
 };

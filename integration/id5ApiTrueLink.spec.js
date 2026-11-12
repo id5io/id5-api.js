@@ -1,4 +1,4 @@
-import mockttp from 'mockttp';
+import mockttp, {RulePriority} from 'mockttp';
 import path from 'path';
 import {fileURLToPath} from 'url';
 import chai, {expect} from 'chai';
@@ -47,6 +47,12 @@ describe('The ID5 API true link integration', function () {
     browser = await buildBrowser(https.cert, proxyServer.port, _DEBUG);
 
     await proxyServer.forGet('/favicon.ico').thenReply(204);
+    await proxyServer.forGet('https://id5-sync.com/bounce').asPriority(RulePriority.FALLBACK)
+      .thenCallback(request => ({
+        statusCode: 200,
+        json: {bounce: {setCookie: false}},
+        headers: {'Access-Control-Allow-Origin': request.headers.origin, 'Access-Control-Allow-Credentials': 'true'}
+      }));
     await proxyServer.forGet('https://cdn.id5-sync.com/api/integration/id5-api.js').thenFromFile(200, ID5_API_JS_FILE);
 
     if(process.env.LOCAL_BOOTSTRAP) {

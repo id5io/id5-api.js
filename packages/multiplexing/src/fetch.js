@@ -1,5 +1,4 @@
 import {ajax, isDefined, isPlainObject, isStr} from './utils.js';
-import {DEFAULT_ENDPOINTS} from './endpoints.js';
 import {startTimeMeasurement} from '@id5io/diagnostics';
 
 /* eslint-disable no-unused-vars */
@@ -85,17 +84,16 @@ export class UidFetcher {
    * @private
    */
   _log;
-  /**
-   * @type {Id5Endpoints}
-   * @private
-   */
-  _endpoints;
 
-  constructor(metrics, log, extensions, endpoints = DEFAULT_ENDPOINTS) {
+  /**
+   * @param {MeterRegistry} metrics
+   * @param {Logger} log
+   * @param {Extensions} extensions - gathers extensions and picks the fetch endpoints
+   */
+  constructor(metrics, log, extensions) {
     this._extensionsProvider = extensions;
     this._metrics = metrics;
     this._log = log;
-    this._endpoints = endpoints;
   }
 
   /**
@@ -106,8 +104,10 @@ export class UidFetcher {
    * @return {Promise<RefreshedResponse>}
    */
   fetchId(fetchRequestIdData, consentData, isLocalStorageAvailable, signature) {
-    return this._extensionsProvider.gather(fetchRequestIdData)
-      .then(extensions => {
+    const extensionsProvider = this._extensionsProvider;
+    return extensionsProvider.gather(fetchRequestIdData)
+      .then(gathered => {
+        const {extensions, endpoints} = gathered;
         const requests = fetchRequestIdData.map(fetchIdData => {
           const cachedRequest = fetchIdData.cacheData;
           const requestSignature = cachedRequest?.response?.signature;
@@ -115,30 +115,56 @@ export class UidFetcher {
           const cacheMaxAge = cachedRequest?.getMaxAge();
           return this._createRequest(consentData, fetchIdData, requestSignature, nbValue, cacheMaxAge, extensions, isLocalStorageAvailable);
         });
-        const log = this._log;
-        const metrics = this._metrics;
-        const refresher = this;
-        return new Promise((resolve, reject) => {
-          const fetchTimeMeasurement = startTimeMeasurement();
-          const url = this._endpoints.fetch;
-          log.info('Fetching ID5 ID from:', url, requests);
-          ajax(url, {
-            success: function (jsonResponse) {
-              log.info('Success at fetch call:', jsonResponse);
-              fetchTimeMeasurement.record(fetchSuccessfulCallTimer(metrics));
-              try {
-                resolve(new RefreshedResponse(refresher._validateResponse(jsonResponse)));
-              } catch (e) {
-                reject(e);
-              }
-            },
-            error: function (error) {
-              fetchTimeMeasurement.record(fetchFailureCallTimer(metrics));
-              reject(error);
+        const body = JSON.stringify({requests: requests, signature: signature});
+        this._log.info('Fetching ID5 ID from:', endpoints.fetch, requests);
+        let usedEndpoints = endpoints;
+        return this.#post(endpoints.fetch, body)
+          .catch(failure => {
+            // No HTTP response (status 0): retry once on the other endpoints
+            const retry = failure.noResponse ? extensionsProvider.retryEndpoints(endpoints) : undefined;
+            if (!retry) {
+              return Promise.reject(failure);
             }
-          }, JSON.stringify({requests: requests, signature: signature}), {method: 'POST', withCredentials: true}, log);
-        });
+            this._log.warn(`Using ${retry.fetch}`);
+            usedEndpoints = retry;
+            return this.#post(retry.fetch, body, {fallback: retry.isFallback, retry: true});
+          })
+          .then(response => {
+            extensionsProvider.confirmApiBase(usedEndpoints, gathered);
+            return response;
+          }, failure => Promise.reject(failure.error));
       });
+  }
+
+  /**
+   * @param {string} url
+   * @param {string} body
+   * @param {Object} [metricTags]
+   * @return {Promise<RefreshedResponse>} rejected with {error, noResponse}, where noResponse is true when the call
+   * got no HTTP response (status 0)
+   */
+  #post(url, body, metricTags = {}) {
+    const log = this._log;
+    const metrics = this._metrics;
+    const refresher = this;
+    return new Promise((resolve, reject) => {
+      const fetchTimeMeasurement = startTimeMeasurement();
+      ajax(url, {
+        success: function (jsonResponse) {
+          log.info('Success at fetch call:', jsonResponse);
+          fetchTimeMeasurement.record(fetchSuccessfulCallTimer(metrics, metricTags));
+          try {
+            resolve(new RefreshedResponse(refresher._validateResponse(jsonResponse)));
+          } catch (e) {
+            reject({error: e, noResponse: false});
+          }
+        },
+        error: function (error, xhr) {
+          fetchTimeMeasurement.record(fetchFailureCallTimer(metrics, metricTags));
+          reject({error: error, noResponse: xhr?.status === 0});
+        }
+      }, body, {method: 'POST', withCredentials: true}, log);
+    });
   }
 
   _validateResponse(jsonResponse) {
