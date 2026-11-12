@@ -1,8 +1,12 @@
 /*
  * id5-prebid-enabler.js — configures the ID5 User ID submodule in Prebid.js.
  *
- *   <script src="https://<cdn>/id5-prebid-enabler.js"></script>
- *   <script>id5Prebid.enabler.configureUserIdModule({partner: 173});</script>
+ *   <script>
+ *     window.id5Prebid = window.id5Prebid || {};
+ *     window.id5Prebid.enabler = window.id5Prebid.enabler || {que: []};
+ *     window.id5Prebid.enabler.que.push(enabler => enabler.configureUserIdModule({partner: 173}));
+ *   </script>
+ *   <script async src="https://<cdn>/id5-prebid-enabler.js"></script>
  *
  * configureUserIdModule() builds the submodule configuration from the partner ID and the defaults;
  * reconfigureUserIdModule() keeps the configuration already on the page and updates the targets in it.
@@ -32,7 +36,7 @@ const CONFIG_POLL_MS = 100;
 
 const DEFAULT_STORAGE = Object.freeze({type: 'html5', name: 'id5id', expires: 90});
 
-/** Keys of a Prebid user ID configuration entry, i.e. everything that is not a param. */
+/** Top level keys of a Prebid user ID configuration entry; every other key given to the enabler is a submodule param. */
 const ENTRY_KEYS = ['params', 'storage', 'bidders', 'value', 'auctionDelay', 'syncDelay'];
 
 /**
@@ -71,7 +75,8 @@ const ENTRY_KEYS = ['params', 'storage', 'bidders', 'value', 'auctionDelay', 'sy
 
 /**
  * @typedef {Object} Id5EnablerSettings
- * @property {string} [externalModuleUrl] - external module URL; defaults to a sibling of this script
+ * @property {string} [externalModuleUrl] - where the ID5 external module is loaded from; defaults to
+ * `https://cdn.delivrfy.cloud/api/1.0/id5PrebidModule.js`
  * @property {string} [configUrl] - the ID5 config endpoint the submodule calls; defaults to
  * `https://prebid.id5-tech.io/v1/config`
  * @property {boolean} [useExternalModule] - configure `externalModuleUrl` so the submodule runs the
@@ -173,14 +178,14 @@ export class Id5PrebidEnabler {
    * @returns {Promise<string|undefined>} a URL the external module can be loaded from
    */
   async getExternalModuleUrl() {
-    return (await this._targets(this._settings)).externalModuleUrl;
+    return this._targets(this._settings).externalModuleUrl;
   }
 
   /**
    * @returns {Promise<string|undefined>} the ID5 config endpoint
    */
   async getConfigUrl() {
-    return (await this._targets(this._settings)).configUrl;
+    return this._targets(this._settings).configUrl;
   }
 
   /**
@@ -220,9 +225,9 @@ export class Id5PrebidEnabler {
    *
    * @private
    * @param {Id5EnablerSettings} settings
-   * @returns {Promise<Object>}
+   * @returns {Object}
    */
-  async _targets(settings) {
+  _targets(settings) {
     return this._configuredTargets(settings);
   }
 

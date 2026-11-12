@@ -924,7 +924,7 @@ pbjs.que.push(function () {
 });
 ```
 
-`setConfig` replaces the whole `userSync` topic, so a page that configures other ID providers lists them in the same `userIds` array.
+`setConfig` replaces the whole `userSync` configuration rather than merging into it, so a page that configures other ID providers lists them in the same `userIds` array.
 
 Note that both the User ID module and ID5 submodule must still be included in the Prebid build, even when using the ID5 API to manage the ID5 ID. For more detailed instructions on how to use the ID5 ID in Prebid, refer to [our documentation](https://console.id5.io/docs/public/prebid).
 
@@ -960,11 +960,11 @@ enabler.configureUserIdModule({
 });
 ```
 
-The user IDs of other providers are carried over, so the enabler can be used on a page that already configures them.
+Other User ID modules are kept intact, so the enabler can be used on a page that already configures them.
 
 #### Pages that already configure the ID5 submodule
 
-`reconfigureUserIdModule()` keeps the configuration the page already has and updates the ID5 endpoints in it. Parameters given here override the ones on the page, everything else is left alone. It waits up to `waitForConfigMs` for the page to configure the submodule, so it can be called before the page's own `setConfig`.
+`reconfigureUserIdModule()` keeps the configuration the page already has and updates the ID5 endpoints in it. Parameters passed to the call override the ones already on the page; the rest of the configuration is left alone. It waits up to `waitForConfigMs` for the page to configure the submodule, so it can be called before the page's own `setConfig`.
 
 ```javascript
 enabler.reconfigureUserIdModule();
@@ -991,8 +991,8 @@ enabler.setup({ useExternalModule: false }).configureUserIdModule({ partner: 173
 |---|---|
 | `externalModuleUrl` | where the ID5 external module is loaded from; defaults to `https://cdn.delivrfy.cloud/api/1.0/id5PrebidModule.js` |
 | `configUrl` | the ID5 config endpoint the submodule calls; defaults to `https://prebid.id5-tech.io/v1/config` |
-| `useExternalModule` | `true` by default; `false` leaves the submodule on its own implementation and takes `externalModuleUrl` out of the configuration |
-| `refreshOnReconfigure` | refresh the submodule right after `reconfigureUserIdModule()`; `false` by default |
+| `useExternalModule` | `true` by default; `false` uses Prebid's own implementation of the ID5 User ID submodule and removes `externalModuleUrl` from the configuration |
+| `refreshOnReconfigure` | `false` by default: Prebid keeps serving a stored ID5 ID without asking the submodule again, so the new endpoints are used from the next fetch on. `true` calls `pbjs.refreshUserIds()` right after `reconfigureUserIdModule()`, so they are used on this page view |
 | `waitForConfigMs` | how long `reconfigureUserIdModule()` waits for the page to configure the submodule; `3000` by default, `0` reads the configuration once |
 
 `enabler.debug = true` turns on the enabler's console output, and `enabler.version` reports the release it comes from.
