@@ -165,6 +165,10 @@ export class Store {
     return this._clientStore.getExtensions();
   }
 
+  clearExtensions() {
+    this._clientStore.clearExtensions();
+  }
+
   /**
    * @param {ExtensionsData} extensions
    */

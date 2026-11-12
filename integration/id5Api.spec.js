@@ -1,8 +1,9 @@
-import mockttp from 'mockttp';
+import mockttp, {RulePriority} from 'mockttp';
 import path from 'path';
 import {fileURLToPath} from 'url';
 import chai, {expect} from 'chai';
 import {version} from '../generated/version.js';
+import {ALTERNATE_API_BASES} from '../packages/multiplexing/generated/apiBases.js';
 import chaiDateTime from 'chai-datetime';
 import {
   buildBrowser,
@@ -96,6 +97,12 @@ describe('The ID5 API', function () {
       .thenFromFile(200, ID5_ESP_JS_FILE);
 
     await server.forGet('/favicon.ico').thenReply(204);
+    await server.forGet('https://id5-sync.com/bounce').asPriority(RulePriority.FALLBACK)
+      .thenCallback(request => ({
+        statusCode: 200,
+        json: {bounce: {setCookie: false}},
+        headers: {'Access-Control-Allow-Origin': request.headers.origin, 'Access-Control-Allow-Credentials': 'true'}
+      }));
 
     browser = await buildBrowser(https.cert, server.port, _DEBUG);
   });
@@ -254,49 +261,147 @@ describe('The ID5 API', function () {
 
   describe('when apiBaseUrl is configured', function () {
     const CUSTOM_API_BASE = 'https://my-publisher-website.net/a7q3';
-    let customFetch, defaultFetch, customBounce, customDiag;
+    let customFetch, defaultFetch, customBounce, customDiag, defaultDiag, lbEndpoint;
 
     beforeEach(async () => {
-      await server.forGet('https://lb.eu-1-id5-sync.com/lb/v1')
+      lbEndpoint = await server.forGet('https://lb.eu-1-id5-sync.com/lb/v1')
         .thenJson(200, MOCK_LB_RESPONSE, MOCK_CORS_HEADERS);
-      // fetch, bounce and diagnostics must be served from the configured base...
       customFetch = await server.forPost(`${CUSTOM_API_BASE}/gm/v3`)
         .thenCallback(multiFetchResponseWithCorsAllowed(MOCK_FETCH_RESPONSE));
       customBounce = await server.forGet(`${CUSTOM_API_BASE}/bounce`)
         .thenJson(200, {bounce: {setCookie: false}}, MOCK_CORS_HEADERS);
       customDiag = await server.forPost(`${CUSTOM_API_BASE}/diag/measurements`)
         .thenJson(202, '', MOCK_CORS_ALLOW_ALL_HEADERS);
-      // ...and the default hosts must not be called.
+      defaultDiag = await server.forPost('https://diagnostics.id5-sync.com/measurements')
+        .thenJson(202, '', MOCK_CORS_ALLOW_ALL_HEADERS);
       defaultFetch = await server.forPost(FETCH_ENDPOINT)
         .thenCallback(multiFetchResponseWithCorsAllowed(MOCK_FETCH_RESPONSE));
-      await mockBounceEndpoint();
       await server.forGet('https://dummyimage.com/600x200').thenReply(200, '');
+      const TEST_PAGE_PATH = path.join(RESOURCES_DIR, 'integration-custom-base.html');
+      await server.forGet('https://my-publisher-website.net')
+        .thenFromFile(200, TEST_PAGE_PATH);
     });
 
     afterEach(async () => {
       await server.reset();
     });
 
-    it('routes fetch, bounce and diagnostics to the configured base', async () => {
-      const TEST_PAGE_PATH = path.join(RESOURCES_DIR, 'integration-custom-base.html');
-      await server.forGet('https://my-publisher-website.net')
-        .thenFromFile(200, TEST_PAGE_PATH);
+    it('uses the default hosts while bounce answers', async () => {
+      const defaultBounce = await server.forGet('https://id5-sync.com/bounce')
+        .thenJson(200, {bounce: {setCookie: false}}, MOCK_CORS_HEADERS);
 
       const page = await browser.newPage();
       await page.goto('https://my-publisher-website.net');
       await page.waitForSelector('p#done');
 
-      // fetch resolved via the configured base, not the default host
+      // the configured base is a fallback, so nothing is sent to it while id5-sync.com answers
+      expect(await defaultFetch.getSeenRequests()).to.have.lengthOf(1);
+      expect(await customFetch.getSeenRequests()).to.have.lengthOf(0);
+      expect(await page.evaluate(() => window.id5Update)).to.eq(MOCK_ID);
+
+      expect(await defaultBounce.getSeenRequests()).to.have.lengthOf(1);
+      expect(await customBounce.getSeenRequests()).to.have.lengthOf(0);
+      expect(await lbEndpoint.getSeenRequests()).to.have.lengthOf(1);
+
+      expect(await expectRequestAt(defaultDiag)).to.have.lengthOf(1);
+      expect(await customDiag.getSeenRequests()).to.have.lengthOf(0);
+    });
+
+    it('sends the fetch to the configured base when the bounce call fails', async () => {
+      await server.forGet('https://id5-sync.com/bounce').thenCloseConnection();
+      const alternateFetches = await Promise.all(ALTERNATE_API_BASES.map(base => server.forPost(`${atob(base)}/gm/v3`)
+        .thenCallback(multiFetchResponseWithCorsAllowed(MOCK_FETCH_RESPONSE))));
+
+      const page = await browser.newPage();
+      await page.goto('https://my-publisher-website.net');
+      await page.waitForSelector('p#done');
+
       expect(await customFetch.getSeenRequests()).to.have.lengthOf(1);
       expect(await defaultFetch.getSeenRequests()).to.have.lengthOf(0);
       expect(await page.evaluate(() => window.id5Update)).to.eq(MOCK_ID);
 
-      // bounce on the configured base
-      expect(await customBounce.getSeenRequests()).to.have.lengthOf(1);
+      // the configured base replaces the built-in alternates
+      const alternateRequests = (await Promise.all(alternateFetches.map(endpoint => endpoint.getSeenRequests()))).flat();
+      expect(alternateRequests).to.have.lengthOf(0);
 
-      // diagnostics published to the configured base
-      const diagRequests = await expectRequestAt(customDiag);
-      expect(diagRequests).to.have.lengthOf(1);
+      // diagnostics are not affected by the switch
+      expect(await expectRequestAt(defaultDiag)).to.have.lengthOf(1);
+      expect(await customDiag.getSeenRequests()).to.have.lengthOf(0);
+    });
+  });
+
+  describe('when the bounce call fails and apiBaseUrl is not configured', function () {
+    let alternateFetches, defaultFetch, lbEndpoint;
+
+    beforeEach(async () => {
+      await server.forGet('https://id5-sync.com/bounce').thenCloseConnection();
+      lbEndpoint = await server.forGet('https://lb.eu-1-id5-sync.com/lb/v1')
+        .thenJson(200, MOCK_LB_RESPONSE, MOCK_CORS_HEADERS);
+      defaultFetch = await server.forPost(FETCH_ENDPOINT)
+        .thenCallback(multiFetchResponseWithCorsAllowed(MOCK_FETCH_RESPONSE));
+      alternateFetches = await Promise.all(ALTERNATE_API_BASES.map(base => server.forPost(`${atob(base)}/gm/v3`)
+        .thenCallback(multiFetchResponseWithCorsAllowed(MOCK_FETCH_RESPONSE))));
+      await server.forGet('https://dummyimage.com/600x200').thenReply(200, '');
+      await server.forGet('https://my-publisher-website.net')
+        .thenFromFile(200, path.join(RESOURCES_DIR, 'integration.html'));
+    });
+
+    afterEach(async () => {
+      await server.reset();
+    });
+
+    it('sends fetch to one of the fallback api bases with the other extensions', async () => {
+      const page = await browser.newPage();
+      await page.goto('https://my-publisher-website.net');
+      await page.waitForSelector('p#done');
+
+      const alternateRequests = (await Promise.all(alternateFetches.map(endpoint => endpoint.getSeenRequests()))).flat();
+      expect(alternateRequests).to.have.lengthOf(1);
+      expect(await defaultFetch.getSeenRequests()).to.have.lengthOf(0);
+      expect(await lbEndpoint.getSeenRequests()).to.have.lengthOf(1);
+      const fetchBody = (await alternateRequests[0].body.getJson()).requests[0];
+      expect(fetchBody.extensions.lb).to.equal(MOCK_LB_RESPONSE.lb);
+    });
+
+    async function pageWithCachedExtensions(extensions) {
+      const page = await browser.newPage();
+      await page.evaluateOnNewDocument(cached => {
+        if (window.location.hostname === 'my-publisher-website.net' && !window.localStorage.getItem('id5id_extensions')) {
+          window.localStorage.setItem('id5id_extensions', JSON.stringify({data: cached, expireAt: Date.now() + 3600000}));
+        }
+      }, extensions);
+      return page;
+    }
+
+    async function cachedExtensions(page) {
+      return JSON.parse(await page.evaluate(() => window.localStorage.getItem('id5id_extensions'))).data;
+    }
+
+    it('gathers extensions again when they were cached without usedApiBase', async () => {
+      const bounce = await server.forGet('https://id5-sync.com/bounce').asPriority(2).thenCloseConnection();
+      const page = await pageWithCachedExtensions({lbCDN: '%%LB_CDN%%'});
+      await page.goto('https://my-publisher-website.net');
+      await page.waitForSelector('p#done');
+
+      expect(await bounce.getSeenRequests()).to.have.lengthOf(1);
+      const alternateRequests = (await Promise.all(alternateFetches.map(endpoint => endpoint.getSeenRequests()))).flat();
+      expect(alternateRequests).to.have.lengthOf(1);
+      expect(await defaultFetch.getSeenRequests()).to.have.lengthOf(0);
+      expect(ALTERNATE_API_BASES.map(base => atob(base))).to.include((await cachedExtensions(page)).usedApiBase);
+    });
+
+    it('retries the fetch on a fallback api base when cached extensions skip bounce', async () => {
+      const bounce = await server.forGet('https://id5-sync.com/bounce').asPriority(2).thenCloseConnection();
+      const failingFetch = await server.forPost(FETCH_ENDPOINT).asPriority(2).thenCloseConnection();
+      const page = await pageWithCachedExtensions({lbCDN: '%%LB_CDN%%', usedApiBase: ''});
+      await page.goto('https://my-publisher-website.net');
+      await page.waitForSelector('p#done');
+
+      expect(await bounce.getSeenRequests()).to.have.lengthOf(0);
+      expect(await failingFetch.getSeenRequests()).to.have.lengthOf(1);
+      const alternateRequests = (await Promise.all(alternateFetches.map(endpoint => endpoint.getSeenRequests()))).flat();
+      expect(alternateRequests).to.have.lengthOf(1);
+      expect(ALTERNATE_API_BASES.map(base => atob(base))).to.include((await cachedExtensions(page)).usedApiBase);
     });
   });
 
@@ -718,13 +823,20 @@ describe('The ID5 API', function () {
         .thenCallback(multiFetchResponseWithCorsAllowed(MOCK_FETCH_RESPONSE));
       const diagnosticsEndpoint = await server.forPost('https://diagnostics.id5-sync.com/measurements')
         .thenJson(202, '', MOCK_CORS_ALLOW_ALL_HEADERS);
+      // Bounce tries to set the id5 cookie; credentials are allowed, so only credentials: 'omit' keeps it out
       const bounceEndpoint = await server.forGet('https://id5-sync.com/bounce')
-        .thenJson(200, {bounce: {setCookie: false}}, MOCK_CORS_HEADERS);
+        .thenReply(200, JSON.stringify({bounce: {setCookie: false}}), {
+          ...MOCK_CORS_HEADERS,
+          'Content-Type': 'application/json',
+          'Set-Cookie': 'id5=should-not-be-stored; Domain=id5-sync.com; Path=/; Secure; SameSite=None'
+        });
       const chunkEndpoint = await server.forGet(/https:\/\/d\d+\.eu-.*/)
         .thenReply(200, '');
       await server.forGet('https://dummyimage.com/600x200')
         .thenReply(200, '');
       const page = await browser.newPage();
+      // An existing id5 cookie that bounce must not send
+      await page.setCookie({name: 'id5', value: 'should-not-be-sent', domain: 'id5-sync.com', path: '/', secure: true, sameSite: 'None'});
       await page.goto('https://my-publisher-website.net');
       // Verify fetch request
       const id5Requests = await expectRequestAt(mockId5);
@@ -739,9 +851,12 @@ describe('The ID5 API', function () {
         idLookupMode: 'true'
       };
       verifyContainsMeasurementWithTags(diagBody.measurements, 'id5.api.instance.load.delay', 'TIMER', expectedTags);
-      // Verify no bounce call
+      // In lookup mode bounce is sent with credentials: 'omit': the id5 cookie is neither sent nor stored
       const bounceRequests = await bounceEndpoint.getSeenRequests();
-      expect(bounceRequests).to.have.lengthOf(0);
+      expect(bounceRequests).to.have.lengthOf(1);
+      expect(bounceRequests[0].headers.cookie || '').to.not.include('should-not-be-sent');
+      const id5Cookies = await page.cookies('https://id5-sync.com');
+      expect(id5Cookies.map(cookie => cookie.value)).to.eql(['should-not-be-sent']);
       // Verify no chunks call
       const chunkRequests = await chunkEndpoint.getSeenRequests();
       expect(chunkRequests).to.have.lengthOf(0);

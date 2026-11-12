@@ -1,4 +1,4 @@
-import mockttp from 'mockttp';
+import mockttp, {RulePriority} from 'mockttp';
 import path from 'path';
 import {fileURLToPath} from 'url';
 import chai, {expect} from 'chai';
@@ -56,6 +56,12 @@ describe('The Prebid External Module', function () {
       .thenFromFile(200, ID5_PBMODULE_JS_FILE);
 
     await server.forGet('/favicon.ico').thenReply(204);
+    await server.forGet('https://id5-sync.com/bounce').asPriority(RulePriority.FALLBACK)
+      .thenCallback(request => ({
+        statusCode: 200,
+        json: {bounce: {setCookie: false}},
+        headers: {'Access-Control-Allow-Origin': request.headers.origin, 'Access-Control-Allow-Credentials': 'true'}
+      }));
 
     browser = await buildBrowser(https.cert, server.port, _DEBUG);
     await server.forGet('https://lb.eu-1-id5-sync.com/lb/v1')
@@ -122,11 +128,19 @@ describe('The Prebid External Module', function () {
       .thenCallback(multiFetchResponseWithCorsAllowed(MOCK_FETCH_RESPONSE));
 
     const pageUrl = 'https://lookup-mode-website.net';
+    // Bounce tries to set the id5 cookie; credentials are allowed, so only credentials: 'omit' keeps it out
     const bounceEndpoint = await server.forGet('https://id5-sync.com/bounce')
-      .thenJson(200, {bounce: {setCookie: false}}, MOCK_CORS_HEADERS);
+      .thenReply(200, JSON.stringify({bounce: {setCookie: false}}), {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': pageUrl,
+        'Access-Control-Allow-Credentials': 'true',
+        'Set-Cookie': 'id5=should-not-be-stored; Domain=id5-sync.com; Path=/; Secure; SameSite=None'
+      });
     await server.forGet(pageUrl)
       .thenFromFile(200, path.join(RESOURCES_DIR, 'prebidModule/lookupModeIntegration.html'));
     const page = await browser.newPage();
+    // An existing id5 cookie that bounce must not send
+    await page.setCookie({name: 'id5', value: 'should-not-be-sent', domain: 'id5-sync.com', path: '/', secure: true, sameSite: 'None'});
     await page.goto(pageUrl);
 
     const prebidResponse = await page.evaluate(async () => window.responseForPrebid);
@@ -136,7 +150,11 @@ describe('The Prebid External Module', function () {
     expect(id5FetchRequests).to.have.lengthOf(1);
     const requestBody = await id5FetchRequests[0].body.getJson();
     expect(requestBody.requests[0].idLookupMode).to.be.eql(true);
+    // In lookup mode bounce is sent with credentials: 'omit': the id5 cookie is neither sent nor stored
     const bounceRequests = await bounceEndpoint.getSeenRequests();
-    expect(bounceRequests).to.have.lengthOf(0);
+    expect(bounceRequests).to.have.lengthOf(1);
+    expect(bounceRequests[0].headers.cookie || '').to.not.include('should-not-be-sent');
+    const id5Cookies = await page.cookies('https://id5-sync.com');
+    expect(id5Cookies.map(cookie => cookie.value)).to.eql(['should-not-be-sent']);
   });
 });

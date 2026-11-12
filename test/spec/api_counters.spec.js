@@ -15,6 +15,7 @@ import {
   TEST_RESPONSE_ID5_CONSENT
 } from './test_utils.js';
 import {ApiEvent, Extensions, EXTENSIONS } from '@id5io/multiplexing';
+import {DEFAULT_ENDPOINTS} from '@id5io/multiplexing/endpoints';
 
 describe('Counters', function () {
   let server;
@@ -28,7 +29,7 @@ describe('Counters', function () {
       prepareMultiplexingResponse(TEST_RESPONSE_ID5_CONSENT, request.requestBody)
     ));
     extensionsStub = sinon.createStubInstance(Extensions);
-    extensionsStub.gather.resolves(DEFAULT_EXTENSIONS);
+    extensionsStub.gather.resolves({extensions: DEFAULT_EXTENSIONS, endpoints: DEFAULT_ENDPOINTS});
     extensionsCreatorStub = sinon.stub(EXTENSIONS, 'createExtensions').returns(extensionsStub);
   });
 

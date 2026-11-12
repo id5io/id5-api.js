@@ -9,6 +9,7 @@ import {
 import {NO_OP_LOGGER} from '../../src/logger.js';
 import {MeterRegistry} from '@id5io/diagnostics';
 import {CachedResponse} from '../../src/store.js';
+import {DEFAULT_ENDPOINTS, Id5Endpoints} from '../../src/endpoints.js';
 
 const CONSENT_DATA_GDPR_ALLOWED = Object.assign(new ConsentData(), {
   consentString: 'CONSENT_STRING',
@@ -184,7 +185,7 @@ describe('UidFetcher', function () {
     extensions = sinon.createStubInstance(Extensions);
     metrics = new MeterRegistry();
     fetcher = new UidFetcher(metrics, log, extensions);
-    extensions.gather.resolves(DEFAULT_EXTENSIONS);
+    extensions.gather.resolves({extensions: DEFAULT_EXTENSIONS, endpoints: DEFAULT_ENDPOINTS, apiBaseStored: true});
     dateTimeStub = sinon.stub(Date, 'now').returns(CURRENT_TIME);
   });
 
@@ -490,6 +491,136 @@ describe('UidFetcher', function () {
         expect(body.requests[0].gpp_string).is.eq('GPP_STRING');
         expect(body.requests[0].gpp_sid).is.eq('2,6');
       });
+    });
+
+    it('sends the fetch to the endpoints picked by extensions', function () {
+      extensions.gather.resolves({extensions: DEFAULT_EXTENSIONS, endpoints: new Id5Endpoints('https://fetch.example.com')});
+
+      // when
+      const fetchIdResult = fetcher.fetchId([DEFAULT_FETCH_DATA], CONSENT_DATA_GDPR_ALLOWED, true);
+
+      // then
+      return fetchIdResult.then(() => {
+        expect(server.requests[0].url).is.eq('https://fetch.example.com/gm/v3');
+      });
+    });
+  });
+
+  describe('when the fetch gets no HTTP response', function () {
+    const fetchData = DEFAULT_FETCH_DATA;
+    const FALLBACK = new Id5Endpoints('https://fetch.alt-1.id5.test');
+
+    beforeEach(function () {
+      server = sinon.fakeServer.create();
+      server.respondImmediately = true;
+      extensions.retryEndpoints.withArgs(DEFAULT_ENDPOINTS).returns(FALLBACK);
+    });
+
+    afterEach(function () {
+      server.restore();
+    });
+
+    function failWithoutResponse(url) {
+      server.respondWith('POST', url, request => request.error());
+    }
+
+    function respondOk(url) {
+      server.respondWith('POST', url, sinonFetchResponder(request => prepareJsonResponse(FETCH_RESPONSE_OBJ, request.requestBody)));
+    }
+
+    it('should retry once on a fallback api base and confirm it', async () => {
+      failWithoutResponse('https://id5-sync.com/gm/v3');
+      respondOk(FALLBACK.fetch);
+
+      const response = await fetcher.fetchId([fetchData], CONSENT_DATA_GDPR_ALLOWED, true);
+
+      expect(response.getGenericResponse()).to.be.eql(FETCH_RESPONSE_OBJ);
+      expect(server.requests.map(r => r.url)).to.be.eql(['https://id5-sync.com/gm/v3', FALLBACK.fetch]);
+      expect(server.requests[1].requestBody).to.be.eq(server.requests[0].requestBody);
+      expect(extensions.confirmApiBase).to.be.calledOnceWith(FALLBACK,
+        {extensions: DEFAULT_EXTENSIONS, endpoints: DEFAULT_ENDPOINTS, apiBaseStored: true});
+    });
+
+    it('should retry once on the default endpoints when a fallback api base gets no HTTP response', async () => {
+      const gathered = {extensions: DEFAULT_EXTENSIONS, endpoints: FALLBACK, apiBaseStored: true};
+      extensions.gather.resolves(gathered);
+      extensions.retryEndpoints.withArgs(FALLBACK).returns(DEFAULT_ENDPOINTS);
+      failWithoutResponse(FALLBACK.fetch);
+      respondOk('https://id5-sync.com/gm/v3');
+
+      const response = await fetcher.fetchId([fetchData], CONSENT_DATA_GDPR_ALLOWED, true);
+
+      expect(response.getGenericResponse()).to.be.eql(FETCH_RESPONSE_OBJ);
+      expect(server.requests.map(r => r.url)).to.be.eql([FALLBACK.fetch, 'https://id5-sync.com/gm/v3']);
+      expect(extensions.confirmApiBase).to.be.calledOnceWith(DEFAULT_ENDPOINTS, gathered);
+    });
+
+    it('should not retry on an HTTP error', async () => {
+      server.respondWith('POST', 'https://id5-sync.com/gm/v3', request => request.respond(500, {}, 'Error'));
+
+      const error = await fetcher.fetchId([fetchData], CONSENT_DATA_GDPR_ALLOWED, true).catch(e => e);
+
+      expect(error).to.be.eq('Internal Server Error');
+      expect(server.requests).to.have.lengthOf(1);
+      expect(extensions.retryEndpoints).to.not.be.called;
+      expect(extensions.confirmApiBase).to.not.be.called;
+    });
+
+    it('should not retry when extensions return no retry endpoints', async () => {
+      const fallback = new Id5Endpoints('https://id5.publisher.com');
+      extensions.gather.resolves({extensions: DEFAULT_EXTENSIONS, endpoints: fallback, apiBaseStored: true});
+      extensions.retryEndpoints.withArgs(fallback).returns(undefined);
+      failWithoutResponse(fallback.fetch);
+
+      await fetcher.fetchId([fetchData], CONSENT_DATA_GDPR_ALLOWED, true).catch(e => e);
+
+      expect(server.requests.map(r => r.url)).to.be.eql([fallback.fetch]);
+      expect(extensions.retryEndpoints).to.be.calledOnceWith(fallback);
+    });
+
+    it('should not retry when there is no fallback api base', async () => {
+      extensions.retryEndpoints.withArgs(DEFAULT_ENDPOINTS).returns(undefined);
+      failWithoutResponse('https://id5-sync.com/gm/v3');
+
+      await fetcher.fetchId([fetchData], CONSENT_DATA_GDPR_ALLOWED, true).catch(e => e);
+
+      expect(server.requests).to.have.lengthOf(1);
+    });
+
+    it('should fail when the fallback api base gets no HTTP response either', async () => {
+      failWithoutResponse('https://id5-sync.com/gm/v3');
+      failWithoutResponse(FALLBACK.fetch);
+
+      const result = await fetcher.fetchId([fetchData], CONSENT_DATA_GDPR_ALLOWED, true).then(() => 'resolved', () => 'rejected');
+
+      expect(result).to.be.eq('rejected');
+      expect(server.requests.map(r => r.url)).to.be.eql(['https://id5-sync.com/gm/v3', FALLBACK.fetch]);
+      expect(extensions.confirmApiBase).to.not.be.called;
+    });
+  });
+
+  describe('when the fetch succeeds', function () {
+    const fetchData = DEFAULT_FETCH_DATA;
+    const FALLBACK = new Id5Endpoints('https://fetch.alt-1.id5.test');
+
+    beforeEach(function () {
+      server = sinon.fakeServer.create();
+      server.respondImmediately = true;
+    });
+
+    afterEach(function () {
+      server.restore();
+    });
+
+    it('should confirm the endpoints gather returned', async () => {
+      const gathered = {extensions: DEFAULT_EXTENSIONS, endpoints: FALLBACK, apiBaseStored: false};
+      extensions.gather.resolves(gathered);
+      server.respondWith('POST', FALLBACK.fetch, sinonFetchResponder(request => prepareJsonResponse(FETCH_RESPONSE_OBJ, request.requestBody)));
+
+      await fetcher.fetchId([fetchData], CONSENT_DATA_GDPR_ALLOWED, true);
+
+      expect(server.requests.map(r => r.url)).to.be.eql([FALLBACK.fetch]);
+      expect(extensions.confirmApiBase).to.be.calledOnceWith(FALLBACK, gathered);
     });
   });
 
