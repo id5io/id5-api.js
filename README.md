@@ -934,6 +934,8 @@ Note that both the User ID module and ID5 submodule must still be included in th
 
 Load it after your CMP. It may be loaded before Prebid.js, as it waits for Prebid through `pbjs.que`.
 
+The ID5 entry is written with `pbjs.setConfig({ userSync })`, which replaces the whole `userSync` configuration. A page that calls `setConfig({ userSync })` of its own afterwards therefore takes the entry back out again; let the enabler run last, or have it update the configuration the page builds with [`reconfigureUserIdModule()`](#pages-that-already-configure-the-id5-submodule).
+
 Commands pushed on `que` run as soon as the enabler is on the page, so the script is loaded `async` and the page never waits for it:
 
 ```html

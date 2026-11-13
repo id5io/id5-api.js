@@ -1,5 +1,5 @@
 import sinon from 'sinon';
-import {Id5PrebidEnabler} from '../../src/id5PrebidEnabler.js';
+import {Id5PrebidEnabler, installEnabler} from '../../src/id5PrebidEnabler.js';
 import {version} from '../../generated/version.js';
 
 const PARTNER = 173;
@@ -243,6 +243,12 @@ describe('ID5 Prebid enabler', function () {
       expect(id5Entry(pbjs).params.enablerVersion).to.eq(version);
     });
 
+    it('reports that nothing was pushed when Prebid cannot take a configuration', async function () {
+      const withoutSetConfig = new Id5PrebidEnabler({pbjs: {que: {push: command => command()}}, document: window.document});
+
+      expect(await withoutSetConfig.configureUserIdModule({partner: PARTNER})).to.be.false;
+    });
+
     it('rejects a configuration without a partner', async function () {
       expect(await enabler.configureUserIdModule({pd: 'some-pd'})).to.be.false;
       expect(pbjs.setConfig).to.not.have.been.called;
@@ -327,6 +333,23 @@ describe('ID5 Prebid enabler', function () {
       await enabler.reconfigureUserIdModule({params: {pd: 'fresh-pd'}});
 
       expect(id5Entry(pbjs).params.pd).to.eq('fresh-pd');
+    });
+
+    it('keeps the targets the call is given', async function () {
+      await enabler.reconfigureUserIdModule({
+        externalModuleUrl: 'https://cdn.publisher.com/id5PrebidModule.js',
+        configUrl: 'https://config.publisher.com/v1/config'
+      });
+
+      const params = id5Entry(pbjs).params;
+      expect(params.externalModuleUrl).to.eq('https://cdn.publisher.com/id5PrebidModule.js');
+      expect(params.configUrl).to.eq('https://config.publisher.com/v1/config');
+    });
+
+    it('reports that nothing was pushed when Prebid cannot take the configuration', async function () {
+      pbjs.setConfig = undefined;
+
+      expect(await enabler.reconfigureUserIdModule()).to.be.false;
     });
 
     it('hands Prebid a new params object, so the change is visible to it', async function () {
@@ -416,6 +439,67 @@ describe('ID5 Prebid enabler', function () {
 
       expect(await enabler.reconfigureUserIdModule()).to.be.false;
       expect(pbjs.setConfig).to.not.have.been.called;
+    });
+  });
+
+  describe('installEnabler', function () {
+    let scope;
+
+    beforeEach(function () {
+      scope = {pbjs, document: window.document};
+    });
+
+    it('runs the commands queued on the install stub', function () {
+      const command = sinon.spy();
+      scope.id5Prebid = {enabler: {que: [command]}};
+
+      const installed = installEnabler(scope);
+
+      expect(installed).to.be.instanceOf(Id5PrebidEnabler);
+      expect(scope.id5Prebid.enabler).to.equal(installed);
+      expect(command).to.have.been.calledWith(installed);
+    });
+
+    it('keeps the enabler of this release when the script is loaded twice', function () {
+      const first = installEnabler(scope);
+
+      const second = installEnabler(scope);
+
+      expect(second).to.equal(first);
+      expect(scope.id5Prebid.enabler).to.equal(first);
+    });
+
+    it('keeps a newer enabler already on the page', function () {
+      const newer = {version: '99.0.0', que: {push: () => {}}};
+      scope.id5Prebid = {enabler: newer};
+
+      expect(installEnabler(scope)).to.equal(newer);
+      expect(scope.id5Prebid.enabler).to.equal(newer);
+    });
+
+    it('takes over the settings of an older release it replaces', async function () {
+      const older = new Id5PrebidEnabler(scope);
+      older.version = '0.0.1';
+      older.setup({externalModuleUrl: PRIMARY_MODULE_URL, configUrl: 'https://config.publisher.com/v1/config'});
+      scope.id5Prebid = {enabler: older};
+
+      const installed = installEnabler(scope);
+
+      expect(installed).to.not.equal(older);
+      await installed.configureUserIdModule({partner: PARTNER});
+      const params = id5Entry(pbjs).params;
+      expect(params.externalModuleUrl).to.eq(PRIMARY_MODULE_URL);
+      expect(params.configUrl).to.eq('https://config.publisher.com/v1/config');
+    });
+
+    it('leaves the external module on the ID5 global alone', function () {
+      scope.id5Prebid = {version: '1.0.0', integration: {}};
+
+      installEnabler(scope);
+
+      expect(scope.id5Prebid.version).to.eq('1.0.0');
+      expect(scope.id5Prebid.integration).to.exist;
+      expect(scope.id5Prebid.enabler).to.be.instanceOf(Id5PrebidEnabler);
     });
   });
 

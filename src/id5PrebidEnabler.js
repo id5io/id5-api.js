@@ -12,7 +12,7 @@
  * reconfigureUserIdModule() keeps the configuration already on the page and updates the targets in it.
  */
 
-import {InvocationLogger, isGlobalDebug, setGlobalDebug} from '../lib/utils.js';
+import {InvocationLogger, isArray, isGlobalDebug, setGlobalDebug} from '../lib/utils.js';
 import {getPbjsGlobal, PbjsDetector} from '../lib/prebid/pbjsUtils.js';
 import {version as currentVersion} from '../generated/version.js';
 import {semanticVersionCompare} from '@id5io/multiplexing/utils';
@@ -140,7 +140,9 @@ export class Id5PrebidEnabler {
     }
     applyTargets(entry.params, this._configuredTargets(this._settings), false);
     applyEnablerVersion(entry.params);
-    await this._applyEntry(entry, config);
+    if (!await this._applyEntry(entry, config)) {
+      return false;
+    }
     this._log.info('configured the ID5 submodule', entry);
     return true;
   }
@@ -159,14 +161,18 @@ export class Id5PrebidEnabler {
       return false;
     }
     // Prebid compares a submodule's new configuration against the previous one by value,
-    // so the params it already holds are replaced rather than modified.
-    const entry = {...existing, params: {...existing.params, ...paramsOf(config)}};
-    applyTargets(entry.params, this._configuredTargets(this._settings), true);
+    // so the params it already holds are replaced rather than modified. The targets take over the
+    // ones on the page, and the parameters of the call take over both.
+    const params = {...existing.params};
+    applyTargets(params, this._configuredTargets(this._settings), true);
+    const entry = {...existing, params: {...params, ...paramsOf(config)}};
     applyEnablerVersion(entry.params);
     if (!this._settings.useExternalModule) {
       delete entry.params.externalModuleUrl;
     }
-    await this._applyEntry(entry, config);
+    if (!await this._applyEntry(entry, config)) {
+      return false;
+    }
     this._log.info('reconfigured the ID5 submodule', entry);
     if (this._settings.refreshOnReconfigure) {
       await this._refreshSubmodule();
@@ -234,18 +240,20 @@ export class Id5PrebidEnabler {
   /**
    * Pushes the submodule configuration to Prebid. `setConfig` replaces a topic rather than
    * merging into it, so the whole `userSync` the page has is carried over with only the ID5
-   * entry of `userIds` replaced. Runs as soon as Prebid is available, without waiting on any network call.
+   * entry of `userIds` replaced. By the same rule, a `setConfig({userSync})` the page makes after
+   * this one replaces the entry written here. Runs as soon as Prebid is available, without
+   * waiting on any network call.
    *
    * @private
    * @param {Object} entry
    * @param {Id5EnablerConfig} config
-   * @returns {Promise<void>}
+   * @returns {Promise<boolean>} whether the configuration was pushed to Prebid
    */
   async _applyEntry(entry, config) {
     const pbjs = await this._pbjsDetector.getPbjs();
     if (!pbjs || typeof pbjs.setConfig !== 'function') {
       this._log.error('Prebid.js is not available, the ID5 submodule was not configured');
-      return;
+      return false;
     }
     const current = currentUserSync(pbjs) || {};
     const userSync = {...current, userIds: otherUserIds(current).concat([entry])};
@@ -256,6 +264,7 @@ export class Id5PrebidEnabler {
       userSync.syncDelay = config.syncDelay;
     }
     pbjs.setConfig({userSync});
+    return true;
   }
 
   /**
@@ -415,15 +424,30 @@ function currentUserSync(pbjs) {
   }
 }
 
-if (!window[GLOBAL_NAME]) {
-  window[GLOBAL_NAME] = {};
+/**
+ * Installs the enabler under its own key of the ID5 global; `integration` and `version` on that
+ * global belong to the external module, and the enabler carries its own version under its key.
+ * An enabler already installed is replaced only by a newer release, which takes over its settings.
+ * The commands waiting on the `{que: []}` stub of the install snippet are run on the way.
+ *
+ * @param {Window} scope
+ * @returns {Id5PrebidEnabler} the enabler the page is left with
+ */
+export function installEnabler(scope) {
+  const global = scope[GLOBAL_NAME] = scope[GLOBAL_NAME] || {};
+  const existing = global[ENABLER_KEY];
+  if (typeof existing?.version === 'string' && semanticVersionCompare(existing.version, currentVersion) >= 0) {
+    return existing;
+  }
+  const enabler = new Id5PrebidEnabler(scope);
+  if (existing?._settings) {
+    enabler.setup(existing._settings);
+  }
+  global[ENABLER_KEY] = enabler;
+  if (isArray(existing?.que)) {
+    existing.que.forEach(command => enabler._run(command));
+  }
+  return enabler;
 }
 
-// `integration` and `version` on this object belong to the external module; the enabler is
-// installed under its own key and carries its own version there.
-const existing = window[GLOBAL_NAME][ENABLER_KEY];
-if (!existing?.version || semanticVersionCompare(existing.version, currentVersion) <= 0) {
-  const enabler = new Id5PrebidEnabler(window);
-  window[GLOBAL_NAME][ENABLER_KEY] = enabler;
-  (existing?.que || []).forEach(command => enabler._run(command));
-}
+installEnabler(window);
