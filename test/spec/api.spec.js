@@ -275,15 +275,35 @@ describe('ID5 API', function () {
     expect(isGlobalDebug()).to.be.false;
   });
 
-  it('should share object for standard and lite api', function (done) {
-    const invocationId = ID5.invocationId;
-    const id5Standard = ID5.init(defaultInit());
-    expect(ID5.invocationId).to.be.eq(invocationId + 1);
-    ID5.initLite(defaultInit());
-    expect(ID5.invocationId).to.be.eq(invocationId + 2);
-    id5Standard.onAvailable(function () {
-      // let's wait for it to not influence other tests
-      done();
+  describe('shared state', function () {
+    let extensionsStub, extensionsCreatorStub;
+
+    // The test waits for an ID, so it runs on the state the suite leaves behind unless it brings
+    // its own: a stored response or a mocked consent carried over from another spec sends it to
+    // the network and past the mocha deadline.
+    beforeEach(function () {
+      extensionsStub = sinon.createStubInstance(Extensions);
+      extensionsStub.gather.resolves({extensions: DEFAULT_EXTENSIONS, endpoints: DEFAULT_ENDPOINTS});
+      extensionsCreatorStub = sinon.stub(EXTENSIONS, 'createExtensions').returns(extensionsStub);
+      clearMockedConsent();
+      resetAllInLocalStorage();
+    });
+
+    afterEach(function () {
+      extensionsCreatorStub.restore();
+      resetAllInLocalStorage();
+    });
+
+    it('should share object for standard and lite api', function (done) {
+      const invocationId = ID5.invocationId;
+      const id5Standard = ID5.init(defaultInit());
+      expect(ID5.invocationId).to.be.eq(invocationId + 1);
+      ID5.initLite(defaultInit());
+      expect(ID5.invocationId).to.be.eq(invocationId + 2);
+      id5Standard.onAvailable(function () {
+        // let's wait for it to not influence other tests
+        done();
+      });
     });
   });
 });
