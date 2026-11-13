@@ -63,6 +63,7 @@ import {DEFAULT_ENDPOINTS} from '@id5io/multiplexing/endpoints';
  * @property {boolean} idLookupMode - When true, the API will work in ID lookup mode
  * @property {string} id5ApiBaseUrl - Base URL the ID5 identity fetch switches to when id5-sync.com does not answer, so calls are served first-party
  * @property {string} provider - Who deploys the module on behalf of the partner (e.g. a wrapper vendor), sent to ID5 as `provider`
+ * @property {string} enablerVersion - Release of the ID5 Prebid enabler that configured the submodule, set by the enabler
  *
  */
 
@@ -146,6 +147,7 @@ class Id5PrebidIntegration {
       exposeTargeting: prebidConfig.exposeTargeting === true,
       idLookupMode: prebidConfig.idLookupMode,
       provider: prebidConfig.provider,
+      enablerVersion: prebidConfig.enablerVersion,
       apiBaseUrl: prebidConfig.id5ApiBaseUrl,
       dynamicConfig
     }, log);
@@ -325,7 +327,8 @@ class Id5PrebidIntegration {
       consentSource: ConsentSource.prebid,
       trueLink: new TrueLinkAdapter().getTrueLink(),
       idLookupMode: options.idLookupMode,
-      apiBaseUrl: options.apiBaseUrl
+      apiBaseUrl: options.apiBaseUrl,
+      enablerVersion: options.enablerVersion
     };
   }
 }

@@ -52,6 +52,11 @@ The ID5 API is designed to make accessing the ID5 ID simple for publishers, adve
       - [Enabling Debug Output](#enabling-debug-output)
     - [Test locally](#test-locally)
   - [Prebid.js](#prebidjs)
+    - [Using the ID5 Prebid enabler](#using-the-id5-prebid-enabler)
+      - [Loading the enabler asynchronously](#loading-the-enabler-asynchronously)
+      - [Pages that already configure the ID5 submodule](#pages-that-already-configure-the-id5-submodule)
+      - [Wiring the configuration yourself](#wiring-the-configuration-yourself)
+      - [Settings](#settings)
 - [API Process Flow](#api-process-flow)
 - [Benefits of Using the ID5 API](#benefits-of-using-the-id5-api)
 - [The GDPR and Privacy](#the-gdpr-and-privacy)
@@ -896,27 +901,103 @@ When deploying the ID5 API alongside Prebid on a webpage, ensure that the follow
 Within the [Prebid.js configuration for the ID5 ID](http://prebid.org/dev-docs/modules/userId.html#id5-id-configuration), ensure the Prebid storage name (set in `storage.name`) is `id5id`, the storage type (set in `storage.type`) is `html5`, and the two codebases will work together seamlessly.
 
 ```javascript
-pbjs.setConfig({
-    usersync: {
-        userIds: [{
-            name: "id5Id",
-            params: {
-                partner: 173,                                                               // same value as in the API config
-                externalModuleUrl: 'https://cdn.id5-sync.com/api/1.0/id5PrebidModule.js',  // highly recommended to enable the external module
-                provider: 'yourProviderName',                                               // optional, only for technology partners who manage Prebid on behalf of publishers; value provided by ID5
-            },
-            storage: {
-                type: "html5",
-                name: "id5id",
-                expires: 90,
-                refreshInSeconds: 2*3600
-            }
-        }]
-    }
+pbjs.que.push(function () {
+    pbjs.setConfig({
+        userSync: {
+            userIds: [{
+                name: "id5Id",
+                params: {
+                    partner: 173,                                                                // same value as in the API config
+                    externalModuleUrl: 'https://cdn.delivrfy.cloud/api/1.0/id5PrebidModule.js',  // highly recommended to enable the external module
+                    configUrl: 'https://prebid.id5-tech.io/v1/config',                           // the ID5 config endpoint the submodule calls
+                    provider: 'yourProviderName',                                                // optional, only for technology partners who manage Prebid on behalf of publishers; value provided by ID5
+                },
+                storage: {
+                    type: "html5",
+                    name: "id5id",
+                    expires: 90,
+                    refreshInSeconds: 2*3600
+                }
+            }]
+        }
+    });
 });
 ```
 
+`setConfig` replaces the whole `userSync` configuration rather than merging into it, so a page that configures other ID providers lists them in the same `userIds` array.
+
 Note that both the User ID module and ID5 submodule must still be included in the Prebid build, even when using the ID5 API to manage the ID5 ID. For more detailed instructions on how to use the ID5 ID in Prebid, refer to [our documentation](https://console.id5.io/docs/public/prebid).
+
+### Using the ID5 Prebid enabler
+
+`id5-prebid-enabler.js` configures the ID5 submodule for you, so the page only supplies its partner ID. The enabler fills in the rest — `externalModuleUrl`, `configUrl` and the `enablerVersion` it reports itself under — and is always fetched in its latest version, so ID5 can change those defaults without a change to your page.
+
+Load it after your CMP. It may be loaded before Prebid.js, as it waits for Prebid through `pbjs.que`.
+
+The ID5 entry is written with `pbjs.setConfig({ userSync })`, which replaces the whole `userSync` configuration. A page that calls `setConfig({ userSync })` of its own afterwards therefore takes the entry back out again; let the enabler run last, or have it update the configuration the page builds with [`reconfigureUserIdModule()`](#pages-that-already-configure-the-id5-submodule).
+
+Commands pushed on `que` run as soon as the enabler is on the page, so the script is loaded `async` and the page never waits for it:
+
+```html
+<script>
+  window.id5Prebid = window.id5Prebid || {};
+  window.id5Prebid.enabler = window.id5Prebid.enabler || { que: [] };
+  window.id5Prebid.enabler.que.push(enabler => enabler.configureUserIdModule({ partner: 173 }));
+</script>
+<script async src="https://cdn.delivrfy.cloud/api/1.0/id5-prebid-enabler.js"></script>
+```
+
+That single call produces a configuration equivalent to the one above: `externalModuleUrl` is set to `https://cdn.delivrfy.cloud/api/1.0/id5PrebidModule.js`, `configUrl` to `https://prebid.id5-tech.io/v1/config`, `enablerVersion` to the enabler release in use, and the storage to type `html5`, name `id5id`, 90 days. An endpoint the page sets itself is kept — `configureUserIdModule()` only fills in what is missing, `enablerVersion` aside, which the enabler always reports itself. It returns a `Promise<boolean>` telling whether a configuration was pushed to Prebid, and `partner` is required.
+
+The examples that follow are the queued command alone — each goes inside a `que.push()` like the one above.
+
+The submodule parameters go on the configuration object, either flat or under `params`, alongside the entry level keys `storage`, `bidders`, `value`, `auctionDelay` and `syncDelay`:
+
+```javascript
+enabler.configureUserIdModule({
+    partner: 173,                                                                     // same value as in the API config
+    provider: 'yourProviderName',                                                     // optional, only for technology partners who manage Prebid on behalf of publishers; value provided by ID5
+    storage: { type: 'html5', name: 'id5id', expires: 90, refreshInSeconds: 2*3600 },
+    auctionDelay: 300
+});
+```
+
+Other User ID modules are kept intact, so the enabler can be used on a page that already configures them.
+
+#### Pages that already configure the ID5 submodule
+
+`reconfigureUserIdModule()` keeps the configuration the page already has and updates the ID5 endpoints in it. Parameters passed to the call override the ones already on the page; the rest of the configuration is left alone. It waits up to `waitForConfigMs` for the page to configure the submodule, so it can be called before the page's own `setConfig`.
+
+```javascript
+enabler.reconfigureUserIdModule();
+```
+
+#### Wiring the configuration yourself
+
+For pages that build their own Prebid configuration, the enabler exposes the values it would otherwise set. Both return a `Promise`.
+
+| Method | Returns |
+|---|---|
+| `getExternalModuleUrl()` | a URL the ID5 external module can be loaded from |
+| `getConfigUrl()` | the ID5 config endpoint |
+
+#### Settings
+
+`setup(settings)` overrides the settings used by every later call, and is the only way they are given — the entry points take the submodule configuration alone.
+
+```javascript
+enabler.setup({ useExternalModule: false }).configureUserIdModule({ partner: 173 });
+```
+
+| Setting | Description |
+|---|---|
+| `externalModuleUrl` | where the ID5 external module is loaded from; defaults to `https://cdn.delivrfy.cloud/api/1.0/id5PrebidModule.js` |
+| `configUrl` | the ID5 config endpoint the submodule calls; defaults to `https://prebid.id5-tech.io/v1/config` |
+| `useExternalModule` | `true` by default; `false` uses Prebid's own implementation of the ID5 User ID submodule and removes `externalModuleUrl` from the configuration |
+| `refreshOnReconfigure` | `false` by default: Prebid keeps serving a stored ID5 ID without asking the submodule again, so the new endpoints are used from the next fetch on. `true` calls `pbjs.refreshUserIds()` right after `reconfigureUserIdModule()`, so they are used on this page view |
+| `waitForConfigMs` | how long `reconfigureUserIdModule()` waits for the page to configure the submodule; `3000` by default, `0` reads the configuration once |
+
+`enabler.debug = true` turns on the enabler's console output, and `enabler.version` reports the release it comes from.
 
 # API Process Flow
 Below is an example flow diagram of how the ID5 API interacts with your CMP and other vendor tags.

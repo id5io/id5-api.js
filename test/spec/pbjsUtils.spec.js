@@ -214,6 +214,43 @@ describe('PbjsDetector', function () {
       expect(customWindow.pbjs.que).to.have.lengthOf(1);
     });
 
+    it('should detect a Prebid that takes a global name of its own after the detector', async function () {
+      const customWindow = {};
+      const detector = new PbjsDetector(customWindow);
+      const promise = detector.getPbjs();
+
+      // Prebid.js loading under a name of its own: it keeps the _pbjsGlobals it finds on the page
+      customWindow.myPbjs = {que: [], version: '8.0.0'};
+      customWindow._pbjsGlobals = customWindow._pbjsGlobals || [];
+      customWindow._pbjsGlobals.push('myPbjs');
+      customWindow.myPbjs.que.forEach(command => command());
+
+      const pbjs = await promise;
+      expect(pbjs).to.equal(customWindow.myPbjs);
+      expect(pbjs.version).to.equal('8.0.0');
+    });
+
+    it('should prefer a Prebid of its own name over the global the detector left behind', function () {
+      const customWindow = {};
+      new PbjsDetector(customWindow).getPbjs();
+      customWindow.myPbjs = {que: [], version: '8.0.0'};
+      customWindow._pbjsGlobals.push('myPbjs');
+
+      expect(getPbjsGlobal(customWindow)).to.equal(customWindow.myPbjs);
+    });
+
+    it('should keep the default global once Prebid has taken it over', function () {
+      const customWindow = {};
+      const detector = new PbjsDetector(customWindow);
+      detector.getPbjs();
+      customWindow.pbjs.version = '8.0.0';
+      customWindow.pbjs.que.forEach(command => command());
+      customWindow.myPbjs = {que: [], version: '7.0.0'};
+      customWindow._pbjsGlobals.push('myPbjs');
+
+      expect(getPbjsGlobal(customWindow)).to.equal(customWindow.pbjs);
+    });
+
     it('should use existing custom pbjs.que if already present', async function () {
       const existingCallback = () => {};
       const customWindow = {

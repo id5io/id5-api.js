@@ -206,7 +206,8 @@ describe('Id5InstanceLite', function () {
         gamTargetingPrefix: undefined,
         exposeTargeting: false,
         idLookupMode: false,
-        apiBaseUrl: ''
+        apiBaseUrl: '',
+        enablerVersion: undefined
       });
       expect(registerObj.fetchIdData).to.deep.eq({
         partnerId: TEST_ID5_PARTNER_ID,

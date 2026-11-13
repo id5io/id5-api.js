@@ -9,6 +9,7 @@
   "files": [
     "generated",
     "lib",
+    "build/dist",
     "universal-id-flow.png"
   ],
   "scripts": {

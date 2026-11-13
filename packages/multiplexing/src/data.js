@@ -141,6 +141,7 @@
  * @property {TrueLink} [trueLink]
  * @property {boolean} [idLookupMode] - When true, the API will work in ID lookup mode (no new ID will be generated).
  * @property {string} [apiBaseUrl] - Instance-level base URL the identity fetch switches to when id5-sync.com does not answer. When empty, one of the built-in alternate api bases is used.
+ * @property {string} [enablerVersion] - Release of the ID5 Prebid enabler that configured the integration
  */
 
 /**
