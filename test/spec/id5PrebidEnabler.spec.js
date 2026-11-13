@@ -51,8 +51,8 @@ describe('ID5 Prebid enabler', function () {
   });
 
   it('is globally available', function () {
-    expect(window.id5Prebid.enabler).to.be.an('object');
-    expect(window.id5Prebid.enabler.version).to.eq(version);
+    expect(window.id5PrebidEnabler).to.be.an('object');
+    expect(window.id5PrebidEnabler.version).to.eq(version);
   });
 
   it('runs a queued command straight away', function () {
@@ -451,12 +451,12 @@ describe('ID5 Prebid enabler', function () {
 
     it('runs the commands queued on the install stub', function () {
       const command = sinon.spy();
-      scope.id5Prebid = {enabler: {que: [command]}};
+      scope.id5PrebidEnabler = {que: [command]};
 
       const installed = installEnabler(scope);
 
       expect(installed).to.be.instanceOf(Id5PrebidEnabler);
-      expect(scope.id5Prebid.enabler).to.equal(installed);
+      expect(scope.id5PrebidEnabler).to.equal(installed);
       expect(command).to.have.been.calledWith(installed);
     });
 
@@ -466,22 +466,22 @@ describe('ID5 Prebid enabler', function () {
       const second = installEnabler(scope);
 
       expect(second).to.equal(first);
-      expect(scope.id5Prebid.enabler).to.equal(first);
+      expect(scope.id5PrebidEnabler).to.equal(first);
     });
 
     it('keeps a newer enabler already on the page', function () {
       const newer = {version: '99.0.0', que: {push: () => {}}};
-      scope.id5Prebid = {enabler: newer};
+      scope.id5PrebidEnabler = newer;
 
       expect(installEnabler(scope)).to.equal(newer);
-      expect(scope.id5Prebid.enabler).to.equal(newer);
+      expect(scope.id5PrebidEnabler).to.equal(newer);
     });
 
     it('takes over the settings of an older release it replaces', async function () {
       const older = new Id5PrebidEnabler(scope);
       older.version = '0.0.1';
       older.setup({externalModuleUrl: PRIMARY_MODULE_URL, configUrl: 'https://config.publisher.com/v1/config'});
-      scope.id5Prebid = {enabler: older};
+      scope.id5PrebidEnabler = older;
 
       const installed = installEnabler(scope);
 
@@ -497,9 +497,14 @@ describe('ID5 Prebid enabler', function () {
 
       installEnabler(scope);
 
-      expect(scope.id5Prebid.version).to.eq('1.0.0');
-      expect(scope.id5Prebid.integration).to.exist;
-      expect(scope.id5Prebid.enabler).to.be.instanceOf(Id5PrebidEnabler);
+      expect(scope.id5Prebid).to.deep.equal({version: '1.0.0', integration: scope.id5Prebid.integration});
+      expect(scope.id5PrebidEnabler).to.be.instanceOf(Id5PrebidEnabler);
+    });
+
+    it('leaves the ID5 global of the external module to the module', function () {
+      installEnabler(scope);
+
+      expect(scope.id5Prebid).to.be.undefined;
     });
   });
 

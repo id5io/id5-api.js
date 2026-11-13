@@ -2,9 +2,8 @@
  * id5-prebid-enabler.js — configures the ID5 User ID submodule in Prebid.js.
  *
  *   <script>
- *     window.id5Prebid = window.id5Prebid || {};
- *     window.id5Prebid.enabler = window.id5Prebid.enabler || {que: []};
- *     window.id5Prebid.enabler.que.push(enabler => enabler.configureUserIdModule({partner: 173}));
+ *     window.id5PrebidEnabler = window.id5PrebidEnabler || {que: []};
+ *     window.id5PrebidEnabler.que.push(enabler => enabler.configureUserIdModule({partner: 173}));
  *   </script>
  *   <script async src="https://<cdn>/id5-prebid-enabler.js"></script>
  *
@@ -18,8 +17,7 @@ import {version as currentVersion} from '../generated/version.js';
 import {semanticVersionCompare} from '@id5io/multiplexing/utils';
 
 const SOURCE = 'id5-prebid-enabler';
-const GLOBAL_NAME = 'id5Prebid';
-const ENABLER_KEY = 'enabler';
+const GLOBAL_NAME = 'id5PrebidEnabler';
 const SUBMODULE_NAME = 'id5Id';
 const MODULE_URL = 'https://cdn.delivrfy.cloud/api/1.0/id5PrebidModule.js';
 const CONFIG_URL = 'https://prebid.id5-tech.io/v1/config';
@@ -425,17 +423,15 @@ function currentUserSync(pbjs) {
 }
 
 /**
- * Installs the enabler under its own key of the ID5 global; `integration` and `version` on that
- * global belong to the external module, and the enabler carries its own version under its key.
- * An enabler already installed is replaced only by a newer release, which takes over its settings.
- * The commands waiting on the `{que: []}` stub of the install snippet are run on the way.
+ * Installs the enabler on `window.id5PrebidEnabler`, the one global it owns. An enabler already
+ * installed is replaced only by a newer release, which takes over its settings. The commands
+ * waiting on the `{que: []}` stub of the install snippet are run on the way.
  *
  * @param {Window} scope
  * @returns {Id5PrebidEnabler} the enabler the page is left with
  */
 export function installEnabler(scope) {
-  const global = scope[GLOBAL_NAME] = scope[GLOBAL_NAME] || {};
-  const existing = global[ENABLER_KEY];
+  const existing = scope[GLOBAL_NAME];
   if (typeof existing?.version === 'string' && semanticVersionCompare(existing.version, currentVersion) >= 0) {
     return existing;
   }
@@ -443,7 +439,7 @@ export function installEnabler(scope) {
   if (existing?._settings) {
     enabler.setup(existing._settings);
   }
-  global[ENABLER_KEY] = enabler;
+  scope[GLOBAL_NAME] = enabler;
   if (isArray(existing?.que)) {
     existing.que.forEach(command => enabler._run(command));
   }

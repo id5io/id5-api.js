@@ -68,7 +68,7 @@ describe('The Prebid enabler', function () {
       expect(entry.params.externalModuleUrl).to.eq(MODULE_URL);
       expect(entry.params.configUrl).to.eq(CONFIG_URL);
       expect(entry.storage).to.eql({type: 'html5', name: 'id5id', expires: 90});
-      expect(await page.evaluate(() => window.id5Prebid.enabler.version)).to.eq(version);
+      expect(await page.evaluate(() => window.id5PrebidEnabler.version)).to.eq(version);
     });
 
     it('configures the submodule when Prebid is already up', async () => {

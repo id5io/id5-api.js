@@ -940,9 +940,8 @@ Commands pushed on `que` run as soon as the enabler is on the page, so the scrip
 
 ```html
 <script>
-  window.id5Prebid = window.id5Prebid || {};
-  window.id5Prebid.enabler = window.id5Prebid.enabler || { que: [] };
-  window.id5Prebid.enabler.que.push(enabler => enabler.configureUserIdModule({ partner: 173 }));
+  window.id5PrebidEnabler = window.id5PrebidEnabler || { que: [] };
+  window.id5PrebidEnabler.que.push(enabler => enabler.configureUserIdModule({ partner: 173 }));
 </script>
 <script async src="https://cdn.delivrfy.cloud/api/1.0/id5-prebid-enabler.js"></script>
 ```
