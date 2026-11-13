@@ -118,7 +118,7 @@ export class UidFetcher {
         const body = JSON.stringify({requests: requests, signature: signature});
         this._log.info('Fetching ID5 ID from:', endpoints.fetch, requests);
         let usedEndpoints = endpoints;
-        return this.#post(endpoints.fetch, body)
+        return this.#post(endpoints.fetch, body, {fallback: endpoints.isFallback, retry: false})
           .catch(failure => {
             // No HTTP response (status 0): retry once on the other endpoints
             const retry = failure.noResponse ? extensionsProvider.retryEndpoints(endpoints) : undefined;
@@ -139,11 +139,11 @@ export class UidFetcher {
   /**
    * @param {string} url
    * @param {string} body
-   * @param {Object} [metricTags]
+   * @param {Object} metricTags - tags added to the fetch call timer
    * @return {Promise<RefreshedResponse>} rejected with {error, noResponse}, where noResponse is true when the call
    * got no HTTP response (status 0)
    */
-  #post(url, body, metricTags = {}) {
+  #post(url, body, metricTags) {
     const log = this._log;
     const metrics = this._metrics;
     const refresher = this;
