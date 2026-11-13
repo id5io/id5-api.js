@@ -7,7 +7,7 @@ import {
   GppConsentData, GppTcfData
 } from '../../src/consent.js';
 import {NO_OP_LOGGER} from '../../src/logger.js';
-import {MeterRegistry} from '@id5io/diagnostics';
+import {MeterRegistry, ObjectRegistry} from '@id5io/diagnostics';
 import {CachedResponse} from '../../src/store.js';
 import {DEFAULT_ENDPOINTS, Id5Endpoints} from '../../src/endpoints.js';
 
@@ -183,7 +183,7 @@ describe('UidFetcher', function () {
   beforeEach(function () {
     let log = _DEBUG ? console : NO_OP_LOGGER;
     extensions = sinon.createStubInstance(Extensions);
-    metrics = new MeterRegistry();
+    metrics = new MeterRegistry(new ObjectRegistry());
     fetcher = new UidFetcher(metrics, log, extensions);
     extensions.gather.resolves({extensions: DEFAULT_EXTENSIONS, endpoints: DEFAULT_ENDPOINTS, apiBaseStored: true});
     dateTimeStub = sinon.stub(Date, 'now').returns(CURRENT_TIME);
@@ -621,6 +621,60 @@ describe('UidFetcher', function () {
 
       expect(server.requests.map(r => r.url)).to.be.eql([FALLBACK.fetch]);
       expect(extensions.confirmApiBase).to.be.calledOnceWith(FALLBACK, gathered);
+    });
+  });
+
+  describe('fetch call timer', function () {
+    const fetchData = DEFAULT_FETCH_DATA;
+    const FALLBACK = new Id5Endpoints('https://fetch.alt-1.id5.test');
+
+    beforeEach(function () {
+      server = sinon.fakeServer.create();
+      server.respondImmediately = true;
+    });
+
+    afterEach(function () {
+      server.restore();
+    });
+
+    function respondOk(url) {
+      server.respondWith('POST', url, sinonFetchResponder(request => prepareJsonResponse(FETCH_RESPONSE_OBJ, request.requestBody)));
+    }
+
+    function recordedTags() {
+      return metrics.getAllMeasurements()
+        .filter(measurement => measurement.name.endsWith('fetch.call.time'))
+        .map(measurement => measurement.tags);
+    }
+
+    it('should tag the call to the default host', async () => {
+      respondOk('https://id5-sync.com/gm/v3');
+
+      await fetcher.fetchId([fetchData], CONSENT_DATA_GDPR_ALLOWED, true);
+
+      expect(recordedTags()).to.be.eql([{status: 'success', fallback: false, retry: false}]);
+    });
+
+    it('should tag the call to a fallback api base', async () => {
+      extensions.gather.resolves({extensions: DEFAULT_EXTENSIONS, endpoints: FALLBACK, apiBaseStored: true});
+      respondOk(FALLBACK.fetch);
+
+      await fetcher.fetchId([fetchData], CONSENT_DATA_GDPR_ALLOWED, true);
+
+      expect(recordedTags()).to.be.eql([{status: 'success', fallback: true, retry: false}]);
+    });
+
+    it('should tag the retried call', async () => {
+      extensions.retryEndpoints.withArgs(DEFAULT_ENDPOINTS).returns(FALLBACK);
+      server.respondWith('POST', 'https://id5-sync.com/gm/v3', request => request.error());
+      respondOk(FALLBACK.fetch);
+
+      await fetcher.fetchId([fetchData], CONSENT_DATA_GDPR_ALLOWED, true);
+
+      expect(recordedTags()).to.have.deep.members([
+        {status: 'fail', fallback: false, retry: false},
+        {status: 'success', fallback: true, retry: true}
+      ]);
     });
   });
 

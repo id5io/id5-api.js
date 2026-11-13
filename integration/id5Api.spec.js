@@ -725,7 +725,9 @@ describe('The ID5 API', function () {
           });
           verifyContainsMeasurementWithTags(onlyRequest.measurements, 'id5.api.fetch.call.time', 'TIMER', {
             ...commonTags,
-            status: 'success'
+            status: 'success',
+            fallback: false,
+            retry: false
           });
           verifyContainsMeasurementWithTags(onlyRequest.measurements, 'id5.api.userid.provisioning.delay', 'TIMER', {
             ...commonTags,
@@ -792,7 +794,9 @@ describe('The ID5 API', function () {
           });
           verifyContainsMeasurementWithTags(onlyRequest.measurements, 'id5.api.fetch.call.time', 'TIMER', {
             ...commonTags,
-            status: 'success'
+            status: 'success',
+            fallback: false,
+            retry: false
           });
           verifyContainsMeasurementWithTags(onlyRequest.measurements, 'id5.api.userid.provisioning.delay', 'TIMER', {
             ...commonTags,
