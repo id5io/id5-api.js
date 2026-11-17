@@ -272,7 +272,7 @@ describe('The ID5 API', function () {
         .thenJson(200, {bounce: {setCookie: false}}, MOCK_CORS_HEADERS);
       customDiag = await server.forPost(`${CUSTOM_API_BASE}/diag/measurements`)
         .thenJson(202, '', MOCK_CORS_ALLOW_ALL_HEADERS);
-      defaultDiag = await server.forPost('https://diagnostics.id5-sync.com/measurements')
+      defaultDiag = await server.forPost('https://telemetry.id5-tech.io/v1/measurements')
         .thenJson(202, '', MOCK_CORS_ALLOW_ALL_HEADERS);
       defaultFetch = await server.forPost(FETCH_ENDPOINT)
         .thenCallback(multiFetchResponseWithCorsAllowed(MOCK_FETCH_RESPONSE));
@@ -681,7 +681,7 @@ describe('The ID5 API', function () {
         .thenCallback(multiFetchResponseWithCorsAllowed(MOCK_FETCH_RESPONSE));
       await server.forGet('https://dummyimage.com/600x200')
         .thenReply(200, '');
-      const diagnosticsEndpoint = await server.forPost('https://diagnostics.id5-sync.com/measurements')
+      const diagnosticsEndpoint = await server.forPost('https://telemetry.id5-tech.io/v1/measurements')
         .thenJson(202, '', MOCK_CORS_ALLOW_ALL_HEADERS);
       const page = await browser.newPage();
       await page.goto('https://my-publisher-website.net');
@@ -755,7 +755,7 @@ describe('The ID5 API', function () {
         .thenCallback(multiFetchResponseWithCorsAllowed(MOCK_FETCH_RESPONSE));
       await server.forGet('https://dummyimage.com/600x200')
         .thenReply(200, '');
-      const diagnosticsEndpoint = await server.forPost('https://diagnostics.id5-sync.com/measurements')
+      const diagnosticsEndpoint = await server.forPost('https://telemetry.id5-tech.io/v1/measurements')
         .thenJson(202, '', MOCK_CORS_ALLOW_ALL_HEADERS);
       const page = await browser.newPage();
       await page.goto('https://my-publisher-website.net');
@@ -825,7 +825,7 @@ describe('The ID5 API', function () {
         .thenJson(200, { ...MOCK_LB_RESPONSE, chunks: 1 }, MOCK_CORS_HEADERS); // Set chunks: 1 to see if it's ignored
       const mockId5 = await server.forPost(FETCH_ENDPOINT)
         .thenCallback(multiFetchResponseWithCorsAllowed(MOCK_FETCH_RESPONSE));
-      const diagnosticsEndpoint = await server.forPost('https://diagnostics.id5-sync.com/measurements')
+      const diagnosticsEndpoint = await server.forPost('https://telemetry.id5-tech.io/v1/measurements')
         .thenJson(202, '', MOCK_CORS_ALLOW_ALL_HEADERS);
       // Bounce tries to set the id5 cookie; credentials are allowed, so only credentials: 'omit' keeps it out
       const bounceEndpoint = await server.forGet('https://id5-sync.com/bounce')
@@ -906,7 +906,7 @@ describe('The ID5 API', function () {
         .thenCallback(multiFetchResponseWithCorsAllowed(MOCK_FETCH_RESPONSE));
       await server.forGet('https://dummyimage.com/600x200')
         .thenCallback(jsonWithCorsAllowed(''));
-      diagnosticsEndpoint = await server.forPost('https://diagnostics.id5-sync.com/measurements')
+      diagnosticsEndpoint = await server.forPost('https://telemetry.id5-tech.io/v1/measurements')
         .thenCallback(jsonWithCorsAllowed('', 202));
       electionNotifyEndpoint = await server.forPost('https://instances.log/on-election')
         .thenCallback(jsonWithCorsAllowed('', 202));

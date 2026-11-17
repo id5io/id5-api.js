@@ -1,4 +1,4 @@
-const DEFAULT_URL = 'https://diagnostics.id5-sync.com/measurements';
+const DEFAULT_URL = 'https://telemetry.id5-tech.io/v1/measurements';
 
 export const IS_PUBLISHING_SUPPORTED = typeof Promise !== 'undefined' && typeof fetch !== 'undefined';
 

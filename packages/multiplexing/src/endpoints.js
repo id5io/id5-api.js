@@ -17,7 +17,7 @@ const DEFAULTS = {
   event: 'https://id5-sync.com/event',
   cascadeHost: 'https://id5-sync.com',
   analytics: 'https://api.id5-sync.com/analytics',
-  diagnostics: 'https://diagnostics.id5-sync.com/measurements'
+  diagnostics: 'https://telemetry.id5-tech.io/v1/measurements'
 };
 
 const DEFAULT_API_ORIGIN = new URL(DEFAULTS.fetch).origin;

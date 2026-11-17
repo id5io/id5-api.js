@@ -33,7 +33,7 @@ describe('Id5Endpoints', function () {
         expect(endpoints.fetch).to.equal('https://id5-sync.com/gm/v3');
         expect(endpoints.bounce).to.equal('https://id5-sync.com/bounce');
         expect(endpoints.event).to.equal('https://id5-sync.com/event');
-        expect(endpoints.diagnostics).to.equal('https://diagnostics.id5-sync.com/measurements');
+        expect(endpoints.diagnostics).to.equal('https://telemetry.id5-tech.io/v1/measurements');
         expect(endpoints.analytics(99, 'id5-api-js')).to.equal('https://api.id5-sync.com/analytics/99/id5-api-js');
         expect(endpoints.cascade('i', 99, 4).href).to.equal('https://id5-sync.com/i/99/4.gif');
       });
