@@ -4,7 +4,7 @@ import {version} from "../../generated/version.js";
 
 function stubConfigCall(fetchStub, partnerId, cfgResponse) {
   fetchStub.callsFake((url) => {
-    if (url.includes(`/analytics/${partnerId}/id5-api-js`)) {
+    if (url.includes(`/config/id5-api-js/${partnerId}`)) {
       return Promise.resolve({json: () => Promise.resolve(cfgResponse)});
     } else {
       return Promise.reject("404");
@@ -66,7 +66,7 @@ describe('registerEventsTracker', function () {
     // Verify config fetched
     expect(fetchStub).to.have.been.called;
     const firstCallUrl = fetchStub.firstCall.args[0];
-    expect(firstCallUrl).to.include(`/analytics/${partnerId}/id5-api-js`);
+    expect(firstCallUrl).to.include(`/config/id5-api-js/${partnerId}`);
 
     // Verify a replayed event was posted to ingest URL
     const posted = await expectEventPostFetchCall(fetchStub, ingestUrl);
