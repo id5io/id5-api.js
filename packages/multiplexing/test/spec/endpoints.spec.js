@@ -34,7 +34,7 @@ describe('Id5Endpoints', function () {
         expect(endpoints.bounce).to.equal('https://id5-sync.com/bounce');
         expect(endpoints.event).to.equal('https://id5-sync.com/event');
         expect(endpoints.diagnostics).to.equal('https://telemetry.id5-tech.io/v1/measurements');
-        expect(endpoints.analytics(99, 'id5-api-js')).to.equal('https://api.id5-sync.com/analytics/99/id5-api-js');
+        expect(endpoints.analytics(99, 'id5-api-js')).to.equal('https://analytics.id5-tech.io/v1/config/id5-api-js/99');
         expect(endpoints.cascade('i', 99, 4).href).to.equal('https://id5-sync.com/i/99/4.gif');
       });
     });
@@ -48,7 +48,7 @@ describe('Id5Endpoints', function () {
       expect(endpoints.event).to.equal('https://edge.example.com/a7q3/event');
       expect(endpoints.bounce).to.equal('https://id5-sync.com/bounce');
       expect(endpoints.diagnostics).to.equal('https://edge.example.com/a7q3/diag/measurements');
-      expect(endpoints.analytics(99, 'id5-api-js')).to.equal('https://edge.example.com/a7q3/analytics/99/id5-api-js');
+      expect(endpoints.analytics(99, 'id5-api-js')).to.equal('https://edge.example.com/a7q3/analytics/id5-api-js/99');
       expect(endpoints.cascade('s', 99, 4).href).to.equal('https://id5-sync.com/s/99/4.gif');
     });
   });

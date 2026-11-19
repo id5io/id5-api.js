@@ -16,7 +16,7 @@ const DEFAULTS = {
   bounce: 'https://id5-sync.com/bounce',
   event: 'https://id5-sync.com/event',
   cascadeHost: 'https://id5-sync.com',
-  analytics: 'https://api.id5-sync.com/analytics',
+  analytics: 'https://analytics.id5-tech.io/v1/config',
   diagnostics: 'https://telemetry.id5-tech.io/v1/measurements'
 };
 
@@ -54,7 +54,7 @@ export class Id5Endpoints {
    * @returns {string} analytics config URL
    */
   analytics(partnerId, source) {
-    return `${this._analytics}/${partnerId}/${source}`;
+    return `${this._analytics}/${source}/${partnerId}`;
   }
 
   /**
