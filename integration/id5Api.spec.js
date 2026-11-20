@@ -131,23 +131,24 @@ describe('The ID5 API', function () {
       const mockId5 = await server.forPost(FETCH_ENDPOINT)
         .thenCallback(multiFetchResponseWithCorsAllowed(MOCK_FETCH_RESPONSE));
 
-      await server.forGet('https://referer-page.com')
+      await server.forGet('https://referer-page.com/search')
         .thenReply(200, `
           <!doctype html>
           <html lang="en">
           <head>
               <title>ID5 API Integration Referer</title>
-              <meta http-equiv="refresh" content="0; URL=https://my-publisher-website.net" />
+              <meta name="referrer" content="unsafe-url" />
+              <meta http-equiv="refresh" content="0; URL=https://my-publisher-website.net/article/secret-path?token=secret-query#secret-frag" />
           </head>
           <body></body>
           </html>`);
 
       const TEST_PAGE_PATH = path.join(RESOURCES_DIR, 'integration.html');
-      await server.forGet('https://my-publisher-website.net')
+      await server.forGet('https://my-publisher-website.net/article/secret-path')
         .thenFromFile(200, TEST_PAGE_PATH);
 
       const page = await browser.newPage();
-      await page.goto('https://referer-page.com');
+      await page.goto('https://referer-page.com/search?q=secret-ref');
       await page.waitForSelector('p#done');
 
       const id5FetchRequests = await mockId5.getSeenRequests();
@@ -155,6 +156,8 @@ describe('The ID5 API', function () {
       const lbRequests = await mockLbEndpoint.getSeenRequests();
       expect(lbRequests).to.have.lengthOf(1);
 
+      // no full URL (path, query, fragment) of the page or the referrer is ever sent in the request body
+      expect(await id5FetchRequests[0].body.getText()).to.not.include('secret');
       const requestBody = (await id5FetchRequests[0].body.getJson()).requests[0];
       expect(requestBody.partner).to.equal(99); // from integration.html
       expect(requestBody.v).to.equal(version);
@@ -163,10 +166,10 @@ describe('The ID5 API', function () {
       expect(requestBody.top).to.equal(1);
       expect(requestBody.localStorage).to.equal(1);
       expect(requestBody.o).to.equal('api');
-      expect(requestBody.u).to.equal('https://my-publisher-website.net/');
-      expect(requestBody.tml).to.equal('https://my-publisher-website.net/');
-      expect(requestBody.cu).to.equal('https://www.id5.io/');
-      expect(requestBody.ref).to.equal('https://referer-page.com/');
+      expect(requestBody.u).to.equal('https://my-publisher-website.net');
+      expect(requestBody.tml).to.equal('https://my-publisher-website.net');
+      expect(requestBody).to.not.have.property('cu');
+      expect(requestBody.ref).to.equal('https://referer-page.com');
       expect(requestBody.segments).to.deep.equal([{destination: '22', ids: ['abc']}]);
       expect(requestBody.ua).to.be.a('string');
       expect(requestBody.extensions.lb).to.equal('LB_DATA'); // from MOCK_LB_RESPONSE
@@ -495,7 +498,7 @@ describe('The ID5 API', function () {
       const requestBody = (await id5SyncRequests[0].body.getJson()).requests[0];
       expect(requestBody.top).to.equal(1);
       expect(requestBody.localStorage).to.equal(1);
-      expect(requestBody.tml).to.equal('https://my-iframe-website.net/');
+      expect(requestBody.tml).to.equal('https://my-iframe-website.net');
 
       // Check there is id5 stuff in the iframe local storage but not in mainFrame's storage
       const id5idObjectFromIFrame = JSON.parse(await frame.evaluate(() => localStorage.getItem('id5id_v2_4167500408366467'))) // key depends on config params, id5id_v2_<cacheId> (see Follower#getCacheId)
@@ -564,9 +567,9 @@ describe('The ID5 API', function () {
         expect(requestBodyStandard.id5cdn).to.equal(true);
         expect(requestBodyStandard.top).to.equal(1);
         expect(requestBodyStandard.localStorage).to.equal(1);
-        expect(requestBodyStandard.u).to.equal('https://my-publisher-website.net/');
-        expect(requestBodyStandard.tml).to.equal('https://my-publisher-website.net/');
-        expect(requestBodyStandard.cu).to.equal('https://www.id5.io/');
+        expect(requestBodyStandard.u).to.equal('https://my-publisher-website.net');
+        expect(requestBodyStandard.tml).to.equal('https://my-publisher-website.net');
+        expect(requestBodyStandard).to.not.have.property('cu');
         expect(requestBodyStandard.ua).to.be.a('string');
         expect(requestBodyStandard.extensions.lb).to.equal('LB_DATA'); // from MOCK_LB_RESPONSE
         expect(requestBodyStandard.extensions.lbCDN).to.equal('%%LB_CDN%%'); // lbCDN substitution macro
@@ -584,9 +587,9 @@ describe('The ID5 API', function () {
         expect(requestBodyLite.id5cdn).to.equal(true);
         expect(requestBodyLite.top).to.equal(1);
         expect(requestBodyLite.localStorage).to.equal(1);
-        expect(requestBodyLite.u).to.equal('https://my-publisher-website.net/');
-        expect(requestBodyLite.tml).to.equal('https://my-publisher-website.net/');
-        expect(requestBodyLite.cu).to.equal('https://www.id5.io/');
+        expect(requestBodyLite.u).to.equal('https://my-publisher-website.net');
+        expect(requestBodyLite.tml).to.equal('https://my-publisher-website.net');
+        expect(requestBodyLite).to.not.have.property('cu');
         expect(requestBodyLite.ua).to.be.a('string');
         expect(requestBodyLite.extensions.lb).to.equal('LB_DATA'); // from MOCK_LB_RESPONSE
         expect(requestBodyLite.extensions.lbCDN).to.equal('%%LB_CDN%%'); // lbCDN substitution macro
@@ -701,7 +704,7 @@ describe('The ID5 API', function () {
             version: version,
             partner: '99',
             source: 'api',
-            tml: 'https://my-publisher-website.net/',
+            tml: 'https://my-publisher-website.net',
             provider: 'default'
           };
           verifyContainsMeasurementWithTags(onlyRequest.measurements, 'id5.api.instance.load.delay', 'TIMER', commonTags);
@@ -775,7 +778,7 @@ describe('The ID5 API', function () {
             version: version,
             partner: '99',
             source: 'api',
-            tml: 'https://my-publisher-website.net/',
+            tml: 'https://my-publisher-website.net',
             provider: 'default'
           };
           verifyContainsMeasurementWithTags(onlyRequest.measurements, 'id5.api.instance.load.delay', 'TIMER', commonTags);
@@ -1220,7 +1223,7 @@ describe('The ID5 API', function () {
     let measurementsByName = verifyContainsMeasurement(measurements, name, type);
     let tags = measurementsByName.map(measurement => measurement.tags);
     expect(tags).to.deep.contain({
-      version: version, partner: '99', source: 'api', tml: 'https://my-publisher-website.net/',
+      version: version, partner: '99', source: 'api', tml: 'https://my-publisher-website.net',
       provider: 'default', idLookupMode: 'false', ...expectedTags
     });
 

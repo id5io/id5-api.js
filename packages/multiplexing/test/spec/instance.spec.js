@@ -262,9 +262,10 @@ describe('ID5 instance', function () {
       sourceVersion: '1.3.5',
       sourceConfiguration: {some: 'property'},
       fetchIdData: {partnerId: 99},
-      href: window.location.href,
+      windowId: instance.properties.windowId,
       domain: window.location.hostname
     });
+    expect(instance.properties.windowId).to.be.a('string').and.not.empty;
 
     // when
     instance.init();
@@ -287,9 +288,10 @@ describe('ID5 instance', function () {
       sourceVersion: '1.3.5',
       sourceConfiguration: {some: 'property'},
       fetchIdData: {partnerId: 99},
-      href: window.location.href,
+      windowId: instance.properties.windowId,
       domain: window.location.hostname
     });
+    expect(instance.properties.windowId).to.be.a('string').and.not.empty;
 
     // when
     instance.init();
@@ -350,7 +352,6 @@ describe('ID5 instance', function () {
         sourceVersion: '1.3.5',
         sourceConfiguration: {some: 'property'},
         fetchIdData: {partnerId: 99},
-        href: window.location.href,
         domain: window.location.hostname
       };
 
@@ -363,6 +364,7 @@ describe('ID5 instance', function () {
       const id = instance.properties.id;
       expect(instance.properties).is.eql({
         id,
+        windowId: instance.properties.windowId,
         ...initialConfig,
         ...expectedOverride
       });

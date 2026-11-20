@@ -78,6 +78,36 @@ describe('ID5 Prebid module', function () {
     expect(registerObj.fetchIdData.enablerFallback).to.eq('dns');
   });
 
+  it('should pass only origins from prebid refererInfo to fetch data', async () => {
+    window.id5Prebid.integration.fetchId5Id({}, {
+      partner: 1234
+    }, {
+      reachedTop: true,
+      isAmp: false,
+      numIframes: 1,
+      stack: ['https://top.com/article?secret=1#frag', 'https://frame.com/secret-frame'],
+      topmostLocation: 'https://top.com/article?secret=1#frag',
+      location: 'https://top.com/article?secret=1#frag',
+      canonicalUrl: 'https://top.com/secret-canonical',
+      page: 'https://top.com/secret-canonical',
+      domain: 'top.com',
+      ref: 'https://referrer.com/search?q=secret',
+      legacy: {referer: 'https://top.com/article?secret=1'}
+    });
+
+    await instanceStub.instanceRegistered();
+
+    const registerObj = instanceStub.register.firstCall.firstArg;
+    expect(registerObj.fetchIdData.refererInfo).to.eql({
+      topmostLocation: 'https://top.com',
+      ref: 'https://referrer.com',
+      reachedTop: true,
+      numIframes: 1,
+      stack: ['https://top.com', 'https://frame.com']
+    });
+    expect(JSON.stringify(registerObj)).to.not.include('secret');
+  });
+
   it('should pass provider from prebid config to fetch data', async () => {
     window.id5Prebid.integration.fetchId5Id({}, {
       partner: 1234,

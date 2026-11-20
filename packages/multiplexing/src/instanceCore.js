@@ -86,7 +86,10 @@ export class Properties {
    * @type {FetchIdData} instance data required call fetch on its behalf
    */
   fetchIdData;
-  href;
+  /**
+   * @type {string|undefined} random identifier of the window the instance lives in (shared by all instances in the same window)
+   */
+  windowId;
   domain;
   /**
    *@type {boolean} indicates if instance operates in singleton mode or not
@@ -113,8 +116,26 @@ export class Properties {
     this.source = source;
     this.sourceVersion = sourceVersion;
     this.sourceConfiguration = sourceConfiguration;
-    this.href = location?.href;
     this.domain = location?.hostname;
+  }
+}
+
+const WINDOW_ID_KEY = Symbol.for('id5.multiplexing.windowId');
+
+/**
+ * Returns a random identifier of the given window, generated once and shared by all instances living in it.
+ * Used instead of the window URL to tell windows apart, so that no URL needs to be exchanged between instances.
+ * @param {Window} wnd
+ * @return {string|undefined}
+ */
+function getWindowId(wnd) {
+  try {
+    if (!wnd[WINDOW_ID_KEY]) {
+      Object.defineProperty(wnd, WINDOW_ID_KEY, {value: Utils.generateId(), enumerable: false});
+    }
+    return wnd[WINDOW_ID_KEY];
+  } catch (e) {
+    return undefined;
   }
 }
 
@@ -238,7 +259,7 @@ export class MultiplexingInstance {
     this.properties = Object.assign({
       id: id,
       version: version,
-      href: wnd.location?.href,
+      windowId: getWindowId(wnd),
       domain: wnd.location?.hostname
     }, configuration);
     this.role = Role.UNKNOWN;

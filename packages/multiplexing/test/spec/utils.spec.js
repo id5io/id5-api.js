@@ -236,3 +236,23 @@ describe('isEmpty', function () {
   });
 });
 
+
+describe('toOrigin', function () {
+  [
+    ['https://example.com/path/page.html?user=secret#frag', 'https://example.com'],
+    ['http://sub.example.com:8080/a?b=c', 'http://sub.example.com:8080'],
+    ['https://example.com:443/a', 'https://example.com'],
+    ['https://example.com', 'https://example.com'],
+    ['about:blank', null],
+    ['data:text/html,<p>hi</p>', null],
+    ['not a url', null],
+    ['', null],
+    [null, null],
+    [undefined, null],
+    [123, null]
+  ].forEach(([input, expected]) => {
+    it(`should reduce ${JSON.stringify(input)} to ${expected}`, function () {
+      expect(utils.toOrigin(input)).to.eql(expected);
+    });
+  });
+});

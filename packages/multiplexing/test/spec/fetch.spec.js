@@ -58,13 +58,14 @@ const DEFAULT_FETCH_DATA = {
   source: 'api',
   sourceVersion: '1.2.3',
   partnerId: 1234,
+  // older integrations may still provide full URLs - only origins must be sent in the request body
   refererInfo: {
-    ref: 'http://example.com/page.html',
-    topmostLocation: 'http://example.com/page.html',
+    ref: 'http://example.com/page.html?user=secret#frag',
+    topmostLocation: 'http://example.com/page.html?user=secret#frag',
     reachedTop: true,
     numIframes: 2,
     stack: [
-      'http://example.com/page.html',
+      'http://example.com/page.html?user=secret#frag',
       'http://example.com/iframe1.html',
       'http://example.com/iframe2.html'
     ],
@@ -682,6 +683,69 @@ describe('UidFetcher', function () {
     });
   });
 
+  describe('page URL privacy', function () {
+    beforeEach(function () {
+      server = sinon.fakeServer.create();
+      server.respondImmediately = true;
+      server.respondWith(sinonFetchResponder(request =>
+        prepareJsonResponse(FETCH_RESPONSE_OBJ, request.requestBody)
+      ));
+    });
+
+    afterEach(function () {
+      server.restore();
+    });
+
+    it('should never send full page URLs nor canonical URL', async () => {
+      // given
+      const fetchData = {
+        ...DEFAULT_FETCH_DATA,
+        integrationId: crypto.randomUUID(),
+        refererInfo: {
+          ref: 'https://referrer.com/search?q=secret-ref',
+          topmostLocation: 'https://top.com/article/secret-path?token=secret-query#secret-frag',
+          reachedTop: true,
+          numIframes: 1,
+          stack: [
+            'https://top.com/article/secret-path?token=secret-query#secret-frag',
+            'https://frame.com/secret-frame'
+          ],
+          canonicalUrl: 'https://top.com/secret-canonical'
+        }
+      };
+
+      // when
+      await fetcher.fetchId([fetchData], CONSENT_DATA_GDPR_ALLOWED, true);
+
+      // then
+      const body = server.requests[0].requestBody;
+      expect(body).to.not.include('secret');
+      const request = JSON.parse(body).requests[0];
+      expect(request.tml).to.eq('https://top.com');
+      expect(request.u).to.eq('https://top.com');
+      expect(request.ref).to.eq('https://referrer.com');
+      expect(request).to.not.have.property('cu');
+    });
+
+    it('should fall back to current window origin when stack is not available', async () => {
+      // given
+      const fetchData = {
+        ...DEFAULT_FETCH_DATA,
+        integrationId: crypto.randomUUID(),
+        refererInfo: undefined
+      };
+
+      // when
+      await fetcher.fetchId([fetchData], CONSENT_DATA_GDPR_ALLOWED, true);
+
+      // then
+      const request = JSON.parse(server.requests[0].requestBody).requests[0];
+      expect(request.u).to.eq(window.location.origin);
+      expect(request.tml).to.be.null;
+      expect(request.ref).to.be.null;
+    });
+  });
+
   describe('should handle fetch refresh error', function () {
     const fetchData = DEFAULT_FETCH_DATA;
 
@@ -785,11 +849,11 @@ function expectedRequestFor(fetchIdData, consentData, extensions, other = undefi
     sourceVersion: fetchIdData.sourceVersion,
     partner: fetchIdData.partnerId,
     provided_options: {},
-    cu: fetchIdData.refererInfo.canonicalUrl,
-    ref: fetchIdData.refererInfo.ref,
-    tml: fetchIdData.refererInfo.topmostLocation,
+    // full URLs provided in refererInfo are reduced to origins
+    ref: 'http://example.com',
+    tml: 'http://example.com',
     top: fetchIdData.refererInfo.reachedTop ? 1 : 0,
-    u: fetchIdData.refererInfo.stack[0],
+    u: 'http://example.com',
     ua: window.navigator.userAgent,
     true_link: fetchIdData.trueLink,
     ...(fetchIdData.idLookupMode === true ? {idLookupMode: true} : {}),

@@ -26,6 +26,7 @@ export class MeasurementsPublisher {
       measurements.forEach(measurement => stringifyTags(measurement.tags));
       return fetch(this.url, {
         method: 'POST',
+        referrerPolicy: 'origin',
         headers: {
           'Content-Type': 'text/plain'
         },

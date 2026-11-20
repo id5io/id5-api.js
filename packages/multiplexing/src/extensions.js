@@ -117,7 +117,7 @@ export class Extensions {
    */
   #submitExtensionCall(url, extensionType, fetchOptions = undefined) {
     let extensionsCallTimeMeasurement = startTimeMeasurement();
-    return fetch(url, fetchOptions)
+    return fetch(url, {...fetchOptions, referrerPolicy: 'origin'})
       .then(response => {
         if (response.ok) {
           extensionsCallTimeMeasurement.record(extensionsCallTimer(this._metrics, extensionType, true));
@@ -146,7 +146,7 @@ export class Extensions {
       let extensionsCallTimeMeasurement = startTimeMeasurement();
       return Promise.all(Array.from({length: chunksType.length}, (_, i) => {
         const chunkUrl = Extensions.getChunkUrl(i, chunksType.urlVersion);
-        return fetch(chunkUrl).then(r => {
+        return fetch(chunkUrl, {referrerPolicy: 'origin'}).then(r => {
           if (!r.ok) {
             throw new Error(`The call to get ${chunksType.name} was not ok, status: ${r.status}, statusText: ${r.statusText}`);
           } else {
@@ -252,7 +252,7 @@ export class Extensions {
     const lookupMode = this.#lookupModeEnabledOnAnyRequest(fetchRequestDataList);
     const url = DEFAULT_ENDPOINTS.bounce;
     let timeMeasurement = startTimeMeasurement();
-    return fetch(url, {credentials: lookupMode ? 'omit' : 'include'})
+    return fetch(url, {credentials: lookupMode ? 'omit' : 'include', referrerPolicy: 'origin'})
       .then(response => {
         timeMeasurement.record(extensionsCallTimer(this._metrics, 'bounce', response.ok));
         return response.ok && !lookupMode ? response.json().catch(() => ({})) : {};
