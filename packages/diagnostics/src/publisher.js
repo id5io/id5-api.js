@@ -30,6 +30,7 @@ export class MeasurementsPublisher {
           'Content-Type': 'text/plain'
         },
         mode: 'no-cors',
+        keepalive: true,
         body: JSON.stringify({
           metadata: {
             ...this._metadata,
