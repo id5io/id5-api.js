@@ -58,7 +58,8 @@ module.exports = function (config) {
                 base: 'ChromeHeadless',
                 // We must disable the Chrome sandbox when running Chrome inside Docker (Chrome's sandbox needs
                 // more permissions than Docker allows by default)
-                flags: ['--no-sandbox']
+                // unit tests must not reach real servers: every host but localhost fails to resolve
+                flags: ['--no-sandbox', '--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE localhost']
             }
         },
 
