@@ -125,6 +125,7 @@
  * @property {RefererInfo} refererInfo
  * @property {boolean} isUsingCdn
  * @property {string} [scriptSrc] - URL the ID5 script was loaded from (document.currentScript.src)
+ * @property {string} [scriptFallback] - How the ID5 script address was found when the page fell back from the primary host
  * @property {number} att - Indication of whether the event came from an Apple ATT event (value of 1 is yes)
  * @property {Object} [uaHints] - user agent high entropy values
  * @property {AbTestConfig} [abTesting]
@@ -142,6 +143,8 @@
  * @property {boolean} [idLookupMode] - When true, the API will work in ID lookup mode (no new ID will be generated).
  * @property {string} [apiBaseUrl] - Instance-level base URL the identity fetch switches to when id5-sync.com does not answer. When empty, one of the built-in alternate api bases is used.
  * @property {string} [enablerVersion] - Release of the ID5 Prebid enabler that configured the integration
+ * @property {string} [enablerSrc] - URL the ID5 Prebid enabler was loaded from
+ * @property {string} [enablerFallback] - How the ID5 Prebid enabler address was found when the page fell back from the primary host
  */
 
 /**

@@ -68,7 +68,20 @@ describe('The Prebid enabler', function () {
       expect(entry.params.externalModuleUrl).to.eq(MODULE_URL);
       expect(entry.params.configUrl).to.eq(CONFIG_URL);
       expect(entry.storage).to.eql({type: 'html5', name: 'id5id', expires: 90});
+      expect(entry.params.enablerSrc).to.eq(ENABLER_URL);
+      expect(entry.params).to.not.have.property('enablerFallback');
       expect(await page.evaluate(() => window.id5PrebidEnabler.version)).to.eq(version);
+    });
+
+    it('reports the address the loader found for it', async () => {
+      const page = await openPage('configure-fallback.html');
+
+      expect(await page.evaluate(async () => window.configured)).to.be.true;
+
+      const userSync = await page.evaluate(() => window.pbjs.getConfig('userSync'));
+      const entry = id5Entry(userSync);
+      expect(entry.params.enablerSrc).to.eq(ENABLER_URL);
+      expect(entry.params.enablerFallback).to.eq('dns');
     });
 
     it('configures the submodule when Prebid is already up', async () => {

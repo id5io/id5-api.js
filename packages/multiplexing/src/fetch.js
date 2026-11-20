@@ -219,6 +219,7 @@ export class UidFetcher {
       'nbPage': nbValue,
       'id5cdn': fetchIdData.isUsingCdn,
       'scriptSrc': fetchIdData.scriptSrc,
+      'scriptFallback': fetchIdData.scriptFallback,
       'ua': window.navigator.userAgent,
       'att': fetchIdData.att
     };
@@ -259,6 +260,8 @@ export class UidFetcher {
       partnerUserId: 'puid',
       provider: 'provider',
       enablerVersion: 'enablerVersion',
+      enablerSrc: 'enablerSrc',
+      enablerFallback: 'enablerFallback',
       segments: 'segments',
       trueLink: 'true_link'
     }).forEach(([optKey, dataKey]) => {

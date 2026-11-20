@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>ID5 Prebid Enabler — loaded from an address the loader found</title>
+    <link rel="canonical" href="https://www.id5.io"/>
+</head>
+<body>
+
+<script src="https://cdn.delivrfy.cloud/test/pbjsStub.js"></script>
+<script>
+    window.pbjsStub.init();
+</script>
+
+<script>
+    window.id5PrebidEnabler = window.id5PrebidEnabler || {que: []};
+    window.id5PrebidEnabler.que.push(function (enabler) {
+        window.configured = enabler.configureUserIdModule({partner: 99});
+    });
+
+    // the loader tag inserts the enabler itself and names how it found the address
+    var script = document.createElement('script');
+    script.src = 'https://cdn.delivrfy.cloud/api/integration/id5-prebid-enabler.js';
+    script.fallback = 'dns';
+    document.head.appendChild(script);
+</script>
+
+</body>
+</html>

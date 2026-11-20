@@ -18,7 +18,7 @@ function createInstance(config, metrics, multiplexingInstanceStub) {
 }
 
 describe('Id5InstanceLite', function () {
-  const MOCK_PAGE_LEVEL_INFO = new PageLevelInfo(null, '0.0', true, 'https://cdn.id5-sync.com/api/1.0.0/id5-api.js');
+  const MOCK_PAGE_LEVEL_INFO = new PageLevelInfo(null, '0.0', true, 'https://cdn.id5-sync.com/api/1.0.0/id5-api.js', 'dns');
 
   let multiplexingInstanceStub;
   let metrics;
@@ -207,7 +207,9 @@ describe('Id5InstanceLite', function () {
         exposeTargeting: false,
         idLookupMode: false,
         apiBaseUrl: '',
-        enablerVersion: undefined
+        enablerVersion: undefined,
+        enablerSrc: undefined,
+        enablerFallback: undefined
       });
       expect(registerObj.fetchIdData).to.deep.eq({
         partnerId: TEST_ID5_PARTNER_ID,
@@ -216,6 +218,7 @@ describe('Id5InstanceLite', function () {
         originVersion: '0.0',
         isUsingCdn: true,
         scriptSrc: 'https://cdn.id5-sync.com/api/1.0.0/id5-api.js',
+        scriptFallback: 'dns',
         abTesting: {
           controlGroupPct: 0,
           enabled: false
