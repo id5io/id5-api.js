@@ -31,19 +31,27 @@ import {DEFAULT_ENDPOINTS} from '@id5io/multiplexing/endpoints';
 const ID5 = window.ID5;
 
 describe('ID5 API', function () {
+  let extensionsStub, extensionsCreatorStub, server;
+
+  // Every test gets stubbed extensions and a fake server answering the ID fetch, so no test
+  // depends on the real ID5 endpoints being reachable or fast.
+  beforeEach(function () {
+    extensionsStub = sinon.createStubInstance(Extensions);
+    extensionsStub.gather.resolves({extensions: DEFAULT_EXTENSIONS, endpoints: DEFAULT_ENDPOINTS});
+    extensionsCreatorStub = sinon.stub(EXTENSIONS, 'createExtensions').returns(extensionsStub);
+    server = sinon.fakeServer.create();
+    server.respondImmediately = true;
+    server.respondWith(sinonFetchResponder(request =>
+      prepareMultiplexingResponse(TEST_RESPONSE_ID5_CONSENT, request.requestBody)
+    ));
+  });
+
+  afterEach(function () {
+    extensionsCreatorStub.restore();
+    server.restore();
+  });
+
   describe('Standard', function () {
-    let extensionsStub, extensionsCreatorStub;
-
-    beforeEach(function () {
-      extensionsStub = sinon.createStubInstance(Extensions);
-      extensionsStub.gather.resolves({extensions: DEFAULT_EXTENSIONS, endpoints: DEFAULT_ENDPOINTS});
-      extensionsCreatorStub = sinon.stub(EXTENSIONS, 'createExtensions').returns(extensionsStub);
-    });
-
-    afterEach(function () {
-      extensionsCreatorStub.restore();
-    });
-
     describe('Core API Availability', function () {
       it('should have a global variable ID5', function () {
         expect(ID5).to.be.a('object');
@@ -71,19 +79,11 @@ describe('ID5 API', function () {
     });
 
     describe('Standard Storage and Responses', function () {
-      let server;
-
       beforeEach(function () {
-        server = sinon.fakeServer.create();
-        server.respondImmediately = true;
-        server.respondWith(sinonFetchResponder(request =>
-          prepareMultiplexingResponse(TEST_RESPONSE_ID5_CONSENT, request.requestBody)
-        ));
         resetAllInLocalStorage();
       });
 
       afterEach(function () {
-        server.restore();
         resetAllInLocalStorage();
       });
 
@@ -276,21 +276,15 @@ describe('ID5 API', function () {
   });
 
   describe('shared state', function () {
-    let extensionsStub, extensionsCreatorStub;
-
     // The test waits for an ID, so it runs on the state the suite leaves behind unless it brings
-    // its own: a stored response or a mocked consent carried over from another spec sends it to
-    // the network and past the mocha deadline.
+    // its own: a stored response or a mocked consent carried over from another spec would change
+    // what it waits for.
     beforeEach(function () {
-      extensionsStub = sinon.createStubInstance(Extensions);
-      extensionsStub.gather.resolves({extensions: DEFAULT_EXTENSIONS, endpoints: DEFAULT_ENDPOINTS});
-      extensionsCreatorStub = sinon.stub(EXTENSIONS, 'createExtensions').returns(extensionsStub);
       clearMockedConsent();
       resetAllInLocalStorage();
     });
 
     afterEach(function () {
-      extensionsCreatorStub.restore();
       resetAllInLocalStorage();
     });
 
