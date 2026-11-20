@@ -4,6 +4,7 @@ import {version} from '../../generated/version.js';
 
 const PARTNER = 173;
 const PRIMARY_MODULE_URL = 'https://cdn.example.com/api/1.0/id5PrebidModule.js';
+const ENABLER_SRC = 'https://cdn.example.com/id5-prebid-enabler.js';
 
 function fakePbjs() {
   const config = {};
@@ -243,6 +244,52 @@ describe('ID5 Prebid enabler', function () {
       expect(id5Entry(pbjs).params.enablerVersion).to.eq(version);
     });
 
+    it('reports where it was loaded from and how that address was found', async function () {
+      const loaded = new Id5PrebidEnabler({pbjs, document: {currentScript: {src: ENABLER_SRC, fallback: 'dns'}}});
+
+      await loaded.configureUserIdModule({partner: PARTNER});
+
+      const params = id5Entry(pbjs).params;
+      expect(params.enablerSrc).to.eq(ENABLER_SRC);
+      expect(params.enablerFallback).to.eq('dns');
+    });
+
+    it('reports the address alone when the page did not fall back', async function () {
+      const loaded = new Id5PrebidEnabler({pbjs, document: {currentScript: {src: ENABLER_SRC}}});
+
+      await loaded.configureUserIdModule({partner: PARTNER});
+
+      const params = id5Entry(pbjs).params;
+      expect(params.enablerSrc).to.eq(ENABLER_SRC);
+      expect(params).to.not.have.property('enablerFallback');
+    });
+
+    it('leaves the source out when the script element carries none', async function () {
+      await enabler.configureUserIdModule({partner: PARTNER});
+
+      const params = id5Entry(pbjs).params;
+      expect(params).to.not.have.property('enablerSrc');
+      expect(params).to.not.have.property('enablerFallback');
+    });
+
+    it('replaces a source the publisher set with its own', async function () {
+      const loaded = new Id5PrebidEnabler({pbjs, document: {currentScript: {src: ENABLER_SRC}}});
+
+      await loaded.configureUserIdModule({partner: PARTNER, enablerSrc: 'https://publisher.example.com/enabler.js', enablerFallback: 'dns'});
+
+      const params = id5Entry(pbjs).params;
+      expect(params.enablerSrc).to.eq(ENABLER_SRC);
+      expect(params).to.not.have.property('enablerFallback');
+    });
+
+    it('drops a source the publisher set when its own script element carries none', async function () {
+      await enabler.configureUserIdModule({partner: PARTNER, enablerSrc: 'https://publisher.example.com/enabler.js', enablerFallback: 'dns'});
+
+      const params = id5Entry(pbjs).params;
+      expect(params).to.not.have.property('enablerSrc');
+      expect(params).to.not.have.property('enablerFallback');
+    });
+
     it('reports that nothing was pushed when Prebid cannot take a configuration', async function () {
       const withoutSetConfig = new Id5PrebidEnabler({pbjs: {que: {push: command => command()}}, document: window.document});
 
@@ -384,6 +431,45 @@ describe('ID5 Prebid enabler', function () {
       await enabler.reconfigureUserIdModule();
 
       expect(id5Entry(pbjs).params.enablerVersion).to.eq(version);
+    });
+
+    it('reports where it was loaded from on a configuration the page built', async function () {
+      const loaded = new Id5PrebidEnabler({pbjs, document: {currentScript: {src: ENABLER_SRC, fallback: 'dns'}}});
+      loaded.setup({externalModuleUrl: PRIMARY_MODULE_URL});
+
+      await loaded.reconfigureUserIdModule();
+
+      const params = id5Entry(pbjs).params;
+      expect(params.enablerSrc).to.eq(ENABLER_SRC);
+      expect(params.enablerFallback).to.eq('dns');
+    });
+
+    it('drops the source left by an earlier enabler when its own script element carries none', async function () {
+      pbjs.setConfig({
+        userSync: {userIds: [{name: 'id5Id', params: {partner: PARTNER, enablerSrc: ENABLER_SRC, enablerFallback: 'dns'}}]}
+      });
+      pbjs.setConfig.resetHistory();
+
+      await enabler.reconfigureUserIdModule();
+
+      const params = id5Entry(pbjs).params;
+      expect(params).to.not.have.property('enablerSrc');
+      expect(params).to.not.have.property('enablerFallback');
+    });
+
+    it('drops a fallback left by an earlier enabler when it was loaded from the primary host', async function () {
+      pbjs.setConfig({
+        userSync: {userIds: [{name: 'id5Id', params: {partner: PARTNER, enablerSrc: 'https://cdn.example.com/found/id5-prebid-enabler.js', enablerFallback: 'dns'}}]}
+      });
+      pbjs.setConfig.resetHistory();
+      const loaded = new Id5PrebidEnabler({pbjs, document: {currentScript: {src: ENABLER_SRC}}});
+      loaded.setup({externalModuleUrl: PRIMARY_MODULE_URL});
+
+      await loaded.reconfigureUserIdModule();
+
+      const params = id5Entry(pbjs).params;
+      expect(params.enablerSrc).to.eq(ENABLER_SRC);
+      expect(params).to.not.have.property('enablerFallback');
     });
 
     it('replaces the enabler version left by an earlier release', async function () {

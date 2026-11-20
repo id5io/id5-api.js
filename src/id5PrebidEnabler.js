@@ -59,6 +59,8 @@ const ENTRY_KEYS = ['params', 'storage', 'bidders', 'value', 'auctionDelay', 'sy
  * @property {boolean} [disableUaHints] - stops the lookup of high entropy user agent hints
  * @property {boolean} [idLookupMode] - runs the API in ID lookup mode
  * @property {string} [enablerVersion] - the enabler release that configured the submodule, set by the enabler
+ * @property {string} [enablerSrc] - URL this enabler script was loaded from, set by the enabler
+ * @property {string} [enablerFallback] - how this enabler address was found when the page fell back from the primary host, set by the enabler
  */
 
 /**
@@ -107,6 +109,12 @@ export class Id5PrebidEnabler {
 
   constructor(windowObj = window) {
     this._window = windowObj;
+    // the script element is readable while this script executes synchronously, which is where
+    // installEnabler() runs from
+    const script = windowObj.document?.currentScript;
+    this._scriptSrc = script?.src || undefined;
+    // how this address was found when the page fell back from the primary host
+    this._scriptFallback = script?.fallback || undefined;
     this._log = new InvocationLogger(SOURCE, 0);
     this._pbjsDetector = new PbjsDetector(windowObj, this._log);
     this._settings = {...DEFAULT_SETTINGS};
@@ -138,6 +146,7 @@ export class Id5PrebidEnabler {
     }
     applyTargets(entry.params, this._configuredTargets(this._settings), false);
     applyEnablerVersion(entry.params);
+    this._applyEnablerSource(entry.params);
     if (!await this._applyEntry(entry, config)) {
       return false;
     }
@@ -165,6 +174,7 @@ export class Id5PrebidEnabler {
     applyTargets(params, this._configuredTargets(this._settings), true);
     const entry = {...existing, params: {...params, ...paramsOf(config)}};
     applyEnablerVersion(entry.params);
+    this._applyEnablerSource(entry.params);
     if (!this._settings.useExternalModule) {
       delete entry.params.externalModuleUrl;
     }
@@ -201,6 +211,27 @@ export class Id5PrebidEnabler {
       command(this);
     } catch (error) {
       this._log.error('queued command failed', error);
+    }
+  }
+
+  /**
+   * Reports where this enabler script was loaded from, so the submodule sends it with the identity
+   * fetch. The two describe the script that configured the submodule, alongside the version this
+   * release reports, so they are written as one pair: values from an earlier enabler or from the
+   * page are replaced, and both go when this script element carries no address.
+   *
+   * @private
+   * @param {Id5SubmoduleParams} params - modified in place
+   */
+  _applyEnablerSource(params) {
+    delete params.enablerSrc;
+    delete params.enablerFallback;
+    if (this._scriptSrc === undefined) {
+      return;
+    }
+    params.enablerSrc = this._scriptSrc;
+    if (this._scriptFallback !== undefined) {
+      params.enablerFallback = this._scriptFallback;
     }
   }
 

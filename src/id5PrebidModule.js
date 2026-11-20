@@ -64,6 +64,8 @@ import {DEFAULT_ENDPOINTS} from '@id5io/multiplexing/endpoints';
  * @property {string} id5ApiBaseUrl - Base URL the ID5 identity fetch switches to when id5-sync.com does not answer, so calls are served first-party
  * @property {string} provider - Who deploys the module on behalf of the partner (e.g. a wrapper vendor), sent to ID5 as `provider`
  * @property {string} enablerVersion - Release of the ID5 Prebid enabler that configured the submodule, set by the enabler
+ * @property {string} enablerSrc - URL the ID5 Prebid enabler was loaded from, set by the enabler
+ * @property {string} enablerFallback - How the ID5 Prebid enabler address was found when the page fell back from the primary host, set by the enabler
  *
  */
 
@@ -148,6 +150,8 @@ class Id5PrebidIntegration {
       idLookupMode: prebidConfig.idLookupMode,
       provider: prebidConfig.provider,
       enablerVersion: prebidConfig.enablerVersion,
+      enablerSrc: prebidConfig.enablerSrc,
+      enablerFallback: prebidConfig.enablerFallback,
       apiBaseUrl: prebidConfig.id5ApiBaseUrl,
       dynamicConfig
     }, log);
@@ -328,7 +332,9 @@ class Id5PrebidIntegration {
       trueLink: new TrueLinkAdapter().getTrueLink(),
       idLookupMode: options.idLookupMode,
       apiBaseUrl: options.apiBaseUrl,
-      enablerVersion: options.enablerVersion
+      enablerVersion: options.enablerVersion,
+      enablerSrc: options.enablerSrc,
+      enablerFallback: options.enablerFallback
     };
   }
 }

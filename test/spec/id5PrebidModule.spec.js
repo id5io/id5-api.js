@@ -64,6 +64,20 @@ describe('ID5 Prebid module', function () {
     }
   });
 
+  it('should pass where the enabler was loaded from to fetch data', async () => {
+    window.id5Prebid.integration.fetchId5Id({}, {
+      partner: 1234,
+      enablerSrc: 'https://cdn.example.com/id5-prebid-enabler.js',
+      enablerFallback: 'dns'
+    }, {});
+
+    await instanceStub.instanceRegistered();
+
+    const registerObj = instanceStub.register.firstCall.firstArg;
+    expect(registerObj.fetchIdData.enablerSrc).to.eq('https://cdn.example.com/id5-prebid-enabler.js');
+    expect(registerObj.fetchIdData.enablerFallback).to.eq('dns');
+  });
+
   it('should pass provider from prebid config to fetch data', async () => {
     window.id5Prebid.integration.fetchId5Id({}, {
       partner: 1234,
