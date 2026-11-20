@@ -102,12 +102,11 @@
 /**
  * Referer info
  * @typedef {Object} RefererInfo
- * @property {string} topmostLocation - detected top url
- * @property {string|null} ref the referrer (document.referrer) to the current page, or null if not available (due to cross-origin restrictions)
+ * @property {string|null} topmostLocation - detected top origin
+ * @property {string|null} ref the origin of the top window referrer (document.referrer), or null if not available (due to cross-origin restrictions)
  * @property {boolean} reachedTop - whether it was possible to walk upto top window or not
  * @property {number} numIframes - number of iframes
- * @property {string} stack - comma separated urls of all origins
- * @property {string} canonicalUrl - canonical URL refers to an HTML link element, with the attribute of rel="canonical", found in the <head> element of your webpage
+ * @property {Array<string|null>} stack - origins of all windows from top to current
  */
 
 /**

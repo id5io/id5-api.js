@@ -1,4 +1,4 @@
-import {ajax, isDefined, isPlainObject, isStr} from './utils.js';
+import {ajax, isDefined, isPlainObject, isStr, toOrigin} from './utils.js';
 import {startTimeMeasurement} from '@id5io/diagnostics';
 
 /* eslint-disable no-unused-vars */
@@ -210,10 +210,12 @@ export class UidFetcher {
       'partner': partner,
       'v': fetchIdData.originVersion,
       'o': fetchIdData.origin,
-      'tml': fetchIdData.refererInfo?.topmostLocation,
-      'ref': fetchIdData.refererInfo?.ref,
-      'cu': fetchIdData.refererInfo?.canonicalUrl,
-      'u': fetchIdData.refererInfo?.stack?.[0] || window.location?.href,
+      // only origins are sent in the request body - full URLs are never put in it.
+      // refererInfo is already origin-only when produced by this version, but a leader also sends
+      // requests on behalf of followers from older versions, whose refererInfo carries full URLs
+      'tml': toOrigin(fetchIdData.refererInfo?.topmostLocation),
+      'ref': toOrigin(fetchIdData.refererInfo?.ref),
+      'u': toOrigin(fetchIdData.refererInfo?.stack?.[0]) || toOrigin(window.location?.href),
       'top': fetchIdData.refererInfo?.reachedTop ? 1 : 0,
       'localStorage': isLocalStorageAvaliable === true ? 1 : 0,
       'nbPage': nbValue,

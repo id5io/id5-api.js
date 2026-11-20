@@ -90,6 +90,7 @@ describe('Publisher', function () {
       return publisher.publish(measurements, args[2]).then(() => {
         fetchStub.should.have.been.calledWith(URL, {
           method: 'POST',
+          referrerPolicy: 'origin',
           headers: {'Content-Type': 'text/plain'},
           mode: 'no-cors',
           keepalive: true,

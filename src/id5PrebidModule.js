@@ -6,6 +6,7 @@ import {
   setGlobalDebug
 } from '../lib/utils.js';
 import {getPbjsGlobal} from '../lib/prebid/pbjsUtils.js';
+import {toOriginsOnlyRefererInfo} from '../lib/refererDetection.js';
 import {version as currentVersion} from '../generated/version.js';
 import {Config} from '../lib/config.js';
 import {createPublisher, MeterRegistryPublisher, startTimeMeasurement} from '@id5io/diagnostics';
@@ -126,14 +127,16 @@ class Id5PrebidIntegration {
   /**
    * @param {DynamicConfig} [dynamicConfig] - Dynamic configuration from ID5 Prebid config endpoint
    * @param {Id5PrebidConfig} [prebidConfig] - Static configuration from Prebid modue
-   * @param {PrebidRefererInfo} [refererInfo] - Information about the page related URLs
+   * @param {PrebidRefererInfo} [prebidRefererInfo] - Information about the page related URLs
    * @param {PrebidConsentData} [gdprConsentData] - GDPR Consent information from Prebid
    * @param {string|undefined} [uspConsentData] - USP Consent information from Prebid
    * @param {PrebidGppConsentData|undefined} [gppConsentData] - GPP Consent information from Prebid
    * @returns {Promise<IdResponse>}
    */
-  async fetchId5Id(dynamicConfig, prebidConfig, refererInfo, gdprConsentData, uspConsentData, gppConsentData) {
+  async fetchId5Id(dynamicConfig, prebidConfig, prebidRefererInfo, gdprConsentData, uspConsentData, gppConsentData) {
     this.invocationId += 1;
+    // Prebid's refererInfo carries full page URLs - keep origins only, so they never leave this module
+    const refererInfo = toOriginsOnlyRefererInfo(prebidRefererInfo);
     const prebidVersion = this.getPrebidVersion();
     const log = new InvocationLogger(SOURCE, this.invocationId);
     log.info(`ID5 API Prebid  external module version ${this._version}. Invoking fetchId5Id()`, dynamicConfig, prebidConfig);
@@ -301,7 +304,7 @@ class Id5PrebidIntegration {
   /**
    * @private
    * @param {Config} config
-   * @param {PrebidRefererInfo} refererInfo
+   * @param {RefererInfo} refererInfo
    * @param {Logger} log
    * @param {String} prebidVersion
    * @returns {FetchIdData} a JSON object to use to make the fetch request

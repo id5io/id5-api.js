@@ -104,7 +104,8 @@ class InstancesCounters {
     this._instancesCounter.inc();
     this._partnersCounter.add(properties?.fetchIdData?.partnerId | properties?.sourceConfiguration?.options?.partnerId);
     this._domainsCounter.add(properties?.domain);
-    this._windowsCounter.add(properties?.href);
+    // older instances identify their window by `href`
+    this._windowsCounter.add(properties?.windowId || properties?.href);
   }
 }
 

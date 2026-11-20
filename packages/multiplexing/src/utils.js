@@ -76,6 +76,24 @@ export function isDefined(object) {
 }
 
 /**
+ * Reduces a URL to its origin (scheme + host + port), dropping path, query and fragment,
+ * so that full page URLs are never put in request bodies.
+ * @param {string|null|undefined} url
+ * @return {string|null} origin or null when url is empty, unparseable or has an opaque origin (e.g. about:blank, data:)
+ */
+export function toOrigin(url) {
+  if (!url || typeof url !== 'string') {
+    return null;
+  }
+  try {
+    const origin = new URL(url).origin;
+    return origin && origin !== 'null' ? origin : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+/**
  * Return if the object is "empty";
  * this includes falsey, no keys, or no items at indices
  * @param {*} object object to test

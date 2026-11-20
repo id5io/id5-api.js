@@ -247,6 +247,19 @@ describe('Extensions', function () {
       });
   });
 
+  it('should send only the origin of the page as referrer in every call', function () {
+    fetchStub = createFetchStub(lbExtensionsWithChunksFlag(true), {lbs: 'lbsValue'});
+
+    return extensions.gather([{}])
+      .then(() => {
+        // bounce, lb, lbs and chunks
+        expect(fetchStub.callCount).to.be.greaterThan(4);
+        fetchStub.getCalls().forEach(call => {
+          expect(call.args[1]?.referrerPolicy, `referrerPolicy for ${call.args[0]}`).to.eq('origin');
+        });
+      });
+  });
+
   it('should never call chunks when lb returned chunks:0', function () {
     let lbExtensions = lbExtensionsWithChunksFlag(false);
     fetchStub = createFetchStub(lbExtensionsWithChunksFlag(false));
@@ -377,8 +390,8 @@ describe('Extensions', function () {
 
     return extensions.gather([{idLookupMode: true}])
       .then(({extensions: response, endpoints}) => {
-        expect(fetchStub).to.be.calledWith(DEFAULT_ENDPOINTS.bounce, {credentials: 'omit'});
-        expect(fetchStub).to.not.be.calledWith(DEFAULT_ENDPOINTS.bounce, {credentials: 'include'});
+        expect(fetchStub).to.be.calledWith(DEFAULT_ENDPOINTS.bounce, {credentials: 'omit', referrerPolicy: 'origin'});
+        expect(fetchStub).to.not.be.calledWith(DEFAULT_ENDPOINTS.bounce, {credentials: 'include', referrerPolicy: 'origin'});
         expect(endpoints).to.equal(DEFAULT_ENDPOINTS);
         // bounce data is not merged in lookup mode
         expect(response).to.be.deep.equal({
@@ -395,8 +408,8 @@ describe('Extensions', function () {
 
     return extensions.gather([{idLookupMode: true}])
       .then(({extensions: response, endpoints}) => {
-        expect(fetchStub).to.be.calledWith(DEFAULT_ENDPOINTS.bounce, {credentials: 'omit'});
-        expect(fetchStub).to.not.be.calledWith(DEFAULT_ENDPOINTS.bounce, {credentials: 'include'});
+        expect(fetchStub).to.be.calledWith(DEFAULT_ENDPOINTS.bounce, {credentials: 'omit', referrerPolicy: 'origin'});
+        expect(fetchStub).to.not.be.calledWith(DEFAULT_ENDPOINTS.bounce, {credentials: 'include', referrerPolicy: 'origin'});
         expect(response).to.be.deep.equal({...lbExtensionsWithChunksFlag(true), lbCDN: '%%LB_CDN%%', lbs: 'lbsValue'});
         expect(FALLBACK_API_BASES.map(base => `${atob(base)}/gm/v3`)).to.include(endpoints.fetch);
       });
@@ -409,8 +422,8 @@ describe('Extensions', function () {
     return extensions.gather([{idLookupMode: true}])
       .then(({endpoints}) => {
         expect(fetchStub).to.not.be.calledWith('https://id5.publisher.com/bounce');
-        expect(fetchStub).to.be.calledWith(DEFAULT_ENDPOINTS.bounce, {credentials: 'omit'});
-        expect(fetchStub).to.not.be.calledWith(DEFAULT_ENDPOINTS.bounce, {credentials: 'include'});
+        expect(fetchStub).to.be.calledWith(DEFAULT_ENDPOINTS.bounce, {credentials: 'omit', referrerPolicy: 'origin'});
+        expect(fetchStub).to.not.be.calledWith(DEFAULT_ENDPOINTS.bounce, {credentials: 'include', referrerPolicy: 'origin'});
         expect(endpoints).to.equal(DEFAULT_ENDPOINTS);
       });
   });
