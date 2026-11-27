@@ -451,16 +451,15 @@ describe('CachedResponse', function () {
       signature: 'sig'
     }, false],
     [{
-      signature: {},
-      universal_uid: 'uid'
-    }, false],
-    [{
       signature: 'sig',
       universal_uid: 1
     }, false],
     [{
       universal_uid: 'uid'
-    }, false],
+    }, true], // signature is not returned e.g. for NO_LOOKUP responses
+    [{
+      universal_uid: '0'
+    }, true],
     [undefined, false],
     ['not an object', false]
   ].forEach(([response, expectedValid]) => {

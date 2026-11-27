@@ -214,7 +214,7 @@ export class CachedResponse {
   }
 
   isResponseComplete() {
-    return isPlainObject(this.response) && isStr(this.response.universal_uid) && isStr(this.response.signature);
+    return isPlainObject(this.response) && isStr(this.response.universal_uid);
   }
 
   isValid() {
