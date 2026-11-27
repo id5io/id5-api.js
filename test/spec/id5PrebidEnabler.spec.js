@@ -1089,6 +1089,157 @@ describe('ID5 Prebid enabler', function () {
     });
   });
 
+  describe('buildUserIdConfig', function () {
+    it('returns the entry configureUserIdModule() writes', async function () {
+      const built = await enabler.buildUserIdConfig({partner: PARTNER, pd: 'some-pd', storage: {type: 'html5', name: 'custom', expires: 30}});
+      await enabler.configureUserIdModule({partner: PARTNER, pd: 'some-pd', storage: {type: 'html5', name: 'custom', expires: 30}});
+
+      expect(built).to.deep.equal(id5Entry(pbjs));
+      expect(built.name).to.eq('id5Id');
+      expect(built.params.externalModuleUrl).to.eq(PRIMARY_MODULE_URL);
+      expect(built.params.configUrl).to.eq('https://prebid.id5-tech.io/v1/config');
+      expect(built.params.enablerVersion).to.eq(version);
+    });
+
+    it('leaves Prebid.js alone, on the page or not', async function () {
+      const emptyScope = {document: window.document};
+
+      expect(await enabler.buildUserIdConfig({partner: PARTNER})).to.be.an('object');
+      expect(await new Id5PrebidEnabler(emptyScope).createForNamed('customPrebid').buildUserIdConfig({partner: PARTNER})).to.be.an('object');
+
+      expect(pbjs.setConfig).to.not.have.been.called;
+      expect(emptyScope).to.have.all.keys('document');
+    });
+
+    it('returns nothing without a partner', async function () {
+      expect(await enabler.buildUserIdConfig({pd: 'some-pd'})).to.be.undefined;
+    });
+
+    it('builds on the settings and the Prebid.js of the enabler it is called on', async function () {
+      const entry = await enabler.createForNamed('customPrebid', {configUrl: 'https://id.example.com/config/prebid', useExternalModule: false})
+        .buildUserIdConfig({partner: PARTNER});
+
+      expect(entry.params.configUrl).to.eq('https://id.example.com/config/prebid');
+      expect(entry.params).to.not.have.property('externalModuleUrl');
+      expect(entry.params.pbjsGlobal).to.eq('customPrebid');
+    });
+
+    it('leaves auctionDelay and syncDelay out of the entry', async function () {
+      const entry = await enabler.buildUserIdConfig({partner: PARTNER, auctionDelay: 50, syncDelay: 100});
+
+      expect(entry).to.have.all.keys('name', 'params', 'storage');
+      expect(entry.params).to.not.have.any.keys('auctionDelay', 'syncDelay');
+    });
+  });
+
+  describe('rebuildUserIdConfig', function () {
+    beforeEach(function () {
+      pbjs.setConfig({
+        userSync: {
+          syncDelay: 500,
+          userIds: [
+            {name: 'sharedId', storage: {type: 'cookie', name: '_sharedid', expires: 365}},
+            {name: 'id5Id', params: {partner: PARTNER, pd: 'page-pd'}, storage: {type: 'html5', name: 'custom', expires: 30}}
+          ]
+        }
+      });
+      pbjs.setConfig.resetHistory();
+    });
+
+    it('returns the entry reconfigureUserIdModule() writes', async function () {
+      const {rebuilt} = await enabler.rebuildUserIdConfig({pd: 'call-pd'});
+
+      expect(pbjs.setConfig).to.not.have.been.called;
+      await enabler.createForDefault({externalModuleUrl: PRIMARY_MODULE_URL, refreshOnReconfigure: false}).reconfigureUserIdModule({pd: 'call-pd'});
+      expect(rebuilt).to.deep.equal(id5Entry(pbjs));
+      expect(rebuilt.params.partner).to.eq(PARTNER);
+      expect(rebuilt.params.pd).to.eq('call-pd');
+      expect(rebuilt.params.externalModuleUrl).to.eq(PRIMARY_MODULE_URL);
+      expect(rebuilt.storage).to.deep.equal({type: 'html5', name: 'custom', expires: 30});
+    });
+
+    it('neither sets the configuration nor refreshes the submodule', async function () {
+      await enabler.createForDefault({refreshOnReconfigure: true}).rebuildUserIdConfig();
+
+      expect(pbjs.setConfig).to.not.have.been.called;
+      expect(pbjs.refreshUserIds).to.not.have.been.called;
+    });
+
+    it('returns the Prebid.js and the entry the rebuilt one replaces', async function () {
+      const onPage = pbjs.getConfig('userSync').userIds[1];
+
+      const found = await enabler.rebuildUserIdConfig();
+
+      expect(found).to.have.all.keys('pbjs', 'existing', 'rebuilt');
+      expect(found.pbjs).to.equal(pbjs);
+      expect(found.existing).to.equal(onPage);
+      expect(found.rebuilt).to.not.equal(onPage);
+    });
+
+    it('leaves the entry on the page as it is', async function () {
+      const {existing} = await enabler.rebuildUserIdConfig({pd: 'call-pd'});
+
+      expect(existing).to.deep.equal({name: 'id5Id', params: {partner: PARTNER, pd: 'page-pd'}, storage: {type: 'html5', name: 'custom', expires: 30}});
+    });
+
+    it('lets the page replace the ID5 entry alone', async function () {
+      const eidsFunction = () => [{source: 'example.com'}];
+      pbjs.setConfig({
+        userSync: {
+          syncDelay: 500,
+          userIds: [
+            {name: 'pubProvidedId', params: {eidsFunction}},
+            {name: 'id5Id', params: {partner: PARTNER}},
+            {name: 'sharedId'}
+          ]
+        }
+      });
+
+      const {pbjs: foundPbjs, existing, rebuilt} = await enabler.rebuildUserIdConfig();
+      const userSync = foundPbjs.getConfig('userSync');
+      foundPbjs.setConfig({userSync: {...userSync, userIds: userSync.userIds.map(entry => entry === existing ? rebuilt : entry)}});
+
+      const written = lastUserSync(pbjs);
+      expect(written.syncDelay).to.eq(500);
+      expect(written.userIds.map(entry => entry.name)).to.eql(['pubProvidedId', 'id5Id', 'sharedId']);
+      expect(written.userIds[0].params.eidsFunction).to.equal(eidsFunction);
+      expect(written.userIds[1]).to.equal(rebuilt);
+      expect(rebuilt.params.externalModuleUrl).to.eq(PRIMARY_MODULE_URL);
+    });
+
+    it('waits for the page to configure the submodule', async function () {
+      pbjs.setConfig({userSync: {userIds: [{name: 'sharedId'}]}});
+
+      const rebuilt = enabler.createForDefault({waitForConfigMs: 1000}).rebuildUserIdConfig();
+      setTimeout(() => pbjs.setConfig({userSync: {userIds: [{name: 'id5Id', params: {partner: PARTNER, pd: 'late-pd'}}]}}), 50);
+
+      expect((await rebuilt).rebuilt.params.pd).to.eq('late-pd');
+    });
+
+    it('returns nothing when the page has no ID5 entry', async function () {
+      pbjs.setConfig({userSync: {userIds: [{name: 'sharedId'}]}});
+
+      expect(await enabler.createForDefault({waitForConfigMs: 0}).rebuildUserIdConfig()).to.be.undefined;
+    });
+
+    it('returns nothing for another partner than the one on the page', async function () {
+      expect(await enabler.rebuildUserIdConfig({partner: 42})).to.be.undefined;
+    });
+
+    it('reads the entry from the Prebid.js of the enabler it is called on', async function () {
+      const ours = fakePbjs();
+      ours.setConfig({userSync: {userIds: [{name: 'id5Id', params: {partner: 99}}]}});
+      const scope = {pbjs, customPrebid: ours, document: window.document};
+
+      const found = await new Id5PrebidEnabler(scope).createForNamed('customPrebid').rebuildUserIdConfig();
+      const rebuilt = found.rebuilt;
+
+      expect(found.pbjs).to.equal(ours);
+      expect(rebuilt.params.partner).to.eq(99);
+      expect(rebuilt.params.pbjsGlobal).to.eq('customPrebid');
+    });
+  });
+
   describe('target helpers', function () {
     it('resolves the external module URL', async function () {
       expect(await enabler.getExternalModuleUrl()).to.eq(PRIMARY_MODULE_URL);

@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>ID5 Prebid Enabler — rebuild, written by the page</title>
+    <link rel="canonical" href="https://www.id5.io"/>
+</head>
+<body>
+
+<script src="https://cdn.delivrfy.cloud/test/pbjsStub.js"></script>
+<script>
+    window.pbjsStub.init();
+    pbjs.setConfig({
+        userSync: {
+            auctionDelay: 300,
+            userIds: [
+                {name: 'pubProvidedId', params: {eidsFunction: function () { return [{source: 'example.com'}]; }}},
+                {
+                    name: 'id5Id',
+                    params: {partner: 99, pd: 'publisher-pd', externalModuleUrl: 'https://blocked.example.net/id5PrebidModule.js'},
+                    storage: {type: 'html5', name: 'id5id', expires: 30}
+                },
+                {name: 'sharedId'}
+            ]
+        }
+    });
+</script>
+
+<script src="https://cdn.delivrfy.cloud/api/integration/id5-prebid-enabler.js"></script>
+<script>
+    window.rebuilt = window.id5PrebidEnabler.rebuildUserIdConfig().then(function (found) {
+        window.setConfigCallsBeforeWrite = window.setConfigCalls.length;
+        const userSync = found.pbjs.getConfig('userSync');
+        const userIds = userSync.userIds.map(function (entry) {
+            return entry === found.existing ? found.rebuilt : entry;
+        });
+        found.pbjs.setConfig({userSync: Object.assign({}, userSync, {userIds: userIds})});
+        return true;
+    });
+</script>
+
+</body>
+</html>

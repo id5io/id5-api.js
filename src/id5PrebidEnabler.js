@@ -75,14 +75,32 @@ const PBJS_USER_ID_ENTRY_KEYS = ['params', 'storage', 'bidders', 'value', 'aucti
  */
 
 /**
- * @typedef {Object} Id5EnablerConfig
+ * The submodule parameters as a call takes them.
+ *
+ * @typedef {Object} Id5ParamsConfig
  * @property {Id5SubmoduleParams} [params] - submodule parameters; may also be given flat on this object
+ */
+
+/**
+ * What a call puts in the ID5 entry of `userSync.userIds`.
+ *
+ * @typedef {Object} Id5EntryOnlyConfig
  * @property {Object} [storage] - Prebid storage configuration, defaults to html5 `id5id` for 90 days
  * @property {string[]} [bidders] - bidder codes the ID may be sent to
  * @property {Object} [value] - a user ID the page stores itself, passed to adapters as is
+ */
+
+/**
+ * What a call sets on `userSync` itself.
+ *
+ * @typedef {Object} Id5UserSyncConfig
  * @property {number} [auctionDelay] - set `userSync.auctionDelay`; left alone when omitted
  * @property {number} [syncDelay] - set `userSync.syncDelay`; left alone when omitted
  */
+
+/** @typedef {Id5ParamsConfig & Id5EntryOnlyConfig} Id5EntryConfig */
+
+/** @typedef {Id5EntryConfig & Id5UserSyncConfig} Id5EnablerConfig */
 
 /**
  * @typedef {Object} Id5EnablerSettings
@@ -141,16 +159,8 @@ export class Id5ScopedPrebidEnabler {
    * @returns {Promise<boolean>} whether a configuration was pushed to Prebid
    */
   async configureUserIdModule(config = {}) {
-    const entry = buildEntry(config);
-    if (entry.params.partner === undefined) {
-      this._log.error('partner is required to configure the ID5 submodule');
-      return false;
-    }
-    applyTargets(entry.params, this._configuredTargets(this._settings), false);
-    applyEnablerVersion(entry.params);
-    this._applyPbjsRef(entry.params);
-    this._applyEnablerSource(entry.params);
-    if (!await this._applyEntry(entry, config)) {
+    const entry = this._buildUserIdConfig(config);
+    if (!entry || !await this._applyEntry(entry, config)) {
       return false;
     }
     this._log.info('configured the ID5 submodule', entry);
@@ -158,25 +168,66 @@ export class Id5ScopedPrebidEnabler {
   }
 
   /**
+   * The ID5 entry of `userSync.userIds` that `configureUserIdModule()` writes, for the page to
+   * write itself. Prebid is neither read nor set, and `auctionDelay` and `syncDelay`, which belong
+   * to `userSync`, are the page's to set.
+   *
+   * @param {Id5EntryConfig & Id5SubmoduleParams} config
+   * @returns {Promise<Object|undefined>} the entry, `undefined` without a partner
+   */
+  async buildUserIdConfig(config = {}) {
+    return this._buildUserIdConfig(config);
+  }
+
+  /**
    * Keeps the configuration already on the page and updates the targets in it. A parameter given
    * here overrides the one on the page, the partner aside: a call for another partner is refused.
    *
-   * @param {Id5EnablerConfig & Id5SubmoduleParams} [config]
+   * @param {Id5ParamsConfig & Id5UserSyncConfig & Id5SubmoduleParams} [config]
    * @returns {Promise<boolean>} whether a configuration was pushed to Prebid
    */
   async reconfigureUserIdModule(config = {}) {
+    const found = await this.rebuildUserIdConfig(config);
+    if (!found || !await this._applyEntry(found.rebuilt, config)) {
+      return false;
+    }
+    this._log.info('reconfigured the ID5 submodule', found.rebuilt);
+    await this._refreshIfNeeded();
+    return true;
+  }
+
+  /**
+   * @typedef {Object} Id5RebuiltUserIdConfig
+   * @property {Object} pbjs - the Prebid.js the entry was read from
+   * @property {Object} existing - the ID5 entry of `userSync.userIds` on the page: the object
+   * Prebid holds, so it can be told apart from the other entries by identity
+   * @property {Object} rebuilt - the entry to write in its place
+   */
+
+  /**
+   * The ID5 entry of `userSync.userIds` that `reconfigureUserIdModule()` writes, for the page to
+   * write itself, along with the entry it replaces and the Prebid.js it was read from. Prebid.js
+   * is awaited, then the entry the page configures for up to `waitForConfigMs`; nothing is set.
+   *
+   * @param {Id5ParamsConfig & Id5SubmoduleParams} [config] - the parameters that override the
+   * ones on the page
+   * @returns {Promise<Id5RebuiltUserIdConfig|undefined>} `undefined` when the page has no ID5
+   * entry or configures another partner
+   */
+  async rebuildUserIdConfig(config = {}) {
+    const pbjs = await this._getPbjs();
     const existing = await this._awaitEntry(this._settings.waitForConfigMs);
     if (!existing) {
-      this._log.error(`no ${PBJS_ID5_USER_ID_MODULE_NAME} configuration found on the page; use configureUserIdModule() instead`);
-      return false;
+      this._log.error(`no ${PBJS_ID5_USER_ID_MODULE_NAME} configuration found on the page; use configureUserIdModule() or buildUserIdConfig() instead`);
+      return undefined;
     }
     const given = paramsOf(config);
     const partnerOnPage = existing.params?.partner;
     // The submodule keys its stored response by partner, so another partner is a new setup rather
     // than a reconfiguration of the one on the page.
     if (given.partner !== undefined && partnerOnPage !== undefined && !samePartner(given.partner, partnerOnPage)) {
-      this._log.error(`the page configures ${PBJS_ID5_USER_ID_MODULE_NAME} for partner ${partnerOnPage}; use configureUserIdModule() to configure partner ${given.partner}`);
-      return false;
+      this._log.error(`the page configures ${PBJS_ID5_USER_ID_MODULE_NAME} for partner ${partnerOnPage}; use configureUserIdModule() or buildUserIdConfig() to configure partner ${given.partner}`);
+      return undefined;
     }
     // Prebid compares a submodule's configuration against the previous one by value, so the params
     // are replaced rather than modified. Targets take over the page's values, the call's take over both.
@@ -189,12 +240,7 @@ export class Id5ScopedPrebidEnabler {
     if (!this._settings.useExternalModule) {
       delete entry.params.externalModuleUrl;
     }
-    if (!await this._applyEntry(entry, config)) {
-      return false;
-    }
-    this._log.info('reconfigured the ID5 submodule', entry);
-    await this._refreshIfNeeded();
-    return true;
+    return {pbjs, existing, rebuilt: entry};
   }
 
   /**
@@ -209,6 +255,27 @@ export class Id5ScopedPrebidEnabler {
    */
   async getConfigUrl() {
     return this._configuredTargets(this._settings).configUrl;
+  }
+
+  /**
+   * The entry `configureUserIdModule()` writes, built without a wait so that the call queues on
+   * Prebid.js in the turn it is made.
+   *
+   * @private
+   * @param {Id5EntryConfig & Id5SubmoduleParams} config
+   * @returns {Object|undefined}
+   */
+  _buildUserIdConfig(config) {
+    const entry = buildEntry(config);
+    if (entry.params.partner === undefined) {
+      this._log.error('partner is required to build the ID5 submodule configuration');
+      return undefined;
+    }
+    applyTargets(entry.params, this._configuredTargets(this._settings), false);
+    applyEnablerVersion(entry.params);
+    this._applyPbjsRef(entry.params);
+    this._applyEnablerSource(entry.params);
+    return entry;
   }
 
   /**
@@ -272,7 +339,7 @@ export class Id5ScopedPrebidEnabler {
    *
    * @private
    * @param {Object} entry
-   * @param {Id5EnablerConfig} config
+   * @param {Id5UserSyncConfig} config
    * @returns {Promise<boolean>} whether the configuration was pushed to Prebid
    */
   async _applyEntry(entry, config) {
@@ -569,7 +636,7 @@ function paramsOf(config) {
 }
 
 /**
- * @param {Id5EnablerConfig & Id5SubmoduleParams} config
+ * @param {Id5EntryConfig & Id5SubmoduleParams} config
  * @returns {Object} a Prebid user ID configuration entry
  */
 function buildEntry(config) {

@@ -154,4 +154,24 @@ describe('The Prebid enabler', function () {
       expect(await page.evaluate(() => window.refreshUserIdsCalls)).to.be.undefined;
     });
   });
+
+  describe('rebuildUserIdConfig', function () {
+    it('hands the page what it needs to replace the ID5 entry alone', async () => {
+      const page = await openPage('rebuild-page-writes.html');
+
+      expect(await page.evaluate(async () => window.rebuilt)).to.be.true;
+
+      expect(await page.evaluate(() => window.setConfigCallsBeforeWrite)).to.eq(1);
+      const userSync = await page.evaluate(() => window.pbjs.getConfig('userSync'));
+      const entry = id5Entry(userSync);
+      expect(entry.params.externalModuleUrl).to.eq(MODULE_URL);
+      expect(entry.params.configUrl).to.eq(CONFIG_URL);
+      expect(entry.params.pd).to.eq('publisher-pd');
+      expect(entry.storage).to.eql({type: 'html5', name: 'id5id', expires: 30});
+      expect(userSync.auctionDelay).to.eq(300);
+      expect(userSync.userIds.map(userId => userId.name)).to.eql(['pubProvidedId', 'id5Id', 'sharedId']);
+      expect(await page.evaluate(() => typeof window.pbjs.getConfig('userSync').userIds[0].params.eidsFunction)).to.eq('function');
+      expect(await page.evaluate(() => window.refreshUserIdsCalls)).to.be.undefined;
+    });
+  });
 });
