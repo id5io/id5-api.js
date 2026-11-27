@@ -9,8 +9,9 @@ const ENABLER_SRC = 'https://cdn.example.com/id5-prebid-enabler.js';
 function fakePbjs() {
   const config = {};
   const listeners = [];
-  return {
+  const pbjs = {
     version: '11.41.0',
+    userIds: {},
     que: {push: command => command()},
     setConfig: sinon.spy(update => {
       Object.assign(config, update);
@@ -26,8 +27,18 @@ function fakePbjs() {
       listeners.push(subscription);
       return () => listeners.splice(listeners.indexOf(subscription), 1);
     },
-    refreshUserIds: sinon.spy(() => Promise.resolve({}))
+    refreshUserIds: sinon.spy(() => Promise.resolve({})),
+    getUserIds: () => pbjs.userIds,
+    getUserIdsAsync: () => Promise.resolve(pbjs.userIds)
   };
+  return pbjs;
+}
+
+function entryOnPage(pbjs, changes) {
+  const userSync = pbjs.getConfig('userSync');
+  Object.assign(userSync.userIds.find(entry => entry.name === 'id5Id'), changes);
+  pbjs.setConfig({userSync});
+  pbjs.setConfig.resetHistory();
 }
 
 function lastUserSync(pbjs) {
@@ -483,13 +494,153 @@ describe('ID5 Prebid enabler', function () {
       expect(id5Entry(pbjs).params.enablerVersion).to.eq(version);
     });
 
-    it('refreshes the submodule only when asked to', async function () {
-      await enabler.reconfigureUserIdModule();
-      expect(pbjs.refreshUserIds).to.not.have.been.called;
-
+    it('refreshes the submodule when told to', async function () {
       enabler.setup({refreshOnReconfigure: true});
+
       await enabler.reconfigureUserIdModule();
+
       expect(pbjs.refreshUserIds).to.have.been.calledWith({submoduleNames: ['id5Id']});
+    });
+
+    it('leaves the submodule alone when told to', async function () {
+      enabler.setup({refreshOnReconfigure: false});
+
+      await enabler.reconfigureUserIdModule();
+
+      expect(pbjs.refreshUserIds).to.not.have.been.called;
+    });
+
+    describe("refreshOnReconfigure: 'auto'", function () {
+      const SERVED = {id5id: {uid: 'ID5*stored'}};
+
+      beforeEach(function () {
+        enabler.setup({refreshOnReconfigure: 'auto'});
+      });
+
+      it('is what the enabler does by default', function () {
+        expect(new Id5PrebidEnabler(windowObj)._settings.refreshOnReconfigure).to.eq('auto');
+      });
+
+      it('refreshes when no ID5 ID is served', async function () {
+        pbjs.userIds = {};
+
+        await enabler.reconfigureUserIdModule();
+
+        expect(pbjs.refreshUserIds).to.have.been.calledWith({submoduleNames: ['id5Id']});
+      });
+
+      it('refreshes when Prebid serves a stored ID the ID5 module did not provide here', async function () {
+        pbjs.userIds = SERVED;
+
+        await enabler.reconfigureUserIdModule();
+
+        expect(pbjs.refreshUserIds).to.have.been.calledWith({submoduleNames: ['id5Id']});
+      });
+
+      it('leaves a submodule whose ID the ID5 module provided here alone', async function () {
+        pbjs.userIds = SERVED;
+        windowObj.id5Prebid = {integration: {userIdReady: true}};
+
+        await enabler.reconfigureUserIdModule();
+
+        expect(pbjs.refreshUserIds).to.not.have.been.called;
+      });
+
+      it('refreshes when the ID5 module provided no ID here', async function () {
+        pbjs.userIds = SERVED;
+        windowObj.id5Prebid = {integration: {userIdReady: false}};
+
+        await enabler.reconfigureUserIdModule();
+
+        expect(pbjs.refreshUserIds).to.have.been.calledWith({submoduleNames: ['id5Id']});
+      });
+
+      it('leaves a submodule running Prebid\'s own implementation with an ID served alone', async function () {
+        enabler.setup({useExternalModule: false});
+        pbjs.userIds = SERVED;
+
+        await enabler.reconfigureUserIdModule();
+
+        expect(pbjs.refreshUserIds).to.not.have.been.called;
+      });
+
+      it('refreshes a submodule running Prebid\'s own implementation with no ID served', async function () {
+        enabler.setup({useExternalModule: false});
+        pbjs.userIds = {};
+
+        await enabler.reconfigureUserIdModule();
+
+        expect(pbjs.refreshUserIds).to.have.been.calledWith({submoduleNames: ['id5Id']});
+      });
+
+      it('leaves a page that turned userSync.autoRefresh on alone', async function () {
+        pbjs.userIds = {};
+        pbjs.setConfig({userSync: {...pbjs.getConfig('userSync'), autoRefresh: true}});
+        pbjs.setConfig.resetHistory();
+
+        await enabler.reconfigureUserIdModule();
+
+        expect(pbjs.refreshUserIds).to.not.have.been.called;
+      });
+
+      it('refreshes a page that leaves userSync.autoRefresh off', async function () {
+        pbjs.userIds = {};
+        pbjs.setConfig({userSync: {...pbjs.getConfig('userSync'), autoRefresh: false}});
+        pbjs.setConfig.resetHistory();
+
+        await enabler.reconfigureUserIdModule();
+
+        expect(pbjs.refreshUserIds).to.have.been.calledWith({submoduleNames: ['id5Id']});
+      });
+
+      it('refreshes a User ID module that has not settled, which Prebid drops before its first run', async function () {
+        const clock = sinon.useFakeTimers();
+        try {
+          pbjs.getUserIdsAsync = () => new Promise(() => {});
+
+          const reconfigured = enabler.reconfigureUserIdModule();
+          await clock.tickAsync(3000);
+
+          expect(await reconfigured).to.be.true;
+          expect(pbjs.refreshUserIds).to.have.been.calledWith({submoduleNames: ['id5Id']});
+        } finally {
+          clock.restore();
+        }
+      });
+
+      it('refreshes when the wait on the User ID module is rejected', async function () {
+        pbjs.getUserIdsAsync = () => Promise.reject(new Error('canceled'));
+
+        await enabler.reconfigureUserIdModule();
+
+        expect(pbjs.refreshUserIds).to.have.been.calledWith({submoduleNames: ['id5Id']});
+      });
+
+      it('refreshes on a Prebid.js that cannot report when its User ID module finished', async function () {
+        pbjs.getUserIdsAsync = undefined;
+
+        await enabler.reconfigureUserIdModule();
+
+        expect(pbjs.refreshUserIds).to.have.been.calledWith({submoduleNames: ['id5Id']});
+      });
+    });
+
+    it('reads a partner given as a string as the partner on the page', async function () {
+      expect(await enabler.reconfigureUserIdModule({partner: String(PARTNER)})).to.be.true;
+      expect(id5Entry(pbjs).params.partner).to.eq(String(PARTNER));
+    });
+
+    it('refuses a partner other than the one the page configures', async function () {
+      expect(await enabler.reconfigureUserIdModule({partner: 999})).to.be.false;
+      expect(pbjs.setConfig).to.not.have.been.called;
+      expect(pbjs.refreshUserIds).to.not.have.been.called;
+    });
+
+    it('takes the partner of a page that configures none', async function () {
+      entryOnPage(pbjs, {params: {}});
+
+      expect(await enabler.reconfigureUserIdModule({partner: 999})).to.be.true;
+      expect(id5Entry(pbjs).params.partner).to.eq(999);
     });
 
     it('reports when the page carries no ID5 configuration', async function () {
