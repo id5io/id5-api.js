@@ -967,6 +967,8 @@ Other User ID modules are kept intact, so the enabler can be used on a page that
 
 `reconfigureUserIdModule()` keeps the configuration the page already has and updates the ID5 endpoints in it. Parameters passed to the call override the ones already on the page; the rest of the configuration is left alone. It waits up to `waitForConfigMs` for the page to configure the submodule, so it can be called before the page's own `setConfig`.
 
+`partner` is the one parameter that cannot be overridden this way. The ID5 ID the page serves is the one stored for its partner, and the submodule drops it as soon as it is configured for another one, so a call naming a different partner is refused and nothing is pushed to Prebid. Use `configureUserIdModule()` to configure another partner.
+
 ```javascript
 enabler.reconfigureUserIdModule();
 ```
@@ -993,8 +995,21 @@ enabler.setup({ useExternalModule: false }).configureUserIdModule({ partner: 173
 | `externalModuleUrl` | where the ID5 external module is loaded from; defaults to `https://cdn.delivrfy.cloud/api/1.0/id5PrebidModule.js` |
 | `configUrl` | the ID5 config endpoint the submodule calls; defaults to `https://prebid.id5-tech.io/v1/config` |
 | `useExternalModule` | `true` by default; `false` uses Prebid's own implementation of the ID5 User ID submodule and removes `externalModuleUrl` from the configuration |
-| `refreshOnReconfigure` | `false` by default: Prebid keeps serving a stored ID5 ID without asking the submodule again, so the new endpoints are used from the next fetch on. `true` calls `pbjs.refreshUserIds()` right after `reconfigureUserIdModule()`, so they are used on this page view |
+| `refreshOnReconfigure` | whether `reconfigureUserIdModule()` calls `pbjs.refreshUserIds()`, so the submodule fetches from the new endpoints on this page view; `'auto'` by default, which decides from the state of the page, `true` always refreshes and `false` never does |
 | `waitForConfigMs` | how long `reconfigureUserIdModule()` waits for the page to configure the submodule; `3000` by default, `0` reads the configuration once |
+
+##### `refreshOnReconfigure: 'auto'`
+
+A refresh makes the submodule fetch from the new endpoints straight away. Without one, Prebid keeps serving the ID it already has, and the new endpoints are used the next time the submodule fetches. A fetch is the point of the refresh, so `'auto'` asks for one only where it leads to a fetch:
+
+| On the page | Refreshed | Why |
+|---|---|---|
+| `userSync.autoRefresh` is `true` | no | Prebid fetches again for every submodule whose configuration changed, and this call changes the ID5 one |
+| the ID5 module provided the ID served | no | the module holds a response of its own and serves that one again rather than fetching, so a refresh reaches no endpoint |
+| an ID5 ID is served and `useExternalModule` is `false` | no | there is no ID5 module to report, so the ID Prebid serves stands in for it |
+| anything else | yes | Prebid is serving an ID the module did not provide here, or none at all, and a refresh is what makes the submodule run on the new endpoints |
+
+The call waits for the User ID module to finish, through `pbjs.getUserIdsAsync()` and for up to 3 seconds, so that a module given the chance to provide an ID has taken it. A module still working after that is refreshed: Prebid drops a refresh asked for before the User ID module has made its first run, and that run takes the configuration pushed here.
 
 `enabler.debug = true` turns on the enabler's console output, and `enabler.version` reports the release it comes from.
 

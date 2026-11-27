@@ -12,30 +12,40 @@
  */
 
 import {InvocationLogger, isArray, isGlobalDebug, setGlobalDebug} from '../lib/utils.js';
-import {getPbjsGlobal, PbjsDetector} from '../lib/prebid/pbjsUtils.js';
+import {PbjsDetector} from '../lib/prebid/pbjsUtils.js';
 import {version as currentVersion} from '../generated/version.js';
 import {semanticVersionCompare} from '@id5io/multiplexing/utils';
 
 const SOURCE = 'id5-prebid-enabler';
-const GLOBAL_NAME = 'id5PrebidEnabler';
-const SUBMODULE_NAME = 'id5Id';
-const MODULE_URL = 'https://cdn.delivrfy.cloud/api/1.0/id5PrebidModule.js';
-const CONFIG_URL = 'https://prebid.id5-tech.io/v1/config';
+const ENABLER_GLOBAL_NAME = 'id5PrebidEnabler';
+/** The global the ID5 external module installs its integration on. */
+const ID5_EXTERNAL_MODULE_GLOBAL_NAME = 'id5Prebid';
+const PBJS_ID5_USER_ID_MODULE_NAME = 'id5Id';
+const ID5_EXTERNAL_MODULE_DEFAULT_URL = 'https://cdn.delivrfy.cloud/api/1.0/id5PrebidModule.js';
+const ID5_DEFAULT_CONFIG_URL = 'https://prebid.id5-tech.io/v1/config';
+
+const REFRESH_AUTO = 'auto';
 
 const DEFAULT_SETTINGS = Object.freeze({
   externalModuleUrl: undefined,
-  configUrl: CONFIG_URL,
+  configUrl: ID5_DEFAULT_CONFIG_URL,
   useExternalModule: true,
-  refreshOnReconfigure: false,
+  refreshOnReconfigure: REFRESH_AUTO,
   waitForConfigMs: 3000
 });
 
-const CONFIG_POLL_MS = 100;
+const PBJS_CONFIG_POLL_INTERVAL_MS = 100;
 
-const DEFAULT_STORAGE = Object.freeze({type: 'html5', name: 'id5id', expires: 90});
+/**
+ * How long `refreshOnReconfigure: 'auto'` waits for the User ID module before deciding without
+ * it: a submodule that never calls back must not hold back the refresh.
+ */
+const PBJS_USER_IDS_SETTLE_TIMEOUT_MS = 3000;
+
+const PBJS_DEFAULT_STORAGE = Object.freeze({type: 'html5', name: 'id5id', expires: 90});
 
 /** Top level keys of a Prebid user ID configuration entry; every other key given to the enabler is a submodule param. */
-const ENTRY_KEYS = ['params', 'storage', 'bidders', 'value', 'auctionDelay', 'syncDelay'];
+const PBJS_USER_ID_ENTRY_KEYS = ['params', 'storage', 'bidders', 'value', 'auctionDelay', 'syncDelay'];
 
 /**
  * Every parameter the ID5 submodule accepts. Any other key given by the publisher is passed
@@ -81,7 +91,8 @@ const ENTRY_KEYS = ['params', 'storage', 'bidders', 'value', 'auctionDelay', 'sy
  * `https://prebid.id5-tech.io/v1/config`
  * @property {boolean} [useExternalModule] - configure `externalModuleUrl` so the submodule runs the
  * ID5 external module; true by default, false leaves the submodule on its own implementation
- * @property {boolean} [refreshOnReconfigure] - refresh the submodule right after `reconfigureUserIdModule()`; false by default
+ * @property {boolean|'auto'} [refreshOnReconfigure] - whether `reconfigureUserIdModule()` calls
+ * `pbjs.refreshUserIds()`; `'auto'` by default, which decides from the state of the page
  * @property {number} [waitForConfigMs] - how long `reconfigureUserIdModule()` waits for the page to configure
  * the submodule; 3000 by default, 0 reads the configuration once
  */
@@ -121,8 +132,8 @@ export class Id5PrebidEnabler {
   }
 
   /**
-   * Overrides the enabler's settings for every later call. This is the only way the settings
-   * are given; the entry points take the submodule configuration alone.
+   * Overrides the settings for every later call; the entry points take the submodule
+   * configuration alone.
    *
    * @param {Id5EnablerSettings} settings
    * @returns {Id5PrebidEnabler}
@@ -155,8 +166,8 @@ export class Id5PrebidEnabler {
   }
 
   /**
-   * Keeps the ID5 submodule configuration already on the page and updates the targets in it.
-   * Any parameter given here overrides the one on the page; the rest is left as it is.
+   * Keeps the configuration already on the page and updates the targets in it. A parameter given
+   * here overrides the one on the page, the partner aside: a call for another partner is refused.
    *
    * @param {Id5EnablerConfig & Id5SubmoduleParams} [config]
    * @returns {Promise<boolean>} whether a configuration was pushed to Prebid
@@ -164,15 +175,22 @@ export class Id5PrebidEnabler {
   async reconfigureUserIdModule(config = {}) {
     const existing = await this._awaitEntry(this._settings.waitForConfigMs);
     if (!existing) {
-      this._log.error(`no ${SUBMODULE_NAME} configuration found on the page; use configureUserIdModule() instead`);
+      this._log.error(`no ${PBJS_ID5_USER_ID_MODULE_NAME} configuration found on the page; use configureUserIdModule() instead`);
       return false;
     }
-    // Prebid compares a submodule's new configuration against the previous one by value,
-    // so the params it already holds are replaced rather than modified. The targets take over the
-    // ones on the page, and the parameters of the call take over both.
+    const given = paramsOf(config);
+    const partnerOnPage = existing.params?.partner;
+    // The submodule keys its stored response by partner, so another partner is a new setup rather
+    // than a reconfiguration of the one on the page.
+    if (given.partner !== undefined && partnerOnPage !== undefined && !samePartner(given.partner, partnerOnPage)) {
+      this._log.error(`the page configures ${PBJS_ID5_USER_ID_MODULE_NAME} for partner ${partnerOnPage}; use configureUserIdModule() to configure partner ${given.partner}`);
+      return false;
+    }
+    // Prebid compares a submodule's configuration against the previous one by value, so the params
+    // are replaced rather than modified. Targets take over the page's values, the call's take over both.
     const params = {...existing.params};
     applyTargets(params, this._configuredTargets(this._settings), true);
-    const entry = {...existing, params: {...params, ...paramsOf(config)}};
+    const entry = {...existing, params: {...params, ...given}};
     applyEnablerVersion(entry.params);
     this._applyEnablerSource(entry.params);
     if (!this._settings.useExternalModule) {
@@ -182,9 +200,7 @@ export class Id5PrebidEnabler {
       return false;
     }
     this._log.info('reconfigured the ID5 submodule', entry);
-    if (this._settings.refreshOnReconfigure) {
-      await this._refreshSubmodule();
-    }
+    await this._refreshIfNeeded();
     return true;
   }
 
@@ -192,14 +208,14 @@ export class Id5PrebidEnabler {
    * @returns {Promise<string|undefined>} a URL the external module can be loaded from
    */
   async getExternalModuleUrl() {
-    return this._targets(this._settings).externalModuleUrl;
+    return this._configuredTargets(this._settings).externalModuleUrl;
   }
 
   /**
    * @returns {Promise<string|undefined>} the ID5 config endpoint
    */
   async getConfigUrl() {
-    return this._targets(this._settings).configUrl;
+    return this._configuredTargets(this._settings).configUrl;
   }
 
   /**
@@ -236,9 +252,8 @@ export class Id5PrebidEnabler {
   }
 
   /**
-   * The targets to start with: what the caller set, falling back to the module and config
-   * endpoint this release ships with. The submodule calls the config endpoint on every flow and
-   * loads the external module on top of it, so both are configured.
+   * The targets a call applies: what the caller set, falling back to the module and config
+   * endpoint this release ships with.
    *
    * @private
    * @param {Id5EnablerSettings} settings
@@ -247,7 +262,7 @@ export class Id5PrebidEnabler {
   _configuredTargets(settings) {
     const targets = {};
     if (settings.useExternalModule) {
-      targets.externalModuleUrl = settings.externalModuleUrl || MODULE_URL;
+      targets.externalModuleUrl = settings.externalModuleUrl || ID5_EXTERNAL_MODULE_DEFAULT_URL;
     }
     if (settings.configUrl) {
       targets.configUrl = settings.configUrl;
@@ -256,22 +271,10 @@ export class Id5PrebidEnabler {
   }
 
   /**
-   * The targets a call is given. Network-bound resolution is layered on top of this.
-   *
-   * @private
-   * @param {Id5EnablerSettings} settings
-   * @returns {Object}
-   */
-  _targets(settings) {
-    return this._configuredTargets(settings);
-  }
-
-  /**
-   * Pushes the submodule configuration to Prebid. `setConfig` replaces a topic rather than
-   * merging into it, so the whole `userSync` the page has is carried over with only the ID5
-   * entry of `userIds` replaced. By the same rule, a `setConfig({userSync})` the page makes after
-   * this one replaces the entry written here. Runs as soon as Prebid is available, without
-   * waiting on any network call.
+   * Pushes the submodule configuration to Prebid as soon as Prebid is available. `setConfig`
+   * replaces a topic rather than merging into it, so the whole `userSync` on the page is carried
+   * over with only the ID5 entry of `userIds` replaced, and a later `setConfig({userSync})` from
+   * the page replaces this entry in turn.
    *
    * @private
    * @param {Object} entry
@@ -297,10 +300,9 @@ export class Id5PrebidEnabler {
   }
 
   /**
-   * The page may configure the submodule through a tag manager or a wrapper, at a point this
-   * script has no say over, so the configuration is awaited rather than read once. Resolves as
-   * soon as it appears, through a `userSync` subscription with a poll behind it, and with
-   * `undefined` once the deadline passes.
+   * The ID5 configuration on the page, awaited rather than read once, since a tag manager or a
+   * wrapper may push it at any point. Resolves through a `userSync` subscription with a poll
+   * behind it, and with `undefined` once the deadline passes.
    *
    * @private
    * @param {number} timeoutMs
@@ -313,7 +315,7 @@ export class Id5PrebidEnabler {
     if (present || !timeoutMs) {
       return present;
     }
-    this._log.info(`waiting up to ${timeoutMs}ms for the page to configure ${SUBMODULE_NAME}`);
+    this._log.info(`waiting up to ${timeoutMs}ms for the page to configure ${PBJS_ID5_USER_ID_MODULE_NAME}`);
     return new Promise(resolve => {
       let settled = false;
       const settle = entry => {
@@ -332,22 +334,104 @@ export class Id5PrebidEnabler {
         }
       };
       const unsubscribe = onUserSyncChange(pbjs, check);
-      const poll = setInterval(check, CONFIG_POLL_MS);
+      const poll = setInterval(check, PBJS_CONFIG_POLL_INTERVAL_MS);
       const deadline = setTimeout(() => settle(undefined), timeoutMs);
     });
   }
 
   /**
    * @private
+   * @returns {Promise<boolean>} whether the submodule is refreshed
+   */
+  async _refreshNeeded() {
+    if (this._settings.refreshOnReconfigure === REFRESH_AUTO) {
+      return this._autoRefreshNeeded();
+    }
+    return Boolean(this._settings.refreshOnReconfigure);
+  }
+
+  /**
+   * `'auto'` refreshes where a refresh leads to a fetch and leaves the submodule alone where it
+   * does not: `userSync.autoRefresh` already re-runs every submodule whose configuration changed,
+   * and an ID5 ID the page already holds is one a refresh would only reproduce. A refresh asked
+   * for before the User ID module's first run is dropped by Prebid, and that run takes the
+   * configuration pushed here.
+   *
+   * @private
+   * @returns {Promise<boolean>} whether the submodule is refreshed
+   */
+  async _autoRefreshNeeded() {
+    const pbjs = await this._pbjsDetector.getPbjs();
+    if (currentUserSync(pbjs)?.autoRefresh === true) {
+      this._log.info('auto: userSync.autoRefresh fetches again for the configuration that changed');
+      return false;
+    }
+    const userIds = await this._settledUserIds(pbjs);
+    if (this._idAlreadyHeld(userIds)) {
+      this._log.info('auto: an ID5 ID is already in place, leaving the submodule alone');
+      return false;
+    }
+    this._log.info('auto: no ID5 ID is in place, refreshing');
+    return true;
+  }
+
+  /**
+   * Whether the page already holds an ID5 ID a refresh would only reproduce: with the ID5 module,
+   * the one it provided here, since an ID Prebid replays from its own storage can be days old.
+   * Prebid's own implementation fetches on every run, so there a served ID is taken as held.
+   *
+   * @private
+   * @param {Object|undefined} userIds - the IDs Prebid serves
+   * @returns {boolean}
+   */
+  _idAlreadyHeld(userIds) {
+    return this._settings.useExternalModule
+      ? this._moduleProvidedId()
+      : Boolean(userIds?.id5id?.uid);
+  }
+
+  /**
+   * The IDs Prebid serves, read once its User ID module has finished, for up to
+   * `PBJS_USER_IDS_SETTLE_TIMEOUT_MS`, so a module given the chance to provide an ID has taken it.
+   *
+   * @private
+   * @param {Object} pbjs
+   * @returns {Promise<Object|undefined>}
+   */
+  async _settledUserIds(pbjs) {
+    if (typeof pbjs?.getUserIdsAsync !== 'function') {
+      this._log.warn('this version of Prebid.js cannot report when its User ID module has finished');
+      return undefined;
+    }
+    return withTimeout(pbjs.getUserIdsAsync(), PBJS_USER_IDS_SETTLE_TIMEOUT_MS);
+  }
+
+  /**
+   * Whether the ID5 module has provisioned an ID on this page view.
+   *
+   * @private
+   * @returns {boolean}
+   */
+  _moduleProvidedId() {
+    return this._window[ID5_EXTERNAL_MODULE_GLOBAL_NAME]?.integration?.userIdReady === true;
+  }
+
+  /**
+   * Refreshes the submodule on the Prebid the enabler configured, where the settings ask for it.
+   *
+   * @private
    * @returns {Promise<void>}
    */
-  async _refreshSubmodule() {
-    const pbjs = getPbjsGlobal(this._window);
+  async _refreshIfNeeded() {
+    if (!await this._refreshNeeded()) {
+      return;
+    }
+    const pbjs = await this._pbjsDetector.getPbjs();
     if (typeof pbjs?.refreshUserIds !== 'function') {
       this._log.warn('this version of Prebid.js cannot refresh a single submodule');
       return;
     }
-    await pbjs.refreshUserIds({submoduleNames: [SUBMODULE_NAME]});
+    await pbjs.refreshUserIds({submoduleNames: [PBJS_ID5_USER_ID_MODULE_NAME]});
   }
 }
 
@@ -362,7 +446,7 @@ function paramsOf(config) {
     return {...config.params};
   }
   const params = {...config};
-  ENTRY_KEYS.forEach(key => delete params[key]);
+  PBJS_USER_ID_ENTRY_KEYS.forEach(key => delete params[key]);
   return params;
 }
 
@@ -372,9 +456,9 @@ function paramsOf(config) {
  */
 function buildEntry(config) {
   const entry = {
-    name: SUBMODULE_NAME,
+    name: PBJS_ID5_USER_ID_MODULE_NAME,
     params: paramsOf(config),
-    storage: {...(config.storage || DEFAULT_STORAGE)}
+    storage: {...(config.storage || PBJS_DEFAULT_STORAGE)}
   };
   if (config.bidders) {
     entry.bidders = config.bidders;
@@ -399,8 +483,7 @@ function applyTargets(params, targets, override) {
 }
 
 /**
- * Reports which enabler release configured the submodule. The release doing the configuring is
- * the one reported, so a value found on the page is replaced.
+ * Reports which enabler release configured the submodule, replacing a value found on the page.
  *
  * @param {Id5SubmoduleParams} params - modified in place
  */
@@ -409,11 +492,39 @@ function applyEnablerVersion(params) {
 }
 
 /**
+ * @param {Promise} promise
+ * @param {number} timeoutMs
+ * @returns {Promise<*>} what the promise resolves with, or `undefined` once the deadline passes
+ * or the promise rejects
+ */
+function withTimeout(promise, timeoutMs) {
+  return new Promise(resolve => {
+    const deadline = setTimeout(() => resolve(undefined), timeoutMs);
+    const settle = value => {
+      clearTimeout(deadline);
+      resolve(value);
+    };
+    promise.then(settle, () => settle(undefined));
+  });
+}
+
+/**
+ * The submodule keys the stored ID by partner, so 173 and '173' are the same partner.
+ *
+ * @param {number|string} one
+ * @param {number|string} other
+ * @returns {boolean}
+ */
+function samePartner(one, other) {
+  return String(one) === String(other);
+}
+
+/**
  * @param {Object} entry
  * @returns {boolean}
  */
 function isId5Entry(entry) {
-  return typeof entry?.name === 'string' && entry.name.toLowerCase() === SUBMODULE_NAME.toLowerCase();
+  return typeof entry?.name === 'string' && entry.name.toLowerCase() === PBJS_ID5_USER_ID_MODULE_NAME.toLowerCase();
 }
 
 /**
@@ -454,15 +565,14 @@ function currentUserSync(pbjs) {
 }
 
 /**
- * Installs the enabler on `window.id5PrebidEnabler`, the one global it owns. An enabler already
- * installed is replaced only by a newer release, which takes over its settings. The commands
- * waiting on the `{que: []}` stub of the install snippet are run on the way.
+ * Installs the enabler on `window.id5PrebidEnabler`, the one global it owns, replacing one already
+ * there only with a newer release, which takes over its settings and runs the queued commands.
  *
  * @param {Window} scope
  * @returns {Id5PrebidEnabler} the enabler the page is left with
  */
 export function installEnabler(scope) {
-  const existing = scope[GLOBAL_NAME];
+  const existing = scope[ENABLER_GLOBAL_NAME];
   if (typeof existing?.version === 'string' && semanticVersionCompare(existing.version, currentVersion) >= 0) {
     return existing;
   }
@@ -470,7 +580,7 @@ export function installEnabler(scope) {
   if (existing?._settings) {
     enabler.setup(existing._settings);
   }
-  scope[GLOBAL_NAME] = enabler;
+  scope[ENABLER_GLOBAL_NAME] = enabler;
   if (isArray(existing?.que)) {
     existing.que.forEach(command => enabler._run(command));
   }

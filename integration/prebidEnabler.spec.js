@@ -140,8 +140,15 @@ describe('The Prebid enabler', function () {
       expect(userSync.userIds.map(userId => userId.name)).to.eql(['sharedId', 'id5Id']);
     });
 
-    it('does not refresh the submodule unless it is asked to', async () => {
+    it('refreshes a submodule serving no ID5 ID', async () => {
       const page = await openPage('reconfigure-after-pbjs.html');
+      await page.evaluate(async () => window.reconfigured);
+
+      expect(await page.evaluate(() => window.refreshUserIdsCalls)).to.eql([{submoduleNames: ['id5Id']}]);
+    });
+
+    it('leaves a submodule whose ID the ID5 module provided alone', async () => {
+      const page = await openPage('reconfigure-id-served.html');
       await page.evaluate(async () => window.reconfigured);
 
       expect(await page.evaluate(() => window.refreshUserIdsCalls)).to.be.undefined;

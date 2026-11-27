@@ -31,6 +31,7 @@
 
   const pbjs = window.pbjs = window.pbjs || {};
   pbjs.version = '9.0.0';
+  pbjs.userIds = {};
   pbjs.que = pbjs.que || [];
   pbjs.setConfig = setConfig;
   pbjs.getConfig = getConfig;
@@ -38,6 +39,12 @@
     window.refreshUserIdsCalls = window.refreshUserIdsCalls || [];
     window.refreshUserIdsCalls.push(options);
     return Promise.resolve({});
+  };
+  pbjs.getUserIds = function () {
+    return pbjs.userIds;
+  };
+  pbjs.getUserIdsAsync = function () {
+    return Promise.resolve(pbjs.userIds);
   };
 
   window.pbjsStub = {
