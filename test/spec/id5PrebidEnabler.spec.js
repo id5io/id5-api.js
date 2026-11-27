@@ -1,5 +1,5 @@
 import sinon from 'sinon';
-import {Id5PrebidEnabler, installEnabler} from '../../src/id5PrebidEnabler.js';
+import {Id5PrebidEnabler, Id5ScopedPrebidEnabler, installEnabler} from '../../src/id5PrebidEnabler.js';
 import {version} from '../../generated/version.js';
 
 const PARTNER = 173;
@@ -55,11 +55,19 @@ describe('ID5 Prebid enabler', function () {
   let pbjs;
   let windowObj;
 
+  let warn;
+
   beforeEach(function () {
+    warn = sinon.stub(console, 'warn');
     pbjs = fakePbjs();
     windowObj = {pbjs, document: window.document};
     enabler = new Id5PrebidEnabler(windowObj);
     enabler.setup({externalModuleUrl: PRIMARY_MODULE_URL});
+    warn.resetHistory();
+  });
+
+  afterEach(function () {
+    warn.restore();
   });
 
   it('is globally available', function () {
@@ -742,6 +750,342 @@ describe('ID5 Prebid enabler', function () {
       installEnabler(scope);
 
       expect(scope.id5Prebid).to.be.undefined;
+    });
+  });
+
+  describe('setup', function () {
+    it('keeps its settings for every later call', async function () {
+      enabler.setup({configUrl: 'https://id.example.com/config/prebid', useExternalModule: false});
+
+      await enabler.configureUserIdModule({partner: PARTNER});
+      await enabler.reconfigureUserIdModule();
+
+      const params = id5Entry(pbjs).params;
+      expect(params.configUrl).to.eq('https://id.example.com/config/prebid');
+      expect(params).to.not.have.property('externalModuleUrl');
+    });
+
+    it('reports that it is deprecated and points at what replaces it', function () {
+      expect(enabler.setup({})).to.equal(enabler);
+
+      expect(warn).to.have.been.calledOnce;
+      expect(warn.firstCall.firstArg).to.include('setup() is deprecated');
+      expect(warn.firstCall.firstArg).to.include('createForDefault(');
+      expect(warn.firstCall.firstArg).to.include('createForNamed(');
+    });
+
+    it('says nothing for a call that does not use it', async function () {
+      await enabler.configureUserIdModule({partner: PARTNER});
+      await enabler.createForDefault().configureUserIdModule({partner: PARTNER});
+      await enabler.createForNamed('pbjs').configureUserIdModule({partner: PARTNER});
+
+      expect(warn).to.not.have.been.called;
+    });
+  });
+
+  describe('createForDefault', function () {
+    it('makes an enabler of its own', function () {
+      const scoped = enabler.createForDefault();
+
+      expect(scoped).to.be.instanceOf(Id5ScopedPrebidEnabler);
+      expect(scoped).to.not.equal(enabler);
+    });
+
+    it('configures the Prebid.js the page is found to run', async function () {
+      expect(await enabler.createForDefault().configureUserIdModule({partner: PARTNER})).to.be.true;
+
+      expect(id5Entry(pbjs).params.partner).to.eq(PARTNER);
+      expect(id5Entry(pbjs).params).to.not.have.property('pbjsGlobal');
+    });
+
+    it('configures a Prebid.js that registered a name of its own', async function () {
+      const renamed = fakePbjs();
+      const onRenamed = new Id5PrebidEnabler({_pbjsGlobals: ['customPrebid'], customPrebid: renamed, document: window.document});
+
+      expect(await onRenamed.createForDefault().configureUserIdModule({partner: PARTNER})).to.be.true;
+
+      expect(id5Entry(renamed).params.partner).to.eq(PARTNER);
+    });
+
+    it('takes its own settings on top of the defaults', async function () {
+      await enabler.createForDefault({configUrl: 'https://id.example.com/config/prebid', useExternalModule: false})
+        .configureUserIdModule({partner: PARTNER});
+
+      const params = id5Entry(pbjs).params;
+      expect(params.configUrl).to.eq('https://id.example.com/config/prebid');
+      expect(params).to.not.have.property('externalModuleUrl');
+    });
+
+    it('keeps the settings of setup() out of the enabler it makes', async function () {
+      enabler.setup({configUrl: 'https://id.example.com/config/prebid'});
+
+      await enabler.createForDefault().configureUserIdModule({partner: PARTNER});
+
+      const params = id5Entry(pbjs).params;
+      expect(params.configUrl).to.eq('https://prebid.id5-tech.io/v1/config');
+      expect(params.externalModuleUrl).to.eq('https://cdn.delivrfy.cloud/api/1.0/id5PrebidModule.js');
+    });
+
+    it('keeps its settings out of the shared enabler', async function () {
+      await enabler.createForDefault({configUrl: 'https://id.example.com/config/prebid'}).configureUserIdModule({partner: PARTNER});
+      await enabler.configureUserIdModule({partner: 42});
+
+      expect(id5Entry(pbjs).params.configUrl).to.eq('https://prebid.id5-tech.io/v1/config');
+    });
+
+    it('reconfigures and refreshes on its own settings', async function () {
+      pbjs.setConfig({userSync: {userIds: [{name: 'id5Id', params: {partner: PARTNER}}]}});
+
+      expect(await enabler.createForDefault({refreshOnReconfigure: true}).reconfigureUserIdModule()).to.be.true;
+
+      expect(pbjs.refreshUserIds).to.have.been.calledWith({submoduleNames: ['id5Id']});
+    });
+  });
+
+  describe('createForNamed', function () {
+    let theirs;
+    let ours;
+    let scope;
+    let shared;
+
+    beforeEach(function () {
+      theirs = fakePbjs();
+      ours = fakePbjs();
+      scope = {pbjs: theirs, customPrebid: ours, document: window.document};
+      shared = new Id5PrebidEnabler(scope);
+    });
+
+    // Prebid.js keeps the global and the queue it finds under its name, and registers that name
+    function load(onScope, name) {
+      const que = onScope[name]?.que || [];
+      const pbjsGlobal = Object.assign(onScope[name] = onScope[name] || {}, fakePbjs(), {que});
+      onScope._pbjsGlobals = (onScope._pbjsGlobals || []).concat(name);
+      que.forEach(command => command());
+      return pbjsGlobal;
+    }
+
+    it('makes an enabler of its own', function () {
+      const scoped = shared.createForNamed('customPrebid');
+
+      expect(scoped).to.be.instanceOf(Id5ScopedPrebidEnabler);
+      expect(scoped).to.not.equal(shared);
+      expect(scoped.version).to.eq(version);
+    });
+
+    it('takes no call without a name', function () {
+      expect(() => shared.createForNamed()).to.throw('createForNamed()');
+      expect(() => shared.createForNamed('')).to.throw('createForNamed()');
+      expect(() => shared.createForNamed({useExternalModule: false})).to.throw('createForNamed()');
+    });
+
+    it('configures the named global instead of the one on the page', async function () {
+      expect(await shared.createForNamed('customPrebid').configureUserIdModule({partner: PARTNER})).to.be.true;
+
+      expect(theirs.setConfig).to.not.have.been.called;
+      expect(id5Entry(ours).params.partner).to.eq(PARTNER);
+    });
+
+    it('reports the name to the submodule', async function () {
+      await shared.createForNamed('customPrebid').configureUserIdModule({partner: PARTNER});
+
+      expect(id5Entry(ours).params.pbjsGlobal).to.eq('customPrebid');
+    });
+
+    it('reports no name for the Prebid.js the page is found to run', async function () {
+      await shared.configureUserIdModule({partner: PARTNER});
+
+      expect(id5Entry(theirs).params).to.not.have.property('pbjsGlobal');
+    });
+
+    it('leaves the calls made on the shared enabler on the Prebid.js of the page', async function () {
+      await shared.createForNamed('customPrebid').configureUserIdModule({partner: PARTNER});
+      await shared.configureUserIdModule({partner: 42});
+
+      expect(id5Entry(ours).params.partner).to.eq(PARTNER);
+      expect(id5Entry(theirs).params.partner).to.eq(42);
+    });
+
+    it('takes its own settings on top of the defaults', async function () {
+      await shared.createForNamed('customPrebid', {configUrl: 'https://id.example.com/config/prebid', useExternalModule: false})
+        .configureUserIdModule({partner: PARTNER});
+
+      const params = id5Entry(ours).params;
+      expect(params.configUrl).to.eq('https://id.example.com/config/prebid');
+      expect(params).to.not.have.property('externalModuleUrl');
+    });
+
+    it('keeps the settings of setup() out of the enabler it makes', async function () {
+      shared.setup({configUrl: 'https://id.example.com/config/prebid', externalModuleUrl: PRIMARY_MODULE_URL});
+
+      await shared.createForNamed('customPrebid').configureUserIdModule({partner: PARTNER});
+
+      const params = id5Entry(ours).params;
+      expect(params.configUrl).to.eq('https://prebid.id5-tech.io/v1/config');
+      expect(params.externalModuleUrl).to.eq('https://cdn.delivrfy.cloud/api/1.0/id5PrebidModule.js');
+    });
+
+    it('keeps its settings out of the shared enabler', async function () {
+      await shared.createForNamed('customPrebid', {configUrl: 'https://id.example.com/config/prebid'})
+        .configureUserIdModule({partner: PARTNER});
+      await shared.configureUserIdModule({partner: 42});
+
+      expect(id5Entry(theirs).params.configUrl).to.eq('https://prebid.id5-tech.io/v1/config');
+    });
+
+    it('resolves the targets of its own settings', async function () {
+      const scoped = shared.createForNamed('customPrebid', {externalModuleUrl: PRIMARY_MODULE_URL, configUrl: 'https://id.example.com/config/prebid'});
+
+      expect(await scoped.getExternalModuleUrl()).to.eq(PRIMARY_MODULE_URL);
+      expect(await scoped.getConfigUrl()).to.eq('https://id.example.com/config/prebid');
+    });
+
+    it('reports where the shared enabler was loaded from', async function () {
+      const loaded = new Id5PrebidEnabler({customPrebid: ours, document: {currentScript: {src: ENABLER_SRC, fallback: 'dns'}}});
+
+      await loaded.createForNamed('customPrebid').configureUserIdModule({partner: PARTNER});
+
+      const params = id5Entry(ours).params;
+      expect(params.enablerSrc).to.eq(ENABLER_SRC);
+      expect(params.enablerFallback).to.eq('dns');
+    });
+
+    it('reconfigures and refreshes the named global', async function () {
+      ours.setConfig({userSync: {userIds: [{name: 'id5Id', params: {partner: PARTNER}}]}});
+      theirs.setConfig({userSync: {userIds: [{name: 'id5Id', params: {partner: 99}}]}});
+
+      expect(await shared.createForNamed('customPrebid', {externalModuleUrl: PRIMARY_MODULE_URL, refreshOnReconfigure: true})
+        .reconfigureUserIdModule()).to.be.true;
+
+      expect(id5Entry(ours).params.externalModuleUrl).to.eq(PRIMARY_MODULE_URL);
+      expect(id5Entry(ours).params.pbjsGlobal).to.eq('customPrebid');
+      expect(id5Entry(theirs).params).to.not.have.property('externalModuleUrl');
+      expect(ours.refreshUserIds).to.have.been.calledWith({submoduleNames: ['id5Id']});
+      expect(theirs.refreshUserIds).to.not.have.been.called;
+    });
+
+    it('waits for a named global the page has nothing under yet', async function () {
+      const emptyScope = {document: window.document};
+
+      const configured = new Id5PrebidEnabler(emptyScope).createForNamed('customPrebid').configureUserIdModule({partner: PARTNER});
+      expect(emptyScope.pbjs).to.be.undefined;
+      expect(emptyScope.customPrebid.que).to.be.an('array').with.lengthOf(1);
+
+      const loaded = load(emptyScope, 'customPrebid');
+
+      expect(await configured).to.be.true;
+      expect(id5Entry(loaded).params.partner).to.eq(PARTNER);
+    });
+
+    it('queues once on a global several enablers wait for', function () {
+      const emptyScope = {document: window.document};
+      const onEmpty = new Id5PrebidEnabler(emptyScope);
+
+      onEmpty.createForNamed('customPrebid').configureUserIdModule({partner: PARTNER});
+      onEmpty.createForNamed('customPrebid').configureUserIdModule({partner: PARTNER});
+
+      expect(emptyScope.customPrebid.que).to.have.lengthOf(1);
+    });
+
+    it('configures two of three Prebid.js instances, whatever order they load in', async function () {
+      const emptyScope = {document: window.document};
+      const onEmpty = new Id5PrebidEnabler(emptyScope);
+
+      const first = onEmpty.createForNamed('customPrebidA').configureUserIdModule({partner: PARTNER});
+      const second = onEmpty.createForNamed('customPrebidB').configureUserIdModule({partner: 42});
+
+      // both are awaited, and no global the enabler was not pointed at is touched
+      expect(emptyScope.customPrebidA.que).to.have.lengthOf(1);
+      expect(emptyScope.customPrebidB.que).to.have.lengthOf(1);
+      expect(emptyScope.pbjs).to.be.undefined;
+
+      // the one asked for last loads first, with an instance nobody asked for in between
+      const b = load(emptyScope, 'customPrebidB');
+      const c = load(emptyScope, 'customPrebidC');
+      const a = load(emptyScope, 'customPrebidA');
+
+      expect(await first).to.be.true;
+      expect(await second).to.be.true;
+      expect(id5Entry(a).params.partner).to.eq(PARTNER);
+      expect(id5Entry(b).params.partner).to.eq(42);
+      expect(c.setConfig).to.not.have.been.called;
+      expect(emptyScope.pbjs).to.be.undefined;
+    });
+  });
+
+  describe('createFor', function () {
+    let theirs;
+    let ours;
+    let shared;
+
+    beforeEach(function () {
+      theirs = fakePbjs();
+      ours = fakePbjs();
+      shared = new Id5PrebidEnabler({pbjs: theirs, document: window.document});
+    });
+
+    it('takes a Prebid.js instance alone', function () {
+      expect(shared.createFor(ours)).to.be.instanceOf(Id5ScopedPrebidEnabler);
+      expect(() => shared.createFor('customPrebid')).to.throw('createFor()');
+      expect(() => shared.createFor()).to.throw('createFor()');
+      expect(() => shared.createForNamed(ours)).to.throw('createForNamed()');
+    });
+
+    it('configures the instance it is given instead of the one on the page', async function () {
+      expect(await shared.createFor(ours).configureUserIdModule({partner: PARTNER})).to.be.true;
+
+      expect(theirs.setConfig).to.not.have.been.called;
+      expect(id5Entry(ours).params.partner).to.eq(PARTNER);
+    });
+
+    it('reports no name for the instance it is given', async function () {
+      await shared.createFor(ours).configureUserIdModule({partner: PARTNER});
+
+      expect(id5Entry(ours).params).to.not.have.property('pbjsGlobal');
+    });
+
+    it('takes its own settings on top of the defaults', async function () {
+      shared.setup({configUrl: 'https://id.example.com/config/prebid'});
+
+      await shared.createFor(ours, {useExternalModule: false}).configureUserIdModule({partner: PARTNER});
+
+      const params = id5Entry(ours).params;
+      expect(params.configUrl).to.eq('https://prebid.id5-tech.io/v1/config');
+      expect(params).to.not.have.property('externalModuleUrl');
+    });
+
+    it('reconfigures and refreshes the instance it is given', async function () {
+      ours.setConfig({userSync: {userIds: [{name: 'id5Id', params: {partner: PARTNER}}]}});
+      theirs.setConfig({userSync: {userIds: [{name: 'id5Id', params: {partner: 99}}]}});
+
+      expect(await shared.createFor(ours, {externalModuleUrl: PRIMARY_MODULE_URL, refreshOnReconfigure: true})
+        .reconfigureUserIdModule()).to.be.true;
+
+      expect(id5Entry(ours).params.externalModuleUrl).to.eq(PRIMARY_MODULE_URL);
+      expect(id5Entry(theirs).params).to.not.have.property('externalModuleUrl');
+      expect(ours.refreshUserIds).to.have.been.calledWith({submoduleNames: ['id5Id']});
+      expect(theirs.refreshUserIds).to.not.have.been.called;
+    });
+
+    it('waits for the instance it is given to load', async function () {
+      const loading = {que: []};
+
+      const configured = shared.createFor(loading).configureUserIdModule({partner: PARTNER});
+      expect(loading.que).to.have.lengthOf(1);
+      Object.assign(loading, fakePbjs(), {que: loading.que});
+      loading.que.forEach(command => command());
+
+      expect(await configured).to.be.true;
+      expect(id5Entry(loading).params.partner).to.eq(PARTNER);
+      expect(theirs.setConfig).to.not.have.been.called;
+    });
+
+    it('keeps parallel calls on their own Prebid.js', async function () {
+      const first = shared.createFor(ours).configureUserIdModule({partner: PARTNER});
+      const second = shared.createForDefault().configureUserIdModule({partner: 99});
+      await Promise.all([first, second]);
+
+      expect(id5Entry(ours).params.partner).to.eq(PARTNER);
+      expect(id5Entry(theirs).params.partner).to.eq(99);
     });
   });
 

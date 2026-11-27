@@ -71,6 +71,7 @@ const PBJS_USER_ID_ENTRY_KEYS = ['params', 'storage', 'bidders', 'value', 'aucti
  * @property {string} [enablerVersion] - the enabler release that configured the submodule, set by the enabler
  * @property {string} [enablerSrc] - URL this enabler script was loaded from, set by the enabler
  * @property {string} [enablerFallback] - how this enabler address was found when the page fell back from the primary host, set by the enabler
+ * @property {string} [pbjsGlobal] - the global the Prebid.js carrying the submodule is installed under, set by the enabler
  */
 
 /**
@@ -97,50 +98,40 @@ const PBJS_USER_ID_ENTRY_KEYS = ['params', 'storage', 'bidders', 'value', 'aucti
  * the submodule; 3000 by default, 0 reads the configuration once
  */
 
-export class Id5PrebidEnabler {
+/**
+ * What every enabler made on the same page shares.
+ *
+ * @typedef {Object} Id5EnablerContext
+ * @property {Object} log
+ * @property {string} [scriptSrc] - URL the enabler script was loaded from
+ * @property {string} [scriptFallback] - how that address was found when the page fell back from the primary host
+ * @property {Map<string|Object|undefined, PbjsDetector>} detectors - one per Prebid.js the page is pointed at, so a
+ * Prebid.js already awaited is not queued on twice
+ */
+
+/**
+ * Configures the ID5 submodule in one Prebid.js, on settings of its own.
+ */
+export class Id5ScopedPrebidEnabler {
   /** @type {string} */
   version = currentVersion;
 
   /**
-   * Commands pushed here run straight away, so the same snippet works before and after this
-   * script has loaded.
-   *
-   * @type {{push: function(function(Id5PrebidEnabler): void): void}}
+   * @param {Window} windowObj
+   * @param {string|Object} [pbjsRef] - the Prebid.js to configure: the name of the global it is
+   * installed under, or the instance itself; `pbjs` and the names registered in `_pbjsGlobals` are
+   * looked up when it is not given
+   * @param {Id5EnablerSettings} settings - on top of the defaults
+   * @param {Id5EnablerContext} context
    */
-  que = {push: command => this._run(command)};
-
-  /** @type {boolean} */
-  set debug(isDebug) {
-    setGlobalDebug(isDebug);
-  }
-
-  get debug() {
-    return isGlobalDebug();
-  }
-
-  constructor(windowObj = window) {
+  constructor(windowObj, pbjsRef, settings, context) {
     this._window = windowObj;
-    // the script element is readable while this script executes synchronously, which is where
-    // installEnabler() runs from
-    const script = windowObj.document?.currentScript;
-    this._scriptSrc = script?.src || undefined;
-    // how this address was found when the page fell back from the primary host
-    this._scriptFallback = script?.fallback || undefined;
-    this._log = new InvocationLogger(SOURCE, 0);
-    this._pbjsDetector = new PbjsDetector(windowObj, this._log);
-    this._settings = {...DEFAULT_SETTINGS};
-  }
-
-  /**
-   * Overrides the settings for every later call; the entry points take the submodule
-   * configuration alone.
-   *
-   * @param {Id5EnablerSettings} settings
-   * @returns {Id5PrebidEnabler}
-   */
-  setup(settings = {}) {
-    this._settings = {...this._settings, ...settings};
-    return this;
+    this._pbjsRef = pbjsRef || undefined;
+    this._settings = {...DEFAULT_SETTINGS, ...settings};
+    this._context = context;
+    this._log = context.log;
+    this._scriptSrc = context.scriptSrc;
+    this._scriptFallback = context.scriptFallback;
   }
 
   /**
@@ -157,6 +148,7 @@ export class Id5PrebidEnabler {
     }
     applyTargets(entry.params, this._configuredTargets(this._settings), false);
     applyEnablerVersion(entry.params);
+    this._applyPbjsRef(entry.params);
     this._applyEnablerSource(entry.params);
     if (!await this._applyEntry(entry, config)) {
       return false;
@@ -192,6 +184,7 @@ export class Id5PrebidEnabler {
     applyTargets(params, this._configuredTargets(this._settings), true);
     const entry = {...existing, params: {...params, ...given}};
     applyEnablerVersion(entry.params);
+    this._applyPbjsRef(entry.params);
     this._applyEnablerSource(entry.params);
     if (!this._settings.useExternalModule) {
       delete entry.params.externalModuleUrl;
@@ -219,14 +212,15 @@ export class Id5PrebidEnabler {
   }
 
   /**
+   * Reports the global the configured Prebid.js is installed under, so the external module binds
+   * to the same one. A Prebid.js handed over as an instance has no name to report.
+   *
    * @private
-   * @param {function(Id5PrebidEnabler): void} command
+   * @param {Id5SubmoduleParams} params - modified in place
    */
-  _run(command) {
-    try {
-      command(this);
-    } catch (error) {
-      this._log.error('queued command failed', error);
+  _applyPbjsRef(params) {
+    if (typeof this._pbjsRef === 'string') {
+      params.pbjsGlobal = this._pbjsRef;
     }
   }
 
@@ -282,7 +276,7 @@ export class Id5PrebidEnabler {
    * @returns {Promise<boolean>} whether the configuration was pushed to Prebid
    */
   async _applyEntry(entry, config) {
-    const pbjs = await this._pbjsDetector.getPbjs();
+    const pbjs = await this._getPbjs();
     if (!pbjs || typeof pbjs.setConfig !== 'function') {
       this._log.error('Prebid.js is not available, the ID5 submodule was not configured');
       return false;
@@ -309,7 +303,7 @@ export class Id5PrebidEnabler {
    * @returns {Promise<Object|undefined>} the ID5 submodule configuration on the page
    */
   async _awaitEntry(timeoutMs) {
-    const pbjs = await this._pbjsDetector.getPbjs();
+    const pbjs = await this._getPbjs();
     const entryOnPage = () => (currentUserSync(pbjs)?.userIds || []).find(isId5Entry);
     const present = entryOnPage();
     if (present || !timeoutMs) {
@@ -340,6 +334,22 @@ export class Id5PrebidEnabler {
   }
 
   /**
+   * The Prebid.js this enabler configures, awaited until it is on the page.
+   *
+   * @private
+   * @returns {Promise<Object|null>}
+   */
+  _getPbjs() {
+    const detectors = this._context.detectors;
+    let detector = detectors.get(this._pbjsRef);
+    if (!detector) {
+      detector = new PbjsDetector(this._window, this._log, this._pbjsRef);
+      detectors.set(this._pbjsRef, detector);
+    }
+    return detector.getPbjs();
+  }
+
+  /**
    * @private
    * @returns {Promise<boolean>} whether the submodule is refreshed
    */
@@ -361,7 +371,7 @@ export class Id5PrebidEnabler {
    * @returns {Promise<boolean>} whether the submodule is refreshed
    */
   async _autoRefreshNeeded() {
-    const pbjs = await this._pbjsDetector.getPbjs();
+    const pbjs = await this._getPbjs();
     if (currentUserSync(pbjs)?.autoRefresh === true) {
       this._log.info('auto: userSync.autoRefresh fetches again for the configuration that changed');
       return false;
@@ -426,12 +436,120 @@ export class Id5PrebidEnabler {
     if (!await this._refreshNeeded()) {
       return;
     }
-    const pbjs = await this._pbjsDetector.getPbjs();
+    const pbjs = await this._getPbjs();
     if (typeof pbjs?.refreshUserIds !== 'function') {
       this._log.warn('this version of Prebid.js cannot refresh a single submodule');
       return;
     }
     await pbjs.refreshUserIds({submoduleNames: [PBJS_ID5_USER_ID_MODULE_NAME]});
+  }
+}
+
+/**
+ * The enabler installed on `window.id5PrebidEnabler`, which the whole page shares. It configures
+ * the Prebid.js the page is found to run, on the defaults plus the settings given to `setup()`,
+ * and makes the enablers that carry settings of their own.
+ */
+export class Id5PrebidEnabler extends Id5ScopedPrebidEnabler {
+  /**
+   * Commands pushed here run straight away, so the same snippet works before and after this
+   * script has loaded.
+   *
+   * @type {{push: function(function(Id5PrebidEnabler): void): void}}
+   */
+  que = {push: command => this._run(command)};
+
+  /** @type {boolean} */
+  set debug(isDebug) {
+    setGlobalDebug(isDebug);
+  }
+
+  get debug() {
+    return isGlobalDebug();
+  }
+
+  constructor(windowObj = window) {
+    // the script element is readable while this script executes synchronously, which is where
+    // installEnabler() runs from
+    const script = windowObj.document?.currentScript;
+    super(windowObj, undefined, {}, {
+      log: new InvocationLogger(SOURCE, 0),
+      scriptSrc: script?.src || undefined,
+      // how this address was found when the page fell back from the primary host
+      scriptFallback: script?.fallback || undefined,
+      detectors: new Map()
+    });
+  }
+
+  /**
+   * Overrides the settings of every later call made on this enabler, for everyone on the page
+   * who calls it. Kept for backward compatibility with the pages that already call it.
+   *
+   * @deprecated use `createForDefault()`, `createForNamed()` or `createFor()`
+   * @param {Id5EnablerSettings} settings
+   * @returns {Id5PrebidEnabler}
+   */
+  setup(settings = {}) {
+    console.warn('ID5 Prebid enabler: setup() is deprecated. Use enabler.createForDefault({...}), enabler.createForNamed(name, {...}) or enabler.createFor(pbjs, {...}) for an enabler with settings of its own.');
+    this._settings = {...this._settings, ...settings};
+    return this;
+  }
+
+  /**
+   * An enabler for the Prebid.js the page is found to run: `pbjs`, or the one that registered a
+   * name of its own in `_pbjsGlobals`. Its settings are the defaults plus the ones given here;
+   * the ones given to `setup()` stay with this enabler.
+   *
+   * @param {Id5EnablerSettings} [settings]
+   * @returns {Id5ScopedPrebidEnabler}
+   */
+  createForDefault(settings = {}) {
+    return new Id5ScopedPrebidEnabler(this._window, undefined, settings, this._context);
+  }
+
+  /**
+   * An enabler for the Prebid.js installed under the given global, which is the only one it
+   * touches. Its settings are the defaults plus the ones given here; the ones given to `setup()`
+   * stay with this enabler.
+   *
+   * @param {string} pbjsGlobal - the name of the global the Prebid.js to configure is installed under
+   * @param {Id5EnablerSettings} [settings]
+   * @returns {Id5ScopedPrebidEnabler}
+   * @throws {Error} when no name is given, so that a missing name never configures another Prebid.js
+   */
+  createForNamed(pbjsGlobal, settings = {}) {
+    if (typeof pbjsGlobal !== 'string' || pbjsGlobal.length === 0) {
+      throw new Error('ID5 Prebid enabler: createForNamed() takes the name of the global Prebid.js is installed under');
+    }
+    return new Id5ScopedPrebidEnabler(this._window, pbjsGlobal, settings, this._context);
+  }
+
+  /**
+   * An enabler for the given Prebid.js instance, which is the only one it touches. Its settings
+   * are the defaults plus the ones given here; the ones given to `setup()` stay with this enabler.
+   *
+   * @param {Object} pbjs - the Prebid.js instance to configure
+   * @param {Id5EnablerSettings} [settings]
+   * @returns {Id5ScopedPrebidEnabler}
+   * @throws {Error} when no instance is given, so that a missing one never configures another Prebid.js
+   */
+  createFor(pbjs, settings = {}) {
+    if (!pbjs || typeof pbjs !== 'object') {
+      throw new Error('ID5 Prebid enabler: createFor() takes the Prebid.js instance to configure');
+    }
+    return new Id5ScopedPrebidEnabler(this._window, pbjs, settings, this._context);
+  }
+
+  /**
+   * @private
+   * @param {function(Id5PrebidEnabler): void} command
+   */
+  _run(command) {
+    try {
+      command(this);
+    } catch (error) {
+      this._log.error('queued command failed', error);
+    }
   }
 }
 
@@ -578,7 +696,7 @@ export function installEnabler(scope) {
   }
   const enabler = new Id5PrebidEnabler(scope);
   if (existing?._settings) {
-    enabler.setup(existing._settings);
+    enabler._settings = {...enabler._settings, ...existing._settings};
   }
   scope[ENABLER_GLOBAL_NAME] = enabler;
   if (isArray(existing?.que)) {
