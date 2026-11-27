@@ -981,12 +981,12 @@ For pages that build their own Prebid configuration, the enabler exposes what it
 
 | Method | Returns |
 |---|---|
-| `buildUserIdConfig(config)` | the ID5 entry of `userSync.userIds` that `configureUserIdModule(config)` writes |
-| `rebuildUserIdConfig(config)` | `{ pbjs, existing, rebuilt }`: the ID5 entry that `reconfigureUserIdModule(config)` writes, the entry it replaces and the Prebid.js it was read from |
+| `buildUserIdConfig(config)` | the ID5 entry of `userSync.userIds`, built from `config` and the enabler defaults. It is the entry `configureUserIdModule(config)` writes |
+| `rebuildUserIdConfig(config)` | `{ pbjs, existing, rebuilt }`: the ID5 entry found on the page (`existing`), that entry with the ID5 endpoints updated and the parameters of `config` applied (`rebuilt`), and the Prebid.js it was found in (`pbjs`). `rebuilt` is the entry `reconfigureUserIdModule(config)` writes |
 | `getExternalModuleUrl()` | a URL the ID5 external module can be loaded from |
 | `getConfigUrl()` | the ID5 config endpoint |
 
-An entry is an item of `userSync.userIds`, Prebid's `UserIdConfig`: complete and ready to be written as it is. Both methods resolve to `undefined` where the configuring call would have written nothing, so check the result before writing it.
+An entry is an item of `userSync.userIds`, Prebid's `UserIdConfig`: complete and ready to be written as it is. `buildUserIdConfig()` resolves to `undefined` without a `partner` and `rebuildUserIdConfig()` when the page has no ID5 entry, so check the result before writing it.
 
 `buildUserIdConfig()` neither reads nor waits for Prebid.js. `auctionDelay` and `syncDelay` belong to `userSync`, so the page sets them itself:
 
