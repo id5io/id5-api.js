@@ -948,6 +948,8 @@ Commands pushed on `que` run as soon as the enabler is on the page, so the scrip
 
 That single call produces a configuration equivalent to the one above: `externalModuleUrl` is set to `https://cdn.delivrfy.cloud/api/1.0/id5PrebidModule.js`, `configUrl` to `https://prebid.id5-tech.io/v1/config`, `enablerVersion` to the enabler release in use, and the storage to type `html5`, name `id5id`, 90 days. An endpoint the page sets itself is kept — `configureUserIdModule()` only fills in what is missing, `enablerVersion` aside, which the enabler always reports itself. It returns a `Promise<boolean>` telling whether a configuration was pushed to Prebid, and `partner` is required.
 
+Called on `enabler`, `configureUserIdModule()` configures the default Prebid.js of the page: `window.pbjs`, falling back to a Prebid.js that runs under a name of its own and registered it in `_pbjsGlobals`. A Prebid.js under a given name, or one handed over as an instance, is [chosen when the enabler is made](#choosing-the-prebidjs-to-configure).
+
 The examples that follow are the queued command alone — each goes inside a `que.push()` like the one above.
 
 The submodule parameters go on the configuration object, either flat or under `params`, alongside the entry level keys `storage`, `bidders`, `value`, `auctionDelay` and `syncDelay`:
@@ -965,7 +967,7 @@ Other User ID modules are kept intact, so the enabler can be used on a page that
 
 #### Pages that already configure the ID5 submodule
 
-`reconfigureUserIdModule()` keeps the configuration the page already has and updates the ID5 endpoints in it. Parameters passed to the call override the ones already on the page; the rest of the configuration is left alone. It waits up to `waitForConfigMs` for the page to configure the submodule, so it can be called before the page's own `setConfig`.
+`reconfigureUserIdModule()` keeps the configuration the page already has and updates the ID5 endpoints in it. Parameters passed to the call override the ones already on the page; the rest of the configuration is left alone. It waits up to `waitForConfigMs` for the page to configure the submodule, so it can be called before the page's own `setConfig`. Called on `enabler`, it reconfigures the default Prebid.js of the page, the same one `configureUserIdModule()` configures; on an enabler made with `createForNamed()` or `createFor()`, the Prebid.js that enabler was made for.
 
 `partner` is the one parameter that cannot be overridden this way. The ID5 ID the page serves is the one stored for its partner, and the submodule drops it as soon as it is configured for another one, so a call naming a different partner is refused and nothing is pushed to Prebid. Use `configureUserIdModule()` to configure another partner.
 
@@ -982,12 +984,38 @@ For pages that build their own Prebid configuration, the enabler exposes the val
 | `getExternalModuleUrl()` | a URL the ID5 external module can be loaded from |
 | `getConfigUrl()` | the ID5 config endpoint |
 
-#### Settings
+#### Choosing the Prebid.js to configure
 
-`setup(settings)` overrides the settings used by every later call, and is the only way they are given — the entry points take the submodule configuration alone.
+An enabler configures one Prebid.js. The method that makes the enabler picks which one:
+
+| Method | Prebid.js the enabler configures |
+|---|---|
+| `createForDefault(settings)` | the default one: `window.pbjs`, falling back to a Prebid.js that registered a name of its own in `_pbjsGlobals` |
+| `createForNamed(pbjsGlobal, settings)` | the one installed under the global named `pbjsGlobal` |
+| `createFor(pbjs, settings)` | the instance `pbjs`, for a Prebid.js that is installed under no global |
 
 ```javascript
-enabler.setup({ useExternalModule: false }).configureUserIdModule({ partner: 173 });
+enabler.createForDefault().configureUserIdModule({ partner: 173 });
+enabler.createForNamed('customPrebid').configureUserIdModule({ partner: 173 });
+enabler.createFor(customPrebidInstance).configureUserIdModule({ partner: 173 });
+```
+
+The enabler each of them returns has `configureUserIdModule()`, `reconfigureUserIdModule()`, `getExternalModuleUrl()` and `getConfigUrl()`, and touches no Prebid.js but its own. A call made straight on `enabler`, as in the examples above, configures the default Prebid.js.
+
+On a page carrying more than one Prebid.js, `createForNamed()` and `createFor()` leave every other instance untouched. A name can be given before the Prebid.js running under it is on the page. Several Prebid.js instances take one enabler each:
+
+```javascript
+['customPrebidA', 'customPrebidB'].forEach(name =>
+  enabler.createForNamed(name).configureUserIdModule({ partner: 173 }));
+```
+
+#### Settings
+
+`settings` is the last argument of `createForDefault()`, `createForNamed()` and `createFor()`. It is optional, goes on top of the defaults below, and holds for every call on the enabler returned — the entry points take the submodule configuration alone. A call made straight on `enabler` runs on the defaults.
+
+```javascript
+enabler.createForDefault({ useExternalModule: false }).configureUserIdModule({ partner: 173 });
+enabler.createForNamed('customPrebid', { useExternalModule: false }).configureUserIdModule({ partner: 173 });
 ```
 
 | Setting | Description |

@@ -46,6 +46,76 @@ describe('ID5 Prebid module', function () {
     expect(registerObj.fetchIdData.originVersion).to.eq(pbjsVersion);
   });
 
+  it('should take the Prebid.js version from the global the enabler named', async () => {
+    window.customPrebid = {version: '9.1.0'};
+    try {
+      window.id5Prebid.integration.fetchId5Id({}, {partner: 1234, pbjsGlobal: 'customPrebid'}, {});
+
+      await instanceStub.instanceRegistered();
+
+      expect(instanceStub.register.firstCall.firstArg.fetchIdData.originVersion).to.eq('9.1.0');
+    } finally {
+      delete window.customPrebid;
+    }
+  });
+
+  describe('events tracking', function () {
+    const TRACKED_PARTNER = 987650;
+    let trackerFlags;
+
+    // the tracker is started on a timer once the fetch is under way
+    const trackerStarted = () => new Promise(resolve => setTimeout(resolve, 20));
+
+    beforeEach(function () {
+      trackerFlags = window.id5_pbjs_et;
+      delete window.id5_pbjs_et;
+      window.pbjs = {version: pbjsVersion, que: []};
+    });
+
+    afterEach(function () {
+      window.id5_pbjs_et = trackerFlags;
+    });
+
+    it('should start on the detected Prebid.js when the enabler reported none', async () => {
+      window.id5Prebid.integration.fetchId5Id({}, {partner: TRACKED_PARTNER}, {});
+      await instanceStub.instanceRegistered();
+      await trackerStarted();
+
+      expect(window.pbjs.que).to.have.lengthOf(1);
+    });
+
+    it('should start for the same partner on every global the enabler named', async () => {
+      window.customPrebidA = {version: '9.1.0', que: []};
+      window.customPrebidB = {version: '9.1.0', que: []};
+      try {
+        window.id5Prebid.integration.fetchId5Id({}, {partner: TRACKED_PARTNER, pbjsGlobal: 'customPrebidA'}, {});
+        window.id5Prebid.integration.fetchId5Id({}, {partner: TRACKED_PARTNER, pbjsGlobal: 'customPrebidB'}, {});
+        await instanceStub.instanceRegistered();
+        await trackerStarted();
+
+        expect(window.customPrebidA.que).to.have.lengthOf(1);
+        expect(window.customPrebidB.que).to.have.lengthOf(1);
+      } finally {
+        delete window.customPrebidA;
+        delete window.customPrebidB;
+      }
+    });
+
+    it('should start on the global the enabler named', async () => {
+      window.customPrebid = {version: '9.1.0', que: []};
+      try {
+        window.id5Prebid.integration.fetchId5Id({}, {partner: TRACKED_PARTNER, pbjsGlobal: 'customPrebid'}, {});
+        await instanceStub.instanceRegistered();
+        await trackerStarted();
+
+        expect(window.customPrebid.que).to.have.lengthOf(1);
+        expect(window.pbjs.que).to.be.empty;
+      } finally {
+        delete window.customPrebid;
+      }
+    });
+  });
+
   it('should pass URL the module was loaded from to fetch data', async () => {
     const integration = window.id5Prebid.integration;
     const originalScriptSrc = integration._scriptSrc;

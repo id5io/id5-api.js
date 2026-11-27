@@ -1,12 +1,13 @@
-import {PbjsDetector, getPbjsGlobal} from '../../lib/prebid/pbjsUtils.js';
+import sinon from 'sinon';
+import {PbjsDetector, getPbjsInstance} from '../../lib/prebid/pbjsUtils.js';
 
-describe('getPbjsGlobal', function () {
+describe('getPbjsInstance', function () {
   it('should return pbjs when it exists on scope', function () {
     const mockScope = {
       pbjs: {version: '8.0.0'}
     };
 
-    const result = getPbjsGlobal(mockScope);
+    const result = getPbjsInstance(mockScope);
 
     expect(result).to.equal(mockScope.pbjs);
     expect(result.version).to.equal('8.0.0');
@@ -18,7 +19,7 @@ describe('getPbjsGlobal', function () {
       customPbjs: {version: '8.0.0', que: []}
     };
 
-    const result = getPbjsGlobal(mockScope);
+    const result = getPbjsInstance(mockScope);
 
     expect(result).to.equal(mockScope.customPbjs);
     expect(result.version).to.equal('8.0.0');
@@ -31,7 +32,7 @@ describe('getPbjsGlobal', function () {
       customPbjs: {version: '7.0.0'}
     };
 
-    const result = getPbjsGlobal(mockScope);
+    const result = getPbjsInstance(mockScope);
 
     expect(result).to.equal(mockScope.pbjs);
     expect(result.version).to.equal('8.0.0');
@@ -40,7 +41,7 @@ describe('getPbjsGlobal', function () {
   it('should return undefined when no pbjs found', function () {
     const mockScope = {};
 
-    const result = getPbjsGlobal(mockScope);
+    const result = getPbjsInstance(mockScope);
 
     expect(result).to.be.undefined;
   });
@@ -50,7 +51,7 @@ describe('getPbjsGlobal', function () {
       _pbjsGlobals: []
     };
 
-    const result = getPbjsGlobal(mockScope);
+    const result = getPbjsInstance(mockScope);
 
     expect(result).to.be.undefined;
   });
@@ -60,7 +61,7 @@ describe('getPbjsGlobal', function () {
       _pbjsGlobals: 'notAnArray'
     };
 
-    const result = getPbjsGlobal(mockScope);
+    const result = getPbjsInstance(mockScope);
 
     expect(result).to.be.undefined;
   });
@@ -72,7 +73,7 @@ describe('getPbjsGlobal', function () {
       secondPbjs: {version: '7.0.0'}
     };
 
-    const result = getPbjsGlobal(mockScope);
+    const result = getPbjsInstance(mockScope);
 
     expect(result).to.equal(mockScope.firstPbjs);
     expect(result.version).to.equal('8.0.0');
@@ -236,7 +237,7 @@ describe('PbjsDetector', function () {
       customWindow.myPbjs = {que: [], version: '8.0.0'};
       customWindow._pbjsGlobals.push('myPbjs');
 
-      expect(getPbjsGlobal(customWindow)).to.equal(customWindow.myPbjs);
+      expect(getPbjsInstance(customWindow)).to.equal(customWindow.myPbjs);
     });
 
     it('should keep the default global once Prebid has taken it over', function () {
@@ -248,7 +249,7 @@ describe('PbjsDetector', function () {
       customWindow.myPbjs = {que: [], version: '7.0.0'};
       customWindow._pbjsGlobals.push('myPbjs');
 
-      expect(getPbjsGlobal(customWindow)).to.equal(customWindow.pbjs);
+      expect(getPbjsInstance(customWindow)).to.equal(customWindow.pbjs);
     });
 
     it('should use existing custom pbjs.que if already present', async function () {
@@ -267,5 +268,116 @@ describe('PbjsDetector', function () {
       expect(customWindow.myPbjs.que).to.have.lengthOf(2);
       expect(customWindow.myPbjs.que[0]).to.equal(existingCallback);
     });
+  });
+});
+
+describe('getPbjsInstance with a named Prebid.js', function () {
+  it('should return the named global over the default one', function () {
+    const mockScope = {
+      pbjs: {version: '7.0.0'},
+      customPrebid: {version: '8.0.0'}
+    };
+
+    expect(getPbjsInstance(mockScope, 'customPrebid')).to.equal(mockScope.customPrebid);
+  });
+
+  it('should return the named global over the one registered in _pbjsGlobals', function () {
+    const mockScope = {
+      _pbjsGlobals: ['otherPbjs'],
+      otherPbjs: {version: '7.0.0'},
+      customPrebid: {version: '8.0.0'}
+    };
+
+    expect(getPbjsInstance(mockScope, 'customPrebid')).to.equal(mockScope.customPrebid);
+  });
+
+  it('should return undefined when the page has nothing under the name', function () {
+    const mockScope = {
+      pbjs: {version: '7.0.0'}
+    };
+
+    expect(getPbjsInstance(mockScope, 'customPrebid')).to.be.undefined;
+  });
+
+  it('should return the instance it is given', function () {
+    const customPrebid = {version: '8.0.0'};
+
+    expect(getPbjsInstance({pbjs: {version: '7.0.0'}}, customPrebid)).to.equal(customPrebid);
+  });
+});
+
+describe('PbjsDetector with a named Prebid.js', function () {
+  it('should queue on the named global and leave the default one alone', async function () {
+    const mockScope = {
+      pbjs: {version: '7.0.0', que: []},
+      customPrebid: {version: '8.0.0', que: []}
+    };
+
+    const promise = new PbjsDetector(mockScope, undefined, 'customPrebid').getPbjs();
+    expect(mockScope.pbjs.que).to.have.lengthOf(0);
+    expect(mockScope.customPrebid.que).to.have.lengthOf(1);
+    mockScope.customPrebid.que[0]();
+
+    expect(await promise).to.equal(mockScope.customPrebid);
+  });
+
+  it('should install a stub under the name the page has nothing under', async function () {
+    const mockScope = {};
+
+    const promise = new PbjsDetector(mockScope, undefined, 'customPrebid').getPbjs();
+    expect(mockScope.pbjs).to.be.undefined;
+    expect(mockScope.customPrebid.que).to.be.an('array').with.lengthOf(1);
+
+    // Prebid.js loading under that name keeps the global it finds, queue included
+    mockScope.customPrebid.version = '8.0.0';
+    mockScope.customPrebid.que[0]();
+
+    const pbjs = await promise;
+    expect(pbjs).to.equal(mockScope.customPrebid);
+    expect(pbjs.version).to.equal('8.0.0');
+  });
+
+  it('should queue on the instance it is given', async function () {
+    const customPrebid = {version: '8.0.0', que: []};
+    const mockScope = {pbjs: {version: '7.0.0', que: []}};
+
+    const promise = new PbjsDetector(mockScope, undefined, customPrebid).getPbjs();
+    expect(mockScope.pbjs.que).to.have.lengthOf(0);
+    customPrebid.que[0]();
+
+    expect(await promise).to.equal(customPrebid);
+  });
+
+  it('should leave a value under the name that is not an object as it is', async function () {
+    const mockScope = {name: '', opener: null, status: 0};
+    const logger = {error: sinon.spy()};
+
+    expect(await new PbjsDetector(mockScope, logger, 'name').getPbjs()).to.be.null;
+    expect(await new PbjsDetector(mockScope, logger, 'opener').getPbjs()).to.be.null;
+    expect(await new PbjsDetector(mockScope, logger, 'status').getPbjs()).to.be.null;
+
+    expect(mockScope).to.deep.equal({name: '', opener: null, status: 0});
+    expect(logger.error).to.have.been.calledThrice;
+  });
+
+  it('should wait for nothing when it is given neither a name nor an instance', async function () {
+    const mockScope = {pbjs: {version: '7.0.0', que: []}};
+    const logger = {error: sinon.spy()};
+
+    expect(await new PbjsDetector(mockScope, logger, true).getPbjs()).to.be.null;
+
+    expect(mockScope).to.deep.equal({pbjs: {version: '7.0.0', que: []}});
+    expect(logger.error).to.have.been.calledOnce;
+  });
+
+  it('should leave the page alone when it is given an instance', async function () {
+    const customPrebid = {version: '8.0.0'};
+    const mockScope = {};
+
+    const promise = new PbjsDetector(mockScope, undefined, customPrebid).getPbjs();
+    customPrebid.que[0]();
+
+    expect(await promise).to.equal(customPrebid);
+    expect(mockScope).to.deep.equal({});
   });
 });

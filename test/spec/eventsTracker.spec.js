@@ -517,6 +517,48 @@ describe('initEventsTracker', function () {
     expect(window.id5_pbjs_et[1]).to.equal(true);
     expect(window.id5_pbjs_et[2]).to.equal(true);
   });
+
+  it('registers for the same partnerId on each Prebid.js it is given by name', function () {
+    window.customPrebidA = {que: {push: sinon.spy()}};
+    window.customPrebidB = {que: {push: sinon.spy()}};
+    try {
+      initEventsTracker(4242);
+      initEventsTracker(4242, undefined, undefined, 'customPrebidA');
+      initEventsTracker(4242, undefined, undefined, 'customPrebidB');
+
+      expect(window.pbjs.que.push.callCount).to.equal(1);
+      expect(window.customPrebidA.que.push.callCount).to.equal(1);
+      expect(window.customPrebidB.que.push.callCount).to.equal(1);
+      expect(window.id5_pbjs_et).to.deep.equal({4242: true, '4242@customPrebidA': true, '4242@customPrebidB': true});
+    } finally {
+      delete window.customPrebidA;
+      delete window.customPrebidB;
+    }
+  });
+
+  it('registers only once for the same partnerId on the same named Prebid.js', function () {
+    window.customPrebid = {que: {push: sinon.spy()}};
+    try {
+      initEventsTracker(4242, undefined, undefined, 'customPrebid');
+      initEventsTracker(4242, undefined, undefined, 'customPrebid');
+
+      expect(window.customPrebid.que.push.callCount).to.equal(1);
+    } finally {
+      delete window.customPrebid;
+    }
+  });
+
+  it('registers on the Prebid.js it is given by name', function () {
+    window.customPrebid = {que: {push: sinon.spy()}};
+    try {
+      initEventsTracker(4242, undefined, undefined, 'customPrebid');
+
+      expect(window.customPrebid.que.push.callCount).to.equal(1);
+      expect(window.pbjs.que.push.callCount).to.equal(0);
+    } finally {
+      delete window.customPrebid;
+    }
+  });
 });
 
 async function parseRequestBody(opts) {

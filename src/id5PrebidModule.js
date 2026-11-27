@@ -5,7 +5,7 @@ import {
   isGlobalTrace,
   setGlobalDebug
 } from '../lib/utils.js';
-import {getPbjsGlobal} from '../lib/prebid/pbjsUtils.js';
+import {getPbjsInstance} from '../lib/prebid/pbjsUtils.js';
 import {toOriginsOnlyRefererInfo} from '../lib/refererDetection.js';
 import {version as currentVersion} from '../generated/version.js';
 import {Config} from '../lib/config.js';
@@ -67,6 +67,7 @@ import {DEFAULT_ENDPOINTS} from '@id5io/multiplexing/endpoints';
  * @property {string} enablerVersion - Release of the ID5 Prebid enabler that configured the submodule, set by the enabler
  * @property {string} enablerSrc - URL the ID5 Prebid enabler was loaded from, set by the enabler
  * @property {string} enablerFallback - How the ID5 Prebid enabler address was found when the page fell back from the primary host, set by the enabler
+ * @property {string} pbjsGlobal - The global the Prebid.js carrying this submodule is installed under, set by the enabler
  *
  */
 
@@ -137,7 +138,7 @@ class Id5PrebidIntegration {
     this.invocationId += 1;
     // Prebid's refererInfo carries full page URLs - keep origins only, so they never leave this module
     const refererInfo = toOriginsOnlyRefererInfo(prebidRefererInfo);
-    const prebidVersion = this.getPrebidVersion();
+    const prebidVersion = this.getPrebidVersion(prebidConfig.pbjsGlobal);
     const log = new InvocationLogger(SOURCE, this.invocationId);
     log.info(`ID5 API Prebid  external module version ${this._version}. Invoking fetchId5Id()`, dynamicConfig, prebidConfig);
     const config = new Config({
@@ -206,12 +207,16 @@ class Id5PrebidIntegration {
       forceAllowLocalStorageGrant: false,
       storageExpirationDays: options.storageExpirationDays
     });
-    setTimeout(() => enableEventsTracking(prebidConfig.partner, log), 0);
+    setTimeout(() => enableEventsTracking(prebidConfig.partner, log, DEFAULT_ENDPOINTS, prebidConfig.pbjsGlobal), 0);
     return instancePromise;
   }
 
-  getPrebidVersion() {
-    return getPbjsGlobal(window)?.version ?? 'unknown';
+  /**
+   * @param {string} [pbjsRef] - the global Prebid.js is installed under, as reported by the enabler
+   * @returns {string}
+   */
+  getPrebidVersion(pbjsRef) {
+    return getPbjsInstance(window, pbjsRef)?.version ?? 'unknown';
   }
 
   /**
