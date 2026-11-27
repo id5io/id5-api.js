@@ -977,12 +977,39 @@ enabler.reconfigureUserIdModule();
 
 #### Wiring the configuration yourself
 
-For pages that build their own Prebid configuration, the enabler exposes the values it would otherwise set. Both return a `Promise`.
+For pages that build their own Prebid configuration, the enabler exposes what it would otherwise write and leaves the writing to the page. All of them return a `Promise`.
 
 | Method | Returns |
 |---|---|
+| `buildUserIdConfig(config)` | the ID5 entry of `userSync.userIds` that `configureUserIdModule(config)` writes |
+| `rebuildUserIdConfig(config)` | `{ pbjs, existing, rebuilt }`: the ID5 entry that `reconfigureUserIdModule(config)` writes, the entry it replaces and the Prebid.js it was read from |
 | `getExternalModuleUrl()` | a URL the ID5 external module can be loaded from |
 | `getConfigUrl()` | the ID5 config endpoint |
+
+An entry is an item of `userSync.userIds`, Prebid's `UserIdConfig`: complete and ready to be written as it is. Both methods resolve to `undefined` where the configuring call would have written nothing, so check the result before writing it.
+
+`buildUserIdConfig()` neither reads nor waits for Prebid.js. `auctionDelay` and `syncDelay` belong to `userSync`, so the page sets them itself:
+
+```javascript
+const id5Entry = await enabler.buildUserIdConfig({ partner: 173 });
+if (id5Entry) {
+    pbjs.setConfig({ userSync: { userIds: [id5Entry, ...otherUserIds] } });
+}
+```
+
+`rebuildUserIdConfig()` waits for Prebid.js to load, then up to `waitForConfigMs` for the entry the page configures. `existing` is the entry Prebid holds and `rebuilt` the one to write in its place, with the ID5 endpoints updated. It takes the submodule parameters that override the ones on the page, flat or under `params`; `storage`, `bidders` and `value` stay as the page set them. Given a `partner`, it resolves to `undefined` on a page that configures another one. It sets nothing and refreshes nothing, so the page replaces the entry and refreshes the submodule itself to use the new endpoints on this page view:
+
+```javascript
+const result = await enabler.createFor(customPrebidInstance).rebuildUserIdConfig({ partner: 173 });
+if (result) {
+    const { pbjs, existing, rebuilt } = result;
+    const userSync = pbjs.getConfig('userSync');
+    pbjs.setConfig({ userSync: { ...userSync, userIds: userSync.userIds.map(entry => entry === existing ? rebuilt : entry) } });
+    pbjs.refreshUserIds({ submoduleNames: ['id5Id'] });
+}
+```
+
+Called on `enabler`, these methods work for the default Prebid.js. For another one, call them on an enabler [made for it](#choosing-the-prebidjs-to-configure): the entry is then read from that Prebid.js, and on an enabler made with `createForNamed()` it names that Prebid.js in `pbjsGlobal`, which points the ID5 module at it.
 
 #### Choosing the Prebid.js to configure
 
